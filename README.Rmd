@@ -1,0 +1,6 @@
+# MHWapp
+A proof of concept for a daily updating global MHW map
+
+# Updates
+* September 25, 2018
+    * First push of initial MHW calculations for South Africa region
