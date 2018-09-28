@@ -36,10 +36,10 @@ MHW_cat_clim_long <- MHW_cat %>%
   ungroup()
 rm(MHW_cat)
 
-MHW_cat_clim_sub <- MHW_cat_clim %>% 
-  filter(t %in% seq(as.Date("2016-01-01"), as.Date("2016-01-15"), by = "day")) %>% 
-  mutate(category = factor(category, levels = c("I Moderate", "II Strong", 
-                                                "III Severe", "IV Extreme")))
+MHW_cat_clim_sub <- MHW_cat_clim_long %>% 
+  filter(t %in% seq(as.Date("2016-01-01"), as.Date("2016-01-15"), by = "day")) #%>% 
+  # mutate(category = factor(category, levels = c("I Moderate", "II Strong", 
+  #                                               "III Severe", "IV Extreme")))
 
 date_holder <- data.frame(index = "x", 
                           t = unique(MHW_cat_clim_sub$t)) %>% 
@@ -67,11 +67,11 @@ gb + geom_raster(data = MHW_cat_clim_sub, aes(fill = category)) +
 
   
   
-ggplot(place_holder, aes(x = lon, y = lat)) +
-  # geom_raster(data = MHW_cat_clim_sub, aes(fill = category)) +
-  borders(fill = "grey70", colour = "black") +
+ggplot(MHW_cat_clim_sub, aes(x = lon, y = lat)) +
+  geom_raster(aes(fill = category)) +
+  # borders(fill = "grey70", colour = "black") +
   # scale_fill_manual(values = c("#ffc866", "#ff6900", "#9e0000", "#2d0000")) +
-  coord_cartesian(xlim = c(10, 40), ylim = c(-40, -25), expand = 0) +
+  # coord_cartesian(xlim = c(10, 40), ylim = c(-40, -25), expand = 0) +
   labs(title = 'Date: {frame_time}', x = '', y = '') +
   transition_time(t)
 # )
