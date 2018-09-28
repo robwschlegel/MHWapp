@@ -44,17 +44,17 @@ library(heatwaveR)
 # save results
 # save(MHW_res, file = "data/MHW_res.RData")
 load("data/MHW_res.RData")
-## NB: The above file is not on github as it is 400MB
+## NB: The above file is not on github as it is 381MB
 
 # Calculate categories ----------------------------------------------------
 
 # system.time(
-# MHW_cat <- MHW_res %>% 
-#   mutate(cat = map(event, category)) %>% 
+# MHW_cat <- MHW_res %>%
+#   mutate(cat = map(event, category, climatology = T)) %>%
 #   select(-event)
-# ) # 135 seconds
+# ) # 173 seconds
 
 # save results
 # save(MHW_cat, file = "data/MHW_cat.RData")
 load("data/MHW_cat.RData")
-
+## NB: The above file is not on github as it is 91MB
