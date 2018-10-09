@@ -5,3 +5,7 @@ A proof of concept for a daily updating global MHW map
 * September 25, 2018
     * First push of initial MHW calculations for South Africa region
     * An attempt was made at a basic plotly diagram
+
+* October 5, 2018
+    * Rather moving towards leaflet
+    * Made some baby steps

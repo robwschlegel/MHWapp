@@ -7,6 +7,8 @@ library(tidyverse)
 library(leaflet)
 library(raster)
 library(rgdal)
+library(htmlwidgets)
+library(mapview)
 
 
 # Data --------------------------------------------------------------------
@@ -26,7 +28,13 @@ MHW_cat_clim <- MHW_cat %>%
   filter(row_number() %% 2 == 1) %>% 
   unnest(cat)
 
-
+# The category colour pallette
+fillColCat <- c(
+  "Moderate" = "#ffc866",
+  "Strong" = "#ff6900",
+  "Severe" = "#9e0000",
+  "Extreme" = "#2d0000"
+)
 
 # Base map ----------------------------------------------------------------
 
@@ -47,7 +55,7 @@ map <- leaflet() %>%
     attribution = NULL,group = 'Graticules') %>%
   
   # focus map in a certain area / zoom level
-  setView(lng = 25, lat = -35, zoom = 4) %>%
+  setView(lng = 25, lat = -35, zoom = 5) %>%
   
   # add layers control
   # addLayersControl(overlayGroups = c('Place names',
@@ -69,14 +77,8 @@ map
 
 MHW_cat_clim_sub <- MHW_cat_clim %>% 
   dplyr::filter(t == as.Date("2000-01-01")) %>%
-  dplyr::rename(value = category) %>%
-  dplyr::select(lon, lat, value)
-  # dplyr::rename(lng = lon)
-
-MHW_cat_clim_grid <- expand.grid(MHW_cat_clim_sub$lon, MHW_cat_clim_sub$lat) %>% 
-  rename(lon = Var1, lat = Var2) %>% 
-  left_join(MHW_cat_clim_sub, by = c("lon", "lat")) %>% 
-  mutate(value = ifelse(is.na(value), "III Severe", value))
+  # dplyr::rename(value = category) %>%
+  dplyr::select(lon, lat, category)
 
 
 MHW_raster <- MHW_cat_clim_sub 
@@ -88,18 +90,6 @@ rast <- rasterFromXYZ(MHW_raster, res = c(0.25, 0.25), digits = 2,
 plot(rast)
 
 
-MHW_raster <- MHW_cat_clim_sub %>% 
-  dplyr::rename(x = lon, y = lat, z = value) %>% 
-  rasterFromXYZ()
-plot(MHW_raster)
-
-#Did this....
-# s = SpatialPixelsDataFrame(df[,c('lng', 'lat')], data = df)
-s <- SpatialPixelsDataFrame(MHW_raster[,c('X', 'Y')], data = MHW_raster)
-crs(s) <-  sp::CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
-
-r <- raster(s)
-
 # Set up the colors
 # val <-  c("I Moderate", "II Strong", "III Severe", "IV Extreme")
 # pal <-  colorFactor(c("#ffc866", "#ff6900", "#9e0000", "#2d0000"), levels = val,
@@ -108,33 +98,26 @@ val <- c(1, 2)
 pal <-  colorFactor(c("#ffc866", "#ff6900"), levels = val,
                     na.color = "transparent", ordered = T)
 
-# Made the map
-leaflet() %>% addProviderTiles("CartoDB.Positron") %>%
-  addRasterImage(r, colors = pal, opacity = 0.5) %>%
-  addLegend(pal = pal, values = val, title = "MHW Category")
-
 map_data <- map %>% 
-  addRasterImage(rast, colors = pal, opacity = 0.5) %>%
-  addLegend(pal = pal, values = val, title = "MHW Category")
-  # addCircleMarkers(data = MHW_cat_clim_sub, ~lon, ~lat,
-  #                  weight = 0.5,
-  #                  color = "grey", 
-  #                  fillColor = MHW_cat_clim_sub$value,
-  #                  radius = 4, 
-  #                  fillOpacity = 0.9, 
-  #                  stroke = T, 
-  #                  label = ~paste0('Event at: ', 
-  #                                  as.character(round(lat,3)), ', ', 
-  #                                  as.character(round(lon,3))), 
-  #                  group = 'Points')
+  addRasterImage(rast, colors = pal, opacity = 0.5, method = "ngb") %>%
+  addCircleMarkers(data = MHW_cat_clim_sub, ~lon, ~lat,
+                   weight = 0.5,
+                   color = "grey",
+                   fillColor = "white",
+                   radius = 4,
+                   fillOpacity = 0.05,
+                   stroke = T,
+                   label = ~paste0('Event at: ',
+                                   as.character(round(lat,3)), ', ',
+                                   as.character(round(lon,3))),
+                   group = 'Points') %>%
+  addLegend(pal = pal, values = val, title = "MHW Category", labels = c("I Moderate", "II Strong"))
 map_data  
 
 # Save --------------------------------------------------------------------
 
-# # # save a stand-alone, interactive map as an html file
-# library(htmlwidgets)
-# saveWidget(widget = map, file = 'map.html', selfcontained = T)
+# save a stand-alone, interactive map as an html file
+saveWidget(widget = map_data, file = 'MHW_map.html', selfcontained = T)
 
 # # # save a snapshot as a png file
-# library(mapview)
-# mapshot(map, file = 'map.png')
+mapshot(map_data, file = 'MHW_map.png')
