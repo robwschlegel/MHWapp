@@ -13,7 +13,7 @@ library(mapview)
 
 # Data --------------------------------------------------------------------
 
-load("data/MHW_res.RData")
+# load("data/MHW_res.RData")
 load("data/MHW_cat.RData")
 
 # The event categories
@@ -30,10 +30,10 @@ MHW_cat_clim <- MHW_cat %>%
 
 # The category colour pallette
 fillColCat <- c(
-  "Moderate" = "#ffc866",
-  "Strong" = "#ff6900",
-  "Severe" = "#9e0000",
-  "Extreme" = "#2d0000"
+  "I Moderate" = "#ffc866",
+  "II Strong" = "#ff6900",
+  "III Severe" = "#9e0000",
+  "IV Extreme" = "#2d0000"
 )
 
 # Base map ----------------------------------------------------------------
@@ -100,17 +100,20 @@ pal <-  colorFactor(c("#ffc866", "#ff6900"), levels = val,
 
 map_data <- map %>% 
   addRasterImage(rast, colors = pal, opacity = 0.5, method = "ngb") %>%
+  # leaflet::
   addCircleMarkers(data = MHW_cat_clim_sub, ~lon, ~lat,
-                   weight = 0.5,
+                   weight = 1.0,
                    color = "grey",
                    fillColor = "white",
-                   radius = 4,
-                   fillOpacity = 0.05,
+                   radius = 10,
+                   fillOpacity = 0.0,
                    stroke = T,
                    label = ~paste0('Event at: ',
                                    as.character(round(lat,3)), ', ',
                                    as.character(round(lon,3))),
                    group = 'Points') %>%
+  addScaleBar() %>%
+  # tileOptions(minZoom = 10) %>% 
   addLegend(pal = pal, values = val, title = "MHW Category", labels = c("I Moderate", "II Strong"))
 map_data  
 
