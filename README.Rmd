@@ -9,3 +9,7 @@ A proof of concept for a daily updating global MHW map
 * October 5, 2018
     * Rather moving towards leaflet
     * Made some baby steps
+    
+* October 11, 2018
+    * Playing about with popping the leaflet into shiny
+    * Basic product up and running

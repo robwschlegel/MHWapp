@@ -1,0 +1,12 @@
+name: MHWapp
+title: MHWapp
+username:
+account: robert-schlegel
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 507261
+bundleId: 1637241
+url: https://robert-schlegel.shinyapps.io/MHWapp/
+when: 1539270947.45803
+asMultiple: FALSE
+asStatic: FALSE
