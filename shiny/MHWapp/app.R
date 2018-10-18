@@ -47,36 +47,15 @@ MHW_colours <- c(
   "IV Extreme" = "#2d0000"
 )
 
-# Testing...
-# filename <- system.file("external/test.grd", package="raster")
-# rast <- raster(filename)
-# leaflet() %>% addRasterImage(rast)
 
-
-# Base map ----------------------------------------------------------------
-
-# start basemap
-# map <- leaflet() %>% 
-#   # add ocean basemap
-#   addProviderTiles(providers$Esri.OceanBasemap) %>%
-#   # add another layer with place names
-#   addProviderTiles(providers$Hydda.RoadsAndLabels, group = 'Place names') %>%
-#   # add graticules from a NOAA webserver
-#   addWMSTiles(
-#     "https://gis.ngdc.noaa.gov/arcgis/services/graticule/MapServer/WMSServer/",
-#     layers = c("1-degree grid", "5-degree grid"),
-#     options = WMSTileOptions(format = "image/png8", transparent = TRUE),
-#     attribution = NULL,group = 'Graticules') %>%
-#   # focus map in a certain area / zoom level
-#   setView(lng = 25, lat = -35, zoom = 5) %>%
-#   hideGroup(c('Place names'))
-# 
-# val <- c(1, 2)
-# pal <-  colorFactor(c("#ffc866", "#ff6900"), levels = val,
-#                     na.color = "transparent", ordered = T)
+# Prep --------------------------------------------------------------------
 
 pal_circ <- colorFactor(palette = MHW_colours, levels = levels(MHW_cat_clim$category))
 pal_rast <- colorNumeric(palette = MHW_colours, domain = c(1,2,3,4), na.color = NA)
+
+#Set projections
+inputProj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+leafletProj <- "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +towgs84=0,0,0,0,0,0,0 +units=m +nadgrids=@null +wktext +no_defs"
 
 
 # UI ----------------------------------------------------------------------
@@ -87,12 +66,6 @@ ui <- bootstrapPage(
   tags$style(type = "text/css", "html, body {width:100%;height:100%}"),
   leafletOutput("map", width = "100%", height = "100%"),
   absolutePanel(top = 10, right = 10,
-                # sliderInput("range", "Magnitudes", min(quakes$mag), max(quakes$mag),
-                #             value = range(quakes$mag), step = 0.1
-                # ),
-                # selectInput("colors", "Color Scheme",
-                #             rownames(subset(brewer.pal.info, category %in% c("seq", "div")))
-                # ),
                 dateInput("date_choice", "Date", 
                           # value = MHW_cat_clim$t[MHW_cat_clim$intensity == max(MHW_cat_clim$intensity)][1], 
                           value = as.Date("2017-12-01"),
@@ -109,9 +82,11 @@ ui <- bootstrapPage(
 server <- function(input, output, session) {
   
   # Reactive expression for the data subsetted to what the user selected
-  circleData <- reactive({
-    MHW_cat_clim[MHW_cat_clim$t == input$date_choice,]
-  })
+  
+  # circleData <- reactive({
+  #   MHW_cat_clim[MHW_cat_clim$t == input$date_choice,]
+  # })
+  
   rasterData <- reactive({
     MHW_raster <- MHW_cat_clim %>% 
       # tester...
@@ -121,22 +96,39 @@ server <- function(input, output, session) {
       rename(X = lon, Y = lat, Z = category)
     MHW_raster$Z <- as.numeric(MHW_raster$Z)
     MHW_raster <- rasterFromXYZ(MHW_raster, res = c(0.25, 0.25), digits = 2,
-                          crs = "+proj=longlat +datum=WGS84 +no_defs")
+                          crs = "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
     return(MHW_raster)
     # rasterFromXYZ(MHW_raster, res = c(0.25, 0.25), digits = 2,
-    #               crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+    #               crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0")
+    # crs = "+proj=longlat +datum=NAD83"
   })
   
-  # This reactive expression represents the palette function,
-  # which changes as the user makes selections in UI.
-  # colorpal <- reactive({
-  #   colorFactor(MHW_colours, levels(MHW_cat_clim$category))
-  # })
+  lldepth <- reactive({
+    lldepth <- MHW_cat_clim %>%
+      # tester...
+      # filter(t == as.Date("2017-12-01")) %>%
+      filter(t == input$date_choice) %>%
+      dplyr::select(lon, lat, category) %>%
+      rename(X = lon, Y = lat, Z = category)
+    lldepth$Z <- as.numeric(lldepth$Z)
+    lldepth <- rasterFromXYZ(lldepth, res = c(0.25, 0.25), digits = 2,
+                             crs = "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
+  })
+
+  depth <- reactive({
+    redepth <- MHW_cat_clim %>%
+      # tester...
+      # filter(t == as.Date("2017-12-01")) %>%
+      filter(t == input$date_choice) %>%
+      dplyr::select(lon, lat, category) %>%
+      rename(X = lon, Y = lat, Z = category)
+    redepth$Z <- as.numeric(redepth$Z)
+    redepth <- rasterFromXYZ(redepth, res = c(0.25, 0.25), digits = 2,
+                             crs = "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
+    depth <- projectRasterForLeaflet(redepth, method = "ngb")
+  })
   
   output$map <- renderLeaflet({
-    # Use leaflet() here, and only include aspects of the map that
-    # won't need to change dynamically (at least, not unless the
-    # entire map is being torn down and recreated).
     leaflet(MHW_cat_clim) %>%
       setView(-30, 30, zoom = 4, options = tileOptions(minZoom = 0, maxZoom = 8)) %>%
       # addProviderTiles("Stamen.TonerLite",
@@ -149,10 +141,6 @@ server <- function(input, output, session) {
       # fitBounds(~min(lon), ~min(lat), ~max(lon), ~max(lat))
   })
   
-  # Incremental changes to the map (in this case, replacing the
-  # circles when a new color is chosen) should be performed in
-  # an observer. Each independent set of things that can change
-  # should be managed in its own observer.
   observe({
     leafletProxy("map") %>%
       # clearShapes() %>%
@@ -165,16 +153,61 @@ server <- function(input, output, session) {
       addScaleBar(position = "bottomright")
   })
   
+  #Observer to show Popups on click
+  observe({
+    click <- input$map_click
+    if (!is.null(click)) {
+      showpos(x = click$lng, y = click$lat)
+    }
+  })
+  
+  #Show popup on clicks
+  showpos <- function(x = NULL, y = NULL) {
+    lldepth <- lldepth()
+    depth <- depth()
+    # Translate Lon-Lat to cell number using the unprojected raster
+    # This is because the projected raster is not in degrees, we cannot use it!
+    cell <- cellFromXY(lldepth, c(x, y))
+    #If the click is inside the raster...
+    if (!is.na(cell)) {
+      xy <- xyFromCell(lldepth, cell) #Get the center of the cell
+      x <- xy[1]
+      y <- xy[2]
+      xy <- SpatialPoints(data.frame(x,y))
+      proj4string(xy) <- inputProj
+      xy <- as.data.frame(spTransform(xy, leafletProj))
+      #Get the cell number from the newly transformed metric X and Y.
+      cell <- cellFromXY(depth, c(xy$x, xy$y))
+      #At this point, you can also retrace back the center of the cell in
+      #leaflet coordinates, starting from the cell number!
+      xy <- SpatialPoints(xyFromCell(depth, cell))
+      proj4string(xy) <- leafletProj
+      xy <- as.data.frame(spTransform(xy, inputProj))
+      #Get row and column, to print later
+      rc <- rowColFromCell(lldepth, cell)
+      #Get value of the given cell
+      val <- depth[cell]
+      content <- paste0("Lon = ", round(x, 3),
+                        ";\n Lat = ", round(y, 3),
+                        "; Category = ", names(MHW_colours)[val])
+      proxy <- leafletProxy("map")
+      #add Popup
+      proxy %>% clearPopups() %>% addPopups(x, y, popup = content)
+      #add rectangles for testing
+      proxy %>% clearShapes() %>% addRectangles(x-0.25/2, y-0.25/2, x+0.25/2, y+0.25/2)
+    }
+  }
+  
   # Use a separate observer to recreate the legend as needed.
   observe({
     proxy <- leafletProxy("map", data = MHW_cat_clim)
-
     # Remove any existing legend, and only if the legend is
     # enabled, create a new one.
     proxy %>% clearControls()
     if (input$legend) {
       proxy %>% addLegend(position = "bottomright",
-                          pal = pal_circ, values = ~category
+                          pal = pal_circ, 
+                          values = ~category
       )
     }
   })

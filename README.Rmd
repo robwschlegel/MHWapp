@@ -1,10 +1,15 @@
 # MHWapp
 A proof of concept for a daily updating global MHW map
 
+Presently the project is hosted at this address: https://robert-schlegel.shinyapps.io/MHWapp/
+
+Ultimately it will be hosted on a permanent instance where it can live in perpetuity.
+
 # Updates
 
 * October 18th, 2018
   * Global proof of concept
+  * Basic clickability added
 
 * October 11, 2018
     * Playing about with popping the leaflet into shiny
