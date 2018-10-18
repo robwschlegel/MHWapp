@@ -2,14 +2,18 @@
 A proof of concept for a daily updating global MHW map
 
 # Updates
-* September 25, 2018
-    * First push of initial MHW calculations for South Africa region
-    * An attempt was made at a basic plotly diagram
+
+* October 18th, 2018
+  * Global proof of concept
+
+* October 11, 2018
+    * Playing about with popping the leaflet into shiny
+    * Basic product up and running
 
 * October 5, 2018
     * Rather moving towards leaflet
     * Made some baby steps
     
-* October 11, 2018
-    * Playing about with popping the leaflet into shiny
-    * Basic product up and running
+* September 25, 2018
+    * First push of initial MHW calculations for South Africa region
+    * An attempt was made at a basic plotly diagram

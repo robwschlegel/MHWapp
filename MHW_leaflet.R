@@ -71,7 +71,7 @@ map <- leaflet() %>%
   hideGroup(c('Place names'))
 
 # show map
-map
+# map
 
 
 # Add data ----------------------------------------------------------------
