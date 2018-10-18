@@ -3,12 +3,13 @@
 
 # Libraries ---------------------------------------------------------------
 
+.libPaths(c("~/R-packages", .libPaths()))
 library(tidyverse)
 library(leaflet)
 library(raster)
-library(rgdal)
-library(htmlwidgets)
-library(mapview)
+# library(rgdal)
+# library(htmlwidgets)
+# library(mapview)
 
 
 # Data --------------------------------------------------------------------
