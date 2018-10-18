@@ -13,11 +13,15 @@ library(RColorBrewer)
 
 # Load data ---------------------------------------------------------------
 
-# Prep the global event clims
-# load("data/MHW_cat_clim_sub.RData")
-# MHW_cat_clim <- MHW_cat_clim_sub %>%
+# The event clims
+# load("data/MHW_cat.RData")
+# MHW_cat_clim <- MHW_cat %>%
+#   unnest(cat) %>%
+#   filter(row_number() %% 2 == 1) %>%
+#   unnest(cat) %>%
 #   mutate(category = factor(category, levels = c("I Moderate", "II Strong",
-#                                                 "III Severe", "IV Extreme"))) %>%
+#                                                 "III Severe", "IV Extreme")),
+#          intensity = round(intensity, 2)) %>%
 #   dplyr::select(lon, lat, t, intensity, category)
 # save(MHW_cat_clim, file = "shiny/MHWapp/MHW_cat_clim.RData")
 
@@ -113,9 +117,9 @@ server <- function(input, output, session) {
     
     leafletProxy("map", data = filteredData()) %>%
       clearShapes() %>%
-      addCircles(radius = 200, weight = 1, color = "#777777",
+      addCircles(radius = ~20^intensity, weight = 1, color = "#777777",
                  fillColor = ~pal(intensity), fillOpacity = 0.7, 
-                 popup = ~paste0("Daily intensity: ", intensity)
+                 popup = ~paste0("Daily intensity: ", round(intensity, 2))
       )
   })
   
