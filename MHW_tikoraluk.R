@@ -58,7 +58,7 @@ MHW_cat_event <- function(df){
 load_sub_MHW <- function(file_name){
   load(file = file_name)
   data_sub <- MHW_cat_clim(MHW_res) %>% 
-    filter(t >= as.Date("2017-12-01")) %>% 
+    filter(t >= as.Date("2017-01-01")) %>% 
     mutate(intensity = round(intensity, 2))
   return(data_sub)
 }
@@ -70,5 +70,10 @@ MHW_files <- dir(path = "../data", pattern = "MHW.calc", full.names = T)
 # system.time(
 # MHW_cat_clim_sub <- plyr::ldply(MHW_files, .fun = load_sub_MHW, .parallel = T)
 # ) # 737 seconds at 50 cores
+# MHW_cat_clim_sub <- MHW_cat_clim_sub %>%
+#   mutate(category = factor(category, levels = c("I Moderate", "II Strong",
+#                                                 "III Severe", "IV Extreme")),
+#          lon = ifelse(lon > 180, lon-360, lon)) %>%
+#   dplyr::select(lon, lat, t, intensity, category)
+# MHW_cat_clim_sub <- as.tibble(MHW_cat_clim_sub)
 # save(MHW_cat_clim_sub, file = "data/MHW_cat_clim_sub.RData")
-
