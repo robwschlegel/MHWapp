@@ -1,7 +1,8 @@
 
 # Load libraries ----------------------------------------------------------
 
-library(tidyverse)
+# library(tidyverse)
+library(dplyr)
 library(shiny)
 library(leaflet)
 library(raster)
@@ -32,7 +33,8 @@ library(rgdal)
 #   mutate(category = factor(category, levels = c("I Moderate", "II Strong",
 #                                                 "III Severe", "IV Extreme")),
 #          lon = ifelse(lon > 180, lon-360, lon)) %>%
-#   dplyr::select(lon, lat, t, intensity, category)
+#   dplyr::select(lon, lat, t, intensity, category) %>% 
+#   filter(t >= as.Date("2017-12-01"))
 # save(MHW_cat_clim, file = "shiny/MHWapp/MHW_cat_clim.RData")
 
 # The event categories
@@ -90,13 +92,14 @@ server <- function(input, output, session) {
   rasterData <- reactive({
     MHW_raster <- MHW_cat_clim %>% 
       # tester...
-      # filter(t == as.Date("1984-06-08")) %>%
+      # filter(t == as.Date("2017-12-01")) %>%
       filter(t == input$date_choice) %>%
       dplyr::select(lon, lat, category) %>% 
       rename(X = lon, Y = lat, Z = category)
     MHW_raster$Z <- as.numeric(MHW_raster$Z)
     MHW_raster <- rasterFromXYZ(MHW_raster, res = c(0.25, 0.25), digits = 2,
                           crs = "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
+    # MHW_raster <- projectRasterForLeaflet(MHW_raster, method = "ngb")
     return(MHW_raster)
     # rasterFromXYZ(MHW_raster, res = c(0.25, 0.25), digits = 2,
     #               crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0")

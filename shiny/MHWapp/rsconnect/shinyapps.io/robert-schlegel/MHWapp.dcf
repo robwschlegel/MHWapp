@@ -5,8 +5,8 @@ account: robert-schlegel
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 507261
-bundleId: 1650170
+bundleId: 1651497
 url: https://robert-schlegel.shinyapps.io/MHWapp/
-when: 1539891891.61595
+when: 1539959397.12902
 asMultiple: FALSE
 asStatic: FALSE
