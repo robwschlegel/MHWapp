@@ -66,17 +66,17 @@ leafletProj <- "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +to
 ui <- bootstrapPage(
   tags$style(type = "text/css", "html, body {width:100%;height:100%}"),
   leafletOutput("map", width = "100%", height = "100%"),
-  absolutePanel(top = 10, right = 10,
+  absolutePanel(top = 10, right = 10, draggable = TRUE,
+                radioButtons(inputId = "Pixels",
+                             label = "Display",
+                             choices = list("Categories", "Events", "Anomalies"),
+                             inline = TRUE,
+                             selected = "Categories"),
                 dateInput("date_choice", "Date", 
                           # value = MHW_cat_clim$t[MHW_cat_clim$intensity == max(MHW_cat_clim$intensity)][1], 
                           value = as.Date("2017-12-01"),
                           min = min(MHW_cat_clim$t), max = max(MHW_cat_clim$t)
                 ),
-                radioButtons(inputId = "Pixels",
-                             # label = "Select maximum limit for missing data (%NA) in time series",
-                             choices = list("Categories", "Anomalies"),
-                             inline = TRUE,
-                             selected = "Categories"),
                 checkboxInput("legend", "Show legend", TRUE)
   )
 )
@@ -103,7 +103,8 @@ server <- function(input, output, session) {
     MHW_raster$Z <- as.numeric(MHW_raster$Z)
     MHW_raster <- rasterFromXYZ(MHW_raster, res = c(0.25, 0.25), digits = 2,
                           crs = "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
-    # MHW_raster <- projectRasterForLeaflet(MHW_raster, method = "ngb")
+    # MHW_raster <- projectRaster(MHW_raster, crs = leafletProj)
+    MHW_raster <- projectRasterForLeaflet(MHW_raster, method = "ngb")
     return(MHW_raster)
     # rasterFromXYZ(MHW_raster, res = c(0.25, 0.25), digits = 2,
     #               crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0")
@@ -122,6 +123,7 @@ server <- function(input, output, session) {
     lldepth$Z <- as.numeric(lldepth$Z)
     lldepth <- rasterFromXYZ(lldepth, res = c(0.25, 0.25), digits = 2,
                              crs = "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
+    # lldepth <- projectRasterForLeaflet(lldepth, method = "ngb")
   })
 
   depth <- reactive({
@@ -144,7 +146,7 @@ server <- function(input, output, session) {
       #                  group = "Toner", 
       #                  options = tileOptions(minZoom = 0, maxZoom = 16)) #%>%
       addTiles(group = "OSM", 
-               options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.7)) #%>%
+               options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5)) #%>%
       # addProviderTiles("Esri.WorldTopoMap",    
       #                  group = "Topo") #%>% 
       # fitBounds(~min(lon), ~min(lat), ~max(lon), ~max(lat))
@@ -184,6 +186,7 @@ server <- function(input, output, session) {
       y <- xy[2]
       xy <- SpatialPoints(data.frame(x,y))
       proj4string(xy) <- inputProj
+      # proj4string(xy) <- leafletProj
       xy <- as.data.frame(spTransform(xy, leafletProj))
       #Get the cell number from the newly transformed metric X and Y.
       cell <- cellFromXY(depth, c(xy$x, xy$y))
@@ -203,7 +206,8 @@ server <- function(input, output, session) {
       #add Popup
       proxy %>% clearPopups() %>% addPopups(x, y, popup = content)
       #add rectangles for testing
-      proxy %>% clearShapes() %>% addRectangles(x-0.25/2, y-0.25/2, x+0.25/2, y+0.25/2)
+      # proxy %>% clearShapes() %>% addRectangles(x-0.25/2, y-0.25/2, x+0.25/2, y+0.25/2)
+      proxy %>% clearMarkers() %>% addAwesomeMarkers(x, y)
     }
   }
   
