@@ -56,7 +56,7 @@ pal_circ <- colorFactor(palette = MHW_colours, levels = levels(MHW_cat_clim$cate
 pal_rast <- colorNumeric(palette = MHW_colours, domain = c(1,2,3,4), na.color = NA)
 
 #Set projections
-inputProj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+inputProj <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
 leafletProj <- "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +towgs84=0,0,0,0,0,0,0 +units=m +nadgrids=@null +wktext +no_defs"
 
 
@@ -98,12 +98,14 @@ server <- function(input, output, session) {
       rename(X = lon, Y = lat, Z = category)
     MHW_raster$Z <- as.numeric(MHW_raster$Z)
     MHW_raster <- rasterFromXYZ(MHW_raster, res = c(0.25, 0.25), digits = 2,
-                          crs = "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
+                          crs = "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
     # MHW_raster <- projectRasterForLeaflet(MHW_raster, method = "ngb")
     return(MHW_raster)
     # rasterFromXYZ(MHW_raster, res = c(0.25, 0.25), digits = 2,
     #               crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0")
     # crs = "+proj=longlat +datum=NAD83"
+    # +init=epsg:3411
+    # +init=epsg:4326
   })
   
   lldepth <- reactive({
@@ -115,7 +117,7 @@ server <- function(input, output, session) {
       rename(X = lon, Y = lat, Z = category)
     lldepth$Z <- as.numeric(lldepth$Z)
     lldepth <- rasterFromXYZ(lldepth, res = c(0.25, 0.25), digits = 2,
-                             crs = "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
+                             crs = "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
   })
 
   depth <- reactive({
@@ -127,7 +129,7 @@ server <- function(input, output, session) {
       rename(X = lon, Y = lat, Z = category)
     redepth$Z <- as.numeric(redepth$Z)
     redepth <- rasterFromXYZ(redepth, res = c(0.25, 0.25), digits = 2,
-                             crs = "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
+                             crs = "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
     depth <- projectRasterForLeaflet(redepth, method = "ngb")
   })
   

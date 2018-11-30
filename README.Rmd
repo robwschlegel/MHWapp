@@ -7,6 +7,9 @@ Ultimately it will be hosted on a permanent instance where it can live in perpet
 
 # Updates
 
+* November 30th, 2018
+  * Some old changes that needed pushing
+
 * October 19th, 2018
   * Attempted to host all of 2017 data but it fell over
   * Created a second instance at "MHWtracker"
