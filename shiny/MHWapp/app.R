@@ -62,7 +62,6 @@ leafletProj <- "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +to
 
 # UI ----------------------------------------------------------------------
 
-
 # Define UI for map controls
 ui <- bootstrapPage(
   tags$style(type = "text/css", "html, body {width:100%;height:100%}"),
@@ -73,6 +72,11 @@ ui <- bootstrapPage(
                           value = as.Date("2017-12-01"),
                           min = min(MHW_cat_clim$t), max = max(MHW_cat_clim$t)
                 ),
+                radioButtons(inputId = "Pixels",
+                             # label = "Select maximum limit for missing data (%NA) in time series",
+                             choices = list("Categories", "Anomalies"),
+                             inline = TRUE,
+                             selected = "Categories"),
                 checkboxInput("legend", "Show legend", TRUE)
   )
 )

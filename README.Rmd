@@ -9,6 +9,7 @@ Ultimately it will be hosted on a permanent instance where it can live in perpet
 
 * November 30th, 2018
   * Some old changes that needed pushing
+  * Playing with UI
 
 * October 19th, 2018
   * Attempted to host all of 2017 data but it fell over
