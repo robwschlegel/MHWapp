@@ -40,6 +40,7 @@ library(rgdal)
 # The event categories
 # load("shiny/MHWapp/MHW_cat_clim.RData")
 load("MHW_cat_clim.RData")
+load("MHW_event.RData")
 
 # The category colour pallette
 MHW_colours <- c(
