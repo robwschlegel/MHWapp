@@ -39,6 +39,7 @@ library(rgdal)
 
 # The event categories
 # load("shiny/MHWapp/MHW_cat_clim.RData")
+# load("shiny/MHWapp/MHW_event.RData")
 load("MHW_cat_clim.RData")
 load("MHW_event.RData")
 
@@ -55,6 +56,8 @@ MHW_colours <- c(
 
 pal_circ <- colorFactor(palette = MHW_colours, levels = levels(MHW_cat_clim$category))
 pal_rast <- colorNumeric(palette = MHW_colours, domain = c(1,2,3,4), na.color = NA)
+pal_event <- colorNumeric(palette = c("white", "purple"), domain = c(0, 5), na.color = NA)
+pal_anom <- colorNumeric(palette = c("blue", "red"), domain = c(-5, 5), na.color = NA)
 
 #Set projections
 inputProj <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
@@ -70,10 +73,11 @@ ui <- bootstrapPage(
   absolutePanel(top = 10, right = 10, draggable = TRUE,
                 radioButtons(inputId = "Pixels",
                              label = "Display",
-                             choices = list("Categories", "Events", "Anomalies"),
+                             choices = list("Categories", "Events"),
                              inline = TRUE,
                              selected = "Categories"),
-                dateInput("date_choice", "Date", 
+                dateInput(inputId = "date_choice", 
+                          label = "Date", 
                           # value = MHW_cat_clim$t[MHW_cat_clim$intensity == max(MHW_cat_clim$intensity)][1], 
                           value = as.Date("2017-12-01"),
                           min = min(MHW_cat_clim$t), max = max(MHW_cat_clim$t)
@@ -89,18 +93,42 @@ ui <- bootstrapPage(
 server <- function(input, output, session) {
   
   # Reactive expression for the data subsetted to what the user selected
+  pal_reactive <- reactive({
+    if(input$Pixels == "Categories"){
+      pal_reactive <- pal_rast
+      } else if(input$Pixels == "Events"){
+        pal_reactive <- pal_event
+        } #else if(input$Pixels == "Anomalies"){
+            # pal_reactive <- pal_anom
+            # }
+    })
   
-  # circleData <- reactive({
-  #   MHW_cat_clim[MHW_cat_clim$t == input$date_choice,]
-  # })
+  baseData <- reactive({
+    if(input$Pixels == "Categories"){
+      baseData <- MHW_cat_clim %>% 
+        filter(t == input$date_choice) %>%
+        dplyr::select(lon, lat, category) %>% 
+        dplyr::rename(X = lon, Y = lat, Z = category)
+      } else if(input$Pixels == "Events"){
+        baseData <- MHW_event_sub %>% 
+          filter(date_start >= input$date_choice) %>%
+          dplyr::select(lon, lat, intensity_max) %>% 
+          dplyr::rename(X = lon, Y = lat, Z = intensity_max)
+        } #else if(input$Pixels == "Anomalies"){
+          # baseData <- MHW_clim %>%
+          #   filter(t == input$date_choice) %>%
+          #   dplyr::select(lon, lat, anom) %>%
+          #   dplyr::rename(X = lon, Y = lat, Z = anom)
+          # }
+    })
   
   rasterData <- reactive({
-    MHW_raster <- MHW_cat_clim %>% 
+    MHW_raster <- baseData() #%>% 
       # tester...
       # filter(t == as.Date("2017-12-01")) %>%
-      filter(t == input$date_choice) %>%
-      dplyr::select(lon, lat, category) %>% 
-      rename(X = lon, Y = lat, Z = category)
+      # filter(t == input$date_choice) %>%
+      # dplyr::select(lon, lat, category) %>% 
+      # dplyr::rename(X = lon, Y = lat, Z = category)
     MHW_raster$Z <- as.numeric(MHW_raster$Z)
     MHW_raster <- rasterFromXYZ(MHW_raster, res = c(0.25, 0.25), digits = 2,
                           crs = "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
@@ -157,7 +185,7 @@ server <- function(input, output, session) {
     leafletProxy("map") %>%
       # clearShapes() %>%
       clearImages() %>% 
-      addRasterImage(rasterData(), colors = pal_rast, method = "ngb", opacity = 0.7) %>%
+      addRasterImage(rasterData(), colors = pal_reactive(), method = "ngb", opacity = 0.7) %>%
       # addCircles(data = circleData(), radius = 5000, weight = 1, color = "grey80",
       #            fillColor = ~pal_circ(category), fillOpacity = 0.7, 
       #            popup = ~paste0("Daily intensity: ", intensity,
