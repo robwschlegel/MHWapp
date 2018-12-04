@@ -58,7 +58,7 @@ MHW_cat_event <- function(df){
 load_sub_MHW_cat_clim <- function(file_name){
   load(file = file_name)
   data_sub <- MHW_cat_clim(MHW_res) %>% 
-    filter(t >= as.Date("2017-01-01")) %>% 
+    filter(t >= as.Date("2017-12-01")) %>% 
     mutate(intensity = round(intensity, 2))
   return(data_sub)
 }
@@ -66,14 +66,15 @@ load_sub_MHW_cat_clim <- function(file_name){
 load_sub_MHW_event <- function(file_name){
   load(file = file_name)
   data_sub <- MHW_event(MHW_res) %>% 
-    filter(date_peak >= as.Date("2017-01-01"))
+    filter(date_start <= as.Date("2017-12-01"), 
+           date_end >= as.Date("2017-12-01"))
   return(data_sub)
 }
 
 load_sub_MHW_clim <- function(file_name){
   load(file = file_name)
   data_sub <- MHW_clim(MHW_res) %>% 
-    filter(t >= as.Date("2017-01-01"))
+    filter(t >= as.Date("2017-12-01"))
   return(data_sub)
 }
 
@@ -104,15 +105,44 @@ MHW_files <- dir(path = "../data", pattern = "MHW.calc", full.names = T)
 # save(MHW_event_sub, file = "data/MHW_event_sub.RData")
 
 # system.time(
-#   MHW_clim_sub <- plyr::ldply(MHW_files[1], .fun = load_sub_MHW_clim, .parallel = T)
+#   MHW_clim_sub <- plyr::ldply(MHW_files, .fun = load_sub_MHW_clim, .parallel = T)
 # ) # 737 seconds at 50 cores
 # MHW_clim_sub <- MHW_clim_sub %>%
 #   mutate(lon = ifelse(lon > 180, lon-360, lon)) %>%
-#   group_by(lon, lat) %>% 
-#   mutate(anomaly = temp - mean(temp, na.rm = T)) %>% 
-#   dplyr::select(lon:var, anomaly) %>% 
+#   group_by(lon, lat) %>%
+#   mutate(anom = temp - mean(temp, na.rm = T)) %>%
+#   dplyr::select(lon:var, anom) %>%
+#   ungroup() %>% 
 #   mutate_all(round, 3)
 # MHW_clim_sub <- as.tibble(MHW_clim_sub)
 # save(MHW_clim_sub, file = "data/MHW_clim_sub.RData")
 
+
+# Sub-samples -------------------------------------------------------------
+
+# load("../tikoraluk/metadata/lon_OISST.RData")
+
+# The rates of onset and decline are not calculated correctly when the start/end date 
+# is the same as the peak date.
+# This was found at the following coordinates:
+
+## Rate onset issue: 
+## lon = 80.625, lat = 73.875, event_no = 93, duration = 9,
+## date_start = 2017-11-02, date_peak = 2017-11-02, date_end = 2017-11-10,
+## intensity_mean = 0.398, intensity_max = 0.481, rate_onset = -0.021, rate_decline = 0.023
+# load(MHW_files[which(lon_OISST == 80.625)])
+# rate_onset_issue <- MHW_clim(MHW_res) %>% 
+#   filter(lat == 73.875) %>% 
+#   select(lon, lat, t, temp)
+# write_csv(rate_onset_issue, path = "../tikoraluk/issues/rate_onset_issue.csv")
+
+## Rate decline issue:
+## lon = -170.125, lat = 67.625, event_no = 81, duration = 6,
+## date_start = 2017-04-21, date_peak = 2017-04-26, date_end = 2017-04-26,
+## intensity_mean = 0.420, intensity_max = 0.465, rate_onset = 0.042, rate_decline = -0.041
+# load(MHW_files[which(lon_OISST == -170.125+360)])
+# rate_decline_issue <- MHW_clim(MHW_res) %>% 
+#   filter(lat == 67.625) %>% 
+#   select(lon, lat, t, temp)
+# write_csv(rate_decline_issue, path = "../tikoraluk/issues/rate_decline_issue.csv")
 
