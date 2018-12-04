@@ -9,7 +9,8 @@ library(padr)
 # Load data ---------------------------------------------------------------
 
 # load("data/MHW_res.RData")
-load("data/MHW_cat.RData")
+load("shiny/MHWapp/MHW_cat_clim.RData")
+load("shiny/MHWapp/MHW_event.RData")
 
 # The climatologies
 # MHW_clim <- MHW_res %>% 
@@ -19,38 +20,46 @@ load("data/MHW_cat.RData")
 #   select(-(threshCriterion:event))
 # rm(MHW_res)
 
-MHW_cat_clim_short <- MHW_cat %>% 
-  unnest(cat) %>% 
-  filter(row_number() %% 2 == 1) %>% 
-  unnest(cat)
+# MHW_cat_clim_short <- MHW_cat %>% 
+#   unnest(cat) %>% 
+#   filter(row_number() %% 2 == 1) %>% 
+#   unnest(cat)
+# 
+# MHW_cat_clim_long <- MHW_cat %>% 
+#   unnest(cat) %>% 
+#   filter(row_number() %% 2 == 1) %>% 
+#   unnest(cat) %>%
+#   group_by(lon, lat) %>%
+#   nest() %>%
+#   mutate(long = map(data, pad, interval = "day")) %>%
+#   select(-data) %>%
+#   unnest(long) %>%
+#   ungroup()
+# rm(MHW_cat)
+# 
+# MHW_cat_clim_sub <- MHW_cat_clim_long %>% 
+#   filter(t %in% seq(as.Date("2016-01-01"), as.Date("2016-01-15"), by = "day")) #%>% 
+#   # mutate(category = factor(category, levels = c("I Moderate", "II Strong", 
+#   #                                               "III Severe", "IV Extreme")))
+# 
+# date_holder <- data.frame(index = "x", 
+#                           t = unique(MHW_cat_clim_sub$t)) %>% 
+#   nest(t)
+# 
+# place_holder <- MHW_cat_clim_sub %>% 
+#   select(lon, lat) %>% 
+#   unique() %>% 
+#   mutate(t = date_holder$data) %>% 
+#   unnest(t)
 
-MHW_cat_clim_long <- MHW_cat %>% 
-  unnest(cat) %>% 
-  filter(row_number() %% 2 == 1) %>% 
-  unnest(cat) %>%
-  group_by(lon, lat) %>%
-  nest() %>%
-  mutate(long = map(data, pad, interval = "day")) %>%
-  select(-data) %>%
-  unnest(long) %>%
-  ungroup()
-rm(MHW_cat)
+MHW_cat_1 <- filter(MHW_cat_clim, t == as.Date("2017-12-01"))
+MHW_event_1 <- filter(MHW_event_sub, date_start >= as.Date("2017-12-01"))
 
-MHW_cat_clim_sub <- MHW_cat_clim_long %>% 
-  filter(t %in% seq(as.Date("2016-01-01"), as.Date("2016-01-15"), by = "day")) #%>% 
-  # mutate(category = factor(category, levels = c("I Moderate", "II Strong", 
-  #                                               "III Severe", "IV Extreme")))
 
-date_holder <- data.frame(index = "x", 
-                          t = unique(MHW_cat_clim_sub$t)) %>% 
-  nest(t)
+# Test visuals ------------------------------------------------------------
 
-place_holder <- MHW_cat_clim_sub %>% 
-  select(lon, lat) %>% 
-  unique() %>% 
-  mutate(t = date_holder$data) %>% 
-  unnest(t)
-  
+
+
 
 # Create animation --------------------------------------------------------
 

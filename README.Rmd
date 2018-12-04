@@ -7,16 +7,19 @@ Ultimately it will be hosted on a permanent instance where it can live in perpet
 
 # Updates
 
-* November 30th, 2018
+* December 4, 2018
+  * UI now allows for showing categories or event metrics per pixel
+
+* November 30, 2018
   * Some old changes that needed pushing
   * Playing with UI
   * Added subset of event data
 
-* October 19th, 2018
+* October 19, 2018
   * Attempted to host all of 2017 data but it fell over
   * Created a second instance at "MHWtracker"
 
-* October 18th, 2018
+* October 18, 2018
   * Global proof of concept
   * Basic clickability added
 
