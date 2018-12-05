@@ -4,7 +4,7 @@
 # Libraries ---------------------------------------------------------------
 
 library(tidyverse)
-library(doMC); doMC::registerDoMC(cores = 50)
+doMC::registerDoMC(cores = 50)
 library(padr)
 
 
@@ -55,19 +55,23 @@ MHW_cat_event <- function(df){
   )
 }
 
+# Load and subset category climatologies
 load_sub_MHW_cat_clim <- function(file_name){
   load(file = file_name)
   data_sub <- MHW_cat_clim(MHW_res) %>% 
     filter(t >= as.Date("2017-12-01")) %>% 
     mutate(intensity = round(intensity, 2))
+  rm(MHW_res)
   return(data_sub)
 }
 
+# Load and subset event metrics
 load_sub_MHW_event <- function(file_name){
   load(file = file_name)
   data_sub <- MHW_event(MHW_res) %>% 
     filter(date_start <= as.Date("2017-12-01"), 
            date_end >= as.Date("2017-12-01"))
+  rm(MHW_res)
   return(data_sub)
 }
 
@@ -75,6 +79,7 @@ load_sub_MHW_clim <- function(file_name){
   load(file = file_name)
   data_sub <- MHW_clim(MHW_res) %>% 
     filter(t >= as.Date("2017-12-01"))
+  rm(MHW_res)
   return(data_sub)
 }
 
@@ -85,34 +90,34 @@ MHW_files <- dir(path = "../data", pattern = "MHW.calc", full.names = T)
 
 # system.time(
 # MHW_cat_clim_sub <- plyr::ldply(MHW_files, .fun = load_sub_MHW_cat_clim, .parallel = T)
-# ) # 737 seconds at 50 cores
+# ) # 0.8 seconds for one
 # MHW_cat_clim_sub <- MHW_cat_clim_sub %>%
 #   mutate(category = factor(category, levels = c("I Moderate", "II Strong",
 #                                                 "III Severe", "IV Extreme")),
-#          lon = ifelse(lon > 180, lon-360, lon)) %>%
-#   dplyr::select(lon, lat, t, intensity, category)
+#          lon = ifelse(lon > 180, lon-360, lon))# %>%
+#   # dplyr::select(lon, lat, t, intensity, category)
 # MHW_cat_clim_sub <- as.tibble(MHW_cat_clim_sub)
 # save(MHW_cat_clim_sub, file = "data/MHW_cat_clim_sub.RData")
-
+# 
 # system.time(
 # MHW_event_sub <- plyr::ldply(MHW_files, .fun = load_sub_MHW_event, .parallel = T)
-# ) # 737 seconds at 50 cores
+# ) # 1.8 seconds for one
 # MHW_event_sub <- MHW_event_sub %>%
 #   mutate(lon = ifelse(lon > 180, lon-360, lon)) %>%
-#   dplyr::select(lon:event_no, duration:intensity_max, rate_onset:rate_decline) %>% 
+#   dplyr::select(lon:event_no, duration:intensity_max, intensity_cumulative) %>%
 #   mutate_all(round, 3)
 # MHW_event_sub <- as.tibble(MHW_event_sub)
 # save(MHW_event_sub, file = "data/MHW_event_sub.RData")
-
+# 
 # system.time(
 #   MHW_clim_sub <- plyr::ldply(MHW_files, .fun = load_sub_MHW_clim, .parallel = T)
-# ) # 737 seconds at 50 cores
+# ) # 1.8 seconds for one
 # MHW_clim_sub <- MHW_clim_sub %>%
 #   mutate(lon = ifelse(lon > 180, lon-360, lon)) %>%
 #   group_by(lon, lat) %>%
 #   mutate(anom = temp - mean(temp, na.rm = T)) %>%
-#   dplyr::select(lon:var, anom) %>%
-#   ungroup() %>% 
+#   dplyr::select(lon:thresh, anom, event_no) %>%
+#   ungroup() %>%
 #   mutate_all(round, 3)
 # MHW_clim_sub <- as.tibble(MHW_clim_sub)
 # save(MHW_clim_sub, file = "data/MHW_clim_sub.RData")
