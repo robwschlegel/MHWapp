@@ -63,11 +63,13 @@ pal_intMean <- colorNumeric(palette = c("white", "pink"), na.color = NA,
                             domain = c(0, max(MHW_event_sub$intensity_mean, na.rm = T)))
 pal_intMax <- colorNumeric(palette = c("white", "purple"), na.color = NA, 
                            domain = c(0, max(MHW_event_sub$intensity_max, na.rm = T)))
-pal_rateOn <- colorNumeric(palette = c("white", "red"), na.color = NA, 
-                           domain = c(0, max(MHW_event_sub$rate_onset, na.rm = T)))
-pal_rateDe <- colorNumeric(palette = c("white", "blue"), na.color = NA, 
-                           domain = c(0, max(MHW_event_sub$rate_decline, na.rm = T)))
-pal_anom <- colorNumeric(palette = c("blue", "red"), domain = c(-5, 5), na.color = NA)
+pal_intCum <- colorNumeric(palette = c("white", "brown"), na.color = NA, 
+                           domain = c(0, 500))
+# pal_rateOn <- colorNumeric(palette = c("white", "red"), na.color = NA, 
+#                            domain = c(0, max(MHW_event_sub$rate_onset, na.rm = T)))
+# pal_rateDe <- colorNumeric(palette = c("white", "blue"), na.color = NA, 
+#                            domain = c(0, max(MHW_event_sub$rate_decline, na.rm = T)))
+# pal_anom <- colorNumeric(palette = c("blue", "red"), domain = c(-5, 5), na.color = NA)
 
 # Establish projection choices
 inputProj <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
@@ -81,6 +83,11 @@ ui <- bootstrapPage(
   tags$style(type = "text/css", "html, body {width:100%;height:100%}"),
   leafletOutput("map", width = "100%", height = "100%"),
   absolutePanel(top = 10, right = 10, draggable = TRUE,
+                radioButtons(inputId = "Dataset",
+                             label = "Data",
+                             choices = "OISST",
+                             inline = TRUE,
+                             selected = "OISST"),
                 radioButtons(inputId = "Pixels",
                              label = "Display",
                              choices = list("Categories", "Events"),
@@ -108,9 +115,8 @@ server <- function(input, output, session) {
     if(input$Pixels == "Events"){
       selectInput(inputId = 'metrics', 
                   label = 'Metric', 
-                  choices = c("Duration", "Mean Intensity", "Max. Intensity",
-                              "Rate of Onset", "Rate of Decline"),
-                  selected = "Max. Intensity",
+                  choices = c("Duration", "Mean Intensity", "Maximum Intensity", "Cumulative Intensity"),
+                  selected = "Maximum Intensity",
                   multiple = F, selectize = T)
   } else {
     }
@@ -128,18 +134,21 @@ server <- function(input, output, session) {
           if(input$metrics == "Duration"){
             pal_reactive <- pal_duration
           }
-          if(input$metrics == "Max. Intensity"){
+          if(input$metrics == "Maximum Intensity"){
             pal_reactive <- pal_intMax
           }
           if(input$metrics == "Mean Intensity"){
             pal_reactive <- pal_intMean
           }
-          if(input$metrics == "Rate of Onset"){
-            pal_reactive <- pal_rateOn
+          if(input$metrics == "Cumulative Intensity"){
+            pal_reactive <- pal_intCum
           }
-          if(input$metrics == "Rate of Decline"){
-            pal_reactive <- pal_rateDe
-          }
+          # if(input$metrics == "Rate of Onset"){
+          #   pal_reactive <- pal_rateOn
+          # }
+          # if(input$metrics == "Rate of Decline"){
+          #   pal_reactive <- pal_rateDe
+          # }
         }
         return(pal_reactive)
       }
@@ -173,18 +182,25 @@ server <- function(input, output, session) {
             baseData <- baseData %>% 
               mutate(duration = ifelse(duration > 100, 100, duration))
           }
-          if(input$metrics == "Max. Intensity"){
+          if(input$metrics == "Maximum Intensity"){
             baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "intensity_max"))]
           }
           if(input$metrics == "Mean Intensity"){
             baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "intensity_mean"))]
           }
-          if(input$metrics == "Rate of Onset"){
-            baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "rate_onset"))]
+          if(input$metrics == "Cumulative Intensity"){
+            baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "intensity_cumulative"))]
+            # Reduce large cumulative intensities so that colour scale still shows range for normal events
+            # The actual cumulative intensity is still shown in the popup info
+            baseData <- baseData %>% 
+              mutate(intensity_cumulative = ifelse(intensity_cumulative > 500, 500, intensity_cumulative))
           }
-          if(input$metrics == "Rate of Decline"){
-            baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "rate_decline"))]
-          }
+          # if(input$metrics == "Rate of Onset"){
+          #   baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "rate_onset"))]
+          # }
+          # if(input$metrics == "Rate of Decline"){
+          #   baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "rate_decline"))]
+          # }
           colnames(baseData) <- c("X", "Y", "Z")
         }
       }
@@ -320,14 +336,18 @@ server <- function(input, output, session) {
               content <- paste0(content_base,
                                 "<br>",input$metrics," = ",cell_meta$duration," days")
             }
-            if(input$metrics %in% c("Mean Intensity", "Max. Intensity")){
+            if(input$metrics %in% c("Mean Intensity", "Maximum Intensity")){
               content <- paste0(content_base,
                                 "<br>",input$metrics," = ",val,"°C")
             }
-            if(input$metrics %in% c("Rate of Onset", "Rate of Decline")){
+            if(input$metrics == "Cumulative Intensity"){
               content <- paste0(content_base,
-                                "<br>",input$metrics," = ",val,"°C/day")
+                                "<br>",input$metrics," = ",cell_meta$intensity_cumulative,"°C x days")
             }
+            # if(input$metrics %in% c("Rate of Onset", "Rate of Decline")){
+            #   content <- paste0(content_base,
+            #                     "<br>",input$metrics," = ",val,"°C/day")
+            # }
           }
         }
       proxy <- leafletProxy("map")
@@ -360,7 +380,7 @@ server <- function(input, output, session) {
                               values = c(1, 25, 50, 75, 100), labels = c("1", "25", "50", "75", ">100"), 
                               title = "Duration (days)")
         }
-        if(input$metrics == "Max. Intensity"){
+        if(input$metrics == "Maximum Intensity"){
           proxy %>% addLegend(position = "bottomright", pal = pal_intMax,
                               values = c(0, 10, 20), bins = 3, title = "Temp. (°C)")
         }
@@ -368,14 +388,18 @@ server <- function(input, output, session) {
           proxy %>% addLegend(position = "bottomright", pal = pal_intMean,
                               values = c(0, 5, 10), bins = 3, title = "Temp. (°C)")
         }
-        if(input$metrics == "Rate of Onset"){
-          proxy %>% addLegend(position = "bottomright", pal = pal_rateOn,
-                              values = c(0, 2, 4), bins = 3, title = "Temp. (°C/day)")
+        if(input$metrics == "Cumulative Intensity"){
+          proxy %>% addLegend(position = "bottomright", pal = pal_intCum,
+                              values = c(0, 250, 500), bins = 3, title = "Temp. (°C x days)")
         }
-        if(input$metrics == "Rate of Decline"){
-          proxy %>% addLegend(position = "bottomright", pal = pal_rateDe,
-                              values = c(0, 2, 4), bins = 3, title = "Temp. (°C/day)")
-        }
+        # if(input$metrics == "Rate of Onset"){
+        #   proxy %>% addLegend(position = "bottomright", pal = pal_rateOn,
+        #                       values = c(0, 2, 4), bins = 3, title = "Temp. (°C/day)")
+        # }
+        # if(input$metrics == "Rate of Decline"){
+        #   proxy %>% addLegend(position = "bottomright", pal = pal_rateDe,
+        #                       values = c(0, 2, 4), bins = 3, title = "Temp. (°C/day)")
+        # }
       }
     }
   })
