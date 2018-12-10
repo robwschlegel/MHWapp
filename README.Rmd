@@ -10,6 +10,7 @@ Ultimately it will be hosted on a permanent instance where it can live in perpet
 * December 10, 2018
   * Sorted out a basic NetCDF workflow
   * Attempting to integrate NetCDF files into app
+  * Changed file pathways
 
 * December 5, 2018
   * Scaled the data back to one month again

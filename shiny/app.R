@@ -41,7 +41,7 @@ library(ncdf4)
 # The event categories
 # load("shiny/MHWapp/MHW_cat_clim.RData")
 # load("shiny/MHWapp/MHW_event.RData")
-# nc_cat_clim <- "shiny/MHWapp/test.nc"
+# nc_cat_clim <- "shiny/test.nc"
 load("MHW_cat_clim.RData")
 load("MHW_event.RData")
 nc_cat_clim <- "test.nc"
