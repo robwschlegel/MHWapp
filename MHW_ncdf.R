@@ -1,13 +1,12 @@
 # The purpose of this script is to house the functions written to create NetCDF files
 # from the MHW data, as well as to then run the functions and create the NetCDF files
-# Largely taken from:
-# http://geog.uoregon.edu/bartlein/courses/geog490/week04-netCDF.html
+
 
 # Libraries ---------------------------------------------------------------
 
 library(tidyverse)
 doMC::registerDoMC(cores = 50)
-# library(padr)
+library(abind)
 library(ncdf4)
 
 
@@ -58,42 +57,23 @@ time_def <- ncdim_def("time", tunits, tvals, unlim = TRUE)
 
 # Create data arrays ------------------------------------------------------
 
-fillvalue <- -999
-tmp_array <- array(fillvalue, dim=c(nx,ny,nt))
+acast_OISST <- function(df, var){
+  res <- df %>%
+    right_join(lon_lat_OISST, by = c("lon", "lat")) %>%
+    reshape2::acast(lat~lon, value.var = var)
+}
 
-j2 <- sapply(dataset$lon, function(x) which.min(abs(xvals-x)))
-k2 <- sapply(dataset$lat, function(x) which.min(abs(yvals-x)))
-nobs <- dim(dataset)[1]
-l <- rep(5,each=nobs)
-tmp_array[cbind(j2,k2,l)] <- as.matrix(dataset[1:nobs,5])
-
-# dataarray <- xtabs(category ~ lon + lat + t, dataset)
-# library(vcd)
-# dataarray <- structable(category ~ lon + lat + t, dataset)
-# 
-# dfa <- array(data = dataset$category,
-#              dim = c(xvals, yvals, tvals),
-#              dimnames = list(xvals, yvals, tvals))
-
-
-# df1 <- dataset %>% 
-#   filter(t == 17501) %>% 
-#   right_join(lon_lat_OISST, by = c("lon", "lat")) %>% 
-#   reshape2::acast(lat~lon, value.var = "category")
-
-# acast_OISST <- function(df, var){
-#   res <- df %>% 
-#     right_join(lon_lat_OISST, by = c("lon", "lat")) %>% 
-#     reshape2::acast(lat~lon, value.var = var)
-# }
-# 
-# dfa <- dataset %>% 
-#   group_by(t) %>% 
-#   nest() %>% 
-#   mutate(data2 = map(data, acast_OISST, "intensity")) %>% 
-#   select(-data)
+dfa <- dataset %>%
+  mutate(category = as.integer(category)) %>%
+  group_by(t) %>%
+  nest() %>%
+  mutate(data2 = map(data, acast_OISST, "intensity"),
+         data3 = map(data, acast_OISST, "category")) %>%
+  select(-data)
 # dfa2 <- array(data = dfa$data2, dimnames = list(dfa$t))
-# 
+
+dfa_int <- abind(dfa$data2, along = 3)
+dfa_cat <- abind(dfa$data3, along = 3)
 # dfa3 <- acast_OISST(dataset, "intensity")
 
 
@@ -103,17 +83,21 @@ int_def <- ncvar_def(name = "intensity", units = "deg_C",
                      dim = list(lat_def, lon_def, time_def), 
                      longname = "Degrees C above threshold",
                      missval = -999, prec = "float")
+cat_def <- ncvar_def(name = "category", units = "categories", 
+                     dim = list(lat_def, lon_def, time_def), 
+                     longname = "Different category levels",
+                     missval = -999, prec = "float")
 
 
 # Create NetCDF files -----------------------------------------------------
 
-ncout <- nc_create(filename = filename, vars = list(int_def), force_v4 = T)
+ncout <- nc_create(filename = filename, vars = list(int_def, cat_def), force_v4 = T)
 
 
 # Put variables -----------------------------------------------------------
 
-ncvar_put(nc = ncout, varid = int_def, vals = tmp_array)
-
+ncvar_put(nc = ncout, varid = int_def, vals = dfa_int)
+ncvar_put(nc = ncout, varid = cat_def, vals = dfa_cat)
 
 # Additional attributes ---------------------------------------------------
 
@@ -139,26 +123,22 @@ nc_close(ncout)
 # Load and visualise ------------------------------------------------------
 
 nc <- nc_open("test.nc")
-# nc$dim$lat
-# nc$dim$lon
-# nc$dim$time
-# nc$var$intensity
 
-res <- ncvar_get(nc, varid = "intensity")
+res <- ncvar_get(nc, varid = "category")[,,1]
 dimnames(res) <- list(lat = nc$dim$lat$vals,
-                      lon = nc$dim$lon$vals,
-                      t = nc$dim$time$vals)
+                      lon = nc$dim$lon$vals)#,
+                      # t = nc$dim$time$vals)
 nc_close(nc)
 
-res2 <- as.data.frame(reshape2::melt(res, value.name = "intensity"), row.names = NULL) %>% 
-  mutate(t = as.Date(t, origin = "1970-01-01"),
-         intensity = replace(intensity, which(intensity < 0), NA)) %>%
-  select(lon, everything()) %>% 
-  filter(t == as.Date("2017-12-13")) %>% 
+res2 <- as.data.frame(reshape2::melt(res, value.name = "category"), row.names = NULL) %>% 
+  # mutate(t = as.Date(t, origin = "1970-01-01")) %>%
+  # select(lon, everything()) %>% 
+  # filter(t == as.Date("2017-12-13")) %>% 
   na.omit()
 
 ggplot(res2, aes(x = lon, y = lat, fill = intensity)) +
-  geom_raster() +
+  geom_raster(na.rm = T) +
+  borders(fill = "black") +
   scale_fill_viridis_c()
 
 
