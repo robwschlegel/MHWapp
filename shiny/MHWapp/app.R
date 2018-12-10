@@ -7,6 +7,7 @@ library(shiny)
 library(leaflet)
 library(raster)
 library(rgdal)
+library(ncdf4)
 # library(rasterVis)
 # library(htmlwidgets)
 # library(mapview)
@@ -40,8 +41,10 @@ library(rgdal)
 # The event categories
 # load("shiny/MHWapp/MHW_cat_clim.RData")
 # load("shiny/MHWapp/MHW_event.RData")
-load("MHW_cat_clim.RData")
+# nc_cat_clim <- "shiny/MHWapp/test.nc"
+# load("MHW_cat_clim.RData")
 load("MHW_event.RData")
+nc_cat_clim <- "test.nc"
 
 
 # Prep --------------------------------------------------------------------
@@ -54,8 +57,11 @@ MHW_colours <- c(
   "IV Extreme" = "#2d0000"
 )
 
+MHW_categories <- factor(x = 1:4, levels = c("I Moderate", "II Strong",
+                                             "III Severe", "IV Extreme"))
+
 # Colour palettes for different metrics etc.
-pal_factor <- colorFactor(palette = MHW_colours, levels = levels(MHW_cat_clim_sub$category))
+pal_factor <- colorFactor(palette = MHW_colours, levels = levels(MHW_categories))
 pal_cat <- colorNumeric(palette = MHW_colours, domain = c(1,2,3,4), na.color = NA)
 pal_duration <- colorNumeric(palette = c("white", "green"), na.color = NA, 
                              domain = c(0, 100))
@@ -98,7 +104,8 @@ ui <- bootstrapPage(
                           label = "Date", 
                           # value = MHW_cat_clim_sub$t[MHW_cat_clim_sub$intensity == max(MHW_cat_clim_sub$intensity)][1], 
                           value = as.Date("2017-12-01"),
-                          min = min(MHW_cat_clim_sub$t), max = max(MHW_cat_clim_sub$t)
+                          min = as.Date("2017-12-01"), max = as.Date("2017-12-31")
+                          # min = min(MHW_cat_clim_sub$t), max = max(MHW_cat_clim_sub$t)
                 ),
                 checkboxInput("legend", "Show legend", TRUE)
   )
@@ -160,8 +167,16 @@ server <- function(input, output, session) {
   
   baseData <- reactive({
     if(input$Pixels == "Categories"){
-      baseData <- MHW_cat_clim_sub %>% 
-        filter(t == input$date_choice) %>%
+      nc <- nc_open(nc_cat_clim)
+      date_sub <- which(nc$dim$time$vals == input$date_choice)
+      res <- ncvar_get(nc, varid = "category")[,,date_sub]
+      dimnames(res) <- list(lat = nc$dim$lat$vals,
+                            lon = nc$dim$lon$vals)
+      nc_close(nc)
+      baseData <- as.data.frame(reshape2::melt(res, value.name = "category"), 
+                                row.names = NULL) %>% 
+        na.omit() %>% 
+        # filter(t == input$date_choice) %>%
         dplyr::select(lon, lat, category) %>% 
         dplyr::rename(X = lon, Y = lat, Z = category)
       } else if(input$Pixels == "Events"){

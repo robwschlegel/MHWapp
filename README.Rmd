@@ -7,6 +7,9 @@ Ultimately it will be hosted on a permanent instance where it can live in perpet
 
 # Updates
 
+* December 10, 2018
+  * Attempting to integrate NetCDF files into app
+
 * December 5, 2018
   * Scaled the data back to one month again
   * Removed rate of onset and decline and introduced cumulative intensity
