@@ -8,7 +8,7 @@ Ultimately it will be hosted on a permanent instance where it can live in perpet
 # Updates
 
 * December 10, 2018
-  * Sorted out an initial NetCDF workflow
+  * Sorted out a basic NetCDF workflow
 
 * December 5, 2018
   * Working on NetCDF data storage
