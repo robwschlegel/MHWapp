@@ -70,11 +70,6 @@ pal_intMax <- colorNumeric(palette = c("white", "purple"), na.color = NA,
                            domain = c(0, 20))
 pal_intCum <- colorNumeric(palette = c("white", "brown"), na.color = NA, 
                            domain = c(0, 500))
-# pal_rateOn <- colorNumeric(palette = c("white", "red"), na.color = NA, 
-#                            domain = c(0, max(MHW_event_sub$rate_onset, na.rm = T)))
-# pal_rateDe <- colorNumeric(palette = c("white", "blue"), na.color = NA, 
-#                            domain = c(0, max(MHW_event_sub$rate_decline, na.rm = T)))
-# pal_anom <- colorNumeric(palette = c("blue", "red"), domain = c(-5, 5), na.color = NA)
 
 # Establish projection choices
 inputProj <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
@@ -149,19 +144,9 @@ server <- function(input, output, session) {
           if(input$metrics == "Cumulative Intensity"){
             pal_reactive <- pal_intCum
           }
-          # if(input$metrics == "Rate of Onset"){
-          #   pal_reactive <- pal_rateOn
-          # }
-          # if(input$metrics == "Rate of Decline"){
-          #   pal_reactive <- pal_rateDe
-          # }
         }
         return(pal_reactive)
       }
-    
-    #else if(input$Pixels == "Anomalies"){
-            # pal_reactive <- pal_anom
-            # }
     })
   
   baseData <- reactive({
@@ -172,20 +157,19 @@ server <- function(input, output, session) {
       dimnames(res) <- list(lat = nc$dim$lat$vals,
                             lon = nc$dim$lon$vals)
       nc_close(nc)
-      baseData <- as.data.frame(reshape2::melt(res, value.name = "category"), 
-                                row.names = NULL) %>% 
-        na.omit() %>% 
-        # filter(t == input$date_choice) %>%
-        dplyr::select(lon, lat, category) %>% 
-        # mutate(lon = ifelse(lon > 180, lon - 360, lon)) %>% 
+      baseData <- as.data.frame(reshape2::melt(res, value.name = "category"),
+                                row.names = NULL) %>%
+        na.omit() %>%
+        dplyr::select(lon, lat, category) %>%
         dplyr::rename(X = lon, Y = lat, Z = category)
+      # baseData <- MHW_cat_clim_sub %>%
+      #   filter(t == input$date_choice) %>%
+      #   dplyr::select(lon, lat, category) %>%
+      #   dplyr::rename(X = lon, Y = lat, Z = category)
       } else if(input$Pixels == "Events"){
         baseData <- MHW_event_sub %>% 
           filter(date_start <= input$date_choice, 
-                 date_end >= input$date_choice) #%>% 
-          # dplyr::select(lon, lat, intensity_max) %>%
-          # dplyr::rename(X = lon, Y = lat, Z = intensity_max)
-        # metric_choice <- as.character(input$metrics)
+                 date_end >= input$date_choice)
         if(is.null(input$metrics)){
           baseData <- baseData[1,which(colnames(baseData) %in% c("lon", "lat", "intensity_max"))]
           colnames(baseData) <- c("X", "Y", "Z")
