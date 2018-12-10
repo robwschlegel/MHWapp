@@ -42,7 +42,7 @@ library(ncdf4)
 # load("shiny/MHWapp/MHW_cat_clim.RData")
 # load("shiny/MHWapp/MHW_event.RData")
 # nc_cat_clim <- "shiny/MHWapp/test.nc"
-# load("MHW_cat_clim.RData")
+load("MHW_cat_clim.RData")
 load("MHW_event.RData")
 nc_cat_clim <- "test.nc"
 
@@ -57,18 +57,17 @@ MHW_colours <- c(
   "IV Extreme" = "#2d0000"
 )
 
-MHW_categories <- factor(x = 1:4, levels = c("I Moderate", "II Strong",
-                                             "III Severe", "IV Extreme"))
+# MHW_categories <- factor(levels = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
 
 # Colour palettes for different metrics etc.
-pal_factor <- colorFactor(palette = MHW_colours, levels = levels(MHW_categories))
+pal_factor <- colorFactor(palette = MHW_colours, levels = levels(MHW_cat_clim_sub$category))
 pal_cat <- colorNumeric(palette = MHW_colours, domain = c(1,2,3,4), na.color = NA)
 pal_duration <- colorNumeric(palette = c("white", "green"), na.color = NA, 
                              domain = c(0, 100))
 pal_intMean <- colorNumeric(palette = c("white", "pink"), na.color = NA, 
-                            domain = c(0, max(MHW_event_sub$intensity_mean, na.rm = T)))
+                            domain = c(0, 10))
 pal_intMax <- colorNumeric(palette = c("white", "purple"), na.color = NA, 
-                           domain = c(0, max(MHW_event_sub$intensity_max, na.rm = T)))
+                           domain = c(0, 20))
 pal_intCum <- colorNumeric(palette = c("white", "brown"), na.color = NA, 
                            domain = c(0, 500))
 # pal_rateOn <- colorNumeric(palette = c("white", "red"), na.color = NA, 
@@ -178,6 +177,7 @@ server <- function(input, output, session) {
         na.omit() %>% 
         # filter(t == input$date_choice) %>%
         dplyr::select(lon, lat, category) %>% 
+        # mutate(lon = ifelse(lon > 180, lon - 360, lon)) %>% 
         dplyr::rename(X = lon, Y = lat, Z = category)
       } else if(input$Pixels == "Events"){
         baseData <- MHW_event_sub %>% 
@@ -199,14 +199,16 @@ server <- function(input, output, session) {
           }
           if(input$metrics == "Maximum Intensity"){
             baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "intensity_max"))]
+            baseData <- baseData %>% 
+              mutate(intensity_max = ifelse(intensity_max > 20, 20, intensity_max))
           }
           if(input$metrics == "Mean Intensity"){
             baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "intensity_mean"))]
+            baseData <- baseData %>% 
+              mutate(intensity_mean = ifelse(intensity_mean > 10, 10, intensity_mean))
           }
           if(input$metrics == "Cumulative Intensity"){
             baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "intensity_cumulative"))]
-            # Reduce large cumulative intensities so that colour scale still shows range for normal events
-            # The actual cumulative intensity is still shown in the popup info
             baseData <- baseData %>% 
               mutate(intensity_cumulative = ifelse(intensity_cumulative > 500, 500, intensity_cumulative))
           }
@@ -268,13 +270,13 @@ server <- function(input, output, session) {
   })
   
   output$map <- renderLeaflet({
-    leaflet(MHW_cat_clim_sub) %>%
-      setView(-60, 45, zoom = 5, options = tileOptions(minZoom = 0, maxZoom = 8)) %>%
+    leaflet(MHW_event_sub) %>%
+      setView(-60, 45, zoom = 5, options = tileOptions(minZoom = 0, maxZoom = 6)) %>%
       # addProviderTiles("Stamen.TonerLite",
       #                  group = "Toner", 
       #                  options = tileOptions(minZoom = 0, maxZoom = 16)) #%>%
       addTiles(group = "OSM", 
-               options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5)) %>%
+               options = tileOptions(minZoom = 0, maxZoom = 6, opacity = 0.5)) %>%
       addPopups(-60, 45, 
                 popup = paste("Hello and welcome to the MHW tracker.<br>", 
                               "This is a paceholder for more information to come."))
@@ -327,11 +329,13 @@ server <- function(input, output, session) {
       #Get value of the given cell
       val <- rasterData[cell]
       if(input$Pixels == "Categories"){
-        cell_meta <- MHW_cat_clim_sub %>% 
-          filter(lon == x, lat == y, t == input$date_choice)
+        # cell_meta <- MHW_cat_clim_sub %>% 
+        #   filter(lon == x, lat == y, t == input$date_choice)
+        cell_meta <- baseData()
+        cell_meta <- filter(cell_meta, X == x, Y == y)
         content <- paste0("Lon = ", round(x, 3),
                           "<br>Lat = ", round(y, 3),
-                          "<br>Intensity = ", cell_meta$intensity,"°C",
+                          # "<br>Intensity = ", cell_meta$intensity,"°C",
                           "<br>Category = ", names(MHW_colours)[val])
         } else if(input$Pixels == "Events"){
           cell_meta <- MHW_event_sub %>% 
