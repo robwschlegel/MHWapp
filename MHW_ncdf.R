@@ -13,6 +13,7 @@ library(ncdf4)
 # Meta-data ---------------------------------------------------------------
 
 load("../tikoraluk/metadata/lon_lat_OISST.RData")
+lon_lat_OISST <- arrange(lon_lat_OISST, lon, lat)
 
 
 # Data --------------------------------------------------------------------
@@ -67,8 +68,8 @@ dfa <- dataset %>%
   mutate(category = as.integer(category)) %>%
   group_by(t) %>%
   nest() %>%
-  mutate(data2 = map(data, acast_OISST, "intensity"),
-         data3 = map(data, acast_OISST, "category")) %>%
+  mutate(data2 = purrr::map(data, acast_OISST, "intensity"),
+         data3 = purrr::map(data, acast_OISST, "category")) %>%
   select(-data)
 # dfa2 <- array(data = dfa$data2, dimnames = list(dfa$t))
 
@@ -136,7 +137,7 @@ res2 <- as.data.frame(reshape2::melt(res, value.name = "category"), row.names = 
   # filter(t == as.Date("2017-12-13")) %>% 
   na.omit()
 
-ggplot(res2, aes(x = lon, y = lat, fill = intensity)) +
+ggplot(res2, aes(x = lon, y = lat, fill = category)) +
   geom_raster(na.rm = T) +
   borders(fill = "black") +
   scale_fill_viridis_c()
