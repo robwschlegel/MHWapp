@@ -39,13 +39,12 @@ library(rgdal)
 # save(MHW_cat_clim_sub, file = "shiny/MHWapp/MHW_cat_clim_sub.RData")
 
 # The event categories
-# load("shiny/MHWapp/MHW_cat_clim.RData")
+# load("shiny/MHW_cat_clim.RData")
 # load("shiny/MHWapp/MHW_event.RData")
 # nc_cat_clim <- "shiny/test.nc"
 load("MHW_cat_clim.RData")
-load("MHW_event.RData")
-nc_cat_clim <- "test.nc"
-
+# load("MHW_event.RData")
+# nc_cat_clim <- "test.nc"
 
 # Prep --------------------------------------------------------------------
 
@@ -150,26 +149,24 @@ server <- function(input, output, session) {
     })
   
   baseData <- reactive({
+    # MHW_db <- DBI::dbConnect(RSQLite::SQLite(), "data/MHW_db.sqlite")
+    MHW_db <- DBI::dbConnect(RSQLite::SQLite(), "../data/MHW_db.sqlite")
+    # src_dbi(MHW_db)
+    # date_filter <- as.integer(as.Date("2017-06-17"))
+    date_filter <- as.integer(input$date_choice)
     if(input$Pixels == "Categories"){
-      nc <- nc_open(nc_cat_clim)
-      date_sub <- which(nc$dim$time$vals == input$date_choice)
-      res <- ncvar_get(nc, varid = "category")[,,date_sub]
-      dimnames(res) <- list(lat = nc$dim$lat$vals,
-                            lon = nc$dim$lon$vals)
-      nc_close(nc)
-      baseData <- as.data.frame(reshape2::melt(res, value.name = "category"),
-                                row.names = NULL) %>%
+      baseData <- tbl(MHW_db, "MHW_cat_clim_sub") %>% 
+        filter(t == date_filter) %>% 
+        collect() %>% 
+        # mutate(category = factor(category, levels = c("I Moderate", "II Strong",
+        #                                               "III Severe", "IV Extreme"))) %>% 
         na.omit() %>%
         dplyr::select(lon, lat, category) %>%
         dplyr::rename(X = lon, Y = lat, Z = category)
-      # baseData <- MHW_cat_clim_sub %>%
-      #   filter(t == input$date_choice) %>%
-      #   dplyr::select(lon, lat, category) %>%
-      #   dplyr::rename(X = lon, Y = lat, Z = category)
       } else if(input$Pixels == "Events"){
-        baseData <- MHW_event_sub %>% 
-          filter(date_start <= input$date_choice, 
-                 date_end >= input$date_choice)
+        baseData <- tbl(MHW_db, "MHW_event_sub") %>% 
+          filter(date_start <= date_filter, 
+                 date_end >= date_filter)
         if(is.null(input$metrics)){
           baseData <- baseData[1,which(colnames(baseData) %in% c("lon", "lat", "intensity_max"))]
           colnames(baseData) <- c("X", "Y", "Z")
@@ -211,6 +208,7 @@ server <- function(input, output, session) {
           #   dplyr::select(lon, lat, anom) %>%
           #   dplyr::rename(X = lon, Y = lat, Z = anom)
           # }
+    dbDisconnect(MHW_db)
     return(baseData)
     })
   
