@@ -59,7 +59,7 @@ MHW_cat_event <- function(df){
 load_sub_MHW_cat_clim <- function(file_name){
   load(file = file_name)
   data_sub <- MHW_cat_clim(MHW_res) %>% 
-    filter(t >= as.Date("2017-12-01")) %>% 
+    filter(t >= as.Date("2017-01-01")) %>% 
     mutate(intensity = round(intensity, 2))
   rm(MHW_res)
   return(data_sub)
@@ -69,8 +69,8 @@ load_sub_MHW_cat_clim <- function(file_name){
 load_sub_MHW_event <- function(file_name){
   load(file = file_name)
   data_sub <- MHW_event(MHW_res) %>% 
-    filter(date_start <= as.Date("2017-12-01"), 
-           date_end >= as.Date("2017-12-01"))
+    filter(date_start >= as.Date("2017-01-01"), 
+           date_end <= as.Date("2017-12-01"))
   rm(MHW_res)
   return(data_sub)
 }
@@ -78,7 +78,7 @@ load_sub_MHW_event <- function(file_name){
 load_sub_MHW_clim <- function(file_name){
   load(file = file_name)
   data_sub <- MHW_clim(MHW_res) %>% 
-    filter(t >= as.Date("2017-12-01"))
+    filter(t >= as.Date("2017-01-01"))
   rm(MHW_res)
   return(data_sub)
 }
@@ -94,8 +94,7 @@ MHW_files <- dir(path = "../data", pattern = "MHW.calc", full.names = T)
 # MHW_cat_clim_sub <- MHW_cat_clim_sub %>%
 #   mutate(category = factor(category, levels = c("I Moderate", "II Strong",
 #                                                 "III Severe", "IV Extreme")),
-#          lon = ifelse(lon > 180, lon-360, lon))# %>%
-#   # dplyr::select(lon, lat, t, intensity, category)
+#          lon = ifelse(lon > 180, lon-360, lon))
 # MHW_cat_clim_sub <- as.tibble(MHW_cat_clim_sub)
 # save(MHW_cat_clim_sub, file = "data/MHW_cat_clim_sub.RData")
 # 
@@ -110,7 +109,7 @@ MHW_files <- dir(path = "../data", pattern = "MHW.calc", full.names = T)
 # save(MHW_event_sub, file = "data/MHW_event_sub.RData")
 # 
 # system.time(
-#   MHW_clim_sub <- plyr::ldply(MHW_files, .fun = load_sub_MHW_clim, .parallel = T)
+# MHW_clim_sub <- plyr::ldply(MHW_files, .fun = load_sub_MHW_clim, .parallel = T)
 # ) # 1.8 seconds for one
 # MHW_clim_sub <- MHW_clim_sub %>%
 #   mutate(lon = ifelse(lon > 180, lon-360, lon)) %>%

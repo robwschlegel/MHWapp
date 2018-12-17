@@ -8,7 +8,7 @@ Ultimately it will be hosted on a permanent instance where it can live in perpet
 # Updates
 
 * December 17, 2018
-  * Creating SQL databases for better access
+  * Created basic SQL databases to deal with RAM issues
 
 * December 10, 2018
   * Sorted out a basic NetCDF workflow
