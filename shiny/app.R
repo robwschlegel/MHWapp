@@ -118,7 +118,7 @@ server <- function(input, output, session) {
                   choices = c("Duration", "Mean Intensity", "Maximum Intensity", "Cumulative Intensity"),
                   selected = "Maximum Intensity",
                   multiple = F, selectize = T)
-  } else {
+    } else {
     }
   })
   
@@ -126,27 +126,27 @@ server <- function(input, output, session) {
   pal_reactive <- reactive({
     if(input$Pixels == "Categories"){
       pal_reactive <- pal_cat
-      } else if(input$Pixels == "Events"){
-        # pal_reactive <- pal_intMax
-        if(is.null(input$metrics)){
-          pal_reactive <- pal_intMax
-        } else{
-          if(input$metrics == "Duration"){
-            pal_reactive <- pal_duration
-          }
-          if(input$metrics == "Maximum Intensity"){
-            pal_reactive <- pal_intMax
-          }
-          if(input$metrics == "Mean Intensity"){
-            pal_reactive <- pal_intMean
-          }
-          if(input$metrics == "Cumulative Intensity"){
-            pal_reactive <- pal_intCum
-          }
+    } else if(input$Pixels == "Events"){
+      # pal_reactive <- pal_intMax
+      if(is.null(input$metrics)){
+        pal_reactive <- pal_intMax
+      } else{
+        if(input$metrics == "Duration"){
+          pal_reactive <- pal_duration
         }
-        return(pal_reactive)
+        if(input$metrics == "Maximum Intensity"){
+          pal_reactive <- pal_intMax
+        }
+        if(input$metrics == "Mean Intensity"){
+          pal_reactive <- pal_intMean
+        }
+        if(input$metrics == "Cumulative Intensity"){
+          pal_reactive <- pal_intCum
+        }
       }
-    })
+      return(pal_reactive)
+    }
+  })
   
   baseData <- reactive({
     # MHW_db <- DBI::dbConnect(RSQLite::SQLite(), "data/MHW_db.sqlite")
@@ -163,65 +163,65 @@ server <- function(input, output, session) {
         na.omit() %>%
         dplyr::select(lon, lat, category) %>%
         dplyr::rename(X = lon, Y = lat, Z = category)
-      } else if(input$Pixels == "Events"){
-        baseData <- tbl(MHW_db, "MHW_event_sub") %>% 
-          filter(date_start <= date_filter, 
-                 date_end >= date_filter)
-        if(is.null(input$metrics)){
-          baseData <- baseData[1,which(colnames(baseData) %in% c("lon", "lat", "intensity_max"))]
-          colnames(baseData) <- c("X", "Y", "Z")
-        } else {
-          if(input$metrics == "Duration"){
-            baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "duration"))]
-            # Reduce large durations so that colour scale still shows range for normal events
-            # The actual duration is still shown in the popup info
-            baseData <- baseData %>% 
-              mutate(duration = ifelse(duration > 100, 100, duration))
-          }
-          if(input$metrics == "Maximum Intensity"){
-            baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "intensity_max"))]
-            baseData <- baseData %>% 
-              mutate(intensity_max = ifelse(intensity_max > 20, 20, intensity_max))
-          }
-          if(input$metrics == "Mean Intensity"){
-            baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "intensity_mean"))]
-            baseData <- baseData %>% 
-              mutate(intensity_mean = ifelse(intensity_mean > 10, 10, intensity_mean))
-          }
-          if(input$metrics == "Cumulative Intensity"){
-            baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "intensity_cumulative"))]
-            baseData <- baseData %>% 
-              mutate(intensity_cumulative = ifelse(intensity_cumulative > 500, 500, intensity_cumulative))
-          }
-          # if(input$metrics == "Rate of Onset"){
-          #   baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "rate_onset"))]
-          # }
-          # if(input$metrics == "Rate of Decline"){
-          #   baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "rate_decline"))]
-          # }
-          colnames(baseData) <- c("X", "Y", "Z")
+    } else if(input$Pixels == "Events"){
+      baseData <- tbl(MHW_db, "MHW_event_sub") %>% 
+        filter(date_start <= date_filter, 
+               date_end >= date_filter)
+      if(is.null(input$metrics)){
+        baseData <- baseData[1,which(colnames(baseData) %in% c("lon", "lat", "intensity_max"))]
+        colnames(baseData) <- c("X", "Y", "Z")
+      } else {
+        if(input$metrics == "Duration"){
+          baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "duration"))]
+          # Reduce large durations so that colour scale still shows range for normal events
+          # The actual duration is still shown in the popup info
+          baseData <- baseData %>% 
+            mutate(duration = ifelse(duration > 100, 100, duration))
         }
+        if(input$metrics == "Maximum Intensity"){
+          baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "intensity_max"))]
+          baseData <- baseData %>% 
+            mutate(intensity_max = ifelse(intensity_max > 20, 20, intensity_max))
+        }
+        if(input$metrics == "Mean Intensity"){
+          baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "intensity_mean"))]
+          baseData <- baseData %>% 
+            mutate(intensity_mean = ifelse(intensity_mean > 10, 10, intensity_mean))
+        }
+        if(input$metrics == "Cumulative Intensity"){
+          baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "intensity_cumulative"))]
+          baseData <- baseData %>% 
+            mutate(intensity_cumulative = ifelse(intensity_cumulative > 500, 500, intensity_cumulative))
+        }
+        # if(input$metrics == "Rate of Onset"){
+        #   baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "rate_onset"))]
+        # }
+        # if(input$metrics == "Rate of Decline"){
+        #   baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "rate_decline"))]
+        # }
+        colnames(baseData) <- c("X", "Y", "Z")
       }
+    }
     #else if(input$Pixels == "Anomalies"){
-          # baseData <- MHW_clim %>%
-          #   filter(t == input$date_choice) %>%
-          #   dplyr::select(lon, lat, anom) %>%
-          #   dplyr::rename(X = lon, Y = lat, Z = anom)
-          # }
+    # baseData <- MHW_clim %>%
+    #   filter(t == input$date_choice) %>%
+    #   dplyr::select(lon, lat, anom) %>%
+    #   dplyr::rename(X = lon, Y = lat, Z = anom)
+    # }
     dbDisconnect(MHW_db)
     return(baseData)
-    })
+  })
   
   rasterData <- reactive({
     MHW_raster <- baseData() #%>% 
-      # tester...
-      # filter(t == as.Date("2017-12-01")) %>%
-      # filter(t == input$date_choice) %>%
-      # dplyr::select(lon, lat, category) %>% 
-      # dplyr::rename(X = lon, Y = lat, Z = category)
+    # tester...
+    # filter(t == as.Date("2017-12-01")) %>%
+    # filter(t == input$date_choice) %>%
+    # dplyr::select(lon, lat, category) %>% 
+    # dplyr::rename(X = lon, Y = lat, Z = category)
     MHW_raster$Z <- as.numeric(MHW_raster$Z)
     MHW_raster <- rasterFromXYZ(MHW_raster, res = c(0.25, 0.25), digits = 3,
-                          crs = inputProj)
+                                crs = inputProj)
     MHW_raster <- projectRasterForLeaflet(MHW_raster, method = "ngb")
     # MHW_raster <- projectRaster(MHW_raster, crs = leafletProj)
     # if(input$Pixels == "Categories"){
@@ -247,7 +247,7 @@ server <- function(input, output, session) {
     #   rename(X = lon, Y = lat, Z = category)
     rasterNonProj$Z <- as.numeric(rasterNonProj$Z)
     rasterNonProj <- rasterFromXYZ(rasterNonProj, res = c(0.25, 0.25), digits = 3,
-                             crs = "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
+                                   crs = "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
     # rasterNonProj <- projectRasterForLeaflet(rasterNonProj, method = "ngb")
   })
   
@@ -262,9 +262,9 @@ server <- function(input, output, session) {
       addPopups(-60, 45, 
                 popup = paste("Hello and welcome to the MHW tracker.<br>", 
                               "This is a paceholder for more information to come."))
-      # addProviderTiles("Esri.WorldTopoMap",    
-      #                  group = "Topo") #%>% 
-      # fitBounds(~min(lon), ~min(lat), ~max(lon), ~max(lat))
+    # addProviderTiles("Esri.WorldTopoMap",    
+    #                  group = "Topo") #%>% 
+    # fitBounds(~min(lon), ~min(lat), ~max(lon), ~max(lat))
   })
   
   observe({
@@ -319,38 +319,38 @@ server <- function(input, output, session) {
                           "<br>Lat = ", round(y, 3),
                           # "<br>Intensity = ", cell_meta$intensity,"°C",
                           "<br>Category = ", names(MHW_colours)[val])
-        } else if(input$Pixels == "Events"){
-          cell_meta <- MHW_event_sub %>% 
-            filter(lon == x, lat == y,
-                   date_start <= input$date_choice, 
-                   date_end >= input$date_choice)
-          if(is.null(input$metrics)){
-            content <- paste0("Lon = ", round(x, 3),
-                              "<br>Lat = ", round(y, 3))
-          } else {
-            content_base <- paste0("Lon = ",round(x, 3),
-                                   "<br>Lat = ",round(y, 3),
-                                   "<br>Start Date = ",cell_meta$date_start,
-                                   "<br>Peak Date = ",cell_meta$date_peak,
-                                   "<br>End Date = ",cell_meta$date_end)
-            if(input$metrics == "Duration"){
-              content <- paste0(content_base,
-                                "<br>",input$metrics," = ",cell_meta$duration," days")
-            }
-            if(input$metrics %in% c("Mean Intensity", "Maximum Intensity")){
-              content <- paste0(content_base,
-                                "<br>",input$metrics," = ",val,"°C")
-            }
-            if(input$metrics == "Cumulative Intensity"){
-              content <- paste0(content_base,
-                                "<br>",input$metrics," = ",cell_meta$intensity_cumulative,"°C x days")
-            }
-            # if(input$metrics %in% c("Rate of Onset", "Rate of Decline")){
-            #   content <- paste0(content_base,
-            #                     "<br>",input$metrics," = ",val,"°C/day")
-            # }
+      } else if(input$Pixels == "Events"){
+        cell_meta <- MHW_event_sub %>% 
+          filter(lon == x, lat == y,
+                 date_start <= input$date_choice, 
+                 date_end >= input$date_choice)
+        if(is.null(input$metrics)){
+          content <- paste0("Lon = ", round(x, 3),
+                            "<br>Lat = ", round(y, 3))
+        } else {
+          content_base <- paste0("Lon = ",round(x, 3),
+                                 "<br>Lat = ",round(y, 3),
+                                 "<br>Start Date = ",cell_meta$date_start,
+                                 "<br>Peak Date = ",cell_meta$date_peak,
+                                 "<br>End Date = ",cell_meta$date_end)
+          if(input$metrics == "Duration"){
+            content <- paste0(content_base,
+                              "<br>",input$metrics," = ",cell_meta$duration," days")
           }
+          if(input$metrics %in% c("Mean Intensity", "Maximum Intensity")){
+            content <- paste0(content_base,
+                              "<br>",input$metrics," = ",val,"°C")
+          }
+          if(input$metrics == "Cumulative Intensity"){
+            content <- paste0(content_base,
+                              "<br>",input$metrics," = ",cell_meta$intensity_cumulative,"°C x days")
+          }
+          # if(input$metrics %in% c("Rate of Onset", "Rate of Decline")){
+          #   content <- paste0(content_base,
+          #                     "<br>",input$metrics," = ",val,"°C/day")
+          # }
         }
+      }
       proxy <- leafletProxy("map")
       #add Popup
       proxy %>% clearPopups() %>% addPopups(x, y, popup = content)
