@@ -70,7 +70,7 @@ load_sub_MHW_event <- function(file_name){
   load(file = file_name)
   data_sub <- MHW_event(MHW_res) %>% 
     filter(date_start >= as.Date("2017-01-01"), 
-           date_end <= as.Date("2017-12-01"))
+           date_start <= as.Date("2017-12-01"))
   rm(MHW_res)
   return(data_sub)
 }
@@ -94,6 +94,7 @@ MHW_files <- dir(path = "../data", pattern = "MHW.calc", full.names = T)
 # MHW_cat_clim_sub <- MHW_cat_clim_sub %>%
 #   mutate(category = factor(category, levels = c("I Moderate", "II Strong",
 #                                                 "III Severe", "IV Extreme")),
+#          category = as.integer(category),
 #          lon = ifelse(lon > 180, lon-360, lon))
 # MHW_cat_clim_sub <- as.tibble(MHW_cat_clim_sub)
 # save(MHW_cat_clim_sub, file = "data/MHW_cat_clim_sub.RData")

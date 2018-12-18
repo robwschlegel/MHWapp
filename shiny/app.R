@@ -95,7 +95,7 @@ server <- function(input, output, session) {
                   choices = c("Duration", "Mean Intensity", "Maximum Intensity", "Cumulative Intensity"),
                   selected = "Maximum Intensity",
                   multiple = F, selectize = T)
-  } else {
+    } else {
     }
   })
   
@@ -103,27 +103,27 @@ server <- function(input, output, session) {
   pal_reactive <- reactive({
     if(input$Pixels == "Categories"){
       pal_reactive <- pal_cat
-      } else if(input$Pixels == "Metrics"){
-        # pal_reactive <- pal_intMax
-        if(is.null(input$metrics)){
-          pal_reactive <- pal_intMax
-        } else{
-          if(input$metrics == "Duration"){
-            pal_reactive <- pal_duration
-          }
-          if(input$metrics == "Maximum Intensity"){
-            pal_reactive <- pal_intMax
-          }
-          if(input$metrics == "Mean Intensity"){
-            pal_reactive <- pal_intMean
-          }
-          if(input$metrics == "Cumulative Intensity"){
-            pal_reactive <- pal_intCum
-          }
+    } else if(input$Pixels == "Metrics"){
+      # pal_reactive <- pal_intMax
+      if(is.null(input$metrics)){
+        pal_reactive <- pal_intMax
+      } else{
+        if(input$metrics == "Duration"){
+          pal_reactive <- pal_duration
         }
-        return(pal_reactive)
+        if(input$metrics == "Maximum Intensity"){
+          pal_reactive <- pal_intMax
+        }
+        if(input$metrics == "Mean Intensity"){
+          pal_reactive <- pal_intMean
+        }
+        if(input$metrics == "Cumulative Intensity"){
+          pal_reactive <- pal_intCum
+        }
       }
-    })
+      return(pal_reactive)
+    }
+  })
   
   baseData <- reactive({
     MHW_db <- DBI::dbConnect(RSQLite::SQLite(), "../data/MHW_db.sqlite")
@@ -137,21 +137,21 @@ server <- function(input, output, session) {
         mutate(category = factor(category, levels = c("I Moderate", "II Strong",
                                                       "III Severe", "IV Extreme"))) %>%
         na.omit()
-      } else if(input$Pixels == "Metrics"){
-        baseData <- tbl(MHW_db, "MHW_event_sub") %>% 
-          filter(date_start <= date_filter, 
-                 date_end >= date_filter) %>% 
-          collect()
-      }
+    } else if(input$Pixels == "Metrics"){
+      baseData <- tbl(MHW_db, "MHW_event_sub") %>% 
+        filter(date_start <= date_filter, 
+               date_end >= date_filter) %>% 
+        collect()
+    }
     DBI::dbDisconnect(MHW_db)
     return(baseData)
-    })
+  })
   
   rasterNonProj <- reactive({
     baseData <- baseData()
     if(input$Pixels == "Categories"){
       MHW_raster <- baseData %>% 
-      dplyr::select(lon, lat, category)
+        dplyr::select(lon, lat, category)
     } else if(input$Pixels == "Metrics"){
       # MHW_raster <- baseData
       if(is.null(input$metrics)){
@@ -184,7 +184,7 @@ server <- function(input, output, session) {
     colnames(MHW_raster) <- c("X", "Y", "Z")
     MHW_raster$Z <- as.numeric(MHW_raster$Z)
     MHW_raster <- rasterFromXYZ(MHW_raster, res = c(0.25, 0.25), digits = 3,
-                          crs = inputProj)
+                                crs = inputProj)
     return(MHW_raster)
   })
   
@@ -205,9 +205,9 @@ server <- function(input, output, session) {
       addPopups(-60, 45, 
                 popup = paste("Hello and welcome to the MHW tracker.<br>", 
                               "This is a paceholder for more information to come."))
-      # addProviderTiles("Esri.WorldTopoMap",    
-      #                  group = "Topo") #%>% 
-      # fitBounds(~min(lon), ~min(lat), ~max(lon), ~max(lat))
+    # addProviderTiles("Esri.WorldTopoMap",    
+    #                  group = "Topo") #%>% 
+    # fitBounds(~min(lon), ~min(lat), ~max(lon), ~max(lat))
   })
   
   observe({
@@ -255,44 +255,40 @@ server <- function(input, output, session) {
       #Get value of the given cell
       val <- rasterProj[cell]
       if(input$Pixels == "Categories"){
-        # cell_meta <- MHW_cat_clim_sub %>% 
-        #   filter(lon == x, lat == y, t == input$date_choice)
-        # cell_meta <- baseData()
-        # cell_meta <- filter(cell_meta, X == x, Y == y)
         content <- paste0("Lon = ", round(x, 3),
                           "<br>Lat = ", round(y, 3),
                           # "<br>Intensity = ", cell_meta$intensity,"°C",
                           "<br>Category = ", names(MHW_colours)[val])
-        } else if(input$Pixels == "Metrics"){
-          cell_meta <- baseData()
-          cell_meta <- filter(cell_meta, lon == x, lat == y)
-          if(is.null(input$metrics)){
-            content <- paste0("Lon = ", round(x, 3),
-                              "<br>Lat = ", round(y, 3))
-          } else {
-            content_base <- paste0("Lon = ",round(x, 3),
-                                   "<br>Lat = ",round(y, 3),
-                                   "<br>Start Date = ",as.Date(cell_meta$date_start, origin = "1970-01-01"),
-                                   "<br>Peak Date = ",as.Date(cell_meta$date_peak, origin = "1970-01-01"),
-                                   "<br>End Date = ",as.Date(cell_meta$date_end, origin = "1970-01-01"))
-            if(input$metrics == "Duration"){
-              content <- paste0(content_base,
-                                "<br>",input$metrics," = ",cell_meta$duration," days")
-            }
-            if(input$metrics == "Mean Intensity"){
-              content <- paste0(content_base,
-                                "<br>",input$metrics," = ",cell_meta$intensity_mean,"°C")
-            }            
-            if(input$metrics == "Maximum Intensity"){
-              content <- paste0(content_base,
-                                "<br>",input$metrics," = ",cell_meta$intensity_max,"°C")
-            }
-            if(input$metrics == "Cumulative Intensity"){
-              content <- paste0(content_base,
-                                "<br>",input$metrics," = ",cell_meta$intensity_cumulative,"°C x days")
-            }
+      } else if(input$Pixels == "Metrics"){
+        cell_meta <- baseData()
+        cell_meta <- filter(cell_meta, lon == x, lat == y)
+        if(is.null(input$metrics)){
+          content <- paste0("Lon = ", round(x, 3),
+                            "<br>Lat = ", round(y, 3))
+        } else {
+          content_base <- paste0("Lon = ",round(x, 3),
+                                 "<br>Lat = ",round(y, 3),
+                                 "<br>Start Date = ",as.Date(cell_meta$date_start, origin = "1970-01-01"),
+                                 "<br>Peak Date = ",as.Date(cell_meta$date_peak, origin = "1970-01-01"),
+                                 "<br>End Date = ",as.Date(cell_meta$date_end, origin = "1970-01-01"))
+          if(input$metrics == "Duration"){
+            content <- paste0(content_base,
+                              "<br>",input$metrics," = ",cell_meta$duration," days")
+          }
+          if(input$metrics == "Mean Intensity"){
+            content <- paste0(content_base,
+                              "<br>",input$metrics," = ",cell_meta$intensity_mean,"°C")
+          }            
+          if(input$metrics == "Maximum Intensity"){
+            content <- paste0(content_base,
+                              "<br>",input$metrics," = ",cell_meta$intensity_max,"°C")
+          }
+          if(input$metrics == "Cumulative Intensity"){
+            content <- paste0(content_base,
+                              "<br>",input$metrics," = ",cell_meta$intensity_cumulative,"°C x days")
           }
         }
+      }
       proxy <- leafletProxy("map")
       #add Popup
       proxy %>% clearPopups() %>% addPopups(x, y, popup = content)
@@ -335,14 +331,6 @@ server <- function(input, output, session) {
           proxy %>% addLegend(position = "bottomright", pal = pal_intCum,
                               values = c(0, 250, 500), bins = 3, title = "Temp. (°C x days)")
         }
-        # if(input$metrics == "Rate of Onset"){
-        #   proxy %>% addLegend(position = "bottomright", pal = pal_rateOn,
-        #                       values = c(0, 2, 4), bins = 3, title = "Temp. (°C/day)")
-        # }
-        # if(input$metrics == "Rate of Decline"){
-        #   proxy %>% addLegend(position = "bottomright", pal = pal_rateDe,
-        #                       values = c(0, 2, 4), bins = 3, title = "Temp. (°C/day)")
-        # }
       }
     }
   })
