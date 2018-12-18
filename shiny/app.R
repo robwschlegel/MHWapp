@@ -16,35 +16,12 @@ library(rgdal)
 
 # Load data ---------------------------------------------------------------
 
-### The event clims
-## SA only
-# load("data/MHW_cat.RData")
-# MHW_cat_clim_sub <- MHW_cat %>%
-#   unnest(cat) %>%
-#   filter(row_number() %% 2 == 1) %>%
-#   unnest(cat) %>%
-#   mutate(category = factor(category, levels = c("I Moderate", "II Strong",
-#                                                 "III Severe", "IV Extreme")),
-#          intensity = round(intensity, 2)) %>%
-#   dplyr::select(lon, lat, t, intensity, category)
-# save(MHW_cat_clim_sub, file = "shiny/MHWapp/MHW_cat_clim_sub.RData")
-## Global data
-# load("data/MHW_cat_clim_sub_sub.RData")
-# MHW_cat_clim_sub <- MHW_cat_clim_sub_sub %>%
-#   mutate(category = factor(category, levels = c("I Moderate", "II Strong",
-#                                                 "III Severe", "IV Extreme")),
-#          lon = ifelse(lon > 180, lon-360, lon)) %>%
-#   dplyr::select(lon, lat, t, intensity, category) %>% 
-#   filter(t >= as.Date("2017-12-01"))
-# save(MHW_cat_clim_sub, file = "shiny/MHWapp/MHW_cat_clim_sub.RData")
+# For testing only
+# setwd("shiny")
 
 # The event categories
-# load("shiny/MHW_cat_clim.RData")
-# load("shiny/MHWapp/MHW_event.RData")
-# nc_cat_clim <- "shiny/test.nc"
 load("MHW_cat_clim.RData")
 # load("MHW_event.RData")
-# nc_cat_clim <- "test.nc"
 
 # Prep --------------------------------------------------------------------
 
@@ -89,15 +66,15 @@ ui <- bootstrapPage(
                              selected = "OISST"),
                 radioButtons(inputId = "Pixels",
                              label = "Display",
-                             choices = list("Categories", "Events"),
+                             choices = list("Categories", "Metrics"),
                              inline = TRUE,
                              selected = "Categories"),
                 uiOutput(outputId = "Metric"),
                 dateInput(inputId = "date_choice", 
                           label = "Date", 
                           # value = MHW_cat_clim_sub$t[MHW_cat_clim_sub$intensity == max(MHW_cat_clim_sub$intensity)][1], 
-                          value = as.Date("2017-12-01"),
-                          min = as.Date("2017-12-01"), max = as.Date("2017-12-31")
+                          value = as.Date("2017-02-14"),
+                          min = as.Date("2017-01-01"), max = as.Date("2017-12-31")
                           # min = min(MHW_cat_clim_sub$t), max = max(MHW_cat_clim_sub$t)
                 ),
                 checkboxInput("legend", "Show legend", TRUE)
@@ -112,7 +89,7 @@ server <- function(input, output, session) {
   
   # Reactive UI for chosing MHW metrics
   output$Metric <-  renderUI({
-    if(input$Pixels == "Events"){
+    if(input$Pixels == "Metrics"){
       selectInput(inputId = 'metrics', 
                   label = 'Metric', 
                   choices = c("Duration", "Mean Intensity", "Maximum Intensity", "Cumulative Intensity"),
@@ -126,7 +103,7 @@ server <- function(input, output, session) {
   pal_reactive <- reactive({
     if(input$Pixels == "Categories"){
       pal_reactive <- pal_cat
-      } else if(input$Pixels == "Events"){
+      } else if(input$Pixels == "Metrics"){
         # pal_reactive <- pal_intMax
         if(is.null(input$metrics)){
           pal_reactive <- pal_intMax
@@ -149,116 +126,82 @@ server <- function(input, output, session) {
     })
   
   baseData <- reactive({
-    # MHW_db <- DBI::dbConnect(RSQLite::SQLite(), "data/MHW_db.sqlite")
     MHW_db <- DBI::dbConnect(RSQLite::SQLite(), "../data/MHW_db.sqlite")
-    # src_dbi(MHW_db)
+    # dbplyr::src_dbi(MHW_db)
     # date_filter <- as.integer(as.Date("2017-06-17"))
     date_filter <- as.integer(input$date_choice)
     if(input$Pixels == "Categories"){
       baseData <- tbl(MHW_db, "MHW_cat_clim_sub") %>% 
         filter(t == date_filter) %>% 
         collect() %>% 
-        # mutate(category = factor(category, levels = c("I Moderate", "II Strong",
-        #                                               "III Severe", "IV Extreme"))) %>% 
-        na.omit() %>%
-        dplyr::select(lon, lat, category) %>%
-        dplyr::rename(X = lon, Y = lat, Z = category)
-      } else if(input$Pixels == "Events"){
+        mutate(category = factor(category, levels = c("I Moderate", "II Strong",
+                                                      "III Severe", "IV Extreme"))) %>%
+        na.omit()
+      } else if(input$Pixels == "Metrics"){
         baseData <- tbl(MHW_db, "MHW_event_sub") %>% 
           filter(date_start <= date_filter, 
-                 date_end >= date_filter)
-        if(is.null(input$metrics)){
-          baseData <- baseData[1,which(colnames(baseData) %in% c("lon", "lat", "intensity_max"))]
-          colnames(baseData) <- c("X", "Y", "Z")
-        } else {
-          if(input$metrics == "Duration"){
-            baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "duration"))]
-            # Reduce large durations so that colour scale still shows range for normal events
-            # The actual duration is still shown in the popup info
-            baseData <- baseData %>% 
-              mutate(duration = ifelse(duration > 100, 100, duration))
-          }
-          if(input$metrics == "Maximum Intensity"){
-            baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "intensity_max"))]
-            baseData <- baseData %>% 
-              mutate(intensity_max = ifelse(intensity_max > 20, 20, intensity_max))
-          }
-          if(input$metrics == "Mean Intensity"){
-            baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "intensity_mean"))]
-            baseData <- baseData %>% 
-              mutate(intensity_mean = ifelse(intensity_mean > 10, 10, intensity_mean))
-          }
-          if(input$metrics == "Cumulative Intensity"){
-            baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "intensity_cumulative"))]
-            baseData <- baseData %>% 
-              mutate(intensity_cumulative = ifelse(intensity_cumulative > 500, 500, intensity_cumulative))
-          }
-          # if(input$metrics == "Rate of Onset"){
-          #   baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "rate_onset"))]
-          # }
-          # if(input$metrics == "Rate of Decline"){
-          #   baseData <- baseData[,which(colnames(baseData) %in% c("lon", "lat", "rate_decline"))]
-          # }
-          colnames(baseData) <- c("X", "Y", "Z")
-        }
+                 date_end >= date_filter) %>% 
+          collect()
       }
-    #else if(input$Pixels == "Anomalies"){
-          # baseData <- MHW_clim %>%
-          #   filter(t == input$date_choice) %>%
-          #   dplyr::select(lon, lat, anom) %>%
-          #   dplyr::rename(X = lon, Y = lat, Z = anom)
-          # }
-    dbDisconnect(MHW_db)
+    DBI::dbDisconnect(MHW_db)
     return(baseData)
     })
   
-  rasterData <- reactive({
-    MHW_raster <- baseData() #%>% 
-      # tester...
-      # filter(t == as.Date("2017-12-01")) %>%
-      # filter(t == input$date_choice) %>%
-      # dplyr::select(lon, lat, category) %>% 
-      # dplyr::rename(X = lon, Y = lat, Z = category)
+  rasterNonProj <- reactive({
+    baseData <- baseData()
+    if(input$Pixels == "Categories"){
+      MHW_raster <- baseData %>% 
+      dplyr::select(lon, lat, category)
+    } else if(input$Pixels == "Metrics"){
+      # MHW_raster <- baseData
+      if(is.null(input$metrics)){
+        MHW_raster <- baseData %>% 
+          dplyr::select(lon, lat, intensity_max) %>% 
+          slice(1)
+      } else {
+        if(input$metrics == "Duration"){
+          MHW_raster <- baseData %>% 
+            dplyr::select(lon, lat, duration) %>%
+            mutate(duration = ifelse(duration > 100, 100, duration))
+        }
+        if(input$metrics == "Maximum Intensity"){
+          MHW_raster <- baseData %>%
+            dplyr::select(lon, lat, intensity_max) %>% 
+            mutate(intensity_max = ifelse(intensity_max > 20, 20, intensity_max))
+        }
+        if(input$metrics == "Mean Intensity"){
+          MHW_raster <- baseData %>%
+            dplyr::select(lon, lat, intensity_mean) %>% 
+            mutate(intensity_mean = ifelse(intensity_mean > 10, 10, intensity_mean))
+        }
+        if(input$metrics == "Cumulative Intensity"){
+          MHW_raster <- baseData %>%
+            dplyr::select(lon, lat, intensity_cumulative) %>% 
+            mutate(intensity_cumulative = ifelse(intensity_cumulative > 500, 500, intensity_cumulative))
+        }
+      }
+    }
+    colnames(MHW_raster) <- c("X", "Y", "Z")
     MHW_raster$Z <- as.numeric(MHW_raster$Z)
     MHW_raster <- rasterFromXYZ(MHW_raster, res = c(0.25, 0.25), digits = 3,
                           crs = inputProj)
-    MHW_raster <- projectRasterForLeaflet(MHW_raster, method = "ngb")
-    # MHW_raster <- projectRaster(MHW_raster, crs = leafletProj)
-    # if(input$Pixels == "Categories"){
-    #   MHW_raster <- projectRasterForLeaflet(MHW_raster, method = "ngb")
-    #   } else if(input$Pixels == "Events"){
-    #     MHW_raster <- projectRasterForLeaflet(MHW_raster, method = "bilinear")
-    #     }
     return(MHW_raster)
-    # rasterFromXYZ(MHW_raster, res = c(0.25, 0.25), digits = 2,
-    #               crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0")
-    # crs = "+proj=longlat +datum=NAD83"
-    # +init=epsg:3411
-    # +init=epsg:4326
   })
   
-  rasterNonProj <- reactive({
-    rasterNonProj <- baseData()
-    # rasterNonProj <- MHW_cat_clim_sub %>%
-    #   # tester...
-    #   # filter(t == as.Date("2017-12-01")) %>%
-    #   filter(t == input$date_choice) %>%
-    #   dplyr::select(lon, lat, category) %>%
-    #   rename(X = lon, Y = lat, Z = category)
-    rasterNonProj$Z <- as.numeric(rasterNonProj$Z)
-    rasterNonProj <- rasterFromXYZ(rasterNonProj, res = c(0.25, 0.25), digits = 3,
-                             crs = "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
-    # rasterNonProj <- projectRasterForLeaflet(rasterNonProj, method = "ngb")
+  rasterProj <- reactive({
+    rasterProj <- rasterNonProj()
+    rasterProj <- projectRasterForLeaflet(rasterProj, method = "ngb")
+    return(rasterProj)
   })
   
   output$map <- renderLeaflet({
-    leaflet(MHW_event_sub) %>%
-      setView(-60, 45, zoom = 5, options = tileOptions(minZoom = 0, maxZoom = 6)) %>%
+    leaflet(MHW_cat_clim_sub) %>%
+      setView(-60, 45, zoom = 5, options = tileOptions(minZoom = 3, maxZoom = 6)) %>%
       # addProviderTiles("Stamen.TonerLite",
       #                  group = "Toner", 
       #                  options = tileOptions(minZoom = 0, maxZoom = 16)) #%>%
       addTiles(group = "OSM", 
-               options = tileOptions(minZoom = 0, maxZoom = 6, opacity = 0.5)) %>%
+               options = tileOptions(minZoom = 3, maxZoom = 6, opacity = 0.5)) %>%
       addPopups(-60, 45, 
                 popup = paste("Hello and welcome to the MHW tracker.<br>", 
                               "This is a paceholder for more information to come."))
@@ -270,7 +213,8 @@ server <- function(input, output, session) {
   observe({
     leafletProxy("map") %>%
       clearImages() %>% 
-      addRasterImage(rasterData(), colors = pal_reactive(), project = FALSE, opacity = 0.7) %>%
+      addRasterImage(rasterProj(), colors = pal_reactive(), project = FALSE, opacity = 0.7) %>%
+      # setView(options = tileOptions(minZoom = 3, maxZoom = 6)) %>% 
       addScaleBar(position = "bottomright")
   })
   
@@ -278,14 +222,14 @@ server <- function(input, output, session) {
   observe({
     click <- input$map_click
     if(!is.null(click)){
-      showpos(x = click$lng, y = click$lat)
+      showpos(x = click$lng, y = click$lat) 
     }
   })
   
   # Show popup on clicks
   showpos <- function(x = NULL, y = NULL) {
     rasterNonProj <- rasterNonProj()
-    rasterData <- rasterData()
+    rasterProj <- rasterProj()
     # depth <- depth()
     # Translate Lon-Lat to cell number using the unprojected raster
     # This is because the projected raster is not in degrees, we cannot use it!
@@ -300,55 +244,53 @@ server <- function(input, output, session) {
       # proj4string(xy) <- leafletProj
       xy <- as.data.frame(spTransform(xy, leafletProj))
       #Get the cell number from the newly transformed metric X and Y.
-      cell <- cellFromXY(rasterData, c(xy$x, xy$y))
+      cell <- cellFromXY(rasterProj, c(xy$x, xy$y))
       #At this point, you can also retrace back the center of the cell in
       #leaflet coordinates, starting from the cell number!
-      xy <- SpatialPoints(xyFromCell(rasterData, cell))
+      xy <- SpatialPoints(xyFromCell(rasterProj, cell))
       proj4string(xy) <- leafletProj
       xy <- as.data.frame(spTransform(xy, inputProj))
       #Get row and column, to print later
       rc <- rowColFromCell(rasterNonProj, cell)
       #Get value of the given cell
-      val <- rasterData[cell]
+      val <- rasterProj[cell]
       if(input$Pixels == "Categories"){
         # cell_meta <- MHW_cat_clim_sub %>% 
         #   filter(lon == x, lat == y, t == input$date_choice)
-        cell_meta <- baseData()
-        cell_meta <- filter(cell_meta, X == x, Y == y)
+        # cell_meta <- baseData()
+        # cell_meta <- filter(cell_meta, X == x, Y == y)
         content <- paste0("Lon = ", round(x, 3),
                           "<br>Lat = ", round(y, 3),
                           # "<br>Intensity = ", cell_meta$intensity,"°C",
                           "<br>Category = ", names(MHW_colours)[val])
-        } else if(input$Pixels == "Events"){
-          cell_meta <- MHW_event_sub %>% 
-            filter(lon == x, lat == y,
-                   date_start <= input$date_choice, 
-                   date_end >= input$date_choice)
+        } else if(input$Pixels == "Metrics"){
+          cell_meta <- baseData()
+          cell_meta <- filter(cell_meta, lon == x, lat == y)
           if(is.null(input$metrics)){
             content <- paste0("Lon = ", round(x, 3),
                               "<br>Lat = ", round(y, 3))
           } else {
             content_base <- paste0("Lon = ",round(x, 3),
                                    "<br>Lat = ",round(y, 3),
-                                   "<br>Start Date = ",cell_meta$date_start,
-                                   "<br>Peak Date = ",cell_meta$date_peak,
-                                   "<br>End Date = ",cell_meta$date_end)
+                                   "<br>Start Date = ",as.Date(cell_meta$date_start, origin = "1970-01-01"),
+                                   "<br>Peak Date = ",as.Date(cell_meta$date_peak, origin = "1970-01-01"),
+                                   "<br>End Date = ",as.Date(cell_meta$date_end, origin = "1970-01-01"))
             if(input$metrics == "Duration"){
               content <- paste0(content_base,
                                 "<br>",input$metrics," = ",cell_meta$duration," days")
             }
-            if(input$metrics %in% c("Mean Intensity", "Maximum Intensity")){
+            if(input$metrics == "Mean Intensity"){
               content <- paste0(content_base,
-                                "<br>",input$metrics," = ",val,"°C")
+                                "<br>",input$metrics," = ",cell_meta$intensity_mean,"°C")
+            }            
+            if(input$metrics == "Maximum Intensity"){
+              content <- paste0(content_base,
+                                "<br>",input$metrics," = ",cell_meta$intensity_max,"°C")
             }
             if(input$metrics == "Cumulative Intensity"){
               content <- paste0(content_base,
                                 "<br>",input$metrics," = ",cell_meta$intensity_cumulative,"°C x days")
             }
-            # if(input$metrics %in% c("Rate of Onset", "Rate of Decline")){
-            #   content <- paste0(content_base,
-            #                     "<br>",input$metrics," = ",val,"°C/day")
-            # }
           }
         }
       proxy <- leafletProxy("map")
@@ -371,7 +313,7 @@ server <- function(input, output, session) {
                           pal = pal_factor,
                           values = ~category
       )
-    } else if(input$legend & input$Pixels == "Events"){
+    } else if(input$legend & input$Pixels == "Metrics"){
       if(is.null(input$metrics)){
         # proxy %>% addLegend(position = "bottomright", pal = pal_intMax,
         #                     values = c(0, 10, 20), title = "Temp. °C")
