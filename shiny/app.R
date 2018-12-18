@@ -5,6 +5,7 @@
 library(dplyr)
 library(shiny)
 library(leaflet)
+library(leaflet.extras)
 library(raster)
 library(rgdal)
 # library(ncdf4)
@@ -126,7 +127,7 @@ server <- function(input, output, session) {
   })
   
   baseData <- reactive({
-    MHW_db <- DBI::dbConnect(RSQLite::SQLite(), "../data/MHW_db.sqlite")
+    MHW_db <- DBI::dbConnect(RSQLite::SQLite(), "MHW_db.sqlite")
     # dbplyr::src_dbi(MHW_db)
     # date_filter <- as.integer(as.Date("2017-06-17"))
     date_filter <- as.integer(input$date_choice)
@@ -196,15 +197,21 @@ server <- function(input, output, session) {
   
   output$map <- renderLeaflet({
     leaflet(MHW_cat_clim_sub) %>%
-      setView(-60, 45, zoom = 5, options = tileOptions(minZoom = 3, maxZoom = 6)) %>%
-      # addProviderTiles("Stamen.TonerLite",
-      #                  group = "Toner", 
-      #                  options = tileOptions(minZoom = 0, maxZoom = 16)) #%>%
-      addTiles(group = "OSM", 
-               options = tileOptions(minZoom = 3, maxZoom = 6, opacity = 0.5)) %>%
+      setView(-60, 45, zoom = 4, options = tileOptions(minZoom = 1, maxZoom = 7, noWrap = T)) %>%
+      # addProviderTiles(providers$OpenSeaMap,
+      #                  options = tileOptions(minZoom = 2, maxZoom = 6)) %>%
+      # Plot MODIS map with the same day as selected for MHWs!
+      # addProviderTiles(providers$NASAGIBS.ModisTerraTrueColorCR,
+      #                  options = providerTileOptions(time = input$date_choice,
+      #                                                noWrap = T, opacity = 0.7)) %>% 
+      addTiles(group = "OSM",
+               options = tileOptions(minZoom = 1, maxZoom = 7, opacity = 0.5, noWrap = T)) %>%
       addPopups(-60, 45, 
                 popup = paste("Hello and welcome to the MHW tracker.<br>", 
-                              "This is a paceholder for more information to come."))
+                              "This is a paceholder for more information to come.")) %>% 
+      # setMaxBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90)
+      fitBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90,
+                options = tileOptions(minZoom = 1, maxZoom = 7))
     # addProviderTiles("Esri.WorldTopoMap",    
     #                  group = "Topo") #%>% 
     # fitBounds(~min(lon), ~min(lat), ~max(lon), ~max(lat))
@@ -213,9 +220,13 @@ server <- function(input, output, session) {
   observe({
     leafletProxy("map") %>%
       clearImages() %>% 
-      addRasterImage(rasterProj(), colors = pal_reactive(), project = FALSE, opacity = 0.7) %>%
+      addRasterImage(rasterProj(), colors = pal_reactive(), 
+                     project = FALSE, opacity = 0.7) %>%
       # setView(options = tileOptions(minZoom = 3, maxZoom = 6)) %>% 
-      addScaleBar(position = "bottomright")
+      addScaleBar(position = "bottomright") %>% 
+      # setMaxBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90) #%>% 
+      fitBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90,
+                options = tileOptions(minZoom = 3, maxZoom = 6))
   })
   
   # Observer to show Popups on click
@@ -289,9 +300,9 @@ server <- function(input, output, session) {
           }
         }
       }
-      proxy <- leafletProxy("map")
+      # proxy <- leafletProxy("map")
       #add Popup
-      proxy %>% clearPopups() %>% addPopups(x, y, popup = content)
+      leafletProxy("map") %>% clearPopups() %>% addPopups(x, y, popup = content)
       #add rectangles for testing
       # proxy %>% clearShapes() %>% addRectangles(x-0.25/2, y-0.25/2, x+0.25/2, y+0.25/2)
       # proxy %>% clearMarkers() %>% addAwesomeMarkers(x, y)

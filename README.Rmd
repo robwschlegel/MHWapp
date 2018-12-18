@@ -1,11 +1,13 @@
 # MHWapp
-A proof of concept for a daily updating global MHW map
+A proof of concept for a daily updating global MHW map.
 
-Presently the project is hosted at this address: https://robert-schlegel.shinyapps.io/MHWapp/
-
-Ultimately it will be hosted on a permanent instance where it can live in perpetuity.
+Presently the interactive map holds all of the MHWs detected in the NOAA OISST data for 2017. One may click on the pixels to see a small summary of the stats for a given event.
 
 # Updates
+
+* December 18, 2018
+  * Played around with mapping options
+  * All of 2017 data now live 
 
 * December 17, 2018
   * Created basic SQL databases to deal with RAM issues
