@@ -1,4 +1,5 @@
-# The purpose of this script is to house code that will only work when run on tikoraluk
+# The purpose of this script is to house code that will only work when run  
+# while ssh'ed into the tikoraluk server
 
 
 # Libraries ---------------------------------------------------------------
@@ -6,6 +7,11 @@
 library(tidyverse)
 doMC::registerDoMC(cores = 50)
 library(padr)
+
+
+# Meta-data ---------------------------------------------------------------
+
+MHW_files <- dir(path = "../data", pattern = "MHW.calc", full.names = T)
 
 
 # Prep functions ----------------------------------------------------------
@@ -55,72 +61,105 @@ MHW_cat_event <- function(df){
   )
 }
 
+
+# Load functions ----------------------------------------------------------
+
 # Load and subset category climatologies
-load_sub_MHW_cat_clim <- function(file_name){
+load_sub_MHW_cat_clim <- function(file_name, sub_year){
   load(file = file_name)
   data_sub <- MHW_cat_clim(MHW_res) %>% 
-    filter(t >= as.Date("2017-01-01")) %>% 
+    filter(t >= as.Date(paste0(sub_year,"-01-01")),
+           t <= as.Date(paste0(sub_year,"-12-01"))) %>% 
     mutate(intensity = round(intensity, 2))
   rm(MHW_res)
   return(data_sub)
-}
+} # 0.8 seconds for one
 
 # Load and subset event metrics
 load_sub_MHW_event <- function(file_name){
   load(file = file_name)
   data_sub <- MHW_event(MHW_res) %>% 
-    filter(date_start >= as.Date("2017-01-01"), 
-           date_start <= as.Date("2017-12-01"))
+    filter(date_start >= as.Date(paste0(sub_year,"-01-01")),
+           date_start <= as.Date(paste0(sub_year,"-12-01")))
   rm(MHW_res)
   return(data_sub)
-}
+} # 1.8 seconds for one
 
+# Load and subset climatologies
 load_sub_MHW_clim <- function(file_name){
   load(file = file_name)
   data_sub <- MHW_clim(MHW_res) %>% 
-    filter(t >= as.Date("2017-01-01"))
+    filter(t >= as.Date(paste0(sub_year,"-01-01")),
+           t <= as.Date(paste0(sub_year,"-12-01")))
   rm(MHW_res)
   return(data_sub)
+} # 1.8 seconds for one
+
+
+# Processing functions ----------------------------------------------------
+
+# Process annual category climatologies
+proc_sub_MHW_cat_clim <- function(sub_year){
+  MHW_cat_clim_sub <- plyr::ldply(MHW_files, .fun = load_sub_MHW_cat_clim, 
+                                  .parallel = T, sub_year)
+  MHW_cat_clim_sub <- MHW_cat_clim_sub %>%
+    mutate(category = factor(category, levels = c("I Moderate", "II Strong",
+                                                  "III Severe", "IV Extreme")),
+           category = as.integer(category),
+           lon = ifelse(lon > 180, lon-360, lon))
+  MHW_cat_clim_sub <- as.tibble(MHW_cat_clim_sub)
+  saveRDS(MHW_cat_clim_sub, file = paste0("data/MHW_cat_clim_",sub_year,".Rda"))
+  rm(MHW_cat_clim_sub)
+}
+
+# Process annual event metrics
+proc_sub_MHW_event <- function(sub_year){
+  MHW_event_sub <- plyr::ldply(MHW_files, .fun = load_sub_MHW_event, 
+                               .parallel = T, sub_year)
+  MHW_event_sub <- MHW_event_sub %>%
+    mutate(lon = ifelse(lon > 180, lon-360, lon)) %>%
+    dplyr::select(lon:event_no, duration:intensity_max, intensity_cumulative) %>%
+    mutate_all(round, 3)
+  MHW_event_sub <- as.tibble(MHW_event_sub)
+  saveRDS(MHW_event_sub, file = paste0("data/MHW_event_",sub_year,".Rda"))
+  rm(MHW_event_sub)
+}
+
+# Process annual climatologies
+proc_sub_MHW_clim <- function(sub_year){
+  MHW_clim_sub <- plyr::ldply(MHW_files, .fun = load_sub_MHW_clim, 
+                              .parallel = T, sub_year)
+  MHW_clim_sub <- MHW_clim_sub %>%
+    mutate(lon = ifelse(lon > 180, lon-360, lon)) %>%
+    group_by(lon, lat) %>%
+    #mutate(anom = temp - mean(temp, na.rm = T)) %>%
+    dplyr::select(lon:thresh, event_no) %>%
+    ungroup() %>%
+    mutate_all(round, 3)
+  MHW_clim_sub <- as.tibble(MHW_clim_sub)
+  saveRDS(MHW_clim_sub, file = paste0("data/MHW_clim_",sub_year,".Rda"))
+  rm(MHW_clim_sub)
 }
 
 
-# Data --------------------------------------------------------------------
+# Create files ------------------------------------------------------------
 
-MHW_files <- dir(path = "../data", pattern = "MHW.calc", full.names = T)
+# NB: For loops are used below so as to avoid stack overflows.
+# This is because the layers of wrapper functions are already using
+# purrr and plyr to perform outomised multicore calculations.
 
-# system.time(
-# MHW_cat_clim_sub <- plyr::ldply(MHW_files, .fun = load_sub_MHW_cat_clim, .parallel = T)
-# ) # 0.8 seconds for one
-# MHW_cat_clim_sub <- MHW_cat_clim_sub %>%
-#   mutate(category = factor(category, levels = c("I Moderate", "II Strong",
-#                                                 "III Severe", "IV Extreme")),
-#          category = as.integer(category),
-#          lon = ifelse(lon > 180, lon-360, lon))
-# MHW_cat_clim_sub <- as.tibble(MHW_cat_clim_sub)
-# save(MHW_cat_clim_sub, file = "data/MHW_cat_clim_sub.RData")
-# 
-# system.time(
-# MHW_event_sub <- plyr::ldply(MHW_files, .fun = load_sub_MHW_event, .parallel = T)
-# ) # 1.8 seconds for one
-# MHW_event_sub <- MHW_event_sub %>%
-#   mutate(lon = ifelse(lon > 180, lon-360, lon)) %>%
-#   dplyr::select(lon:event_no, duration:intensity_max, intensity_cumulative) %>%
-#   mutate_all(round, 3)
-# MHW_event_sub <- as.tibble(MHW_event_sub)
-# save(MHW_event_sub, file = "data/MHW_event_sub.RData")
-# 
-# system.time(
-# MHW_clim_sub <- plyr::ldply(MHW_files, .fun = load_sub_MHW_clim, .parallel = T)
-# ) # 1.8 seconds for one
-# MHW_clim_sub <- MHW_clim_sub %>%
-#   mutate(lon = ifelse(lon > 180, lon-360, lon)) %>%
-#   group_by(lon, lat) %>%
-#   mutate(anom = temp - mean(temp, na.rm = T)) %>%
-#   dplyr::select(lon:thresh, anom, event_no) %>%
-#   ungroup() %>%
-#   mutate_all(round, 3)
-# MHW_clim_sub <- as.tibble(MHW_clim_sub)
-# save(MHW_clim_sub, file = "data/MHW_clim_sub.RData")
+# Category climatologies
+for(i in 1982:2017)
+  proc_sub_MHW_cat_clim(2017)
+)
+
+system.time(
+  proc_sub_MHW_event(2017)
+)
+
+system.time(
+  proc_sub_MHW_clim(2017)
+)
 
 
 # Sub-samples -------------------------------------------------------------
