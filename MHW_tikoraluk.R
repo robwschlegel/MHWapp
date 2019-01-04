@@ -131,10 +131,10 @@ proc_sub_MHW_clim <- function(sub_year){
                               .parallel = T, sub_year)
   MHW_clim_sub <- MHW_clim_sub %>%
     mutate(lon = ifelse(lon > 180, lon-360, lon)) %>%
-    group_by(lon, lat) %>%
+    # group_by(lon, lat) %>%
     #mutate(anom = temp - mean(temp, na.rm = T)) %>%
     dplyr::select(lon:thresh, event_no) %>%
-    ungroup() %>%
+    # ungroup() %>%
     mutate_all(round, 3)
   MHW_clim_sub <- as.tibble(MHW_clim_sub)
   saveRDS(MHW_clim_sub, file = paste0("data/MHW_clim_",sub_year,".Rda"))
@@ -149,17 +149,17 @@ proc_sub_MHW_clim <- function(sub_year){
 # purrr and plyr to perform outomised multicore calculations.
 
 # Category climatologies
-for(i in 1982:2017)
-  proc_sub_MHW_cat_clim(2017)
-)
-
-system.time(
-  proc_sub_MHW_event(2017)
-)
-
-system.time(
-  proc_sub_MHW_clim(2017)
-)
+# for(i in 1982:2017){
+#   proc_sub_MHW_cat_clim(i)
+# }
+# 
+# system.time(
+#   proc_sub_MHW_event(2017)
+# )
+# 
+# system.time(
+#   proc_sub_MHW_clim(2017)
+# )
 
 
 # Sub-samples -------------------------------------------------------------
