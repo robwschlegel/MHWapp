@@ -90,7 +90,25 @@ map <- function(input, output, session) {
   #   "Tide Height (ft)"
   # })
   
-
+  # tide_data <- reactive({
+  #   req(station$location)
+  #   data <- filter_data()
+  #   station <- station_label()
+  #   tz <- data$TZ
+  #   
+  #   data <- rtide::tide_height(
+  #     station, from = input$from, to = input$to,
+  #     minutes = input$interval, tz = tz)
+  #   
+  #   data$TideHeight %<>% round(2)
+  #   data$TimeZone <- tz
+  #   
+  #   if(input$units == "meters"){
+  #     return(data)
+  #   } 
+  #   data$TideHeight <- round(data$TideHeight * 3.3333, 2)
+  #   data
+  # })
   
   ### Download data
   downloadData <- reactive({
