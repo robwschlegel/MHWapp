@@ -4,4 +4,5 @@ MHW_cat_clim_sub.RData
 MHW_event_sub.RData
 MHW_clim_sub.RData
 MHW_db.sqlite
+MHW_DB.sqlite
 MHW_cat_clim_*.Rda
