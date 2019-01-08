@@ -5,29 +5,45 @@
 # Libraries ---------------------------------------------------------------
 
 library(tidyverse)
-doMC::registerDoMC(cores = 50)
 library(abind)
 library(ncdf4)
+doMC::registerDoMC(cores = 50)
 
 
 # Meta-data ---------------------------------------------------------------
 
 load("../tikoraluk/metadata/lon_lat_OISST.RData")
 lon_lat_OISST <- arrange(lon_lat_OISST, lon, lat)
-
+OISST_files <- dir("../../oliver/data/sst/noaa_oi_v2/avhrr/timeseries",
+                   pattern = "avhrr-only", full.names = T)
 
 # Data --------------------------------------------------------------------
 
 # Load December sub-samples
-load("../MHWapp/data/MHW_cat_clim_sub.RData")
-load("../MHWapp/data/MHW_event_sub.RData")
-load("../MHWapp/data/MHW_clim_sub.RData")
+# load("../MHWapp/data/MHW_cat_clim_sub.RData")
+# load("../MHWapp/data/MHW_event_sub.RData")
+# load("../MHWapp/data/MHW_clim_sub.RData")
 
 
 # Functions ---------------------------------------------------------------
 
-# # Function for creating NetCDF files from MHW data
-# MHW_ncdf <- function(){}
+# tester...
+# file_name <- OISST_files[1]
+# Function for creating NetCDF files from OISST data
+OISST_ncdf <- function(file_name){
+  file_number <- 1
+  mat_file <- readMat(file_name) # ~7 seconds
+  mat_file_ts <- as.data.frame(t(mat_file$sst.ts)) %>% 
+    setNames(., as.numeric(mat_file$lat)) %>% 
+    mutate(t = as.Date(as.POSIXct((mat_file$time - 719529) * 86400,
+                                  origin = "1970-01-01", tz = "UTC"))) %>% 
+    gather(-t, key = lat, value = temp) %>% 
+    mutate(lon = mat_file$lon[as.numeric(df$file_num)],
+           lat = as.numeric(lat),
+           temp = ifelse(is.nan(temp), NA, temp)) %>%
+    select(lon, lat, t, temp) %>% 
+    na.omit() # ~2 seconds
+}
 
 
 # Define dimensions -------------------------------------------------------
