@@ -9,11 +9,11 @@ map <- function(input, output, session) {
 
   ### base map data
   baseData <- reactive({
+    date_filter <- as.integer(input$date_choice)
+    # date_filter <- as.integer(as.Date("2017-06-17"))
+    # print(date_filter)
     MHW_db <- DBI::dbConnect(RSQLite::SQLite(), "MHW_db.sqlite")
     # dbplyr::src_dbi(MHW_db)
-    # date_filter <- as.integer(as.Date("2017-06-17"))
-    date_filter <- as.integer(input$date_choice)
-    # print(date_filter)
     baseData <- tbl(MHW_db, "MHW_cat_clim_sub") %>%
       filter(t == date_filter) %>%
       collect() %>%
@@ -122,10 +122,11 @@ map <- function(input, output, session) {
     data <- pixelData()
     data_sub <- data %>%
       filter(t >= input$from, t <= input$to)
-    ggplot(data = data_sub, aes(x = t, y = intensity)) +
+    p <- ggplot(data = data_sub, aes(x = t, y = intensity)) +
       geom_line() +
       geom_point(aes(colour = category)) +
       labs(x = "", y = "Intensity (°C above thresh.)")
+    ggplotly(p)
   })
   
   ### Create data table
@@ -146,11 +147,13 @@ map <- function(input, output, session) {
   observe({
     leafletProxy("map") %>%
       clearImages() %>%
-      addRasterImage(rasterProj(), colors = pal_cat,
+      addRasterImage(rasterProj(), colors = pal_cat, layerId = "map_raster",
                      project = FALSE, opacity = 0.7) %>%
-      addScaleBar(position = "bottomright") %>%
-      fitBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90,
-                options = tileOptions(minZoom = 3, maxZoom = 6))
+      addScaleBar(position = "bottomright") #%>%
+      # addMouseCoordinates() %>%
+      # addImageQuery(rasterProj(), type = "mousemove", layerId = "map_raster")
+      # fitBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90,
+      #           options = tileOptions(minZoom = 3, maxZoom = 6))
   })
   
   ### Recreate the legend as needed.
@@ -165,7 +168,7 @@ map <- function(input, output, session) {
     )
   })
   
-  observeEvent(c(input$map_click, input$search), {
+  observeEvent(input$map_click, {
     req(!is.null(pixelData()))
     toggleModal(session, "modal", "open")
   })
@@ -177,9 +180,10 @@ map <- function(input, output, session) {
     leaflet(MHW_cat_clim_sub) %>%
       setView(-60, 45, zoom = 5, options = tileOptions(minZoom = 1, maxZoom = 7, noWrap = T)) %>%
       addTiles(group = "OSM",
-               options = tileOptions(minZoom = 1, maxZoom = 7, opacity = 0.5, noWrap = T)) %>%
-      fitBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90,
-                options = tileOptions(minZoom = 1, maxZoom = 7))
+               options = tileOptions(minZoom = 1, maxZoom = 7, opacity = 0.5, noWrap = T)) #%>%
+      # addMouseCoordinates() #%>%
+      # fitBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90,
+      #           options = tileOptions(minZoom = 1, maxZoom = 7))
   })
   
   
@@ -223,7 +227,7 @@ map <- function(input, output, session) {
 # Outputs -----------------------------------------------------------------
 
   # plot
-  output$plot <- renderPlot({
+  output$plot <- renderPlotly({
     tsPlot()
   })
   
@@ -234,11 +238,12 @@ map <- function(input, output, session) {
     ))
   })
   
+  # UI panel
   output$uiModal <- renderUI({
     bsModal(ns('modal'), title = div(id = ns('modalTitle'), pixelLabel()), trigger = 'click2', size = "large",
             div(id = ns("top_row"),
                 sidebarLayout(
-                  sidebarPanel(width = 3, id = ns('sidebar'),
+                  sidebarPanel(width = 1, id = ns('sidebar'),
                                div(class = 'control',
                                    div(class = 'label', p("From")),
                                    dateInput(ns("from"), NULL, format = "M d, yyyy",
@@ -264,7 +269,7 @@ map <- function(input, output, session) {
                             tabsetPanel(id = ns("tabs"),
                                         tabPanel(title = "Plot",
                                                  br(),
-                                                 plotOutput(ns("plot"), height = "375px")),
+                                                 plotlyOutput(ns("plot"))),
                                         tabPanel(title = "Table",
                                                  br(),
                                                  wellPanel(class = 'wellpanel',
@@ -273,10 +278,8 @@ map <- function(input, output, session) {
                                         )))
                 )))
   })
-  
 
-# Download ----------------------------------------------------------------
-
+  # Downloading
   output$download <- downloadHandler(
     filename = function() {
       paste0("pixel.csv")

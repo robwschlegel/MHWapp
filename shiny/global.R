@@ -16,7 +16,8 @@ library(rgdal)
 library(DT)
 library(shinyBS)
 library(ggplot2)
-# library(plotly)
+library(plotly)
+library(mapview)
 # library(dygraphs)
 
 #slackr

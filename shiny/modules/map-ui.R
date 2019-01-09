@@ -41,7 +41,8 @@ mapUI <- function(id, label = 'map') {
                             min = "2017-01-01", max = "2017-12-31"
                             # min = min(MHW_cat_clim_sub$t), max = max(MHW_cat_clim_sub$t)
                   ),
-                  checkboxInput("legend", "Show legend", TRUE)
+                  verbatimTextOutput(outputId = ns("map_hover"), placeholder = TRUE)
+                  # checkboxInput("legend", "Show legend", TRUE)
     ),
     
     uiOutput(ns('uiModal')))
