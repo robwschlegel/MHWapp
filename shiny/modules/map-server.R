@@ -51,14 +51,37 @@ map <- function(input, output, session) {
         cell <- cellFromXY(rasterNonProj, c(click$lng, click$lat))
         #If the click is inside the raster...
         xy <- xyFromCell(rasterNonProj, cell)
+        
+        # Grab time series data
+        nc <- nc_open(as.character(ncdf_index$file_name)[ncdf_index$lon == xy[1]])
+        ts_data <- data.frame(t = as.Date(nc$dim$time$vals, origin = "1970-01-01"),
+                              temp = ncvar_get(nc, varid = "sst")[lat_OISST == xy[2],])
+        nc_close(nc)
+        
+        # Grab threshold data
+        # nc <- nc_open("../data/OISST/MHW.sea.thresh.nc")
+        # thresh_data <- data.frame(t = as.Date(nc$dim$time$vals, origin = "1970-01-01"),
+        #                           seas = ncvar_get(nc, varid = "seas")[ncdf_index$lon == xy[1],
+        #                                                                ncdf_index$lat == xy[2],],
+        #                           thresh = ncvar_get(nc, varid = "thresh")[ncdf_index$lon == xy[1],
+        #                                                                    ncdf_index$lat == xy[2],])
+        # nc_close(nc)
+        
+        # Grab event data
         MHW_db <- DBI::dbConnect(RSQLite::SQLite(), "MHW_db.sqlite")
         # dbplyr::src_dbi(MHW_db)
-        pixelData <- tbl(MHW_db, "MHW_cat_clim_sub") %>%
+        event_data <- tbl(MHW_db, "MHW_event_sub") %>%
           filter(lon == xy[1], lat == xy[2]) %>%
           collect() %>%
-          na.omit() %>% 
-          mutate(t = as.Date(t, origin = "1970-01-01"))
+          mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
+                 date_peak = as.Date(date_peak, origin = "1970-01-01"),
+                 date_end = as.Date(date_end, origin = "1970-01-01"))
         DBI::dbDisconnect(MHW_db)
+        pixelData <- list(ts = ts_data,
+                          event = event_data,
+                          # thresh = thresh_data,
+                          lon = xy[1],
+                          lat = xy[2])
         return(pixelData)
       }
   })
@@ -119,21 +142,35 @@ map <- function(input, output, session) {
   
   ### Create time series plot
   tsPlot <- reactive({
-    data <- pixelData()
-    data_sub <- data %>%
+    ts_data <- pixelData()$ts
+    ts_data_sub <- ts_data %>%
       filter(t >= input$from, t <= input$to)
-    p <- ggplot(data = data_sub, aes(x = t, y = intensity)) +
-      geom_line() +
-      geom_point(aes(colour = category)) +
-      labs(x = "", y = "Intensity (°C above thresh.)")
+    # thresh_data <- pixelData()$thresh
+    # thresh_data_sub <- thresh_data %>%
+    #   filter(t >= input$from, t <= input$to)
+    p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
+      geom_line(colour = "grey20") +
+      # geom_line(data = thresh_data_sub, aes(x = t, y = seas), colour = "green") +
+      # geom_line(data = thresh_data_sub, aes(x = t, y = thresh), colour = "red") +
+      # geom_point() +
+      labs(x = "", y = "Temperature (°C)")
+    if(length(input$to-input$from) <= 1830){
+      p <- p +
+        geom_line(data = thresh_data_sub, aes(x = t, y = seas), colour = "green") +
+        geom_line(data = thresh_data_sub, aes(x = t, y = thresh), colour = "red")
+    }
+    if(length(input$to-input$from) <= 366){
+      p <- p +
+        geom_flame()
+    }
     ggplotly(p)
   })
   
   ### Create data table
   tsTable <- reactive({
-    data <- pixelData()
-    data_sub <- data %>% 
-      filter(t >= input$from, t <= input$to)
+    event_data <- pixelData()$event
+    event_data_sub <- event_data %>% 
+      filter(date_start >= input$from, date_start <= input$to)
     # data$Time <- strftime(data$DateTime, format = "%H:%M %p")
     # data$Date <- strftime(data$DateTime, format = "%B %d, %Y")
     # data[,c("Date", "Time", "TideHeight")] %>%
@@ -243,7 +280,7 @@ map <- function(input, output, session) {
     bsModal(ns('modal'), title = div(id = ns('modalTitle'), pixelLabel()), trigger = 'click2', size = "large",
             div(id = ns("top_row"),
                 sidebarLayout(
-                  sidebarPanel(width = 1, id = ns('sidebar'),
+                  sidebarPanel(width = 2, id = ns('sidebar'),
                                div(class = 'control',
                                    div(class = 'label', p("From")),
                                    dateInput(ns("from"), NULL, format = "M d, yyyy",

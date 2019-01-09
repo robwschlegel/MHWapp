@@ -18,6 +18,8 @@ library(shinyBS)
 library(ggplot2)
 library(plotly)
 library(mapview)
+library(ncdf4)
+library(heatwaveR)
 # library(dygraphs)
 
 #slackr
@@ -57,6 +59,10 @@ click_zoom <- 11
 leaf.pos <- "topright"
 sidepanel.width <- 400
 
+# The lon/lat steps
+load("lon_OISST.RData")
+lat_OISST <- seq(-89.875, 89.875, by = 0.25)
+
 # palette <- c('#07A8FF', "#FFBA00", "#FF3900")
 # shades <- c("#4EC0FD", "#1FB1FF", "#0091DF", "00649A")
 # marker <- makeIcon(
@@ -69,6 +75,10 @@ appCSS <- ".mandatory_star { color: red; }"
 
 # The event categories
 load("MHW_cat_clim.RData")
+
+# The indexed NetCDF database
+ncdf_index <- data.frame(file_name = dir(path = "OISST", pattern = "avhrr", full.names = T),
+                         lon = lon_OISST[1:length(dir(path = "OISST", pattern = "avhrr", full.names = T))])
 
 # The category colour pallette
 MHW_colours <- c(
