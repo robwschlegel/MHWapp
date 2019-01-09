@@ -181,9 +181,9 @@ proc_sub_MHW_event <- function(sub_year){
 # system.time(
 # proc_sub_MHW_event(2017)
 # ) # xxx seconds
-for(i in 1982:2017){
-  proc_sub_MHW_event(i)
-}
+# for(i in 1982:2017){
+#   proc_sub_MHW_event(i)
+# }
 
 
 # Sub-samples -------------------------------------------------------------
