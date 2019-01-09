@@ -48,13 +48,19 @@ OISST_mat <- function(file_name){
 }
 
 # Function for creating arrays from data.frames
-OISST_acast <- function(df){
-  lon_lat_OISST_sub <- lon_lat_OISST %>% 
-    filter(lon == df$lon[1])
+OISST_acast <- function(df, var, lon_sub = T){
+  if(lon_sub){
+    lon_lat_OISST_sub <- lon_lat_OISST %>% 
+      filter(lon == df$lon[1])
+  } else {
+    lon_lat_OISST_sub <- lon_lat_OISST
+  }
+  if("temp" %in% colnames(df)){
+    df$temp <- round(df$temp, 2)
+  }
   res <- df %>%
     right_join(lon_lat_OISST_sub, by = c("lon", "lat")) %>%
-    mutate(temp = round(temp, 2)) %>% 
-    reshape2::acast(lat~lon, value.var = "temp")
+    reshape2::acast(lat~lon, value.var = var)
 }
 
 #tester...
@@ -101,7 +107,7 @@ OISST_ncdf <- function(df){
   dfa <- dataset %>%
     group_by(t) %>%
     nest() %>%
-    mutate(data2 = purrr::map(data, OISST_acast)) %>%
+    mutate(data2 = purrr::map(data, OISST_acast, "temp")) %>%
     select(-data)
   
   dfa_temp <- abind(dfa$data2, along = 3)
@@ -159,6 +165,64 @@ OISST_proc <- function(file_name){
 # plyr::ldply(OISST_files, .fun = OISST_proc, .parallel = TRUE)
 # NB file 721 crashed and somehow prevented all other files from being written...
 plyr::ldply(OISST_files[721:1440], .fun = OISST_proc, .parallel = TRUE)
+
+
+# Create thresh NetCDF file -----------------------------------------------
+
+# NB: This only needs to be run once
+
+MHW_thresh <- readRDS("data/MHW_thresh_ALL.Rda")
+
+# lon
+xvals <- unique(lon_lat_OISST$lon)
+# xvals_df <- data.frame(lon = lon_lat_OISST$lon)
+nx <- length(xvals)
+lon_def <- ncdim_def("lon", "degrees_east", xvals)
+
+# lat
+yvals <- unique(lon_lat_OISST$lat)
+# yvals_df <- data.frame(lat = lon_lat_OISST$lat)
+ny <- length(yvals)
+lat_def <- ncdim_def("lat", "degrees_north", yvals)
+
+# time
+tunits <- "day of year (day)"
+tvals <- seq(1:366)
+nt <- length(tvals)
+time_def <- ncdim_def("time", tunits, tvals, unlim = TRUE)
+
+dfa <- MHW_thresh %>%
+  group_by(doy) %>%
+  nest() %>%
+  mutate(data2 = purrr::map(data, OISST_acast, "seas", lon_sub = F),
+         data3 = purrr::map(data, OISST_acast, "thresh", lon_sub = F)) %>%
+  select(-data)
+
+dfa_seas <- abind(dfa$data2, along = 3)
+dfa_thresh <- abind(dfa$data3, along = 3)
+
+seas_def <- ncvar_def(name = "seas", units = "deg_C", 
+                      dim = list(lat_def, lon_def, time_def), 
+                      longname = "Seasonal threshold",
+                      missval = -999, prec = "float")
+
+thresh_def <- ncvar_def(name = "thresh", units = "deg_C", 
+                        dim = list(lat_def, lon_def, time_def), 
+                        longname = "90th percentile threshold",
+                        missval = -999, prec = "float")
+
+ncout <- nc_create(filename = "../data/thresh/MHW.seas.thresh.nc", vars = list(seas_def, thresh_def), force_v4 = T)
+
+ncvar_put(nc = ncout, varid = seas_def, vals = dfa_seas)
+ncvar_put(nc = ncout, varid = thresh_def, vals = dfa_thresh)
+
+ncatt_put(ncout,"lon","axis","X") #,verbose=FALSE) #,definemode=FALSE)
+ncatt_put(ncout,"lat","axis","Y")
+ncatt_put(ncout,"time","axis","T")
+
+# close the file, writing data to disk
+nc_close(ncout)
+
 
 # Load and visualise ------------------------------------------------------
 

@@ -67,6 +67,30 @@ load_sub_MHW_thresh <- function(file_name){
 # ) # 3 seconds
 
 
+
+# Native R lon slices -----------------------------------------------------
+
+event_lon <- function(file_name){
+  file_num <- sapply(strsplit(as.character(file_name), "[.]"), "[[", 5)
+  res <- load_sub_MHW_event(file_name)
+  saveRDS(res, file = paste0("../data/event/MHW.event.",file_num,".Rda"))
+}
+# system.time(
+# event_lon(MHW_files[1])
+# ) # 1 second
+# event_1 <- readRDS("data/MHW.event.0001.Rda")
+# plyr::ldply(MHW_files, .fun = event_lon, .parallel = TRUE)
+
+
+# Native R daily slices ---------------------------------------------------
+
+# cat_clim_files <- c(dir(path = "data", pattern = "*MHW_cat_clim_19*", full.names = T),
+#                     dir(path = "data", pattern = "*MHW_cat_clim_20*", full.names = T))
+# cat_clim_daily <- function(file_name){
+#   
+# }
+
+
 # Append function ---------------------------------------------------------
 
 # MHW_append <- function(file_name){
