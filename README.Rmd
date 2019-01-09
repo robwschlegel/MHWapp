@@ -5,6 +5,9 @@ Presently the interactive map holds all of the MHWs detected in the NOAA OISST d
 
 # Updates
 
+* January 9, 2019
+  * Work on shiny UI
+
 * January 8, 2019
   * More work on efficient SQL database construction
   * Testing NetCDF lon slices as a viable option for daily OISST data

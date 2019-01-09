@@ -16,33 +16,41 @@ doMC::registerDoMC(cores = 50)
 
 # Load function -----------------------------------------------------------
 
-load_sub_MHW_ALL <- function(file_name){
+load_sub_MHW_cat_clim <- function(file_name){
   load(file_name)
-  
-  # The category clims
+  print(paste0("Began run on ",file_name," at ",Sys.time()))
   MHW_cat_clim_sub <- MHW_cat_clim(MHW_res) %>% 
     mutate(category = factor(category, levels = c("I Moderate", "II Strong",
                                                   "III Severe", "IV Extreme")),
            category = as.integer(category),
            lon = ifelse(lon > 180, lon-360, lon),
            intensity = round(intensity, 2))
-  # MHW_cat_clim_sub <- as.tibble(MHW_cat_clim_sub)
-  
-  # The event metrics
+  rm(MHW_res)
+  print(paste0("Finished run on ",file_name," at ",Sys.time()))
+  return(MHW_cat_clim_sub)
+}
+# system.time(
+# test <- load_sub_MHW_cat_clim(MHW_files[1])
+# ) # 1 second
+
+load_sub_MHW_event <- function(file_name){
+  load(file_name)
+  print(paste0("Began run on ",file_name," at ",Sys.time()))
   MHW_event_sub <- MHW_event(MHW_res) %>%
     mutate(lon = ifelse(lon > 180, lon-360, lon)) %>%
     dplyr::select(lon:event_no, duration:intensity_max, intensity_cumulative) %>%
     mutate_all(round, 3)
-  # MHW_event_sub <- as.tibble(MHW_event_sub)
-  
-  # The daily values # Opting for NetCDF...
-  # MHW_daily_sub <- MHW_clim(MHW_res) %>%
-  #   mutate(lon = ifelse(lon > 180, lon-360, lon),
-  #          temp = round(temp, 1)) %>%
-  #   dplyr::select(lon, lat, t, temp)
-  # MHW_daily_sub <- as.tibble(MHW_daily_sub)
-  
-  # The thresholds
+  rm(MHW_res)
+  print(paste0("Finished run on ",file_name," at ",Sys.time()))
+  return(MHW_event_sub)
+}
+# system.time(
+# test <- load_sub_MHW_event(MHW_files[1])
+# ) # 1 second
+
+load_sub_MHW_thresh <- function(file_name){
+  load(file_name)
+  print(paste0("Began run on ",file_name," at ",Sys.time()))
   MHW_thresh_sub <- MHW_clim(MHW_res) %>%
     mutate(lon = ifelse(lon > 180, lon-360, lon),
            seas = round(seas, 2),
@@ -50,30 +58,27 @@ load_sub_MHW_ALL <- function(file_name){
     dplyr::select(lon, lat, doy, seas, thresh) %>% 
     distinct() %>% 
     arrange(lon, lat, doy)
-  # MHW_thresh_sub <- as.tibble(MHW_thresh_sub)
-  
   rm(MHW_res)
-  MHW_ALL_sub <- list(MHW_cat_clim_sub = MHW_cat_clim_sub, 
-                      MHW_event_sub = MHW_event_sub,
-                      # MHW_daily_sub = MHW_daily_sub,
-                      MHW_thresh_sub = MHW_thresh_sub)
-  return(MHW_ALL_sub)
-  # rm(MHW_ALL_sub)
+  print(paste0("Finished run on ",file_name," at ",Sys.time()))
+  return(MHW_thresh_sub)
 }
+# system.time(
+# test <- load_sub_MHW_thresh(MHW_files[1])
+# ) # 3 seconds
 
 
 # Append function ---------------------------------------------------------
 
-MHW_append <- function(file_name){
-  print(paste0("Began run on ",file_name," at ",Sys.time()))
-  MHW_ALL_sub <- load_sub_MHW_ALL(file_name)
-  odbc::dbWriteTable(conn = MHW_DB, name = "MHW_cat_clim_sub", MHW_ALL_sub$MHW_cat_clim_sub, append = TRUE)
-  odbc::dbWriteTable(conn = MHW_DB, name = "MHW_event_sub", MHW_ALL_sub$MHW_event_sub, append = TRUE)
-  # odbc::dbWritetable(conn = MHW_DB, name = "MHW_daily_sub", MHW_ALL_sub$MHW_daily_sub, append = TRUE) # Opting for NetCDF...
-  odbc::dbWriteTable(conn = MHW_DB, name = "MHW_thresh_sub", MHW_ALL_sub$MHW_thresh_sub, append = TRUE)
-  rm(MHW_ALL_sub)
-  print(paste0("Finished run on ",file_name," at ",Sys.time()))
-}
+# MHW_append <- function(file_name){
+#   print(paste0("Began run on ",file_name," at ",Sys.time()))
+#   MHW_ALL_sub <- load_sub_MHW_ALL(file_name)
+#   odbc::dbWriteTable(conn = MHW_DB, name = "MHW_cat_clim_sub", MHW_ALL_sub$MHW_cat_clim_sub, append = TRUE)
+#   odbc::dbWriteTable(conn = MHW_DB, name = "MHW_event_sub", MHW_ALL_sub$MHW_event_sub, append = TRUE)
+#   # odbc::dbWritetable(conn = MHW_DB, name = "MHW_daily_sub", MHW_ALL_sub$MHW_daily_sub, append = TRUE) # Opting for NetCDF...
+#   odbc::dbWriteTable(conn = MHW_DB, name = "MHW_thresh_sub", MHW_ALL_sub$MHW_thresh_sub, append = TRUE)
+#   rm(MHW_ALL_sub)
+#   print(paste0("Finished run on ",file_name," at ",Sys.time()))
+# }
 
 
 # Database creation -------------------------------------------------------
@@ -85,18 +90,39 @@ MHW_append <- function(file_name){
 # MHW_ALL_sub <- load_sub_MHW_ALL(MHW_files[1])
 # ) # 3 seconds, 220 MB, 28 MB without daily data
 
+# Run on Jan 8th, 2019
+  # When created, the most recent data were 2017-12-31
+# MHW_cat_clim_ALL <- plyr::ldply(MHW_files, .fun = load_sub_MHW_cat_clim, .parallel = TRUE)
+# saveRDS(MHW_cat_clim_ALL, file = "data/MHW_cat_clim_ALL.Rda")
+# rm(MHW_cat_clim_ALL)
+# MHW_event_ALL <- plyr::ldply(MHW_files, .fun = load_sub_MHW_event, .parallel = TRUE)
+# saveRDS(MHW_event_ALL, file = "data/MHW_event_ALL.Rda")
+# rm(MHW_event_ALL)
+# MHW_thresh_ALL <- plyr::ldply(MHW_files, .fun = load_sub_MHW_thresh, .parallel = TRUE)
+# saveRDS(MHW_thresh_ALL, file = "data/MHW_thresh_ALL.Rda")
+# rm(MHW_thresh_ALL)
+
 # Initiales database
 # MHW_DB <- src_sqlite("data/MHW_DB.sqlite", create = TRUE)
 # MHW_DB
 
 # Fill it full of data
-# copy_to(dest = MHW_DB, name = "MHW_cat_clim_sub", MHW_ALL_sub$MHW_cat_clim_sub, temporary = FALSE)
-# copy_to(dest = MHW_DB, name = "MHW_event_sub", MHW_ALL_sub$MHW_event_sub, temporary = FALSE)
+# MHW_cat_clim_ALL <- readRDS("data/MHW_cat_clim_ALL.Rda")
+# copy_to(dest = MHW_DB, name = "MHW_cat_clim_sub", MHW_cat_clim_ALL, temporary = FALSE)
+# rm(MHW_cat_clim_ALL)
+# MHW_event_ALL <- readRDS("data/MHW_event_ALL.Rda")
+# copy_to(dest = MHW_DB, name = "MHW_event_sub", MHW_event_ALL, temporary = FALSE)
+# rm(MHW_event_ALL)
 # # copy_to(dest = MHW_DB, name = "MHW_daily_sub", MHW_ALL_sub$MHW_daily_sub, temporary = FALSE) # Opting for NetCDF...
-# copy_to(dest = MHW_DB, name = "MHW_thresh_sub", MHW_ALL_sub$MHW_thresh_sub, temporary = FALSE)
-# 
-# MHW_DB
+# MHW_thresh_ALL <- readRDS("data/MHW_thresh_ALL.Rda")
+# copy_to(dest = MHW_DB, name = "MHW_thresh_sub", MHW_thresh_ALL, temporary = FALSE)
+# rm(MHW_event_ALL)
+# MHW_cat_clim_2016 <- readRDS("data/MHW_cat_clim_2016.Rda")
+# copy_to(dest = MHW_DB, name = "MHW_cat_clim_2016", MHW_cat_clim_2016, temporary = FALSE)
+# rm(MHW_cat_clim_2016)
 
+# MHW_DB
+# dbDisconnect(conn = MHW_DB)
 
 # Append data -------------------------------------------------------------
 
@@ -118,26 +144,26 @@ MHW_append <- function(file_name){
 
 # Test connection ---------------------------------------------------------
 
-MHW_DB <- DBI::dbConnect(RSQLite::SQLite(), "data/MHW_DB.sqlite")
-src_dbi(MHW_DB)
+# MHW_DB <- DBI::dbConnect(RSQLite::SQLite(), "data/MHW_DB.sqlite")
+# src_dbi(MHW_DB)
 
 # test <- tbl(MHW_DB, "MHW_clim_sub") %>% 
 #   select(lon) %>% 
 #   distinct() %>% 
 #   collect()
 
-date_filter <- as.integer(as.Date("2017-06-17"))
+# date_filter <- as.integer(as.Date("2016-06-17"))
 
-cat_clim <- tbl(MHW_DB, "MHW_cat_clim_sub")
-system.time(
-cat_clim_1 <- cat_clim %>%
-  filter(t == date_filter) %>%
-  collect()
-) # 25 seconds
-head(cat_clim_1)
+# cat_clim <- tbl(MHW_DB, "MHW_cat_clim_2016")
+# system.time(
+# cat_clim_1 <- cat_clim %>%
+#   filter(t == date_filter) %>%
+#   collect()
+# ) # 4 seconds
+# head(cat_clim_1)
 
-ggplot(cat_clim_1, aes(x = lon, y = lat, fill = category)) +
-  geom_raster()
+# ggplot(cat_clim_1, aes(x = lon, y = lat, fill = category)) +
+#   geom_raster()
 
-dbDisconnect()
+# dbDisconnect()
 
