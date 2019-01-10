@@ -84,11 +84,33 @@ event_lon <- function(file_name){
 
 # Native R daily slices ---------------------------------------------------
 
-# cat_clim_files <- c(dir(path = "data", pattern = "*MHW_cat_clim_19*", full.names = T),
-#                     dir(path = "data", pattern = "*MHW_cat_clim_20*", full.names = T))
-# cat_clim_daily <- function(file_name){
-#   
-# }
+# The category climatology yearly files
+cat_clim_files <- c(dir(path = "data", pattern = "*MHW_cat_clim_19*", full.names = T),
+                    dir(path = "data", pattern = "*MHW_cat_clim_20*", full.names = T))
+
+# Function for saving a daily global slice
+cat_clim_save <- function(df){
+  cat_clim_year <- lubridate::year(unique(df$t))
+  cat_clim_dir <- paste0("../data/cat_clim/",cat_clim_year)
+  cat_clim_name <- paste0("cat.clim.",unique(df$t),".Rda")
+  df_sub <- df %>% 
+    select(-t)
+  saveRDS(df_sub, file = paste0(cat_clim_dir,"/",cat_clim_name))
+}
+
+# Function for loading and preping the daily global slices
+cat_clim_daily <- function(file_name){
+  cat_clim_data <- readRDS(file_name) %>% 
+    mutate(category = factor(category, labels = c("I Moderate", "II Strong",
+                                                  "III Severe", "IV Extreme")),
+           t2 = as.integer(t)) %>% 
+    group_by(t2) %>% 
+    nest() %>% 
+    mutate(proc = map(data, cat_clim_save))
+}
+
+# Process the lot of them
+# plyr::ldply(cat_clim_files, .fun = cat_clim_daily, .parallel = TRUE)
 
 
 # Append function ---------------------------------------------------------
