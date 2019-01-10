@@ -1,5 +1,6 @@
 # This script is run when the server is called and is designed to house 
 # all of the static information that is used by the app
+# setwd("shiny")
 
 # Packages ----------------------------------------------------------------
 
