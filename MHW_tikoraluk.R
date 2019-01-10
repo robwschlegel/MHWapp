@@ -69,7 +69,7 @@ load_sub_MHW_cat_clim <- function(file_name, sub_year){
   load(file = file_name)
   data_sub <- MHW_cat_clim(MHW_res) %>% 
     filter(t >= as.Date(paste0(sub_year,"-01-01")),
-           t <= as.Date(paste0(sub_year,"-12-01"))) %>% 
+           t <= as.Date(paste0(sub_year,"-12-31"))) %>% 
     mutate(intensity = round(intensity, 2))
   rm(MHW_res)
   return(data_sub)
@@ -80,7 +80,7 @@ load_sub_MHW_event <- function(file_name, sub_year){
   load(file = file_name)
   data_sub <- MHW_event(MHW_res) %>% 
     filter(date_start >= as.Date(paste0(sub_year,"-01-01")),
-           date_start <= as.Date(paste0(sub_year,"-12-01")))
+           date_start <= as.Date(paste0(sub_year,"-12-31")))
   rm(MHW_res)
   return(data_sub)
 } # 1.8 seconds for one
@@ -101,12 +101,13 @@ load_sub_MHW_event <- function(file_name, sub_year){
 # Process annual category climatologies
 proc_sub_MHW_cat_clim <- function(sub_year){
   print(paste0("Began run on ",sub_year," at ",Sys.time()))
-  MHW_cat_clim_sub <- plyr::ldply(MHW_files, .fun = load_sub_MHW_cat_clim, 
-                                  .parallel = T, sub_year)
+  MHW_cat_clim_sub <- map_dfr(MHW_files, load_sub_MHW_cat_clim, sub_year)
+  # MHW_cat_clim_sub <- plyr::ldply(MHW_files, .fun = load_sub_MHW_cat_clim, 
+                                  # .parallel = T, sub_year)
   MHW_cat_clim_sub <- MHW_cat_clim_sub %>%
     mutate(category = factor(category, levels = c("I Moderate", "II Strong",
                                                   "III Severe", "IV Extreme")),
-           category = as.integer(category),
+           # category = as.integer(category),
            lon = ifelse(lon > 180, lon-360, lon),
            intensity = round(intensity, 2))
   # MHW_cat_clim_sub <- as.tibble(MHW_cat_clim_sub)
@@ -118,8 +119,9 @@ proc_sub_MHW_cat_clim <- function(sub_year){
 # Process annual event metrics
 proc_sub_MHW_event <- function(sub_year){
   print(paste0("Began run on ",sub_year," at ",Sys.time()))
-  MHW_event_sub <- plyr::ldply(MHW_files, .fun = load_sub_MHW_event, 
-                               .parallel = T, sub_year)
+  MHW_event_sub <- map_dfr(MHW_files, load_sub_MHW_event, sub_year)
+  # MHW_event_sub <- plyr::ldply(MHW_files, .fun = load_sub_MHW_event, 
+  #                              .parallel = T, sub_year)
   MHW_event_sub <- MHW_event_sub %>%
     mutate(lon = ifelse(lon > 180, lon-360, lon)) %>%
     dplyr::select(lon:event_no, duration:intensity_max, intensity_cumulative) %>%
@@ -130,7 +132,7 @@ proc_sub_MHW_event <- function(sub_year){
   print(paste0("Finished run on ",sub_year," at ",Sys.time()))
 }
 
-# Process threshold values
+# Process threshold values # Opting for NetCDf files...
 # proc_sub_MHW_thresh <- function(sub_year){
 #   MHW_clim_sub <- plyr::ldply(MHW_files, .fun = load_sub_MHW_clim, 
 #                               .parallel = T, sub_year)
@@ -165,25 +167,24 @@ proc_sub_MHW_event <- function(sub_year){
 
 # Create files ------------------------------------------------------------
 
-# NB: For loops are used below so as to avoid stack overflows.
-# This is because the layers of wrapper functions are already using
-# purrr and plyr to perform optomised multicore calculations.
+# NB: Only needed to run once
+# NB: Can't run all years at once... uses too much memory
 
 # Category climatologies
-# system.time(
-# proc_sub_MHW_cat_clim(2017)
-# ) # xxx seconds
-# for(i in 1982:2017){
-#   proc_sub_MHW_cat_clim(i)
-# }
+# plyr::ldply(1982:1987, .fun = proc_sub_MHW_cat_clim, .parallel = TRUE)
+# plyr::ldply(1988:1993, .fun = proc_sub_MHW_cat_clim, .parallel = TRUE)
+# plyr::ldply(1994:1999, .fun = proc_sub_MHW_cat_clim, .parallel = TRUE)
+# plyr::ldply(2000:2005, .fun = proc_sub_MHW_cat_clim, .parallel = TRUE)
+# plyr::ldply(2006:2011, .fun = proc_sub_MHW_cat_clim, .parallel = TRUE)
+# plyr::ldply(2012:2017, .fun = proc_sub_MHW_cat_clim, .parallel = TRUE)
 
 # Event metrics
-# system.time(
-# proc_sub_MHW_event(2017)
-# ) # xxx seconds
-# for(i in 1982:2017){
-#   proc_sub_MHW_event(i)
-# }
+# plyr::ldply(1982:1987, .fun = proc_sub_MHW_event, .parallel = TRUE) # Already run
+# plyr::ldply(1988:1993, .fun = proc_sub_MHW_event, .parallel = TRUE)
+# plyr::ldply(1994:1999, .fun = proc_sub_MHW_event, .parallel = TRUE)
+# plyr::ldply(2000:2005, .fun = proc_sub_MHW_event, .parallel = TRUE)
+# plyr::ldply(2006:2011, .fun = proc_sub_MHW_event, .parallel = TRUE)
+# plyr::ldply(2012:2017, .fun = proc_sub_MHW_event, .parallel = TRUE)
 
 
 # Sub-samples -------------------------------------------------------------
