@@ -9,6 +9,7 @@ library(abind)
 library(ncdf4)
 library(R.matlab)
 doMC::registerDoMC(cores = 50)
+source("MHW_tikoraluk.R")
 
 
 # Meta-data ---------------------------------------------------------------
@@ -18,6 +19,7 @@ load("../tikoraluk/metadata/lon_OISST.RData")
 lon_lat_OISST <- arrange(lon_lat_OISST, lon, lat)
 OISST_files <- dir("../../oliver/data/sst/noaa_oi_v2/avhrr/timeseries",
                    pattern = "avhrr-only", full.names = T)
+
 
 # Data --------------------------------------------------------------------
 
@@ -156,73 +158,108 @@ OISST_proc <- function(file_name){
   print(paste0("Finished run on ",file_name," at ",Sys.time()))
 }
 
+# Function for creating NetCDF files from threshold data
+thresh_ncdf <- function(lon_slice){
+  print(paste0("Began run on ",MHW_files[lon_slice]," at ",Sys.time()))
+  # The base data
+  load(MHW_files[lon_slice])
+  MHW_thresh_sub <- MHW_clim(MHW_res) %>%
+    mutate(lon = ifelse(lon > 180, lon-360, lon),
+           seas = round(seas, 2),
+           thresh = round(thresh, 2)) %>%
+    dplyr::select(lon, lat, doy, seas, thresh) %>% 
+    distinct() %>% 
+    arrange(lon, lat, doy)
+  
+  # Determine lon slice
+  lon_row <- lon_OISST[lon_slice]
+  lon_row_pad <- str_pad(lon_slice, width = 4, pad = "0", side = "left")
+  
+  # Set file name
+  ncdf_file_name <- paste0("../data/thresh/MHW.seas.thresh.",lon_row_pad,".nc")
+  
+  # Define dimensions -------------------------------------------------------
+  
+  # lon
+  xvals <- unique(MHW_thresh_sub$lon)
+  if(length(xvals) > 1) stop("Too many lon values. Should only be one.")
+  # xvals_df <- data.frame(lon = lon_lat_OISST$lon)
+  nx <- length(xvals)
+  lon_def <- ncdim_def("lon", "degrees_east", xvals)
+  
+  # lat
+  yvals <- unique(lon_lat_OISST$lat)
+  # yvals_df <- data.frame(lat = lon_lat_OISST$lat)
+  ny <- length(yvals)
+  lat_def <- ncdim_def("lat", "degrees_north", yvals)
+  
+  # time
+  tunits <- "day of year (day)"
+  tvals <- seq(1:366)
+  nt <- length(tvals)
+  time_def <- ncdim_def("time", tunits, tvals, unlim = TRUE)
+  
+  # Create data arrays ------------------------------------------------------
+  
+  dfa <- MHW_thresh_sub %>%
+    group_by(doy) %>%
+    nest() %>%
+    mutate(data2 = purrr::map(data, OISST_acast, "seas"),
+           data3 = purrr::map(data, OISST_acast, "thresh")) %>%
+    select(-data)
+  
+  dfa_seas <- abind(dfa$data2, along = 3)
+  dfa_thresh <- abind(dfa$data3, along = 3)
+  
+  # Define variables --------------------------------------------------------
+  
+  seas_def <- ncvar_def(name = "seas", units = "deg_C",
+                        dim = list(lat_def, lon_def, time_def),
+                        longname = "Seasonal threshold",
+                        missval = -999, prec = "float")
+  
+  thresh_def <- ncvar_def(name = "thresh", units = "deg_C",
+                          dim = list(lat_def, lon_def, time_def),
+                          longname = "90th percentile threshold",
+                          missval = -999, prec = "float")
+  
+  # Create NetCDF files -----------------------------------------------------
+  
+  ncout <- nc_create(filename = ncdf_file_name, vars = list(seas_def, thresh_def), force_v4 = T)
+  
+  # Put variables -----------------------------------------------------------
+  
+  ncvar_put(nc = ncout, varid = seas_def, vals = dfa_seas)
+  ncvar_put(nc = ncout, varid = thresh_def, vals = dfa_thresh)
+  
+  # Additional attributes ---------------------------------------------------
+  
+  ncatt_put(ncout,"lon","axis","X") #,verbose=FALSE) #,definemode=FALSE)
+  ncatt_put(ncout,"lat","axis","Y")
+  ncatt_put(ncout,"time","axis","T")
+  
+  # close the file, writing data to disk
+  nc_close(ncout)
+  print(paste0("Finished run on ",MHW_files[lon_slice]," at ",Sys.time()))
+}
+
 
 # Create NetCDF files -----------------------------------------------------
 
+# OISST NetCDF files
 # system.time(
 # OISST_proc(OISST_files[1])
 # ) # 124 seconds
-
 # plyr::ldply(OISST_files, .fun = OISST_proc, .parallel = TRUE)
 # NB stopped at 720 due to the mismatch in the degrees east going from
 # -180 to 180 or 0 to 360
 # plyr::ldply(OISST_files[721:1440], .fun = OISST_proc, .parallel = TRUE)
 
-# Create thresh NetCDF file -----------------------------------------------
-
-# NB: This only needed to be run once
-
-# MHW_thresh <- readRDS("data/MHW_thresh_ALL.Rda")
-# 
-# # lon
-# xvals <- unique(lon_lat_OISST$lon)
-# # xvals_df <- data.frame(lon = lon_lat_OISST$lon)
-# nx <- length(xvals)
-# lon_def <- ncdim_def("lon", "degrees_east", xvals)
-# 
-# # lat
-# yvals <- unique(lon_lat_OISST$lat)
-# # yvals_df <- data.frame(lat = lon_lat_OISST$lat)
-# ny <- length(yvals)
-# lat_def <- ncdim_def("lat", "degrees_north", yvals)
-# 
-# # time
-# tunits <- "day of year (day)"
-# tvals <- seq(1:366)
-# nt <- length(tvals)
-# time_def <- ncdim_def("time", tunits, tvals, unlim = TRUE)
-# 
-# dfa <- MHW_thresh %>%
-#   group_by(doy) %>%
-#   nest() %>%
-#   mutate(data2 = purrr::map(data, OISST_acast, "seas", lon_sub = F),
-#          data3 = purrr::map(data, OISST_acast, "thresh", lon_sub = F)) %>%
-#   select(-data)
-# 
-# dfa_seas <- abind(dfa$data2, along = 3)
-# dfa_thresh <- abind(dfa$data3, along = 3)
-# 
-# seas_def <- ncvar_def(name = "seas", units = "deg_C", 
-#                       dim = list(lat_def, lon_def, time_def), 
-#                       longname = "Seasonal threshold",
-#                       missval = -999, prec = "float")
-# 
-# thresh_def <- ncvar_def(name = "thresh", units = "deg_C", 
-#                         dim = list(lat_def, lon_def, time_def), 
-#                         longname = "90th percentile threshold",
-#                         missval = -999, prec = "float")
-# 
-# ncout <- nc_create(filename = "../data/thresh/MHW.seas.thresh.nc", vars = list(seas_def, thresh_def), force_v4 = T)
-# 
-# ncvar_put(nc = ncout, varid = seas_def, vals = dfa_seas)
-# ncvar_put(nc = ncout, varid = thresh_def, vals = dfa_thresh)
-# 
-# ncatt_put(ncout,"lon","axis","X") #,verbose=FALSE) #,definemode=FALSE)
-# ncatt_put(ncout,"lat","axis","Y")
-# ncatt_put(ncout,"time","axis","T")
-# 
-# # close the file, writing data to disk
-# nc_close(ncout)
+# Threshold NetCDF files
+# system.time(
+# thresh_ncdf(1)
+# ) # 8 seconds
+# plyr::ldply(1:1440, .fun = thresh_ncdf, .parallel = TRUE)
 
 
 # Load and visualise ------------------------------------------------------
