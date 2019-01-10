@@ -9,18 +9,11 @@ map <- function(input, output, session) {
 
   ### base map data
   baseData <- reactive({
-    date_filter <- as.integer(input$date_choice)
-    # date_filter <- as.integer(as.Date("2017-06-17"))
-    # print(date_filter)
-    MHW_db <- DBI::dbConnect(RSQLite::SQLite(), "MHW_db.sqlite")
-    # dbplyr::src_dbi(MHW_db)
-    baseData <- tbl(MHW_db, "MHW_cat_clim_sub") %>%
-      filter(t == date_filter) %>%
-      collect() %>%
-      mutate(category = factor(category, levels = c("I Moderate", "II Strong",
-                                                    "III Severe", "IV Extreme"))) %>%
-      na.omit()
-    DBI::dbDisconnect(MHW_db)
+    date_filter <- input$date_choice
+    year_filter <- year(date_filter)
+    sub_dir <- paste0("cat_clim/",year_filter)
+    sub_file <- paste0("cat.clim.",date_filter,".Rda")
+    baseData <- readRDS(paste0(sub_dir,"/",sub_file))
     return(baseData)
   })
   
@@ -50,6 +43,7 @@ map <- function(input, output, session) {
         rasterNonProj <- rasterNonProj()
         cell <- cellFromXY(rasterNonProj, c(click$lng, click$lat))
         #If the click is inside the raster...
+        # xy <- c(-42.125, 20.125)
         xy <- xyFromCell(rasterNonProj, cell)
         
         # Grab time series data
@@ -59,30 +53,30 @@ map <- function(input, output, session) {
         nc_close(nc)
         
         # Grab threshold data
-        # nc <- nc_open("../data/OISST/MHW.sea.thresh.nc")
+        # nc <- nc_open("thresh/MHW.seas.thresh.nc")
         # thresh_data <- data.frame(t = as.Date(nc$dim$time$vals, origin = "1970-01-01"),
-        #                           seas = ncvar_get(nc, varid = "seas")[ncdf_index$lon == xy[1],
-        #                                                                ncdf_index$lat == xy[2],],
-        #                           thresh = ncvar_get(nc, varid = "thresh")[ncdf_index$lon == xy[1],
-        #                                                                    ncdf_index$lat == xy[2],])
+        #                           seas = ncvar_get(nc, varid = "seas")[nc$dim$lon$vals == xy[1],
+        #                                                                nc$dim$lat$vals == xy[2],],
+        #                           thresh = ncvar_get(nc, varid = "thresh")[nc$dim$lon$vals == xy[1],
+        #                                                                    nc$dim$lat$vals == xy[2],])
         # nc_close(nc)
         
         # Grab event data
-        MHW_db <- DBI::dbConnect(RSQLite::SQLite(), "MHW_db.sqlite")
+        # MHW_db <- DBI::dbConnect(RSQLite::SQLite(), "MHW_db.sqlite")
         # dbplyr::src_dbi(MHW_db)
-        event_data <- tbl(MHW_db, "MHW_event_sub") %>%
-          filter(lon == xy[1], lat == xy[2]) %>%
-          collect() %>%
+        event_file <- dir("event", full.names = T)[ncdf_index$lon == xy[1]]
+        event_data <- readRDS(event_file) %>% 
+          filter(lat == xy[2]) %>%
           mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
                  date_peak = as.Date(date_peak, origin = "1970-01-01"),
                  date_end = as.Date(date_end, origin = "1970-01-01"))
-        DBI::dbDisconnect(MHW_db)
         pixelData <- list(ts = ts_data,
                           event = event_data,
                           # thresh = thresh_data,
                           lon = xy[1],
                           lat = xy[2])
         return(pixelData)
+      } else {
       }
   })
   
@@ -135,9 +129,9 @@ map <- function(input, output, session) {
   
   ### Download data
   downloadData <- reactive({
-    data <- pixelData()
+    data <- pixelData()$event
     data_sub <- data %>% 
-      filter(t >= input$from, t <= input$to)
+      filter(date_start >= input$from, date_start <= input$to)
   })
   
   ### Create time series plot
@@ -154,15 +148,15 @@ map <- function(input, output, session) {
       # geom_line(data = thresh_data_sub, aes(x = t, y = thresh), colour = "red") +
       # geom_point() +
       labs(x = "", y = "Temperature (°C)")
-    if(length(input$to-input$from) <= 1830){
-      p <- p +
-        geom_line(data = thresh_data_sub, aes(x = t, y = seas), colour = "green") +
-        geom_line(data = thresh_data_sub, aes(x = t, y = thresh), colour = "red")
-    }
-    if(length(input$to-input$from) <= 366){
-      p <- p +
-        geom_flame()
-    }
+    # if(length(input$to-input$from) <= 1830){
+    #   p <- p +
+    #     geom_line(data = thresh_data_sub, aes(x = t, y = seas), colour = "green") +
+    #     geom_line(data = thresh_data_sub, aes(x = t, y = thresh), colour = "red")
+    # }
+    # if(length(input$to-input$from) <= 366){
+    #   p <- p +
+    #     geom_flame()
+    # }
     ggplotly(p)
   })
   
@@ -206,7 +200,7 @@ map <- function(input, output, session) {
   })
   
   observeEvent(input$map_click, {
-    req(!is.null(pixelData()))
+    # req(!is.null(pixelData()))
     toggleModal(session, "modal", "open")
   })
   
@@ -284,10 +278,10 @@ map <- function(input, output, session) {
                                div(class = 'control',
                                    div(class = 'label', p("From")),
                                    dateInput(ns("from"), NULL, format = "M d, yyyy",
-                                             value = "2017-01-01"),
+                                             value = paste0(year(input$date_choice),"-01-01")),
                                    div(class = 'label', p("To")),
                                    dateInput(ns("to"), NULL, format = "M d, yyyy",
-                                             value = "2017-12-31")
+                                             value = paste0(year(input$date_choice),"-12-31"))
                                ),
                                # div(class = 'control',
                                #     div(class = 'label', p("Interval (minutes)")),

@@ -38,10 +38,10 @@ mapUI <- function(id, label = 'map') {
                             label = "Date",
                             # value = MHW_cat_clim_sub$t[MHW_cat_clim_sub$intensity == max(MHW_cat_clim_sub$intensity)][1],
                             value = "2017-02-14",
-                            min = "2017-01-01", max = "2017-12-31"
+                            min = "1982-01-01", max = "2017-12-31"
                             # min = min(MHW_cat_clim_sub$t), max = max(MHW_cat_clim_sub$t)
-                  ),
-                  verbatimTextOutput(outputId = ns("map_hover"), placeholder = TRUE)
+                  )#,
+                  # verbatimTextOutput(outputId = ns("map_hover"), placeholder = TRUE)
                   # checkboxInput("legend", "Show legend", TRUE)
     ),
     
