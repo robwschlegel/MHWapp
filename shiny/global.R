@@ -99,3 +99,10 @@ pal_cat <- colorNumeric(palette = MHW_colours, domain = c(1,2,3,4), na.color = N
 inputProj <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
 leafletProj <- "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +towgs84=0,0,0,0,0,0,0 +units=m +nadgrids=@null +wktext +no_defs"
 
+# The base map
+map_base <- ggplot2::fortify(maps::map(fill = TRUE, plot = FALSE)) %>% 
+  dplyr::rename(lon = long) %>% 
+  # filter(lat >= 25.6) %>%
+  mutate(group = ifelse(lon > 180, group+9999, group),
+         lon = ifelse(lon > 180, lon-360, lon)) %>% 
+  group_by(group)

@@ -25,8 +25,11 @@ mapUI <- function(id, label = 'map') {
     #                               options = NULL)))
     # ),
     
-    absolutePanel(leafletOutput(ns('map')), top = 0, left = 0,
-                  right = 0, bottom = 0, height = 'auto'),
+    # Could potentially replace leaflet with plot_mapbox() or something from plotly
+    # Then draw a heatmap on top of the land polygons to show MHW categories
+    # absolutePanel(leafletOutput(ns('map')), top = 0, left = 0,
+    plotlyOutput(ns('map'), height = "900px"),#, top = 0, left = 0,
+                  # right = 0, bottom = 0, height = '100%'),
     
     absolutePanel(top = 70, right = 10, draggable = TRUE,
                   # radioButtons(inputId = "Dataset",
@@ -43,9 +46,10 @@ mapUI <- function(id, label = 'map') {
                   )#,
                   # verbatimTextOutput(outputId = ns("map_hover"), placeholder = TRUE)
                   # checkboxInput("legend", "Show legend", TRUE)
-    ),
+    )#,
     
-    uiOutput(ns('uiModal')))
-  
+    # uiOutput(ns('uiModal'))
+    # bsModal('popUp', '', '', uiOutput(ns('uiModal')))
+  )
   
 }
