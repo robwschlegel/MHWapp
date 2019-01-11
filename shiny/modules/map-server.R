@@ -47,24 +47,20 @@ map <- function(input, output, session) {
         xy <- xyFromCell(rasterNonProj, cell)
         
         # Grab time series data
-        nc <- nc_open(as.character(ncdf_index$file_name)[ncdf_index$lon == xy[1]])
+        nc <- nc_open(as.character(OISST_index$file_name)[OISST_index$lon == xy[1]])
         ts_data <- data.frame(t = as.Date(nc$dim$time$vals, origin = "1970-01-01"),
                               temp = ncvar_get(nc, varid = "sst")[lat_OISST == xy[2],])
         nc_close(nc)
         
         # Grab threshold data
-        # nc <- nc_open("thresh/MHW.seas.thresh.nc")
-        # thresh_data <- data.frame(t = as.Date(nc$dim$time$vals, origin = "1970-01-01"),
-        #                           seas = ncvar_get(nc, varid = "seas")[nc$dim$lon$vals == xy[1],
-        #                                                                nc$dim$lat$vals == xy[2],],
-        #                           thresh = ncvar_get(nc, varid = "thresh")[nc$dim$lon$vals == xy[1],
-        #                                                                    nc$dim$lat$vals == xy[2],])
-        # nc_close(nc)
+        nc <- nc_open(as.character(thresh_index$file_name)[OISST_index$lon == xy[1]])
+        thresh_data <- data.frame(doy = as.vector(nc$dim$time$vals),
+                                  seas = ncvar_get(nc, varid = "seas")[nc$dim$lat$vals == xy[2],],
+                                  thresh = ncvar_get(nc, varid = "thresh")[nc$dim$lat$vals == xy[2],])
+        nc_close(nc)
         
         # Grab event data
-        # MHW_db <- DBI::dbConnect(RSQLite::SQLite(), "MHW_db.sqlite")
-        # dbplyr::src_dbi(MHW_db)
-        event_file <- dir("event", full.names = T)[ncdf_index$lon == xy[1]]
+        event_file <- dir("event", full.names = T)[OISST_index$lon == xy[1]]
         event_data <- readRDS(event_file) %>% 
           filter(lat == xy[2]) %>%
           mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
@@ -72,7 +68,7 @@ map <- function(input, output, session) {
                  date_end = as.Date(date_end, origin = "1970-01-01"))
         pixelData <- list(ts = ts_data,
                           event = event_data,
-                          # thresh = thresh_data,
+                          thresh = thresh_data,
                           lon = xy[1],
                           lat = xy[2])
         return(pixelData)
@@ -85,48 +81,6 @@ map <- function(input, output, session) {
     paste0("Chosen pixel; lon = ",pixelData()$lon[1],", lat = ",pixelData()$lat[1])
   })
   
-  ### filter data
-  # filter_data <- reactive({
-  #   sites[which(sites$Station == station$location), ]
-  # })
-  
-  ### reactive labels
-  # station_label <- reactive({
-  #   filter_data()$Station
-  # })
-  
-  # pretty_label <- reactive({
-  #   strsplit(station_label(), ",")[[1]][1] %>%
-  #     sub(" ", "", .)
-  # })
-  
-  # unit_label <- reactive({
-  #   if(input$units == "meters") {
-  #     return("Tide Height (m)")
-  #   }
-  #   "Tide Height (ft)"
-  # })
-  
-  # tide_data <- reactive({
-  #   req(station$location)
-  #   data <- filter_data()
-  #   station <- station_label()
-  #   tz <- data$TZ
-  #   
-  #   data <- rtide::tide_height(
-  #     station, from = input$from, to = input$to,
-  #     minutes = input$interval, tz = tz)
-  #   
-  #   data$TideHeight %<>% round(2)
-  #   data$TimeZone <- tz
-  #   
-  #   if(input$units == "meters"){
-  #     return(data)
-  #   } 
-  #   data$TideHeight <- round(data$TideHeight * 3.3333, 2)
-  #   data
-  # })
-  
   ### Download data
   downloadData <- reactive({
     data <- pixelData()$event
@@ -135,28 +89,54 @@ map <- function(input, output, session) {
   })
   
   ### Create time series plot
+  # input <- data.frame(from = as.Date("2017-01-01"),
+  #                     to = as.Date("2017-12-31"))
   tsPlot <- reactive({
     ts_data <- pixelData()$ts
     ts_data_sub <- ts_data %>%
       filter(t >= input$from, t <= input$to)
-    # thresh_data <- pixelData()$thresh
-    # thresh_data_sub <- thresh_data %>%
-    #   filter(t >= input$from, t <= input$to)
-    p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
-      geom_line(colour = "grey20") +
-      # geom_line(data = thresh_data_sub, aes(x = t, y = seas), colour = "green") +
-      # geom_line(data = thresh_data_sub, aes(x = t, y = thresh), colour = "red") +
-      # geom_point() +
-      labs(x = "", y = "Temperature (°C)")
-    # if(length(input$to-input$from) <= 1830){
+    event_data <- pixelData()$event
+    event_data_sub <- event_data %>%
+      filter(date_start >= input$from, date_end <= input$to)
+    thresh_data <- pixelData()$thresh
+    thresh_data_sub <- heatwaveR:::make_whole_fast(data.frame(ts_x = seq(input$from, input$to, "day"),
+                                                              ts_y = 1)) %>% 
+      left_join(thresh_data, by = "doy") %>% 
+      select(-ts_y) %>% 
+      dplyr::rename(t = ts_x)
+    # p <- ggplot() +
+    #   geom_line(data = ts_data_sub, aes(x = t, y = temp), colour = "grey20") +
+    #   geom_rug(data = event_data_sub, sides = "b",
+    #            aes(x = date_start, y = intensity_max), colour = "red") +
+    #   labs(x = "", y = "Temperature (°C)") +
+    #   scale_y_continuous(limits = c(min(ts_data_sub$temp)-1, max(ts_data_sub$temp)+1))
+    # if(nrow(thresh_data_sub) <= 1830){
     #   p <- p +
+    #     # Consider adding these as traces in plot_ly()
+    #     # Or perhaps to melt by variable and use the different types as a colour aesthetic
     #     geom_line(data = thresh_data_sub, aes(x = t, y = seas), colour = "green") +
     #     geom_line(data = thresh_data_sub, aes(x = t, y = thresh), colour = "red")
     # }
-    # if(length(input$to-input$from) <= 366){
+    # if(nrow(thresh_data_sub) <= 366){
     #   p <- p +
-    #     geom_flame()
+    #     geom_ribbon(aes(ymin = temp, ymax = thresh_data_sub$thresh))
     # }
+    # ggplotly(p)
+    # pp <- ggplotly(p)
+    # rangeslider(pp)
+  })
+  
+  ### Create lolliplot
+  lolliPlot <- reactive({
+    event_data <- pixelData()$event
+    event_data_sub <- event_data %>%
+      filter(date_start >= input$from, date_start <= input$to)
+    # thresh_data_sub <- thresh_data %>%
+    # filter(t >= input$from, t <= input$to)
+    p <- ggplot(data = event_data_sub, aes(x = date_start, y = intensity_max)) +
+      geom_lolli() +
+      # geom_point() +
+      labs(x = "", y = "Max. Intensity (°C)")
     ggplotly(p)
   })
   
@@ -257,9 +237,14 @@ map <- function(input, output, session) {
 
 # Outputs -----------------------------------------------------------------
 
-  # plot
-  output$plot <- renderPlotly({
+  # Time series plot
+  output$tsPlot <- renderPlotly({
     tsPlot()
+  })
+  
+  # Lolli plot
+  output$lolliPlot <- renderPlotly({
+    lolliPlot()
   })
   
   # table
@@ -300,7 +285,10 @@ map <- function(input, output, session) {
                             tabsetPanel(id = ns("tabs"),
                                         tabPanel(title = "Plot",
                                                  br(),
-                                                 plotlyOutput(ns("plot"))),
+                                                 plotlyOutput(ns("tsPlot"))),
+                                        # tabPanel(title = "Lolli",
+                                        #          br(),
+                                        #          plotlyOutput(ns("lolliPlot"))),
                                         tabPanel(title = "Table",
                                                  br(),
                                                  wellPanel(class = 'wellpanel',

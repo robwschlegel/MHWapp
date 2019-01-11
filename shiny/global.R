@@ -78,8 +78,10 @@ appCSS <- ".mandatory_star { color: red; }"
 load("MHW_cat_clim.RData")
 
 # The indexed NetCDF database
-ncdf_index <- data.frame(file_name = dir(path = "OISST", pattern = "avhrr", full.names = T),
-                         lon = lon_OISST[1:length(dir(path = "OISST", pattern = "avhrr", full.names = T))])
+OISST_index <- data.frame(file_name = dir(path = "OISST", pattern = "avhrr", full.names = T),
+                          lon = lon_OISST[1:length(dir(path = "OISST", pattern = "avhrr", full.names = T))])
+thresh_index <- data.frame(file_name = dir(path = "thresh", full.names = T),
+                           lon = lon_OISST[1:length(dir(path = "OISST", pattern = "avhrr", full.names = T))])
 
 # The category colour pallette
 MHW_colours <- c(
