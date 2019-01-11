@@ -77,7 +77,7 @@ OISST_ncdf <- function(df){
   lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
   
   # Set file name
-  ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
+  ncdf_file_name <- paste0("/data/home/data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
   
   # Define dimensions -------------------------------------------------------
   
