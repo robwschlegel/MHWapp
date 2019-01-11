@@ -16,11 +16,11 @@ library(raster)
 library(rgdal)
 library(DT)
 library(shinyBS)
-library(ggplot2)
+library(heatwaveR)
+library(tidyr)
 library(plotly)
 library(mapview)
 library(ncdf4)
-library(heatwaveR)
 # library(dygraphs)
 
 #slackr

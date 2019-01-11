@@ -84,26 +84,54 @@ map <- function(input, output, session) {
   ### Download data
   downloadData <- reactive({
     data <- pixelData()$event
-    data_sub <- data %>% 
-      filter(date_start >= input$from, date_start <= input$to)
+    data_sub <- data #%>% 
+      # filter(date_start >= input$from, date_start <= input$to)
   })
   
   ### Create time series plot
   # input <- data.frame(from = as.Date("2017-01-01"),
-  #                     to = as.Date("2017-12-31"))
+  #                     to = as.Date("2017-12-31"),
+  #                     date_choice = as.Date("2017-02-14"))
   tsPlot <- reactive({
+    # Time series data prep
     ts_data <- pixelData()$ts
-    ts_data_sub <- ts_data %>%
-      filter(t >= input$from, t <= input$to)
+    # ts_data_sub <- ts_data #%>%
+      # filter(t >= input$from, t <= input$to) #%>% 
+    
+    # Event data prep
     event_data <- pixelData()$event
-    event_data_sub <- event_data %>%
-      filter(date_start >= input$from, date_end <= input$to)
+    event_data_sub <- event_data #%>%
+      # filter(date_start >= input$from, date_end <= input$to)
+    
+    # Threshold data prep
     thresh_data <- pixelData()$thresh
-    thresh_data_sub <- heatwaveR:::make_whole_fast(data.frame(ts_x = seq(input$from, input$to, "day"),
+    thresh_data_sub <- heatwaveR:::make_whole_fast(data.frame(ts_x = seq(min(ts_data$t), max(ts_data$t), "day"),
                                                               ts_y = 1)) %>% 
       left_join(thresh_data, by = "doy") %>% 
       select(-ts_y) %>% 
       dplyr::rename(t = ts_x)
+    
+    # Merge ts and thresh data
+    ts_data_sub <- ts_data %>% 
+      left_join(thresh_data_sub, by = "t") %>% 
+      gather(key = "var", value = "temp", -t, -doy) %>% 
+      group_by(var)
+    
+    # plot_ly code
+    p <- plot_ly(data = ts_data_sub, x = ~t, y = ~temp, color = ~var, linetype = ~var) %>%
+      add_lines(colors = c("seagreen", "black", "firebrick"), linetypes = c("dotted", "solid", "dashed"))
+    rangeslider(p, start = paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"), 
+                end = paste0(lubridate::year(as.Date(input$date_choice)),"-12-31"))
+    # plotly_json(p)
+    
+    
+    # subplot(
+    #   add_lines(p, color = ~city),
+    #   add_lines(p, linetype = ~city),
+    #   shareX = TRUE, nrows = 2
+    # )
+    
+    # ggplot2 code
     # p <- ggplot() +
     #   geom_line(data = ts_data_sub, aes(x = t, y = temp), colour = "grey20") +
     #   geom_rug(data = event_data_sub, sides = "b",
@@ -127,24 +155,24 @@ map <- function(input, output, session) {
   })
   
   ### Create lolliplot
-  lolliPlot <- reactive({
-    event_data <- pixelData()$event
-    event_data_sub <- event_data %>%
-      filter(date_start >= input$from, date_start <= input$to)
-    # thresh_data_sub <- thresh_data %>%
-    # filter(t >= input$from, t <= input$to)
-    p <- ggplot(data = event_data_sub, aes(x = date_start, y = intensity_max)) +
-      geom_lolli() +
-      # geom_point() +
-      labs(x = "", y = "Max. Intensity (°C)")
-    ggplotly(p)
-  })
+  # lolliPlot <- reactive({
+  #   event_data <- pixelData()$event
+  #   event_data_sub <- event_data %>%
+  #     filter(date_start >= input$from, date_start <= input$to)
+  #   # thresh_data_sub <- thresh_data %>%
+  #   # filter(t >= input$from, t <= input$to)
+  #   p <- ggplot(data = event_data_sub, aes(x = date_start, y = intensity_max)) +
+  #     geom_lolli() +
+  #     # geom_point() +
+  #     labs(x = "", y = "Max. Intensity (°C)")
+  #   ggplotly(p)
+  # })
   
   ### Create data table
   tsTable <- reactive({
     event_data <- pixelData()$event
-    event_data_sub <- event_data %>% 
-      filter(date_start >= input$from, date_start <= input$to)
+    event_data_sub <- event_data #%>% 
+      # filter(date_start >= input$from, date_start <= input$to)
     # data$Time <- strftime(data$DateTime, format = "%H:%M %p")
     # data$Date <- strftime(data$DateTime, format = "%B %d, %Y")
     # data[,c("Date", "Time", "TideHeight")] %>%
@@ -197,43 +225,6 @@ map <- function(input, output, session) {
       #           options = tileOptions(minZoom = 1, maxZoom = 7))
   })
   
-  
-  # map
-  # output$leaflet <- leaflet::renderLeaflet({
-  #   leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
-  #     
-  #     setView(lat = initial_lat, lng = initial_long, zoom = initial_zoom) %>%
-  #     
-  #     addProviderTiles("Esri.WorldImagery", options = providerTileOptions(opacity = 1), group = "Satelite") %>%
-  #     addTiles(urlTemplate = mapbox_moon, group = "Basemap") %>%
-  #     
-  #     addLayersControl(
-  #       baseGroups = c("Basemap", "Satelite"),
-  #       options = layersControlOptions(collapsed = TRUE),
-  #       position = leaf.pos) %>%
-  #     
-  #     addMarkers(
-  #       data = sites,
-  #       lng = sites$X, 
-  #       lat = sites$Y,
-  #       label = sites$Station,
-  #       layerId = sites$Station,
-  #       icon = makeIcon(
-  #         iconUrl = "input/marker.png",
-  #         iconWidth = 3.8*3, iconHeight = 5.1*3
-  #       ),
-  #       group = 'sites',
-  #       clusterOptions = markerClusterOptions(showCoverageOnHover = F)
-  #     ) %>%
-  #     addEasyButton(easyButton(icon = "ion-arrow-shrink", position = leaf.pos,
-  #                              title = "Reset View", onClick = JS(paste0("function(btn, map){ map.setView(new L.LatLng(", initial_lat, ", ", initial_long, "), ", initial_zoom, ", { animation: true });}")))) 
-    # leaflet::addMiniMap(position = "bottomleft",
-    #                     zoomLevelOffset = -8,
-    #                     toggleDisplay = T, 
-    #                     autoToggleDisplay = T, aimingRectOptions = list(weight = 1),
-    #                     tiles =  mapbox_moon)  %>%
-  # })
-  
 
 # Outputs -----------------------------------------------------------------
 
@@ -257,51 +248,71 @@ map <- function(input, output, session) {
   # UI panel
   output$uiModal <- renderUI({
     bsModal(ns('modal'), title = div(id = ns('modalTitle'), pixelLabel()), trigger = 'click2', size = "large",
-            div(id = ns("top_row"),
-                sidebarLayout(
-                  sidebarPanel(width = 2, id = ns('sidebar'),
-                               div(class = 'control',
-                                   div(class = 'label', p("From")),
-                                   dateInput(ns("from"), NULL, format = "M d, yyyy",
-                                             value = paste0(year(input$date_choice),"-01-01")),
-                                   div(class = 'label', p("To")),
-                                   dateInput(ns("to"), NULL, format = "M d, yyyy",
-                                             value = paste0(year(input$date_choice),"-12-31"))
-                               ),
-                               # div(class = 'control',
-                               #     div(class = 'label', p("Interval (minutes)")),
-                               #     numericInput(ns("interval"), NULL,
-                               #                  value = 10, min = 0, max = 60, step = 5)),
-                               # div(class = 'control',
-                               #     div(class = 'label', p("Units")),
-                               #     selectInput(ns("units"), label = NULL,
-                               #                 choices = c("meters", "feet"), selected = "meters")),
-                               div(class = 'control',
-                                   hr(),
-                                   downloadButton(outputId = ns("download"),
-                                                  label = "Download data (csv)", class = 'small-dl'))
-                  ),
-                  mainPanel(width = 9,
-                            tabsetPanel(id = ns("tabs"),
-                                        tabPanel(title = "Plot",
-                                                 br(),
-                                                 plotlyOutput(ns("tsPlot"))),
-                                        # tabPanel(title = "Lolli",
-                                        #          br(),
-                                        #          plotlyOutput(ns("lolliPlot"))),
-                                        tabPanel(title = "Table",
-                                                 br(),
-                                                 wellPanel(class = 'wellpanel',
-                                                           DT::dataTableOutput(ns('table'))
+            # div(id = ns("top_row"),
+                fluidPage(
+                  # title = "",
+                  tabsetPanel(id = ns("tabs"),
+                              tabPanel(title = "Plot",
+                                       br(),
+                                       plotlyOutput(ns("tsPlot"))),
+                              # tabPanel(title = "Lolli",
+                              #          br(),
+                              #          plotlyOutput(ns("lolliPlot"))),
+                              tabPanel(title = "Table",
+                                       br(),
+                                       wellPanel(class = 'wellpanel',
+                                                 DT::dataTableOutput(ns('table'))
                                                  )
-                                        )))
-                )))
+                                       )
+                              ),
+                  hr(),
+                  fluidRow(
+                    column(2,
+                           h4("Download"),
+                           downloadButton(outputId = ns("download"),
+                                          label = "MHW data (csv)", class = 'small-dl'))
+                  )
+                )
+                # sidebarLayout(
+                #   sidebarPanel(width = 2, id = ns('sidebar'),
+                #                # div(class = 'control',
+                #                #     div(class = 'label', p("From")),
+                #                #     dateInput(ns("from"), NULL, format = "M d, yyyy",
+                #                #               value = paste0(year(input$date_choice),"-01-01")),
+                #                #     div(class = 'label', p("To")),
+                #                #     dateInput(ns("to"), NULL, format = "M d, yyyy",
+                #                #               value = paste0(year(input$date_choice),"-12-31"))
+                #                # ),
+                #                div(class = 'control',
+                #                    hr(),
+                #                    downloadButton(outputId = ns("download"),
+                #                                   label = "MHW data (csv)", class = 'small-dl'))
+                #   ),
+                #   mainPanel(width = 10,
+                #             tabsetPanel(id = ns("tabs"),
+                #                         tabPanel(title = "Plot",
+                #                                  br(),
+                #                                  plotlyOutput(ns("tsPlot"))),
+                #                         # tabPanel(title = "Lolli",
+                #                         #          br(),
+                #                         #          plotlyOutput(ns("lolliPlot"))),
+                #                         tabPanel(title = "Table",
+                #                                  br(),
+                #                                  wellPanel(class = 'wellpanel',
+                #                                            DT::dataTableOutput(ns('table'))
+                #                                            )
+                #                                  )
+                #                         )
+                #             )
+                #   )
+                # )
+            )
   })
 
   # Downloading
   output$download <- downloadHandler(
     filename = function() {
-      paste0("pixel.csv")
+      paste0("lon_",downloadData()$lon[1],"_lat_",downloadData()$lat[1],".csv")
       # paste0(pretty_label(), "_", gsub("-", "", as.character(input$from)), "_", gsub("-", "", as.character(input$to)), ".csv")
     },
     content <- function(file) {
