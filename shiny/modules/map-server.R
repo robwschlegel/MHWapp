@@ -1,12 +1,12 @@
 map <- function(input, output, session) {
   ns <- session$ns
-
-
+  
+  
 # Functions ---------------------------------------------------------------
   
-
+  
 # Reactives ---------------------------------------------------------------
-
+  
   ### base map data
   baseData <- reactive({
     date_filter <- input$date_choice
@@ -38,43 +38,43 @@ map <- function(input, output, session) {
   
   ### Pixel data
   pixelData <- reactive({
-      # click <- input$map_click
-      xy <- input$plotly_click
-      if(!is.null(click)){
-        # rasterNonProj <- rasterNonProj()
-        # cell <- cellFromXY(rasterNonProj, c(click$lng, click$lat))
-        #If the click is inside the raster...
-        # xy <- c(-42.125, 20.125)
-        # xy <- xyFromCell(rasterNonProj, cell)
-        
-        # Grab time series data
-        nc <- nc_open(as.character(OISST_index$file_name)[OISST_index$lon == xy[1]])
-        ts_data <- data.frame(t = as.Date(nc$dim$time$vals, origin = "1970-01-01"),
-                              temp = ncvar_get(nc, varid = "sst")[lat_OISST == xy[2],])
-        nc_close(nc)
-        
-        # Grab threshold data
-        nc <- nc_open(as.character(thresh_index$file_name)[OISST_index$lon == xy[1]])
-        thresh_data <- data.frame(doy = as.vector(nc$dim$time$vals),
-                                  seas = ncvar_get(nc, varid = "seas")[nc$dim$lat$vals == xy[2],],
-                                  thresh = ncvar_get(nc, varid = "thresh")[nc$dim$lat$vals == xy[2],])
-        nc_close(nc)
-        
-        # Grab event data
-        event_file <- dir("event", full.names = T)[OISST_index$lon == xy[1]]
-        event_data <- readRDS(event_file) %>% 
-          filter(lat == xy[2]) %>%
-          mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
-                 date_peak = as.Date(date_peak, origin = "1970-01-01"),
-                 date_end = as.Date(date_end, origin = "1970-01-01"))
-        pixelData <- list(ts = ts_data,
-                          event = event_data,
-                          thresh = thresh_data,
-                          lon = xy[1],
-                          lat = xy[2])
-        return(pixelData)
-      } else {
-      }
+    # click <- input$map_click
+    xy <- input$plotly_click
+    if(!is.null(click)){
+      # rasterNonProj <- rasterNonProj()
+      # cell <- cellFromXY(rasterNonProj, c(click$lng, click$lat))
+      #If the click is inside the raster...
+      # xy <- c(-42.125, 20.125)
+      # xy <- xyFromCell(rasterNonProj, cell)
+      
+      # Grab time series data
+      nc <- nc_open(as.character(OISST_index$file_name)[OISST_index$lon == xy[1]])
+      ts_data <- data.frame(t = as.Date(nc$dim$time$vals, origin = "1970-01-01"),
+                            temp = ncvar_get(nc, varid = "sst")[lat_OISST == xy[2],])
+      nc_close(nc)
+      
+      # Grab threshold data
+      nc <- nc_open(as.character(thresh_index$file_name)[OISST_index$lon == xy[1]])
+      thresh_data <- data.frame(doy = as.vector(nc$dim$time$vals),
+                                seas = ncvar_get(nc, varid = "seas")[nc$dim$lat$vals == xy[2],],
+                                thresh = ncvar_get(nc, varid = "thresh")[nc$dim$lat$vals == xy[2],])
+      nc_close(nc)
+      
+      # Grab event data
+      event_file <- dir("event", full.names = T)[OISST_index$lon == xy[1]]
+      event_data <- readRDS(event_file) %>% 
+        filter(lat == xy[2]) %>%
+        mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
+               date_peak = as.Date(date_peak, origin = "1970-01-01"),
+               date_end = as.Date(date_end, origin = "1970-01-01"))
+      pixelData <- list(ts = ts_data,
+                        event = event_data,
+                        thresh = thresh_data,
+                        lon = xy[1],
+                        lat = xy[2])
+      return(pixelData)
+    } else {
+    }
   })
   
   ### reactive labels
@@ -86,7 +86,7 @@ map <- function(input, output, session) {
   downloadData <- reactive({
     data <- pixelData()$event
     data_sub <- data #%>% 
-      # filter(date_start >= input$from, date_start <= input$to)
+    # filter(date_start >= input$from, date_start <= input$to)
   })
   
   ### Create time series plot
@@ -97,12 +97,12 @@ map <- function(input, output, session) {
     # Time series data prep
     ts_data <- pixelData()$ts
     # ts_data_sub <- ts_data #%>%
-      # filter(t >= input$from, t <= input$to) #%>% 
+    # filter(t >= input$from, t <= input$to) #%>% 
     
     # Event data prep
     event_data <- pixelData()$event
     event_data_sub <- event_data #%>%
-      # filter(date_start >= input$from, date_end <= input$to)
+    # filter(date_start >= input$from, date_end <= input$to)
     
     # Threshold data prep
     thresh_data <- pixelData()$thresh
@@ -173,14 +173,14 @@ map <- function(input, output, session) {
   tsTable <- reactive({
     event_data <- pixelData()$event
     event_data_sub <- event_data #%>% 
-      # filter(date_start >= input$from, date_start <= input$to)
+    # filter(date_start >= input$from, date_start <= input$to)
     # data$Time <- strftime(data$DateTime, format = "%H:%M %p")
     # data$Date <- strftime(data$DateTime, format = "%B %d, %Y")
     # data[,c("Date", "Time", "TideHeight")] %>%
     #   setNames(c("Date", "Time", unit_label()))
   })
   
-
+  
 # Observers ---------------------------------------------------------------
   
   # Show raster image
@@ -225,7 +225,7 @@ map <- function(input, output, session) {
   observeEvent(event_data("plotly_click", source = "map"), {
     toggleModal(session, modalId = "uiModal", toggle = "toggle")
   })
-
+  
 # Leaflet -----------------------------------------------------------------
   
   # output$map <- renderLeaflet({
@@ -299,10 +299,10 @@ map <- function(input, output, session) {
     #     xaxis = list(title = "", range = range(dat$lon))
     #   )
   })
-
-
+  
+  
 # Outputs -----------------------------------------------------------------
-
+  
   # Time series plot
   output$tsPlot <- renderPlotly({
     tsPlot()
@@ -324,33 +324,33 @@ map <- function(input, output, session) {
   output$uiModal <- renderUI({
     bsModal(ns('modal'), title = div(id = ns('modalTitle'), pixelLabel()), trigger = 'click2', size = "large",
             # div(id = ns("top_row"),
-                fluidPage(
-                  # title = "",
-                  tabsetPanel(id = ns("tabs"),
-                              tabPanel(title = "Plot",
-                                       br(),
-                                       plotlyOutput(ns("tsPlot"))),
-                              # tabPanel(title = "Lolli",
-                              #          br(),
-                              #          plotlyOutput(ns("lolliPlot"))),
-                              tabPanel(title = "Table",
-                                       br(),
-                                       wellPanel(class = 'wellpanel',
-                                                 DT::dataTableOutput(ns('table'))
-                                                 )
-                                       )
-                              ),
-                  hr(),
-                  fluidRow(
-                    column(2,
-                           h4("Download"),
-                           downloadButton(outputId = ns("download"),
-                                          label = "MHW data (csv)", class = 'small-dl'))
-                  )
-                )
+            fluidPage(
+              # title = "",
+              tabsetPanel(id = ns("tabs"),
+                          tabPanel(title = "Plot",
+                                   br(),
+                                   plotlyOutput(ns("tsPlot"))),
+                          # tabPanel(title = "Lolli",
+                          #          br(),
+                          #          plotlyOutput(ns("lolliPlot"))),
+                          tabPanel(title = "Table",
+                                   br(),
+                                   wellPanel(class = 'wellpanel',
+                                             DT::dataTableOutput(ns('table'))
+                                   )
+                          )
+              ),
+              hr(),
+              fluidRow(
+                column(2,
+                       h4("Download"),
+                       downloadButton(outputId = ns("download"),
+                                      label = "MHW data (csv)", class = 'small-dl'))
+              )
             )
+    )
   })
-
+  
   # Downloading
   output$download <- downloadHandler(
     filename = function() {

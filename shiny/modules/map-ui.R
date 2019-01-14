@@ -2,12 +2,12 @@ mapUI <- function(id, label = 'map') {
   ns <- NS(id)
   
   fluidRow(
-  #   absolutePanel(class = 'zoomPanel',
-  #                 top = 60, left = "auto", right = 10, bottom = 'auto',
-  #                 width = "auto", height = "auto",
-  #                 verticalLayout(actionButton(ns("map_zoom_in"), "+", class = 'small-button', width = 35),
-  #                                actionButton(ns("map_zoom_out"), "-", class = "small-button", width = 35))
-  #   ),
+    #   absolutePanel(class = 'zoomPanel',
+    #                 top = 60, left = "auto", right = 10, bottom = 'auto',
+    #                 width = "auto", height = "auto",
+    #                 verticalLayout(actionButton(ns("map_zoom_in"), "+", class = 'small-button', width = 35),
+    #                                actionButton(ns("map_zoom_out"), "-", class = "small-button", width = 35))
+    #   ),
     
     # fluidRow(
     #   absolutePanel(class = 'zoomPanel',
@@ -29,7 +29,7 @@ mapUI <- function(id, label = 'map') {
     # Then draw a heatmap on top of the land polygons to show MHW categories
     # absolutePanel(leafletOutput(ns('map')), top = 0, left = 0,
     plotlyOutput(ns('map'), height = "900px"),#, top = 0, left = 0,
-                  # right = 0, bottom = 0, height = '100%'),
+    # right = 0, bottom = 0, height = '100%'),
     
     absolutePanel(top = 70, right = 10, draggable = TRUE,
                   # radioButtons(inputId = "Dataset",
