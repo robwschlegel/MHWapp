@@ -119,10 +119,10 @@ map <- function(input, output, session) {
       group_by(var)
     
     # plot_ly code
-    p <- plot_ly(data = ts_data_sub, x = ~t, y = ~temp, color = ~var, linetype = ~var) %>%
-      add_lines(colors = c("seagreen", "black", "firebrick"), linetypes = c("dotted", "solid", "dashed"))
-    rangeslider(p, start = paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"), 
-                end = paste0(lubridate::year(as.Date(input$date_choice)),"-12-31"))
+    # p <- plot_ly(data = ts_data_sub, x = ~t, y = ~temp, color = ~var, linetype = ~var) %>%
+    #   add_lines(colors = c("seagreen", "black", "firebrick"), linetypes = c("dotted", "solid", "dashed"))
+    # rangeslider(p, start = paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"), 
+    #             end = paste0(lubridate::year(as.Date(input$date_choice)),"-12-31"))
     # plotly_json(p)
     
     
@@ -133,12 +133,17 @@ map <- function(input, output, session) {
     # )
     
     # ggplot2 code
-    # p <- ggplot() +
-    #   geom_line(data = ts_data_sub, aes(x = t, y = temp), colour = "grey20") +
-    #   geom_rug(data = event_data_sub, sides = "b",
-    #            aes(x = date_start, y = intensity_max), colour = "red") +
-    #   labs(x = "", y = "Temperature (°C)") +
-    #   scale_y_continuous(limits = c(min(ts_data_sub$temp)-1, max(ts_data_sub$temp)+1))
+    p <- ggplot() +
+      geom_flame(data = ts_data_sub, aes(x = t, y = temp, y2 = thresh)) +
+      geom_line(data = ts_data_sub, aes(x = t, y = temp), colour = "grey20") +
+      geom_line(data = thresh_data_sub, aes(x = t, y = seas), 
+                linetype = "dashed", colour = "green") +
+      geom_line(data = thresh_data_sub, aes(x = t, y = thresh), 
+                linetype = "dotted", colour = "red") +
+      geom_rug(data = event_data_sub, sides = "b",
+               aes(x = date_peak, y = intensity_max), colour = "red") +
+      labs(x = "", y = "Temperature (°C)") +
+      scale_y_continuous(limits = c(min(ts_data_sub$temp)-1, max(ts_data_sub$temp)+1))
     # if(nrow(thresh_data_sub) <= 1830){
     #   p <- p +
     #     # Consider adding these as traces in plot_ly()
@@ -151,7 +156,9 @@ map <- function(input, output, session) {
     #     geom_ribbon(aes(ymin = temp, ymax = thresh_data_sub$thresh))
     # }
     # ggplotly(p)
-    # pp <- ggplotly(p)
+    pp <- ggplotly(p)
+    rangeslider(pp, start = paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"), 
+                            end = paste0(lubridate::year(as.Date(input$date_choice)),"-12-31"))
     # rangeslider(pp)
   })
   
