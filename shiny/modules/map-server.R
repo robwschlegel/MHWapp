@@ -38,14 +38,23 @@ map <- function(input, output, session) {
   
   ### Pixel data
   pixelData <- reactive({
-    # click <- input$map_click
-    xy <- input$plotly_click
-    if(!is.null(click)){
-      # rasterNonProj <- rasterNonProj()
-      # cell <- cellFromXY(rasterNonProj, c(click$lng, click$lat))
+    
+    # testers...
+    # xy <- c(-42.125, 20.125)
+    
+    # Leaflet click
+    xy <- input$map_click
+    
+    # Plotly click
+    # xy <- input$plotly_click
+    
+    if(!is.null(xy)){
+      
+      # Leaflet processing
+      rasterNonProj <- rasterNonProj()
+      cell <- cellFromXY(rasterNonProj, c(xy$lng, xy$lat))
       #If the click is inside the raster...
-      # xy <- c(-42.125, 20.125)
-      # xy <- xyFromCell(rasterNonProj, cell)
+      xy <- xyFromCell(rasterNonProj, cell)
       
       # Grab time series data
       nc <- nc_open(as.character(OISST_index$file_name)[OISST_index$lon == xy[1]])
@@ -96,7 +105,8 @@ map <- function(input, output, session) {
   tsPlot <- reactive({
     # Time series data prep
     ts_data <- pixelData()$ts
-    # ts_data_sub <- ts_data #%>%
+    ts_data_sub <- ts_data %>%
+      mutate(temp = round(temp, 2))
     # filter(t >= input$from, t <= input$to) #%>% 
     
     # Event data prep
@@ -110,18 +120,20 @@ map <- function(input, output, session) {
                                                               ts_y = 1)) %>% 
       left_join(thresh_data, by = "doy") %>% 
       select(-ts_y) %>% 
-      dplyr::rename(t = ts_x)
+      dplyr::rename(t = ts_x) %>% 
+      mutate(seas = round(seas, 2),
+             thresh = round(thresh, 2))
     
-    # Merge ts and thresh data
-    ts_data_sub <- ts_data %>% 
-      left_join(thresh_data_sub, by = "t") %>% 
-      gather(key = "var", value = "temp", -t, -doy) %>% 
-      group_by(var)
+    # Merge ts and thresh data for plotly
+    # ts_data_sub <- ts_data_sub %>%
+    #   left_join(thresh_data_sub, by = "t") %>%
+    #   gather(key = "var", value = "temp", -t, -doy) %>%
+    #   group_by(var)
     
     # plot_ly code
     # p <- plot_ly(data = ts_data_sub, x = ~t, y = ~temp, color = ~var, linetype = ~var) %>%
     #   add_lines(colors = c("seagreen", "black", "firebrick"), linetypes = c("dotted", "solid", "dashed"))
-    # rangeslider(p, start = paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"), 
+    # rangeslider(p, start = paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"),
     #             end = paste0(lubridate::year(as.Date(input$date_choice)),"-12-31"))
     # plotly_json(p)
     
@@ -132,18 +144,41 @@ map <- function(input, output, session) {
     #   shareX = TRUE, nrows = 2
     # )
     
+    # Merge ts and thresh data for ggplot
+    # ts_data_sub <- ts_data %>%
+    #   dplyr::left_join(thresh_data_sub, by = "t")
+    
     # ggplot2 code
-    p <- ggplot() +
-      geom_flame(data = ts_data_sub, aes(x = t, y = temp, y2 = thresh)) +
-      geom_line(data = ts_data_sub, aes(x = t, y = temp), colour = "grey20") +
-      geom_line(data = thresh_data_sub, aes(x = t, y = seas), 
-                linetype = "dashed", colour = "green") +
-      geom_line(data = thresh_data_sub, aes(x = t, y = thresh), 
-                linetype = "dotted", colour = "red") +
-      geom_rug(data = event_data_sub, sides = "b",
-               aes(x = date_peak, y = intensity_max), colour = "red") +
-      labs(x = "", y = "Temperature (°C)") +
-      scale_y_continuous(limits = c(min(ts_data_sub$temp)-1, max(ts_data_sub$temp)+1))
+      # Adding aes(text) to geom_line makes ggplot angry, but it is passed to plotly correctly
+        # This is a bit of a hack but is the best practice...
+    suppressWarnings( 
+    p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
+      geom_flame(aes(y2 = thresh_data_sub$thresh)) +
+      geom_line(colour = "grey20",
+                aes(group = 1, text = paste0("Date: ",t,
+                                  "<br>Temp.: ",temp,"°C"))) +
+      geom_line(data = thresh_data_sub, linetype = "dashed", colour = "green",
+                aes(x = t, y = seas, group = 1,
+                    text = paste0("Date: ",t,
+                                  "<br>Seas.: ",seas,"°C"))) +
+      geom_line(data = thresh_data_sub,
+                linetype = "dotted", colour = "red",
+                aes(x = t, y = thresh, group = 1,
+                    text = paste0("Date: ",t,
+                                  "<br>Thresh.: ",thresh,"°C"))) +
+      geom_rug(data = event_data_sub, sides = "b", colour = "red",
+               aes(x = date_peak, y = min(ts_data$temp), 
+                   text = paste0("Event: ",event_no,
+                                 "<br>Duration: ",duration," days",
+                                 "<br>Start Date: ", date_start,
+                                 "<br>Peak Date: ", date_peak,
+                                 "<br>End Date: ", date_end,
+                                 "<br>Mean Intensity: ",intensity_mean,"°C",
+                                 "<br>Max. Intensity: ",intensity_max,"°C",
+                                 "<br>Cum. Intensity: ",intensity_cumulative,"°C"))) +
+      labs(x = "", y = "Temperature (°C)") #+
+    )
+      # scale_y_continuous(limits = c(min(ts_data_sub$temp)-1, max(ts_data_sub$temp)+1))
     # if(nrow(thresh_data_sub) <= 1830){
     #   p <- p +
     #     # Consider adding these as traces in plot_ly()
@@ -156,10 +191,15 @@ map <- function(input, output, session) {
     #     geom_ribbon(aes(ymin = temp, ymax = thresh_data_sub$thresh))
     # }
     # ggplotly(p)
-    pp <- ggplotly(p)
-    rangeslider(pp, start = paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"), 
-                            end = paste0(lubridate::year(as.Date(input$date_choice)),"-12-31"))
-    # rangeslider(pp)
+    pp <- ggplotly(p, tooltip = "text") #%>%
+      # rangeslider(start = ts_data$t[1],
+      #             end = ts_data$t[100])
+      # rangeslider(start = as.Date("2017-01-01"),
+      #             end = as.Date("2017-12-31"))
+      # rangeslider(start = as.numeric(paste0(lubridate::year(as.Date(input$date_choice)),"-01-01")),
+      #             end = as.numeric(paste0(lubridate::year(as.Date(input$date_choice)),"-12-31")))
+    rangeslider(pp, start = as.integer(as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"))), 
+                end = as.integer(as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-12-31"))))
   })
   
   ### Create lolliplot
@@ -191,17 +231,17 @@ map <- function(input, output, session) {
 # Observers ---------------------------------------------------------------
   
   # Show raster image
-  # observe({
-  #   leafletProxy("map") %>%
-  #     clearImages() %>%
-  #     addRasterImage(rasterProj(), colors = pal_cat, layerId = "map_raster",
-  #                    project = FALSE, opacity = 0.7) %>%
-  #     addScaleBar(position = "bottomright") #%>%
-  #     # addMouseCoordinates() %>%
-  #     # addImageQuery(rasterProj(), type = "mousemove", layerId = "map_raster")
-  #     # fitBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90,
-  #     #           options = tileOptions(minZoom = 3, maxZoom = 6))
-  # })
+  observe({
+    leafletProxy("map") %>%
+      clearImages() %>%
+      addRasterImage(rasterProj(), colors = pal_cat, layerId = "map_raster",
+                     project = FALSE, opacity = 0.7) %>%
+      addScaleBar(position = "bottomright") #%>%
+      # addMouseCoordinates() %>%
+      # addImageQuery(rasterProj(), type = "mousemove", layerId = "map_raster")
+      # fitBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90,
+      #           options = tileOptions(minZoom = 3, maxZoom = 6))
+  })
   
   ### Recreate the legend as needed.
   # observe({
@@ -215,11 +255,13 @@ map <- function(input, output, session) {
   #   )
   # })
   
-  # observeEvent(input$map_click, {
-  #   # req(!is.null(pixelData()))
-  #   toggleModal(session, "modal", "open")
-  # })
+  # Leaflet clicking
+  observeEvent(input$map_click, {
+    # req(!is.null(pixelData()))
+    toggleModal(session, "modal", "open")
+  })
   
+  # Plotly clicking
   # observeEvent(event_data("plotly_click", source = "map"), {
   #   showModal(modalDialog(
   #     renderPlotly({
@@ -229,37 +271,42 @@ map <- function(input, output, session) {
   #   # toggleModal(session, "modal", "open")
   # })
   
-  observeEvent(event_data("plotly_click", source = "map"), {
-    toggleModal(session, modalId = "uiModal", toggle = "toggle")
-  })
+  # Plotly clicking
+  # observeEvent(event_data("plotly_click", source = "map"), {
+  #   toggleModal(session, modalId = "uiModal", toggle = "toggle")
+  # })
   
 # Leaflet -----------------------------------------------------------------
   
-  # output$map <- renderLeaflet({
-  #   leaflet(MHW_cat_clim_sub) %>%
-  #     setView(-60, 45, zoom = 5, options = tileOptions(minZoom = 1, maxZoom = 7, noWrap = T)) %>%
-  #     addTiles(group = "OSM",
-  #              options = tileOptions(minZoom = 1, maxZoom = 7, opacity = 0.5, noWrap = T)) #%>%
-  #     # addMouseCoordinates() #%>%
-  #     # fitBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90,
-  #     #           options = tileOptions(minZoom = 1, maxZoom = 7))
-  # })
+  # The leaflet option
+  output$map <- renderLeaflet({
+    leaflet(MHW_cat_clim_sub) %>%
+      setView(-60, 45, zoom = 5, options = tileOptions(minZoom = 1, maxZoom = 7, noWrap = T)) %>%
+      addTiles(group = "OSM",
+               options = tileOptions(minZoom = 1, maxZoom = 7, opacity = 0.5, noWrap = T)) #%>%
+      # addMouseCoordinates() #%>%
+      # fitBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90,
+      #           options = tileOptions(minZoom = 1, maxZoom = 7))
+  })
   
-  output$map <- renderPlotly({
+  # The plotly option
+  # output$map <- renderPlotly({
+  #   
+  #   breaks <- c(1,2,3,4)
+  #   colors <- MHW_colours
+  #   colorscale <- data.frame(breaks, colors)
+  #   
+  #   plot_ly(data = baseData(), x = ~lon, y = ~lat, z = ~as.integer(category)) %>%
+  #     add_heatmap(colorscale = colorscale) %>% 
+  #     layout(xaxis = list(title = ""), 
+  #            yaxis = list(title = ""))
     
-    breaks <- c(1,2,3,4)
-    colors <- MHW_colours
-    colorscale <- data.frame(breaks, colors)
-    
-    plot_ly(data = baseData(), x = ~lon, y = ~lat, z = ~as.integer(category)) %>%
-      add_heatmap(colorscale = colorscale) %>% 
-      layout(xaxis = list(title = ""), 
-             yaxis = list(title = ""))
-    
+  # The map_box option
     # plot_mapbox(map_base, x = ~lon, y = ~lat) %>%
     # add_paths(size = I(2)) #%>%
     # add_heatmap(baseData(), x = ~lon, y = ~lat, z = ~as.integer(category))
     
+  # An possible sf overlay
     # 
     # plot_ly() %>%
     #   add_sf(
@@ -305,7 +352,7 @@ map <- function(input, output, session) {
     #     yaxis = list(title = ""),
     #     xaxis = list(title = "", range = range(dat$lon))
     #   )
-  })
+  # })
   
   
 # Outputs -----------------------------------------------------------------
