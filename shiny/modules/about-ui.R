@@ -6,9 +6,10 @@ aboutUI <- function(id, label = 'About') {
            HTML("")),
     column(10,
            h4(paste("Welcome!")),
+           br(),
+           p("Unfortunately this app was not designed for use on a mobile device (e.g. cell phone or tablet).
+             It will therefore appear rather clumsy if being viewed on a small screen."),
            br()#,
-           #' p("This app was not designed for use on a mobile."),
-           #' br(),
            #' h5(disclaimer, a("GitHub page.", href = "https://github.com/poissonconsulting/rtide")),
            #' actionLink(ns('info2'), "Citation info"),
            #' hidden(div(id = ns("div2"),

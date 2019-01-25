@@ -39,21 +39,21 @@ mapUI <- function(id, label = 'map') {
     # absolutePanel(verbatimTextOutput(outputId = ns("click_info"), placeholder = T),
     #               bottom = 300, right = 10, draggable = TRUE),
     
-    absolutePanel(top = 70, right = 10, draggable = TRUE,
-                  # radioButtons(inputId = "Dataset",
-                  #              label = "Data",
-                  #              choices = "OISST",
-                  #              inline = TRUE,
-                  #              selected = "OISST"),
+    absolutePanel(top = 70, right = 10, draggable = TRUE, 
                   dateInput(inputId = ns("date_choice"),
                             label = "Date",
                             # value = MHW_cat_clim_sub$t[MHW_cat_clim_sub$intensity == max(MHW_cat_clim_sub$intensity)][1],
                             value = "2017-02-14",
                             min = "1982-01-01", max = "2017-12-31"
                             # min = min(MHW_cat_clim_sub$t), max = max(MHW_cat_clim_sub$t)
-                  )#,
+                  ),
+                  checkboxGroupInput(inputId = ns("categories"),
+                              label = "Categories",
+                              choices = c("I Moderate", "II Strong", "III Severe", "IV Extreme"),
+                              selected = c("I Moderate", "II Strong", "III Severe", "IV Extreme"),
+                              inline = T),
                   # verbatimTextOutput(outputId = ns("map_hover"), placeholder = TRUE)
-                  # checkboxInput("legend", "Show legend", TRUE)
+                  checkboxInput(inputId = ns("legend"), label = "Legend", value = TRUE)
     ),
     
     uiOutput(ns('uiModal'))

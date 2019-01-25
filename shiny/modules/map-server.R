@@ -19,6 +19,8 @@ map <- function(input, output, session) {
     sub_dir <- paste0("cat_clim/",year_filter)
     sub_file <- paste0("cat.clim.",date_filter,".Rda")
     baseData <- readRDS(paste0(sub_dir,"/",sub_file))
+    baseData <- baseData %>% 
+      filter(category %in% input$categories)
     return(baseData)
   })
   
@@ -103,19 +105,15 @@ map <- function(input, output, session) {
   
   ### reactive labels
   pixelLabel <- reactive({
+    check <- input$map_click
+    if(!is.null(check)){
     xy <- pixelData()
-    # xy <- input$map_click
-    # if(xy$lng > 180){
-    #   while(xy$lng > 180){
-    #     xy$lng <- xy$lng - 360
-    #   }
-    # }
-    # if(xy$lng < -180){
-    #   while(xy$lng < -180){
-    #     xy$lng <- xy$lng + 360
-    #   }
-    # }
-    paste0("Chosen pixel; lon = ",xy$lon[1],", lat = ",xy$lat[1])
+    if(xy$lon[1] >= 0) xy_lon <- paste0(abs(xy$lon[1]),"°E")
+    if(xy$lon[1] < 0) xy_lon <- paste0(abs(xy$lon[1]),"°W")
+    if(xy$lat[1] >= 0) xy_lat <- paste0(abs(xy$lat[1]),"°N")
+    if(xy$lat[1] < 0) xy_lat <- paste0(abs(xy$lat[1]),"°S")
+    paste0("Chosen pixel; lon = ",xy_lon,", lat = ",xy_lat)
+    }
   })
   
   ### Download data
@@ -151,50 +149,23 @@ map <- function(input, output, session) {
       mutate(seas = round(seas, 2),
              thresh = round(thresh, 2))
     
-    # Merge ts and thresh data for plotly
-    # ts_data_sub <- ts_data_sub %>%
-    #   left_join(thresh_data_sub, by = "t") %>%
-    #   gather(key = "var", value = "temp", -t, -doy) %>%
-    #   group_by(var)
-    
-    # plot_ly code
-    # p <- plot_ly(data = ts_data_sub, x = ~t, y = ~temp, color = ~var, linetype = ~var) %>%
-    #   add_lines(colors = c("seagreen", "black", "firebrick"), linetypes = c("dotted", "solid", "dashed"))
-    # rangeslider(p, start = paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"),
-    #             end = paste0(lubridate::year(as.Date(input$date_choice)),"-12-31"))
-    # plotly_json(p)
-    
-    
-    # subplot(
-    #   add_lines(p, color = ~city),
-    #   add_lines(p, linetype = ~city),
-    #   shareX = TRUE, nrows = 2
-    # )
-    
-    # Merge ts and thresh data for ggplot
-    # ts_data_sub <- ts_data %>%
-    #   dplyr::left_join(thresh_data_sub, by = "t")
-    
-    # ggplot2 code
-      # Adding aes(text) to geom_line makes ggplot angry, but it is passed to plotly correctly
-        # This is a bit of a hack but is the best practice...
     suppressWarnings(
     p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
       geom_flame(aes(y2 = thresh_data_sub$thresh)) +
       geom_line(colour = "grey20",
                 aes(group = 1, text = paste0("Date: ",t,
-                                  "<br>Temp.: ",temp,"°C"))) +
-      geom_line(data = thresh_data_sub, linetype = "dashed", colour = "green",
+                                  "<br>Temperature: ",temp,"°C"))) +
+      geom_line(data = thresh_data_sub, linetype = "dashed", colour = "steelblue3",
                 aes(x = t, y = seas, group = 1,
                     text = paste0("Date: ",t,
-                                  "<br>Seas.: ",seas,"°C"))) +
+                                  "<br>Climatology: ",seas,"°C"))) +
       geom_line(data = thresh_data_sub,
-                linetype = "dotted", colour = "red",
+                linetype = "dotted", colour = "tomato3",
                 aes(x = t, y = thresh, group = 1,
                     text = paste0("Date: ",t,
-                                  "<br>Thresh.: ",thresh,"°C"))) +
-      geom_rug(data = event_data_sub, sides = "b", colour = "red",
-               aes(x = date_peak, y = min(ts_data$temp), 
+                                  "<br>Threshold: ",thresh,"°C"))) +
+      geom_rug(data = event_data_sub, sides = "b", colour = "red3", size = 2,
+               aes(x = date_peak, y = min(ts_data_sub$temp),
                    text = paste0("Event: ",event_no,
                                  "<br>Duration: ",duration," days",
                                  "<br>Start Date: ", date_start,
@@ -203,38 +174,22 @@ map <- function(input, output, session) {
                                  "<br>Mean Intensity: ",intensity_mean,"°C",
                                  "<br>Max. Intensity: ",intensity_max,"°C",
                                  "<br>Cum. Intensity: ",intensity_cumulative,"°C"))) +
+      geom_segment(aes(x = input$date_choice, 
+                       xend = input$date_choice,
+                       y = min(ts_data_sub$temp), 
+                       yend = max(ts_data_sub$temp),
+                       text = "Map date"), colour = "bisque") +
       labs(x = "", y = "Temperature (°C)") +
       scale_x_date(expand = c(0, 0))
     )
-      # scale_y_continuous(limits = c(min(ts_data_sub$temp)-1, max(ts_data_sub$temp)+1))
-    # if(nrow(thresh_data_sub) <= 1830){
-    #   p <- p +
-    #     # Consider adding these as traces in plot_ly()
-    #     # Or perhaps to melt by variable and use the different types as a colour aesthetic
-    #     geom_line(data = thresh_data_sub, aes(x = t, y = seas), colour = "green") +
-    #     geom_line(data = thresh_data_sub, aes(x = t, y = thresh), colour = "red")
-    # }
-    # if(nrow(thresh_data_sub) <= 366){
-    #   p <- p +
-    #     geom_ribbon(aes(ymin = temp, ymax = thresh_data_sub$thresh))
-    # }
-    # ggplotly(p)
-    pp <- ggplotly(p, tooltip = "text") #%>%
-      # layout(xaxis = list(range = c(as.integer(as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"))),
-                                    # as.integer(as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-12-31")))),
-                          # autorange = FALSE,
-                          # tickmode = "array",
-                          # tickvals = as.integer(as.Date(paste0(base::unique(lubridate::year(ts_data_sub$t)),"-01-01"))),
-                          # type = "date"))
+    
+    # Convert to plotly
+    pp <- ggplotly(p, tooltip = "text", dynamicTicks = T) %>% 
+      layout(hovermode = 'compare') #%>% 
+      # style(traces = 2, hoverlabel = list(bgcolor = "grey10"))# %>% 
+      # style(traces = 3, hoverlabel = list(bgcolor = "tomato2")) %>% 
+      # style(traces = 4, hoverlabel = list(bgcolor = "red2"))
     pp
-    # rangeslider(start = ts_data$t[1],
-      #             end = ts_data$t[100])
-      # rangeslider(start = as.Date("2017-01-01"),
-      #             end = as.Date("2017-12-31"))
-      # rangeslider(start = as.numeric(paste0(lubridate::year(as.Date(input$date_choice)),"-01-01")),
-      #             end = as.numeric(paste0(lubridate::year(as.Date(input$date_choice)),"-12-31")))
-    # rangeslider(pp, start = as.integer(as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"))), 
-    #             end = as.integer(as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-12-31"))))
   })
   
   ### Create lolliplot
@@ -272,10 +227,6 @@ map <- function(input, output, session) {
   
 # Observers ---------------------------------------------------------------
   
-  ### Find where clicking is happening
-  # observeEvent(input$plot_click, {
-  #   print(input$plot_click)
-  # })
   
   # Show raster image
   observe({
@@ -293,35 +244,20 @@ map <- function(input, output, session) {
   ### Recreate the legend as needed.
   observe({
     proxy <- leafletProxy("map", data = MHW_cat_clim_sub)
-    # Remove any existing legend, and only if the legend is
-    # enabled, create a new one.
     proxy %>% clearControls()
-    proxy %>% addLegend(position = "bottomright",
-                        pal = pal_factor,
-                        values = ~category
-    )
+    if (input$legend) {
+      proxy %>% addLegend(position = "bottomright",
+                          pal = pal_factor,
+                          values = ~category,
+                          title = "Category"
+      )
+    }
   })
   
   # Leaflet clicking
   observeEvent(input$map_click, {
-    # req(!is.null(pixelData()))
     toggleModal(session, "modal", "open")
   })
-  
-  # Plotly clicking
-  # observeEvent(event_data("plotly_click", source = "map"), {
-  #   showModal(modalDialog(
-  #     renderPlotly({
-  #       plot_ly(baseDate(), x = ~lon, y = ~lat)
-  #       })
-  #     ))
-  #   # toggleModal(session, "modal", "open")
-  # })
-  
-  # Plotly clicking
-  # observeEvent(event_data("plotly_click", source = "map"), {
-  #   toggleModal(session, modalId = "uiModal", toggle = "toggle")
-  # })
   
 # Leaflet -----------------------------------------------------------------
   
@@ -335,71 +271,6 @@ map <- function(input, output, session) {
       # fitBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90,
       #           options = tileOptions(minZoom = 1, maxZoom = 7))
   })
-  
-  # The plotly option
-  # output$map <- renderPlotly({
-  #   
-  #   breaks <- c(1,2,3,4)
-  #   colors <- MHW_colours
-  #   colorscale <- data.frame(breaks, colors)
-  #   
-  #   plot_ly(data = baseData(), x = ~lon, y = ~lat, z = ~as.integer(category)) %>%
-  #     add_heatmap(colorscale = colorscale) %>% 
-  #     layout(xaxis = list(title = ""), 
-  #            yaxis = list(title = ""))
-    
-  # The map_box option
-    # plot_mapbox(map_base, x = ~lon, y = ~lat) %>%
-    # add_paths(size = I(2)) #%>%
-    # add_heatmap(baseData(), x = ~lon, y = ~lat, z = ~as.integer(category))
-    
-  # An possible sf overlay
-    # 
-    # plot_ly() %>%
-    #   add_sf(
-    #     data = sf::st_as_sf(maps::map("world", plot = FALSE, fill = TRUE)), 
-    #     color = I("black"), fillcolor = "transparent", hoverinfo = "none", size = I(1)
-    #   ) %>%
-    #   add_contour(
-    #     z = dat$air, 
-    #     x = dat$lon, 
-    #     y = dat$lat,
-    #     name = "precipitation",
-    #     zauto = FALSE,
-    #     # this censors extreme values -- I would have gone with a a log scale myself ;)
-    #     zmin = -3,      
-    #     zmax = 3,
-    #     colorscale = colorscale,
-    #     colorbar = list(
-    #       borderwidth = 0, 
-    #       outlinewidth = 0, 
-    #       thickness = 15, 
-    #       tickfont = list(size = 14), 
-    #       title = "mm/day"
-    #     ),
-    #     contours = list(
-    #       end = 2.5, 
-    #       showlines = FALSE, 
-    #       size = 0.25,
-    #       start = -2.5
-    #     )
-    #   ) %>%
-    #   layout(
-    #     title = "Surface Precipitation Rate Anomalies<br>Dec 2017-Jan 2018",
-    #     showlegend = FALSE,
-    #     annotations = list(
-    #       text = "Data courtesy of <a href='http://www.esrl.noaa.gov/psd/data/composites/day/'>NOAA Earth System Research Laboratory</a>",
-    #       xref = 'paper',
-    #       yref = 'paper',
-    #       x = 0,
-    #       y = 0,
-    #       yanchor = 'top',
-    #       showarrow = FALSE
-    #     ),
-    #     yaxis = list(title = ""),
-    #     xaxis = list(title = "", range = range(dat$lon))
-    #   )
-  # })
   
   
 # Outputs -----------------------------------------------------------------
@@ -435,7 +306,7 @@ map <- function(input, output, session) {
               tabsetPanel(id = ns("tabs"),
                           tabPanel(title = "Plot",
                                    br(),
-                                   plotlyOutput(ns("tsPlot")),
+                                   plotlyOutput(ns("tsPlot"), height = "600px"),
                                    hr(),
                                    fluidRow(
                                    column(width = 2,

@@ -19,14 +19,14 @@ library(shinyBS)
 library(heatwaveR)
 library(tidyr)
 library(plotly)
-library(mapview)
+# library(mapview)
 library(ncdf4)
 # library(dygraphs)
 
 #slackr
 # slackr::slackr_setup(config_file = "./.slackr")
 
-source('functions.R', local = TRUE)
+# source('functions.R', local = TRUE)
 # poisson_logo <- actionLink(inputId = 'poisson', 
 #                            label = img(src = 'poisson-logo.png',
 #                                        height = 177/5,
@@ -72,10 +72,15 @@ lat_OISST <- seq(-89.875, 89.875, by = 0.25)
 # )
 # sites <- readRDS('input/sites.rds')
 
-appCSS <- ".mandatory_star { color: red; }"
+# appCSS <- ".mandatory_star { color: red; }"
 
 # The event categories
-load("MHW_cat_clim.RData")
+# load("MHW_cat_clim.RData")
+# MHW_cat_clim_sub_sub <- MHW_cat_clim_sub %>% 
+#   select(category) %>% 
+#   distinct()
+
+MHW_cat_clim_sub <- data.frame(category = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
 
 # The indexed NetCDF database
 OISST_index <- data.frame(file_name = dir(path = "OISST", pattern = "avhrr", full.names = T),
@@ -90,22 +95,29 @@ MHW_colours <- c(
   "III Severe" = "#9e0000",
   "IV Extreme" = "#2d0000"
 )
+# MHW_colours <- data.frame(val = c("#ffc866", "#ff6900", "#9e0000", "#2d0000"),
+#                           label = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
 
 # Colour palettes for different metrics etc.
 pal_factor <- colorFactor(palette = MHW_colours, levels = levels(MHW_cat_clim_sub$category))
+# pal_factor <- colorFactor(palette = MHW_colours$val, domain = MHW_colours$label)
 pal_cat <- colorNumeric(palette = MHW_colours, domain = c(1,2,3,4), na.color = NA)
+
+# previewColors(colorFactor(palette = MHW_colours$val, domain = MHW_colours$label), MHW_cat_clim_sub)
 
 # Establish projection choices
 inputProj <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
 leafletProj <- "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +towgs84=0,0,0,0,0,0,0 +units=m +nadgrids=@null +wktext +no_defs"
 
 # The base map
-map_base <- ggplot2::fortify(maps::map(fill = TRUE, plot = FALSE)) %>% 
-  dplyr::rename(lon = long) %>% 
-  # filter(lat >= 25.6) %>%
-  mutate(group = ifelse(lon > 180, group+9999, group),
-         lon = ifelse(lon > 180, lon-360, lon)) %>% 
-  group_by(group)
+# map_base <- ggplot2::fortify(maps::map(fill = TRUE, plot = FALSE)) %>% 
+#   dplyr::rename(lon = long) %>% 
+#   # filter(lat >= 25.6) %>%
+#   mutate(group = ifelse(lon > 180, group+9999, group),
+#          lon = ifelse(lon > 180, lon-360, lon)) %>% 
+#   group_by(group)
+# 
+# saveRDS(map_base, "map_base.Rda")
 
 # Placeholder xy before first click
 # xy <- data.frame(lng = 0, lat = 0)

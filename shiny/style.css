@@ -94,7 +94,7 @@ div.outer {
  .wellpanel {
   overflow-x:scroll; 
     overflow-y:scroll; 
-  max-height: 400px; 
+  max-height: 600px; 
   background-color: white;
   font-size:85%;
 }
@@ -197,7 +197,7 @@ div.outer {
     box-shadow: 0 4px 4px -2px rgba(0,0,0,.2);
 }
 .navbar-default {
-  background-color: #101010;
+  background-color: #8a73c9;
   border-color: transparent;
 }
 .navbar-default .navbar-brand {
@@ -209,7 +209,7 @@ div.outer {
   background-color: transparent;
 }
 .navbar-default .navbar-text {
-  color: #E0E0E0;
+  color: #130206;
 }
 .navbar-default .navbar-nav > li > a {
   color:  #E0E0E0;
