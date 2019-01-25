@@ -6,6 +6,11 @@ map <- function(input, output, session) {
   
   
 # Reactives ---------------------------------------------------------------
+
+  ### Find where clicking is happening
+  # clickData <- reactive({
+  #   print(input$click)
+  # })
   
   ### base map data
   baseData <- reactive({
@@ -44,6 +49,16 @@ map <- function(input, output, session) {
     
     # Leaflet click
     xy <- input$map_click
+    if(!is.null(xy)){
+      while(xy$lng > 180){
+        xy$lng <- xy$lng - 360
+      }
+    }
+    if(!is.null(xy)){
+      while(xy$lng < -180){
+        xy$lng <- xy$lng + 360
+      }
+    }
     
     # Plotly click
     # xy <- input$plotly_click
@@ -88,7 +103,19 @@ map <- function(input, output, session) {
   
   ### reactive labels
   pixelLabel <- reactive({
-    paste0("Chosen pixel; lon = ",pixelData()$lon[1],", lat = ",pixelData()$lat[1])
+    xy <- pixelData()
+    # xy <- input$map_click
+    # if(xy$lng > 180){
+    #   while(xy$lng > 180){
+    #     xy$lng <- xy$lng - 360
+    #   }
+    # }
+    # if(xy$lng < -180){
+    #   while(xy$lng < -180){
+    #     xy$lng <- xy$lng + 360
+    #   }
+    # }
+    paste0("Chosen pixel; lon = ",xy$lon[1],", lat = ",xy$lat[1])
   })
   
   ### Download data
@@ -106,17 +133,17 @@ map <- function(input, output, session) {
     # Time series data prep
     ts_data <- pixelData()$ts
     ts_data_sub <- ts_data %>%
-      mutate(temp = round(temp, 2))
-    # filter(t >= input$from, t <= input$to) #%>% 
+      mutate(temp = round(temp, 2)) %>% 
+      filter(t >= input$from, t <= input$to) #%>%
     
     # Event data prep
     event_data <- pixelData()$event
-    event_data_sub <- event_data #%>%
-    # filter(date_start >= input$from, date_end <= input$to)
+    event_data_sub <- event_data %>%
+    filter(date_start >= input$from, date_end <= input$to)
     
     # Threshold data prep
     thresh_data <- pixelData()$thresh
-    thresh_data_sub <- heatwaveR:::make_whole_fast(data.frame(ts_x = seq(min(ts_data$t), max(ts_data$t), "day"),
+    thresh_data_sub <- heatwaveR:::make_whole_fast(data.frame(ts_x = seq(min(ts_data_sub$t), max(ts_data_sub$t), "day"),
                                                               ts_y = 1)) %>% 
       left_join(thresh_data, by = "doy") %>% 
       select(-ts_y) %>% 
@@ -151,7 +178,7 @@ map <- function(input, output, session) {
     # ggplot2 code
       # Adding aes(text) to geom_line makes ggplot angry, but it is passed to plotly correctly
         # This is a bit of a hack but is the best practice...
-    suppressWarnings( 
+    suppressWarnings(
     p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
       geom_flame(aes(y2 = thresh_data_sub$thresh)) +
       geom_line(colour = "grey20",
@@ -176,7 +203,8 @@ map <- function(input, output, session) {
                                  "<br>Mean Intensity: ",intensity_mean,"°C",
                                  "<br>Max. Intensity: ",intensity_max,"°C",
                                  "<br>Cum. Intensity: ",intensity_cumulative,"°C"))) +
-      labs(x = "", y = "Temperature (°C)") #+
+      labs(x = "", y = "Temperature (°C)") +
+      scale_x_date(expand = c(0, 0))
     )
       # scale_y_continuous(limits = c(min(ts_data_sub$temp)-1, max(ts_data_sub$temp)+1))
     # if(nrow(thresh_data_sub) <= 1830){
@@ -192,14 +220,21 @@ map <- function(input, output, session) {
     # }
     # ggplotly(p)
     pp <- ggplotly(p, tooltip = "text") #%>%
-      # rangeslider(start = ts_data$t[1],
+      # layout(xaxis = list(range = c(as.integer(as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"))),
+                                    # as.integer(as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-12-31")))),
+                          # autorange = FALSE,
+                          # tickmode = "array",
+                          # tickvals = as.integer(as.Date(paste0(base::unique(lubridate::year(ts_data_sub$t)),"-01-01"))),
+                          # type = "date"))
+    pp
+    # rangeslider(start = ts_data$t[1],
       #             end = ts_data$t[100])
       # rangeslider(start = as.Date("2017-01-01"),
       #             end = as.Date("2017-12-31"))
       # rangeslider(start = as.numeric(paste0(lubridate::year(as.Date(input$date_choice)),"-01-01")),
       #             end = as.numeric(paste0(lubridate::year(as.Date(input$date_choice)),"-12-31")))
-    rangeslider(pp, start = as.integer(as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"))), 
-                end = as.integer(as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-12-31"))))
+    # rangeslider(pp, start = as.integer(as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"))), 
+    #             end = as.integer(as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-12-31"))))
   })
   
   ### Create lolliplot
@@ -218,17 +253,29 @@ map <- function(input, output, session) {
   
   ### Create data table
   tsTable <- reactive({
-    event_data <- pixelData()$event
-    event_data_sub <- event_data #%>% 
+    event_data <- pixelData()$event %>% 
+      dplyr::rename(Lon = lon,
+                    Lat = lat,
+                    Event = event_no,
+                    Duration = duration,
+                    'Start Date' = date_start,
+                    'Peak Date' = date_peak,
+                    'End Date' = date_end,
+                    'Mean Intensity' = intensity_mean,
+                    'Max. Intensity' = intensity_max,
+                    'Cum. Intensity' = intensity_cumulative)
+    # event_data_sub <- event_data #%>% 
     # filter(date_start >= input$from, date_start <= input$to)
-    # data$Time <- strftime(data$DateTime, format = "%H:%M %p")
-    # data$Date <- strftime(data$DateTime, format = "%B %d, %Y")
-    # data[,c("Date", "Time", "TideHeight")] %>%
-    #   setNames(c("Date", "Time", unit_label()))
+    # event_data$date_start <- strftime(event_data$date_start, format = "%H:%M %p")
   })
   
   
 # Observers ---------------------------------------------------------------
+  
+  ### Find where clicking is happening
+  # observeEvent(input$plot_click, {
+  #   print(input$plot_click)
+  # })
   
   # Show raster image
   observe({
@@ -244,16 +291,16 @@ map <- function(input, output, session) {
   })
   
   ### Recreate the legend as needed.
-  # observe({
-  #   proxy <- leafletProxy("map", data = MHW_cat_clim_sub)
-  #   # Remove any existing legend, and only if the legend is
-  #   # enabled, create a new one.
-  #   proxy %>% clearControls()
-  #   proxy %>% addLegend(position = "bottomright",
-  #                       pal = pal_factor,
-  #                       values = ~category
-  #   )
-  # })
+  observe({
+    proxy <- leafletProxy("map", data = MHW_cat_clim_sub)
+    # Remove any existing legend, and only if the legend is
+    # enabled, create a new one.
+    proxy %>% clearControls()
+    proxy %>% addLegend(position = "bottomright",
+                        pal = pal_factor,
+                        values = ~category
+    )
+  })
   
   # Leaflet clicking
   observeEvent(input$map_click, {
@@ -281,9 +328,9 @@ map <- function(input, output, session) {
   # The leaflet option
   output$map <- renderLeaflet({
     leaflet(MHW_cat_clim_sub) %>%
-      setView(-60, 45, zoom = 5, options = tileOptions(minZoom = 1, maxZoom = 7, noWrap = T)) %>%
+      setView(-60, 45, zoom = 5, options = tileOptions(minZoom = 1, maxZoom = 7, noWrap = F)) %>%
       addTiles(group = "OSM",
-               options = tileOptions(minZoom = 1, maxZoom = 7, opacity = 0.5, noWrap = T)) #%>%
+               options = tileOptions(minZoom = 1, maxZoom = 7, opacity = 0.5, noWrap = F)) #%>%
       # addMouseCoordinates() #%>%
       # fitBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90,
       #           options = tileOptions(minZoom = 1, maxZoom = 7))
@@ -357,20 +404,25 @@ map <- function(input, output, session) {
   
 # Outputs -----------------------------------------------------------------
   
+  # Click info
+  # output$click_info <- renderText({
+  #   paste0("x=", input$map_click$lng, "\ny=", input$map_click$lat)
+  # })
+  
   # Time series plot
   output$tsPlot <- renderPlotly({
     tsPlot()
   })
   
   # Lolli plot
-  output$lolliPlot <- renderPlotly({
-    lolliPlot()
-  })
+  # output$lolliPlot <- renderPlotly({
+  #   lolliPlot()
+  # })
   
   # table
   output$table <- renderDataTable({
     datatable(tsTable(), options = list(
-      pageLength = 100
+      pageLength = 50
     ))
   })
   
@@ -383,24 +435,48 @@ map <- function(input, output, session) {
               tabsetPanel(id = ns("tabs"),
                           tabPanel(title = "Plot",
                                    br(),
-                                   plotlyOutput(ns("tsPlot"))),
+                                   plotlyOutput(ns("tsPlot")),
+                                   hr(),
+                                   fluidRow(
+                                   column(width = 2,
+                                          h4("From"),
+                                          dateInput(inputId = ns("from"), label = NULL, format = "M d, yyyy",
+                                                    value = paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"))),
+                                   column(width = 2,
+                                          h4("To"),
+                                          dateInput(inputId = ns("to"), label = NULL, format = "M d, yyyy",
+                                                    value = paste0(lubridate::year(as.Date(input$date_choice)),"-12-31"))))
+                          ),
                           # tabPanel(title = "Lolli",
                           #          br(),
                           #          plotlyOutput(ns("lolliPlot"))),
                           tabPanel(title = "Table",
                                    br(),
                                    wellPanel(class = 'wellpanel',
-                                             DT::dataTableOutput(ns('table'))
-                                   )
+                                             DT::dataTableOutput(ns('table'))),
+                                   hr(),
+                                   fluidRow(
+                                     column(width = 2,
+                                            h4("Download"),
+                                            downloadButton(outputId = ns("download"),
+                                                           label = "MHW data (csv)", class = 'small-dl')))
                           )
-              ),
-              hr(),
-              fluidRow(
-                column(2,
-                       h4("Download"),
-                       downloadButton(outputId = ns("download"),
-                                      label = "MHW data (csv)", class = 'small-dl'))
-              )
+              )#,
+              # hr(),
+              # fluidRow(
+              #   column(2,
+              #          h4("Download"),
+              #          downloadButton(outputId = ns("download"),
+              #                         label = "MHW data (csv)", class = 'small-dl'))#,
+                # column(4,
+                #        h4("From"),
+                #        dateInput(inputId = ns("from"), label = NULL, format = "M d, yyyy",
+                #                  value = paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"))),
+                # column(6,
+                #        h4("To"),
+                #        dateInput(inputId = ns("to"), label = NULL, format = "M d, yyyy",
+                #                  value = paste0(lubridate::year(as.Date(input$date_choice)),"-12-31")))
+                # )
             )
     )
   })

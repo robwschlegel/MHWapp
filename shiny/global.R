@@ -106,3 +106,6 @@ map_base <- ggplot2::fortify(maps::map(fill = TRUE, plot = FALSE)) %>%
   mutate(group = ifelse(lon > 180, group+9999, group),
          lon = ifelse(lon > 180, lon-360, lon)) %>% 
   group_by(group)
+
+# Placeholder xy before first click
+# xy <- data.frame(lng = 0, lat = 0)

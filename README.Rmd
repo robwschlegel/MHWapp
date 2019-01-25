@@ -5,6 +5,9 @@ Presently the interactive map holds all of the MHWs detected in the NOAA OISST d
 
 # Updates
 
+* January 25, 2019
+  * Solved the raster wrap-around issue
+
 * January 24, 2019
   * Added full geom_flame visual output
   * Expanded on label information

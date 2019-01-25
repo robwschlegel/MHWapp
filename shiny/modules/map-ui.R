@@ -36,6 +36,9 @@ mapUI <- function(id, label = 'map') {
     absolutePanel(leafletOutput(ns('map')), top = 0, left = 0,
                   right = 0, bottom = 0, height = 'auto'),
     
+    # absolutePanel(verbatimTextOutput(outputId = ns("click_info"), placeholder = T),
+    #               bottom = 300, right = 10, draggable = TRUE),
+    
     absolutePanel(top = 70, right = 10, draggable = TRUE,
                   # radioButtons(inputId = "Dataset",
                   #              label = "Data",
