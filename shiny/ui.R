@@ -9,3 +9,4 @@ ui = tagList(useShinyjs(),
                                  br(),
                                  aboutUI('about')))
 )
+## NB: Consider shifting css file chosen based on app window width
