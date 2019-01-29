@@ -4,11 +4,11 @@
 
 # Libraries ---------------------------------------------------------------
 
-library(tidyverse)
-library(dbplyr)
-library(DBI)
-library(RSQLite)
-library(odbc)
+# library(tidyverse)
+# library(dbplyr)
+# library(DBI)
+# library(RSQLite)
+# library(odbc)
 # library(fasttime)
 source("MHW_tikoraluk.R")
 doMC::registerDoMC(cores = 50)
@@ -79,6 +79,7 @@ event_lon <- function(file_name){
 # event_lon(MHW_files[1])
 # ) # 1 second
 # event_1 <- readRDS("data/MHW.event.0001.Rda")
+
 # plyr::ldply(MHW_files, .fun = event_lon, .parallel = TRUE)
 
 

@@ -1,5 +1,5 @@
 # The purpose of this script is to house code that will only work when run  
-# while ssh'ed into the tikoraluk server
+# while ssh'd into the tikoraluk server
 
 
 # Libraries ---------------------------------------------------------------
