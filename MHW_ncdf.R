@@ -77,7 +77,7 @@ OISST_ncdf <- function(df){
   lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
   
   # Set file name
-  ncdf_file_name <- paste0("/data/home/data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
+  ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
   
   # Define dimensions -------------------------------------------------------
   
@@ -264,7 +264,9 @@ thresh_ncdf <- function(lon_slice){
 
 # Load and visualise ------------------------------------------------------
 
-# nc <- nc_open("../data/OISST/avhrr-only-v2.ts.0100.nc")
+# nc <- nc_open("../../../data/OISST/avhrr-only-v2.ts.0001.nc")
+# nc <- nc_open("../avhrr-only-v2.ts.0001.nc", write = T)
+# nc_close(nc)
 
 # res <- ncvar_get(nc, varid = "sst")
 # dimnames(res) <- list(lat = nc$dim$lat$vals,
