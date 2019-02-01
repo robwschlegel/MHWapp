@@ -3,19 +3,19 @@
 
 # Libraries ---------------------------------------------------------------
 
-.libPaths(c("~/R-packages", .libPaths()))
 library(tidyverse)
-library(rerddap)
 library(ncdf4)
 library(abind)
+.libPaths(c("~/R-packages", .libPaths()))
+library(rerddap)
 library(heatwaveR)
-doMC::registerDoMC(cores = 25)
+# doMC::registerDoMC(cores = 25)
 
 
 # Meta-data ---------------------------------------------------------------
 
+load("shiny/lon_OISST.RData")
 load("../tikoraluk/metadata/lon_lat_OISST.RData")
-load("../tikoraluk/metadata/lon_OISST.RData")
 lon_lat_OISST <- arrange(lon_lat_OISST, lon, lat)
 
 # File locations
@@ -33,7 +33,8 @@ load("current_dates.RData")
 # The current date
 current_date <- Sys.Date()
 
-# Functions ---------------------------------------------------------------
+
+# 1: Update OISST data functions ------------------------------------------
 
 # This downloads the data
 OISST_dl <- function(times){
@@ -107,7 +108,7 @@ OISST_merge <- function(lon_step, df, current_dates){
   lon_row <- which(lon_OISST == lon_step)
   lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
   
-  print(paste0("Began run on OISST_merge for ",lon_row_pad," at ",Sys.time()))
+  print(paste0("Began run on avhrr-only-v2.ts.",lon_row_pad,".nc at ",Sys.time()))
   
   # Determine file name
   ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
@@ -145,20 +146,24 @@ OISST_merge <- function(lon_step, df, current_dates){
     ### Add data to the corresponding NetCDF file
     for(i in 1:length(unique(dfa$t2))){
       ncvar_put(nc = nc, varid = "sst", vals = dfa_temp[,,i], verbose = FALSE,
-                start = c(1,1,length(nc$dim$time$vals)+i), count = c(720,1,1))
+                start = c(1,1,(length(nc$dim$time$vals)+i)), count = c(720,1,1))
       ncvar_put(nc = nc, varid = "time", vals = dfa$t2[i],
-                start = length(nc$dim$time$vals)+i, verbose = FALSE)
+                start = (length(nc$dim$time$vals)+i), verbose = FALSE)
     }
   }
   # sst <- ncvar_get(nc, "sst")
   
   ### Close file and exit
-  # nc_sync(nc)
+  nc_sync(nc)
   nc_close(nc)
-  print(paste0("Finished run on OISST_merge for ",lon_row_pad," at ",Sys.time()))
+  print(paste0("Finished run on avhrr-only-v2.ts.",lon_row_pad,".nc at ",Sys.time()))
 }
 
+
+# 2: Update MHW event and category data functions -------------------------
+
 # Function for updating the MHW event metric lon slice files
+# tester...
 # lon_step <- lon_OISST[721]
 MHW_event_cat_update <- function(lon_step, current_dates){
   
@@ -169,8 +174,8 @@ MHW_event_cat_update <- function(lon_step, current_dates){
   
   # Point to/load current lon slice for OISST/thresh/event
   MHW_event <- readRDS(MHW_event_files[lon_row])
-  lon_step_corrected <- ifelse(lon_step > 180, lon_step - 360, lon_step)
-  if(MHW_event$lon[1] != lon_step_corrected) stop("The lon_row indexing has broken down somewhere")
+  # lon_step_corrected <- ifelse(lon_step > 180, lon_step - 360, lon_step)
+  if(MHW_event$lon[1] != lon_step) stop("The lon_row indexing has broken down somewhere")
   
   ncdf_OISST_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
   ncdf_thresh_file_name <- paste0("../data/thresh/MHW.seas.thresh.",lon_row_pad,".nc")
@@ -189,9 +194,12 @@ MHW_event_cat_update <- function(lon_step, current_dates){
   time_old_index <- time_index[time_index <= max(current_dates)]
   time_new_index <- time_index[(length(time_old_index)+1):length(time_index)]
   sst <- ncvar_get(nc_OISST, "sst", start = c(1,1,(length(time_old_index)+1)))
+  if(length(time_new_index) == 1) dim(sst) <- c(720,1,1)
   dimnames(sst) <- list(lat = nc_OISST$dim$lat$vals,
                         t = time_new_index)
   nc_close(nc_OISST)
+  
+  # Prep SST for further use
   sst <- as.data.frame(reshape2::melt(sst, value.name = "temp"), row.names = NULL) %>%
     mutate(t = as.Date(t, origin = "1970-01-01")) %>%
     na.omit() %>% 
@@ -239,21 +247,19 @@ MHW_event_cat_update <- function(lon_step, current_dates){
   # Calculate new event metrics with new data as necessary
   nc_OISST <- nc_open(ncdf_OISST_file_name)
   lat_vals <- as.vector(nc_OISST$dim$lat$vals)
-  # system.time(
-    MHW_event_cat <- previous_event_index %>% 
-      mutate(lat2 = lat) %>% 
-      group_by(lat2) %>% 
-      nest() %>% 
-      mutate(event_cat = map(data, event_calc, 
-                             nc_OISST = nc_OISST, 
-                             lat_vals = lat_vals, 
-                             time_index = time_index,
-                             seas = seas,
-                             thresh = thresh,
-                             MHW_event = MHW_event)) %>% 
-      select(-data, -lat2) %>% 
-      unnest()
-  # ) # 70 seconds for 474 pixels
+  MHW_event_cat <- previous_event_index %>% 
+    mutate(lat2 = lat) %>% 
+    group_by(lat2) %>% 
+    nest() %>% 
+    mutate(event_cat = map(data, event_calc, 
+                           nc_OISST = nc_OISST, 
+                           lat_vals = lat_vals, 
+                           time_index = time_index,
+                           seas = seas,
+                           thresh = thresh,
+                           MHW_event = MHW_event)) %>% 
+    select(-data, -lat2) %>% 
+    unnest()# 70 seconds for 474 pixels
   nc_close(nc_OISST)
   # Save results and exit
   MHW_event_new <- MHW_event_cat %>% 
@@ -313,7 +319,7 @@ event_calc <- function(df, nc_OISST, lat_vals, time_index, seas, thresh, MHW_eve
   
   ### NB: A extra step needs to be inserted here
   ### That adds these results to those that already exist
-  ### THese will be created when this is first run for the 2018 data
+  ### These will be created when this is first run for the 2018 data
   
   # Exit
   event_cat <- list(event = event_step_2,
@@ -321,10 +327,13 @@ event_calc <- function(df, nc_OISST, lat_vals, time_index, seas, thresh, MHW_eve
   return(event_cat)
 }
 
+# 3: Create daily global file functions -----------------------------------
+
 # Function for loading a cat_lon slice and extracting a single day of values
 # testers...
 # cat_lon_file <- cat_lon_files[1]
 # date_choice <- max(current_dates)+1
+# date_choice <- min(update_dates)
 load_sub_cat_clim <- function(cat_lon_file, date_choice){
   cat_clim <- readRDS(cat_lon_file)
   cat_clim_sub <- cat_clim %>%
@@ -338,7 +347,7 @@ load_sub_cat_clim <- function(cat_lon_file, date_choice){
 # date_choice <- max(current_dates)+1
 cat_clim_global_daily <- function(date_choice){
   cat_clim_daily <- map_dfr(cat_lon_files, load_sub_cat_clim, date_choice = date_choice) %>% 
-    mutate(category = factor(category, labels = c("I Moderate", "II Strong",
+    mutate(category = factor(category, levels = c("I Moderate", "II Strong",
                                                   "III Severe", "IV Extreme"))) %>% 
     select(-t)
   cat_clim_year <- lubridate::year(date_choice)
@@ -347,3 +356,4 @@ cat_clim_global_daily <- function(date_choice){
   cat_clim_name <- paste0("cat.clim.",date_choice,".Rda")
   saveRDS(cat_clim_daily, file = paste0(cat_clim_dir,"/",cat_clim_name))
 }
+
