@@ -1,5 +1,7 @@
 # This script is run when the server is called and is designed to house 
 # all of the static information that is used by the app
+
+# Set directory manually for testing purposes
 # setwd("shiny")
 
 # Packages ----------------------------------------------------------------
@@ -108,6 +110,12 @@ pal_cat <- colorNumeric(palette = MHW_colours, domain = c(1,2,3,4), na.color = N
 # Establish projection choices
 inputProj <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
 leafletProj <- "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +towgs84=0,0,0,0,0,0,0 +units=m +nadgrids=@null +wktext +no_defs"
+
+# The dates currently processed
+current_dates <- as.character(dir(path = "cat_clim", pattern = "cat.clim", 
+                                  full.names = TRUE, recursive = TRUE))
+current_dates <- sapply(strsplit(current_dates, "cat.clim."), "[[", 3)
+current_dates <- as.Date(as.vector(sapply(strsplit(current_dates, ".Rda"), "[[", 1)))
 
 # The base map
 # map_base <- ggplot2::fortify(maps::map(fill = TRUE, plot = FALSE)) %>% 

@@ -7,10 +7,12 @@ map <- function(input, output, session) {
   
 # Reactives ---------------------------------------------------------------
 
-  ### Find where clicking is happening
-  # clickData <- reactive({
-  #   print(input$click)
-  # })
+  # testers...
+  # xy <- c(-42.125, 39.875)
+  # input <- data.frame(from = as.Date("2018-01-01"),
+  #                     to = as.Date("2018-12-31"),
+  #                     date_choice = as.Date("2018-02-14"))#,
+  #                     #categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
   
   ### base map data
   baseData <- reactive({
@@ -46,9 +48,6 @@ map <- function(input, output, session) {
   ### Pixel data
   pixelData <- reactive({
     
-    # testers...
-    # xy <- c(-42.125, 20.125)
-    
     # Leaflet click
     xy <- input$map_click
     if(!is.null(xy)){
@@ -76,13 +75,16 @@ map <- function(input, output, session) {
       # Grab time series data
       nc <- nc_open(as.character(OISST_index$file_name)[OISST_index$lon == xy[1]])
       ts_data <- data.frame(t = as.Date(nc$dim$time$vals, origin = "1970-01-01"),
-                            temp = ncvar_get(nc, varid = "sst")[lat_OISST == xy[2],])
+                            temp = ncvar_get(nc, varid = "sst", start = c(which(lat_OISST == xy[2]),1,1),
+                                             count = c(1,1,-1)))
       nc_close(nc)
       
       # Grab threshold data
       nc <- nc_open(as.character(thresh_index$file_name)[OISST_index$lon == xy[1]])
       thresh_data <- data.frame(doy = as.vector(nc$dim$time$vals),
                                 seas = ncvar_get(nc, varid = "seas")[nc$dim$lat$vals == xy[2],],
+                                # seas = ncvar_get(nc, varid = "seas", start = c(nc$dim$lat$vals == xy[2],1,1),
+                                #                  count = c(1,1,-1)),#[nc$dim$lat$vals == xy[2],],
                                 thresh = ncvar_get(nc, varid = "thresh")[nc$dim$lat$vals == xy[2],])
       nc_close(nc)
       
@@ -124,9 +126,6 @@ map <- function(input, output, session) {
   })
   
   ### Create time series plot
-  # input <- data.frame(from = as.Date("2017-01-01"),
-  #                     to = as.Date("2017-12-31"),
-  #                     date_choice = as.Date("2017-02-14"))
   tsPlot <- reactive({
     # Time series data prep
     ts_data <- pixelData()$ts
