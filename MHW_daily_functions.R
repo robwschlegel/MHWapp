@@ -6,9 +6,9 @@
 library(tidyverse)
 library(ncdf4)
 library(abind)
-.libPaths(c("~/R-packages", .libPaths()))
 library(rerddap)
-library(heatwaveR)
+library(heatwaveR, lib.loc = "../R-packages/")
+cat(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))
 # doMC::registerDoMC(cores = 25)
 
 
@@ -23,12 +23,14 @@ OISST_files <- dir("../data/OISST", pattern = "avhrr-only", full.names = T)
 MHW_event_files <- dir("../data/event", pattern = "MHW.event.", full.names = T)
 seas_thresh_files <- dir("../data/thresh", pattern = "MHW.seas.thresh.", full.names = T)
 cat_lon_files <- dir("../data/cat_lon", full.names = T)
-cat_clim_files <- dir("../data/cat_clim", full.names = T)
+cat_clim_files <- as.character(dir(path = "../data/cat_clim", pattern = "cat.clim", 
+                                   full.names = TRUE, recursive = TRUE))
 
 # Date range of already processed data
 ## NB: Thi is currently static but must be self-updating to work correctly
 ### A self updating file that grabs dates from somewhere...
-load("current_dates.RData")
+# load("current_dates.RData")
+current_dates <- seq(as.Date("1982-01-01"), as.Date("2017-12-31"), by = "day")
 
 # The current date
 current_date <- Sys.Date()
@@ -162,25 +164,34 @@ OISST_merge <- function(lon_step, df, current_dates){
 
 # 2: Update MHW event and category data functions -------------------------
 
+# Function that loads and merges sst/seas/thresh for a given lon_step
+lon_step <- lon_OISST[340]
+start_date <- as.Date("2018-01-01")
+end_date <- as.Date("2018-12-31")
+sst_seas_thresh_merge <- function(lon_step, start_date, end_date){
+  
+}
+
 # Function for updating the MHW event metric lon slice files
 # tester...
-# lon_step <- lon_OISST[721]
+# lon_step <- lon_OISST[340]
 MHW_event_cat_update <- function(lon_step, current_dates){
   
   # Determine correct lon/row/slice
   lon_row <- which(lon_OISST == lon_step)
   lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
-  print(paste0("Began run on MHW.event.",lon_row_pad,".Rda at ",Sys.time()))
   
-  # Point to/load current lon slice for OISST/thresh/event/category
-  MHW_event <- readRDS(MHW_event_files[lon_row]) %>% 
+  # Load current lon slice for event/category
+  MHW_event <- readRDS(MHW_event_files[lon_row]) #%>% 
     ## NB: Delete this filter after re-running 2018 data
-    filter(date_end <= "2017-12-31")
+    # filter(date_end <= "2017-12-31")
     ##
   if(MHW_event$lon[1] != lon_step) stop("The lon_row indexing has broken down somewhere")
   MHW_cat_lon <- readRDS(cat_lon_files[lon_row])
-  ncdf_OISST_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
-  ncdf_thresh_file_name <- paste0("../data/thresh/MHW.seas.thresh.",lon_row_pad,".nc")
+  if(MHW_cat_lon$lon[1] != lon_step) stop("The lon_row indexing has broken down somewhere")
+  
+  # Begin the calculations
+  print(paste0("Began run on ",MHW_event_files[lon_row]," at ",Sys.time()))
   
   # Find pixels where the max(current_dates) is the same as MHW date_end
   # This implies that the event is still ongoing and we will need to check
@@ -188,17 +199,29 @@ MHW_event_cat_update <- function(lon_step, current_dates){
   date_end_index <- MHW_event %>% 
     filter(date_end == max(current_dates))
   
+  # Determine how far back in time to get old data based on the occurrence of the previous MHW
+  previous_event_index <- MHW_event %>% 
+    # filter(#lat %in% lat_index,
+           ## NB: Delete this filter line after re-rnning 2018 data
+           # date_end <= as.Date("2017-12-31")) %>% 
+    ##
+    group_by(lat) %>% 
+    filter(event_no == max(event_no))
+    # mutate(previous_event = ifelse(max(date_end) == max(current_dates), max(event_no)-1, max(event_no))) %>% 
+    # filter(event_no == previous_event)
+  
   # Extract each pixel time series and check if the temp went above the thresh
   # since the event metrics were last calculated
   # OISST data
   nc_OISST <- nc_open(ncdf_OISST_file_name)
+  lat_vals <- as.vector(nc_OISST$dim$lat$vals)
   time_index <- as.Date(ncvar_get(nc_OISST, "time"), origin = "1970-01-01")
-  time_old_index <- time_index[time_index <= max(current_dates)]
-  time_new_index <- time_index[(length(time_old_index)+1):length(time_index)]
-  sst_raw <- ncvar_get(nc_OISST, "sst", start = c(1,1,(length(time_old_index)+1)))
-  if(length(time_new_index) == 1) dim(sst_raw) <- c(720,1,1)
+  # time_old_index <- time_index[time_index <= max(current_dates)]
+  time_extract_index <- time_index[which(min(previous_event_index$date_end) == time_index):length(time_index)]
+  sst_raw <- ncvar_get(nc_OISST, "sst", start = c(1,1,(which(min(previous_event_index$date_end) == time_index))))
+  if(length(time_extract_index) == 1) dim(sst_raw) <- c(720,1,1)
   dimnames(sst_raw) <- list(lat = nc_OISST$dim$lat$vals,
-                        t = time_new_index)
+                        t = time_extract_index)
   nc_close(nc_OISST)
   
   # Prep SST for further use
@@ -234,50 +257,41 @@ MHW_event_cat_update <- function(lon_step, current_dates){
     dplyr::arrange(lat, doy)
   
   # Check for which pixels have temperatures above the threshold
-  sst_index <- left_join(sst, thresh, by = c("lat", "doy")) %>% 
+  sst_seas_thresh <- sst %>% 
+    left_join(seas, by = c("lat", "doy")) %>%
+    left_join(thresh, by = c("lat", "doy")) 
+  sst_index <- sst_seas_thresh %>%  
     mutate(thresh_index = ifelse(temp > thresh, TRUE, FALSE)) %>% 
     filter(thresh_index == TRUE)
   
   # Create the final lat index for calculating new events
   lat_index <- unique(c(unique(date_end_index$lat), unique(sst_index$lat)))
   
-  # Determine how far back in time to get old data based on the occurrence of the previous MHW
-  previous_event_index <- MHW_event %>% 
-    filter(lat %in% lat_index,
-           ## NB: Delete this filter line after re-rnning 2018 data
-           date_end <= as.Date("2017-12-31")) %>% 
-           ##
-    group_by(lat) %>% 
-    mutate(previous_event = ifelse(max(date_end) == max(current_dates), max(event_no)-1, max(event_no))) %>% 
-    filter(event_no == previous_event)
-  
   # Extract the correct sst data matching the desired subset from previous_event_index
   # Calculate new event metrics with new data as necessary
-  nc_OISST <- nc_open(ncdf_OISST_file_name)
-  lat_vals <- as.vector(nc_OISST$dim$lat$vals)
   MHW_event_cat <- previous_event_index %>% 
     mutate(lat2 = lat) %>% 
     group_by(lat2) %>% 
     nest() %>% 
-    mutate(event_cat = map(data, event_calc, 
-                           nc_OISST = nc_OISST, 
-                           lat_vals = lat_vals, 
-                           time_index = time_index,
-                           seas = seas,
-                           thresh = thresh,
-                           MHW_event = MHW_event)) %>% 
+    mutate(event_cat_res = map(data, event_calc,
+                               sst_seas_thresh = sst_seas_thresh,
+                               MHW_event = MHW_event,
+                               MHW_cat_lon = MHW_cat_lon)) %>% 
     select(-data, -lat2) %>% 
-    unnest()# 70 seconds for 474 pixels
-  nc_close(nc_OISST)
+    unnest() # ~70 seconds for 474 pixels
   # Save results and exit
   MHW_event_new <- MHW_event_cat %>% 
     filter(row_number() %% 2 == 1) %>% 
     unnest()
+  # MHW_event_new_test <- MHW_event_new %>% 
+  #   filter(lat == df$lat)
   saveRDS(MHW_event_new, file = MHW_event_files[lon_row])
   
   MHW_cat_new <- MHW_event_cat %>% 
     filter(row_number() %% 2 == 0) %>% 
     unnest()
+  # MHW_cat_new_test <- MHW_cat_new %>% 
+  #   filter(lat == df$lat)
   saveRDS(MHW_cat_new, file = cat_lon_files[lon_row])
   
   print(paste0("Finished run on MHW.event.",lon_row_pad,".Rda at ",Sys.time()))
@@ -286,61 +300,43 @@ MHW_event_cat_update <- function(lon_step, current_dates){
 # Function for extracting correct sst data based on pre-determined subsets
 # It also caluclates and returns corrected MHW metric results
 # df <- previous_event_index[20,]
-event_calc <- function(df, nc_OISST, lat_vals, time_index, seas, thresh, MHW_event){
-  # Get reference info
-  lat_val_sub <- which(lat_vals == df$lat)
-  time_sub <- as.integer(time_index[which(time_index > df$date_end)])
+event_calc <- function(df, sst_seas_thresh, MHW_event, MHW_cat_lon){
   
   # Extract necessary SST
-  sst_step_1 <- ncvar_get(nc_OISST, "sst", verbose = F,
-                          start = c(lat_val_sub, 1, which(time_sub[1]==time_index)), 
-                          count = c(1,1, length(time_sub)))
-  dimnames(sst_step_1) <- list(t = time_sub)
-  sst_step_2 <- as.data.frame(reshape2::melt(sst_step_1, value.name = "temp"), row.names = NULL) %>%
-    mutate(t = as.Date(t, origin = "1970-01-01")) %>%
-    na.omit() %>% 
+  sst_step_1 <- sst_seas_thresh %>% 
+    filter(lat == df$lat[1],
+           t >= df$date_end) %>% 
+    # na.omit() %>% 
     ## NB: Delete this filter after re-running 2018 data
-    filter(t <= "2018-12-31") %>% 
-    ##
-    dplyr::rename(ts_x = t, ts_y = temp) %>% 
-    heatwaveR:::make_whole_fast() %>% 
-    dplyr::rename(t = ts_x, temp = ts_y) %>% 
-    mutate(lat = df$lat) %>% 
-    left_join(seas, by = c("lat", "doy")) %>% 
-    left_join(thresh, by = c("lat", "doy")) %>% 
-    ## NB: Delete this filter after re-running 2018 data
-    filter(t <= "2018-12-31")
+    filter(t <= "2018-12-31") #%>% 
     ##
   
   # Calculate events
-  event_base <- detect_event(sst_step_2)
+  event_base <- detect_event(sst_step_1)
   event_step_1 <- event_base$event %>% 
     mutate(lon = df$lon, lat = df$lat) %>% 
     dplyr::select(lon, lat, event_no, duration:intensity_max, intensity_cumulative) %>%
     mutate_all(round, 3)
   event_step_2 <- MHW_event %>% 
-    filter(lat == df$lat,
+    filter(lat == df$lat[1],
            date_end != max(current_dates)) %>% 
     rbind(event_step_1) %>% 
     mutate(event_no = seq(1:n()))
   
   # Calculate categories
   cat_step_1 <- category(event_base, climatology = T)$climatology %>% 
-    mutate(event_no = event_no + df$previous_event,
+    mutate(event_no = event_no + df$previous_event[1],
            lon = df$lon,
            lat = df$lat) %>% 
     select(t, lon, lat, event_no, intensity, category)
-  
-  ### NB: A extra step needs to be inserted here
-  ### that adds these results to those that already exist
-  ### These will be created when this is first run for the 2018 data
-  # cat_step_2 <- MHW_cat_lon %>%
-    # filter(lat == df$lat) %>% 
-    # rbind(cat_step_1)
+  cat_step_2 <- MHW_cat_lon %>%
+    filter(lat == df$lat) %>%
+    filter(!event_no %in% cat_step_1$event_no) %>% 
+    rbind(cat_step_1)
   
   # Exit
   event_cat <- list(event = event_step_2,
-                    cat = cat_step_1)
+                    cat = cat_step_2)
   return(event_cat)
 }
 
