@@ -72,6 +72,7 @@ MHW_cat <- readRDS(cat_clim_files[which(as.Date("2018-10-01") == seq(as.Date("19
   filter(#lat == -29.125,
          lon == lon_OISST[340])
 
+
 # Visualise
 p <- ggplot(data = sst_seas_thresh, aes(x = t, y = temp)) +
   geom_flame(aes(y2 = thresh)) +
@@ -99,5 +100,6 @@ if(length(MHW_event$date_start) > 0){
                              "<br>Mean Intensity: ",intensity_mean,"°C",
                              "<br>Max. Intensity: ",intensity_max,"°C",
                              "<br>Cum. Intensity: ",intensity_cumulative,"°C")))
+
 }
 p
