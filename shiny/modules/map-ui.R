@@ -43,8 +43,8 @@ mapUI <- function(id, label = 'map') {
                   dateInput(inputId = ns("date_choice"),
                             label = "Date",
                             # value = MHW_cat_clim_sub$t[MHW_cat_clim_sub$intensity == max(MHW_cat_clim_sub$intensity)][1],
-                            value = max(current_dates),
-                            min = min(current_dates), max = max(current_dates)
+                            value = "2017-02-14",
+                            min = min(current_dates), max = "2017-12-31"
                             # min = min(MHW_cat_clim_sub$t), max = max(MHW_cat_clim_sub$t)
                   ),
                   checkboxGroupInput(inputId = ns("categories"),

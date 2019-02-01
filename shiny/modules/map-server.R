@@ -305,7 +305,7 @@ map <- function(input, output, session) {
               tabsetPanel(id = ns("tabs"),
                           tabPanel(title = "Plot",
                                    br(),
-                                   plotlyOutput(ns("tsPlot"), height = "600px"),
+                                   plotlyOutput(ns("tsPlot")),
                                    hr(),
                                    fluidRow(
                                    column(width = 2,
