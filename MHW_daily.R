@@ -55,8 +55,12 @@ plyr::ldply(lon_OISST, .fun = OISST_merge, .parallel = TRUE,
 
 doMC::registerDoMC(cores = 50)
 
-plyr::ldply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE,
-            current_dates = current_dates)
+# current_dates <- seq(as.Date("1982-01-01"), as.Date("2017-12-31"), by = "day")
+
+# system.time(
+# plyr::ldply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE,
+#             current_dates = current_dates)
+# ) # This takes roughly 15 minutes and is by far the largest time requirement
 
 
 # 3: Create daily global files --------------------------------------------
@@ -70,6 +74,8 @@ nc_close(nc_OISST)
 
 # Get the range of dates that need to be run
 update_dates <- time_index[time_index > max(current_dates)]
+
+# update_dates <- seq(as.Date("2018-01-01"), as.Date("2018-12-31"), by = "day")
 
 # Process the lot of them
 print(paste0("Began creating daily slices at ",Sys.time()))
