@@ -368,5 +368,7 @@ map <- function(input, output, session) {
       readr::write_csv(downloadData(), file)
     }
   )
-  
 }
+# cat("\nmap_server.R finished")
+
+

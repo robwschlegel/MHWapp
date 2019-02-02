@@ -60,3 +60,5 @@ mapUI <- function(id, label = 'map') {
   )
   
 }
+# cat("\nmap_ui.R finished")
+

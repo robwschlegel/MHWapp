@@ -4,8 +4,10 @@
 # Set directory manually for testing purposes
 # setwd("shiny")
 
+
 # Packages ----------------------------------------------------------------
 
+# .libPaths(c("~/R-packages", .libPaths()))
 library(shiny)
 library(shinyjs)
 library(dplyr)
@@ -18,15 +20,11 @@ library(raster)
 library(rgdal)
 library(DT)
 library(shinyBS)
-library(heatwaveR)
 library(tidyr)
 library(plotly)
-# library(mapview)
 library(ncdf4)
-# library(dygraphs)
-
-#slackr
-# slackr::slackr_setup(config_file = "./.slackr")
+library(heatwaveR, lib.loc = "../../R-packages/")
+cat(packageDescription("heatwaveR")$Version)
 
 # source('functions.R', local = TRUE)
 # poisson_logo <- actionLink(inputId = 'poisson', 
@@ -112,10 +110,11 @@ inputProj <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0
 leafletProj <- "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +towgs84=0,0,0,0,0,0,0 +units=m +nadgrids=@null +wktext +no_defs"
 
 # The dates currently processed
-current_dates <- as.character(dir(path = "cat_clim", pattern = "cat.clim", 
-                                  full.names = TRUE, recursive = TRUE))
-current_dates <- sapply(strsplit(current_dates, "cat.clim."), "[[", 3)
-current_dates <- as.Date(as.vector(sapply(strsplit(current_dates, ".Rda"), "[[", 1)))
+# current_dates <- as.character(dir(path = "../data/cat_clim", pattern = "cat.clim", 
+#                                   full.names = TRUE, recursive = TRUE))
+# current_dates <- sapply(strsplit(current_dates, "cat.clim."), "[[", 3)
+# current_dates <- as.Date(as.vector(sapply(strsplit(current_dates, ".Rda"), "[[", 1)))
+current_dates <- seq(as.Date("1982-01-01"), as.Date("2018-12-31"), by = "day")
 
 # The base map
 # map_base <- ggplot2::fortify(maps::map(fill = TRUE, plot = FALSE)) %>% 
@@ -129,3 +128,5 @@ current_dates <- as.Date(as.vector(sapply(strsplit(current_dates, ".Rda"), "[[",
 
 # Placeholder xy before first click
 # xy <- data.frame(lng = 0, lat = 0)
+
+# cat("\nglobal.R finished")
