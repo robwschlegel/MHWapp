@@ -23,6 +23,7 @@ map <- function(input, output, session) {
     baseData <- readRDS(paste0(sub_dir,"/",sub_file))
     baseData <- baseData %>% 
       filter(category %in% input$categories)
+    # This breaks if all of the categories are de-selected
     return(baseData)
   })
   
@@ -163,16 +164,6 @@ map <- function(input, output, session) {
                 aes(x = t, y = thresh, group = 1,
                     text = paste0("Date: ",t,
                                   "<br>Threshold: ",thresh,"°C"))) +
-      geom_rug(data = event_data_sub, sides = "b", colour = "red3", size = 2,
-               aes(x = date_peak, y = min(ts_data_sub$temp),
-                   text = paste0("Event: ",event_no,
-                                 "<br>Duration: ",duration," days",
-                                 "<br>Start Date: ", date_start,
-                                 "<br>Peak Date: ", date_peak,
-                                 "<br>End Date: ", date_end,
-                                 "<br>Mean Intensity: ",intensity_mean,"°C",
-                                 "<br>Max. Intensity: ",intensity_max,"°C",
-                                 "<br>Cum. Intensity: ",intensity_cumulative,"°C"))) +
       geom_segment(aes(x = input$date_choice, 
                        xend = input$date_choice,
                        y = min(ts_data_sub$temp), 
@@ -181,6 +172,21 @@ map <- function(input, output, session) {
       labs(x = "", y = "Temperature (°C)") +
       scale_x_date(expand = c(0, 0))
     )
+    if(length(event_data_sub$date_start) > 0){
+      suppressWarnings(
+      p <- p +
+        geom_rug(data = event_data_sub, sides = "b", colour = "red3", size = 2,
+                 aes(x = date_peak, y = min(ts_data_sub$temp),
+                     text = paste0("Event: ",event_no,
+                                   "<br>Duration: ",duration," days",
+                                   "<br>Start Date: ", date_start,
+                                   "<br>Peak Date: ", date_peak,
+                                   "<br>End Date: ", date_end,
+                                   "<br>Mean Intensity: ",intensity_mean,"°C",
+                                   "<br>Max. Intensity: ",intensity_max,"°C",
+                                   "<br>Cum. Intensity: ",intensity_cumulative,"°C"))) 
+    )
+    }
     
     # Convert to plotly
     pp <- ggplotly(p, tooltip = "text", dynamicTicks = T) %>% 
@@ -310,6 +316,7 @@ map <- function(input, output, session) {
                                    fluidRow(
                                    column(width = 2,
                                           h4("From"),
+                                          # This falls over if a user tries to type the dates manually
                                           dateInput(inputId = ns("from"), label = NULL, format = "M d, yyyy",
                                                     value = paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"))),
                                    column(width = 2,
