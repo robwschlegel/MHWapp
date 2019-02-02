@@ -11,10 +11,12 @@ library(heatwaveR, lib.loc = "../R-packages/")
 cat(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))
 # doMC::registerDoMC(cores = 25)
 
+source("../tikoraluk/MHW_prep.R")
+
 
 # Meta-data ---------------------------------------------------------------
 
-load("shiny/lon_OISST.RData")
+load("../MHWapp/shiny/lon_OISST.RData")
 load("../tikoraluk/metadata/lon_lat_OISST.RData")
 lon_lat_OISST <- arrange(lon_lat_OISST, lon, lat)
 
@@ -165,53 +167,11 @@ OISST_merge <- function(lon_step, df, current_dates){
 # 2: Update MHW event and category data functions -------------------------
 
 # Function that loads and merges sst/seas/thresh for a given lon_step
-lon_step <- lon_OISST[340]
-start_date <- as.Date("2018-01-01")
-end_date <- as.Date("2018-12-31")
-sst_seas_thresh_merge <- function(lon_step, start_date, end_date){
-  
-}
+# lon_step <- lon_OISST[721]
+# start_date <- as.Date("2018-01-01")
+# end_date <- as.Date("2018-12-31")
 
-# Function for updating the MHW event metric lon slice files
-# tester...
-# lon_step <- lon_OISST[340]
-MHW_event_cat_update <- function(lon_step, current_dates){
-  
-  # Determine correct lon/row/slice
-  lon_row <- which(lon_OISST == lon_step)
-  lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
-  
-  # Load current lon slice for event/category
-  MHW_event <- readRDS(MHW_event_files[lon_row]) #%>% 
-    ## NB: Delete this filter after re-running 2018 data
-    # filter(date_end <= "2017-12-31")
-    ##
-  if(MHW_event$lon[1] != lon_step) stop("The lon_row indexing has broken down somewhere")
-  MHW_cat_lon <- readRDS(cat_lon_files[lon_row])
-  if(MHW_cat_lon$lon[1] != lon_step) stop("The lon_row indexing has broken down somewhere")
-  
-  # Begin the calculations
-  print(paste0("Began run on ",MHW_event_files[lon_row]," at ",Sys.time()))
-  
-  # Find pixels where the max(current_dates) is the same as MHW date_end
-  # This implies that the event is still ongoing and we will need to check
-  # and update the values as necessary
-  date_end_index <- MHW_event %>% 
-    filter(date_end == max(current_dates))
-  
-  # Determine how far back in time to get old data based on the occurrence of the previous MHW
-  previous_event_index <- MHW_event %>% 
-    # filter(#lat %in% lat_index,
-           ## NB: Delete this filter line after re-rnning 2018 data
-           # date_end <= as.Date("2017-12-31")) %>% 
-    ##
-    group_by(lat) %>% 
-    filter(event_no == max(event_no))
-    # mutate(previous_event = ifelse(max(date_end) == max(current_dates), max(event_no)-1, max(event_no))) %>% 
-    # filter(event_no == previous_event)
-  
-  # Extract each pixel time series and check if the temp went above the thresh
-  # since the event metrics were last calculated
+sst_seas_thresh_merge <- function(lon_step, start_date, end_date){
   # OISST data
   nc_OISST <- nc_open(ncdf_OISST_file_name)
   lat_vals <- as.vector(nc_OISST$dim$lat$vals)
@@ -221,7 +181,7 @@ MHW_event_cat_update <- function(lon_step, current_dates){
   sst_raw <- ncvar_get(nc_OISST, "sst", start = c(1,1,(which(min(previous_event_index$date_end) == time_index))))
   if(length(time_extract_index) == 1) dim(sst_raw) <- c(720,1,1)
   dimnames(sst_raw) <- list(lat = nc_OISST$dim$lat$vals,
-                        t = time_extract_index)
+                            t = time_extract_index)
   nc_close(nc_OISST)
   
   # Prep SST for further use
@@ -260,6 +220,54 @@ MHW_event_cat_update <- function(lon_step, current_dates){
   sst_seas_thresh <- sst %>% 
     left_join(seas, by = c("lat", "doy")) %>%
     left_join(thresh, by = c("lat", "doy")) 
+}
+
+# Function for updating the MHW event metric lon slice files
+# tester...
+# lon_step <- lon_OISST[721]
+MHW_event_cat_update <- function(lon_step, current_dates){
+  
+  # Determine correct lon/row/slice
+  lon_row <- which(lon_OISST == lon_step)
+  lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
+  
+  # Load current lon slice for event/category
+  load(dir("../data/MHW", pattern = "MHW.calc.", full.names = T)[lon_row])
+  MHW_event_data <- MHW_event(MHW_res) %>% 
+    mutate(lon = ifelse(lon > 180, lon-360, lon))
+  rm(MHW_res)
+  # MHW_event <- readRDS(MHW_event_files[lon_row]) #%>% 
+    ## NB: Delete this filter after re-running 2018 data
+    # filter(date_end <= "2017-12-31")
+    ##
+  if(MHW_event_data$lon[1] != lon_step) stop("The lon_row indexing has broken down somewhere")
+  MHW_cat_lon <- readRDS(cat_lon_files[lon_row])
+  if(MHW_cat_lon$lon[1] != lon_step) stop("The lon_row indexing has broken down somewhere")
+  
+  # Begin the calculations
+  print(paste0("Began run on ",MHW_event_files[lon_row]," at ",Sys.time()))
+  
+  # Find pixels where the max(current_dates) is the same as MHW date_end
+  # This implies that the event is still ongoing and we will need to check
+  # and update the values as necessary
+  date_end_index <- MHW_event %>% 
+    filter(date_end == max(current_dates))
+  
+  # Determine how far back in time to get old data based on the occurrence of the previous MHW
+  previous_event_index <- MHW_event %>% 
+    # filter(#lat %in% lat_index,
+           ## NB: Delete this filter line after re-rnning 2018 data
+           # date_end <= as.Date("2017-12-31")) %>% 
+    ##
+    group_by(lat) %>% 
+    # NB: This filter is inccorect and should be changed when this script is upated
+    filter(event_no == max(event_no))
+    # mutate(previous_event = ifelse(max(date_end) == max(current_dates), max(event_no)-1, max(event_no))) %>% 
+    # filter(event_no == previous_event)
+  
+  # Extract each pixel time series and check if the temp went above the thresh
+  # since the event metrics were last calculated
+  sst_seas_thresh_merge(lon_step, start_date = )
   sst_index <- sst_seas_thresh %>%  
     mutate(thresh_index = ifelse(temp > thresh, TRUE, FALSE)) %>% 
     filter(thresh_index == TRUE)
@@ -298,7 +306,7 @@ MHW_event_cat_update <- function(lon_step, current_dates){
 }
 
 # Function for extracting correct sst data based on pre-determined subsets
-# It also caluclates and returns corrected MHW metric results
+# It also calculates and returns corrected MHW metric results
 # df <- previous_event_index[20,]
 event_calc <- function(df, sst_seas_thresh, MHW_event, MHW_cat_lon){
   
@@ -340,6 +348,7 @@ event_calc <- function(df, sst_seas_thresh, MHW_event, MHW_cat_lon){
   return(event_cat)
 }
 
+
 # 3: Create daily global file functions -----------------------------------
 
 # Function for loading a cat_lon slice and extracting a single day of values
@@ -359,6 +368,7 @@ load_sub_cat_clim <- function(cat_lon_file, date_choice){
 # tester...
 # date_choice <- max(current_dates)+1
 cat_clim_global_daily <- function(date_choice){
+  print(paste0("Began creating ", date_choice," slice at ",Sys.time()))
   cat_clim_daily <- map_dfr(cat_lon_files, load_sub_cat_clim, date_choice = date_choice) %>% 
     mutate(category = factor(category, levels = c("I Moderate", "II Strong",
                                                   "III Severe", "IV Extreme"))) %>% 
@@ -368,5 +378,6 @@ cat_clim_global_daily <- function(date_choice){
   dir.create(as.character(cat_clim_dir), showWarnings = F)
   cat_clim_name <- paste0("cat.clim.",date_choice,".Rda")
   saveRDS(cat_clim_daily, file = paste0(cat_clim_dir,"/",cat_clim_name))
+  print(paste0("Finished creating ", date_choice," slice at ",Sys.time()))
 }
 

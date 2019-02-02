@@ -66,19 +66,21 @@ doMC::registerDoMC(cores = 50)
 doMC::registerDoMC(cores = 50)
 
 # Get most current processed OISST dates
-nc_OISST <- nc_open(OISST_files[1])
-time_index <- as.Date(ncvar_get(nc_OISST, "time"), origin = "1970-01-01")
-nc_close(nc_OISST)
+# nc_OISST <- nc_open(OISST_files[1])
+# time_index <- as.Date(ncvar_get(nc_OISST, "time"), origin = "1970-01-01")
+# nc_close(nc_OISST)
 
 # Get the range of dates that need to be run
-update_dates <- time_index[time_index > max(current_dates)]
+# update_dates <- time_index[time_index > max(current_dates)]
 
-# update_dates <- seq(as.Date("2018-01-01"), as.Date("2018-12-31"), by = "day")
+update_dates <- seq(as.Date("2018-01-01"), as.Date("2018-12-31"), by = "day")
+
+# update_dates <- seq(as.Date("1984-01-01"), as.Date("2017-12-31"), by = "day")
 
 # Process the lot of them
-print(paste0("Began creating daily slices at ",Sys.time()))
+# print(paste0("Began creating daily slices at ",Sys.time()))
 plyr::ldply(update_dates, .fun = cat_clim_global_daily, .parallel = TRUE)
-print(paste0("Finished creating daily slices at ",Sys.time()))
+# print(paste0("Finished creating daily slices at ",Sys.time()))
 
 
 # 4: Update current_dates -------------------------------------------------
