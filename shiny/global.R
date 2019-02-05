@@ -23,8 +23,8 @@ library(shinyBS)
 library(tidyr)
 library(plotly)
 library(ncdf4)
-library(heatwaveR, lib.loc = "../../R-packages/")
-cat(packageDescription("heatwaveR")$Version)
+library(heatwaveR)
+# cat(packageDescription("heatwaveR")$Version)
 
 # source('functions.R', local = TRUE)
 # poisson_logo <- actionLink(inputId = 'poisson', 

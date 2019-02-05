@@ -10,7 +10,7 @@ input[type="number"] {
     font-family: Myriad-Pro, Calibri, Arial, 'sans serif';
     font-weight: 100;
     	color: #494949;
-    		font-size: 13px;
+    		font-size: 15px;
   }
   
 h1, h2, h3, h4 { font-weight: 100; }
@@ -21,7 +21,7 @@ h1, h2, h3, h4 { font-weight: 100; }
 
 label {
   font-weight: 400 !important;
-  font-size: 12px !important;
+  font-size: 15px !important;
 }
 
 .dropdown-menu{
