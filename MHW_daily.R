@@ -16,7 +16,7 @@ source("../MHWapp/MHW_daily_functions.R")
 # doMC::registerDoMC(cores = 25) # 50 cores uses up too much RAM
 # 
 # # The information for the NOAA OISST data
-# # info(datasetid = "ncdc_oisst_v2_avhrr_by_time_zlev_lat_lon", url = "https://www.ncei.noaa.gov/erddap/")
+rerddap::info(datasetid = "ncdc_oisst_v2_avhrr_by_time_zlev_lat_lon", url = "https://www.ncei.noaa.gov/erddap/")
 # 
 # # Find most up-to-date NOAA data
 # NOAA_info <- info(datasetid = "ncdc_oisst_v2_avhrr_by_time_zlev_lat_lon", url = "https://www.ncei.noaa.gov/erddap/")
