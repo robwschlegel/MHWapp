@@ -2,9 +2,6 @@ map <- function(input, output, session) {
   ns <- session$ns
   
   
-# Functions ---------------------------------------------------------------
-  
-  
 # Reactives ---------------------------------------------------------------
 
   # testers...
@@ -19,11 +16,22 @@ map <- function(input, output, session) {
     date_filter <- input$date_choice
     year_filter <- year(date_filter)
     sub_dir <- paste0("cat_clim/",year_filter)
-    sub_file <- paste0("cat.clim.",date_filter,".Rda")
-    baseData <- readRDS(paste0(sub_dir,"/",sub_file))
-    baseData <- baseData %>% 
-      filter(category %in% input$categories)
-    # This breaks if all of the categories are de-selected
+    sub_file <- paste0(sub_dir,"/cat.clim.",date_filter,".Rda")
+    if(file.exists(sub_file)){
+      baseData <- readRDS(sub_file)
+      baseData <- baseData %>% 
+        filter(category %in% input$categories)
+      # Temporary fix for the issue caused by de-slecting all of the cateogries
+      if(length(baseData$category) == 0){
+        baseData <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>% 
+          slice(1) %>% 
+          mutate(category = NA)
+      }
+    } else {
+      baseData <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>% 
+        slice(1) %>% 
+        mutate(category = NA)
+    }
     return(baseData)
   })
   
@@ -74,23 +82,10 @@ map <- function(input, output, session) {
       xy <- xyFromCell(rasterNonProj, cell)
       
       # Grab time series data
-      nc <- nc_open(as.character(OISST_index$file_name)[OISST_index$lon == xy[1]])
-      ts_data <- data.frame(t = as.Date(nc$dim$time$vals, origin = "1970-01-01"),
-                            temp = ncvar_get(nc, varid = "sst", start = c(which(lat_OISST == xy[2]),1,1),
-                                             count = c(1,1,-1)))
-      nc_close(nc)
-      
-      # Grab threshold data
-      nc <- nc_open(as.character(thresh_index$file_name)[OISST_index$lon == xy[1]])
-      thresh_data <- data.frame(doy = as.vector(nc$dim$time$vals),
-                                seas = ncvar_get(nc, varid = "seas")[nc$dim$lat$vals == xy[2],],
-                                # seas = ncvar_get(nc, varid = "seas", start = c(nc$dim$lat$vals == xy[2],1,1),
-                                #                  count = c(1,1,-1)),#[nc$dim$lat$vals == xy[2],],
-                                thresh = ncvar_get(nc, varid = "thresh")[nc$dim$lat$vals == xy[2],])
-      nc_close(nc)
+      ts_data <- sst_seas_thresh_ts(lon_step = xy[1], lat_step = xy[2])
       
       # Grab event data
-      event_file <- dir("event", full.names = T)[OISST_index$lon == xy[1]]
+      event_file <- dir("event", full.names = T)[which(lon_OISST == xy[1])]
       event_data <- readRDS(event_file) %>% 
         filter(lat == xy[2]) %>%
         mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
@@ -98,7 +93,6 @@ map <- function(input, output, session) {
                date_end = as.Date(date_end, origin = "1970-01-01"))
       pixelData <- list(ts = ts_data,
                         event = event_data,
-                        thresh = thresh_data,
                         lon = xy[1],
                         lat = xy[2])
       return(pixelData)
@@ -108,13 +102,23 @@ map <- function(input, output, session) {
   
   ### reactive labels
   pixelLabel <- reactive({
-    check <- input$map_click
-    if(!is.null(check)){
-    xy <- pixelData()
-    if(xy$lon[1] >= 0) xy_lon <- paste0(abs(xy$lon[1]),"°E")
-    if(xy$lon[1] < 0) xy_lon <- paste0(abs(xy$lon[1]),"°W")
-    if(xy$lat[1] >= 0) xy_lat <- paste0(abs(xy$lat[1]),"°N")
-    if(xy$lat[1] < 0) xy_lat <- paste0(abs(xy$lat[1]),"°S")
+    # Leaflet click
+    xy <- input$map_click
+    if(!is.null(xy)){
+      while(xy$lng > 180){
+        xy$lng <- xy$lng - 360
+      }
+    }
+    if(!is.null(xy)){
+      while(xy$lng < -180){
+        xy$lng <- xy$lng + 360
+      }
+    }
+    if(!is.null(xy)){
+    if(xy$lng[1] >= 0) xy_lon <- paste0(abs(round(xy$lng[1],2)),"°E")
+    if(xy$lng[1] < 0) xy_lon <- paste0(abs(round(xy$lng[1],2)),"°W")
+    if(xy$lat[1] >= 0) xy_lat <- paste0(abs(round(xy$lat[1],2)),"°N")
+    if(xy$lat[1] < 0) xy_lat <- paste0(abs(round(xy$lat[1],2)),"°S")
     paste0("Chosen pixel; lon = ",xy_lon,", lat = ",xy_lat)
     }
   })
@@ -131,36 +135,24 @@ map <- function(input, output, session) {
     # Time series data prep
     ts_data <- pixelData()$ts
     ts_data_sub <- ts_data %>%
-      mutate(temp = round(temp, 2)) %>% 
-      filter(t >= input$from, t <= input$to) #%>%
+      filter(t >= input$from, t <= input$to)
     
     # Event data prep
     event_data <- pixelData()$event
     event_data_sub <- event_data %>%
-    filter(date_start >= input$from, date_end <= input$to)
-    
-    # Threshold data prep
-    thresh_data <- pixelData()$thresh
-    thresh_data_sub <- heatwaveR:::make_whole_fast(data.frame(ts_x = seq(min(ts_data_sub$t), max(ts_data_sub$t), "day"),
-                                                              ts_y = 1)) %>% 
-      left_join(thresh_data, by = "doy") %>% 
-      select(-ts_y) %>% 
-      dplyr::rename(t = ts_x) %>% 
-      mutate(seas = round(seas, 2),
-             thresh = round(thresh, 2))
+      filter(date_start >= input$from, date_end <= input$to)
     
     suppressWarnings(
     p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
-      geom_flame(aes(y2 = thresh_data_sub$thresh)) +
+      geom_flame(aes(y2 = thresh)) +
       geom_line(colour = "grey20",
                 aes(group = 1, text = paste0("Date: ",t,
                                   "<br>Temperature: ",temp,"°C"))) +
-      geom_line(data = thresh_data_sub, linetype = "dashed", colour = "steelblue3",
+      geom_line(linetype = "dashed", colour = "steelblue3",
                 aes(x = t, y = seas, group = 1,
                     text = paste0("Date: ",t,
                                   "<br>Climatology: ",seas,"°C"))) +
-      geom_line(data = thresh_data_sub,
-                linetype = "dotted", colour = "tomato3",
+      geom_line(linetype = "dotted", colour = "tomato3",
                 aes(x = t, y = thresh, group = 1,
                     text = paste0("Date: ",t,
                                   "<br>Threshold: ",thresh,"°C"))) +
@@ -195,6 +187,14 @@ map <- function(input, output, session) {
       # style(traces = 3, hoverlabel = list(bgcolor = "tomato2")) %>% 
       # style(traces = 4, hoverlabel = list(bgcolor = "red2"))
     pp
+    # rangeslider(pp, start = ts_data_sub$t[1],
+    #             end = ts_data_sub$t[100])
+    # rangeslider(pp, start = as.Date("2017-01-01"),
+    #             end = as.Date("2017-12-31"))
+    # rangeslider(pp, start = as.numeric(as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"))),
+    #             end = as.numeric(as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-12-31"))))
+    # rangeslider(pp, start = as.integer(as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"))), 
+    #             end = as.integer(as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-12-31"))))
   })
   
   ### Create lolliplot
@@ -254,7 +254,8 @@ map <- function(input, output, session) {
       proxy %>% addLegend(position = "bottomright",
                           pal = pal_factor,
                           values = ~category,
-                          title = "Category"
+                          title = "Category", 
+                          opacity = 0.75
       )
     }
   })
@@ -311,7 +312,7 @@ map <- function(input, output, session) {
               tabsetPanel(id = ns("tabs"),
                           tabPanel(title = "Plot",
                                    br(),
-                                   plotlyOutput(ns("tsPlot")),
+                                   withSpinner(plotlyOutput(ns("tsPlot")), type = 6, color = "#b0b7be"),
                                    hr(),
                                    fluidRow(
                                    column(width = 2,

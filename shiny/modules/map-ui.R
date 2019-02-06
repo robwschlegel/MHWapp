@@ -39,8 +39,11 @@ mapUI <- function(id, label = 'map') {
     # absolutePanel(verbatimTextOutput(outputId = ns("click_info"), placeholder = T),
     #               bottom = 300, right = 10, draggable = TRUE),
     
-    absolutePanel(top = 70, right = 10, draggable = TRUE, 
+    # sidebarPanel(width = 12,
+    absolutePanel(bottom = 10, left = 10, width = "100%",
+                  # sidebarPanel(width = 12,
                   dateInput(inputId = ns("date_choice"),
+                  # sliderInput(inputId = ns("date_choice"), 
                             label = "Date",
                             # value = MHW_cat_clim_sub$t[MHW_cat_clim_sub$intensity == max(MHW_cat_clim_sub$intensity)][1],
                             value = max(current_dates),

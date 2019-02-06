@@ -1,6 +1,14 @@
 ui = tagList(useShinyjs(),  
              tags$head(includeCSS("style.css")),
-             navbarPage(title =  "MHW Tracker",
+             # Loading message
+             div(
+               id = "loading-content",
+               h2("Loading...")
+             ),
+             # hidden(
+               # div(
+                 # id = "app-content",
+             navbarPage(title =  "Marine Heatwave Tracker",
                         selected = 'Map',
                         tabPanel(title = 'Map',
                                  br(),
@@ -8,6 +16,7 @@ ui = tagList(useShinyjs(),
                         tabPanel(title = 'About',
                                  br(),
                                  aboutUI('about')))
+               # )
+             # )
 )
-# cat("\nui.R finished")
 ## NB: Consider shifting css file chosen based on app window width
