@@ -3,6 +3,7 @@
 
 # Libraries ---------------------------------------------------------------
 
+# .libPaths(c("~/R-packages", .libPaths()))
 library(tidyverse)
 library(ncdf4)
 library(abind)
@@ -31,8 +32,10 @@ cat_clim_files <- as.character(dir(path = "../data/cat_clim", pattern = "cat.cli
 # Date range of already processed data
 ## NB: Thi is currently static but must be self-updating to work correctly
 ### A self updating file that grabs dates from somewhere...
-# load("current_dates.RData")
-current_dates <- seq(as.Date("1982-01-01"), as.Date("2017-12-31"), by = "day")
+load("current_dates.RData")
+head(current_dates)
+tail(current_dates)
+# current_dates <- seq(as.Date("1982-01-01"), as.Date("2018-12-31"), by = "day")
 
 # The current date
 current_date <- Sys.Date()
@@ -115,8 +118,8 @@ OISST_merge <- function(lon_step, df, current_dates){
   print(paste0("Began run on avhrr-only-v2.ts.",lon_row_pad,".nc at ",Sys.time()))
   
   # Determine file name
-  ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
-  # ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,"-test.nc")
+  # ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
+  ncdf_file_name <- paste0("../data/test/avhrr-only-v2.ts.",lon_row_pad,".nc")
   
   ### Open NetCDF and determine dates present
   nc <- nc_open(ncdf_file_name, write = T)
@@ -148,17 +151,17 @@ OISST_merge <- function(lon_step, df, current_dates){
     dfa_temp <- abind(dfa$data2, along = 3)
     
     ### Add data to the corresponding NetCDF file
-    for(i in 1:length(unique(dfa$t2))){
+    for(i in 1:length(dfa$t2)){
       ncvar_put(nc = nc, varid = "sst", vals = dfa_temp[,,i], verbose = FALSE,
                 start = c(1,1,(length(nc$dim$time$vals)+i)), count = c(720,1,1))
       ncvar_put(nc = nc, varid = "time", vals = dfa$t2[i],
                 start = (length(nc$dim$time$vals)+i), verbose = FALSE)
+      nc_sync(nc)
     }
   }
   # sst <- ncvar_get(nc, "sst")
   
   ### Close file and exit
-  nc_sync(nc)
   nc_close(nc)
   print(paste0("Finished run on avhrr-only-v2.ts.",lon_row_pad,".nc at ",Sys.time()))
 }
@@ -172,8 +175,11 @@ OISST_merge <- function(lon_step, df, current_dates){
 # end_date <- as.Date("2018-12-31")
 
 sst_seas_thresh_merge <- function(lon_step, start_date, end_date){
+  
+  lon_row <- which(lon_OISST == lon_step)
+  
   # OISST data
-  nc_OISST <- nc_open(ncdf_OISST_file_name)
+  nc_OISST <- nc_open(OISST_files[lon_row])
   lat_vals <- as.vector(nc_OISST$dim$lat$vals)
   time_index <- as.Date(ncvar_get(nc_OISST, "time"), origin = "1970-01-01")
   # time_old_index <- time_index[time_index <= max(current_dates)]
@@ -201,7 +207,7 @@ sst_seas_thresh_merge <- function(lon_step, start_date, end_date){
     dplyr::rename(t = ts_x, temp = ts_y)
   
   # seas.thresh data
-  nc_seas <- nc_open(ncdf_thresh_file_name)
+  nc_seas <- nc_open(seas_thresh_files[lon_row])
   seas <- ncvar_get(nc_seas, "seas")
   dimnames(seas) <- list(lat = nc_seas$dim$lat$vals,
                          doy = nc_seas$dim$time$vals)
@@ -216,10 +222,11 @@ sst_seas_thresh_merge <- function(lon_step, start_date, end_date){
     na.omit() %>% 
     dplyr::arrange(lat, doy)
   
-  # Check for which pixels have temperatures above the threshold
+  # Merge and exit
   sst_seas_thresh <- sst %>% 
     left_join(seas, by = c("lat", "doy")) %>%
-    left_join(thresh, by = c("lat", "doy")) 
+    left_join(thresh, by = c("lat", "doy"))
+  return(sst_seas_thresh)
 }
 
 # Function for updating the MHW event metric lon slice files

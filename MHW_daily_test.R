@@ -8,7 +8,7 @@
 # Set the current_dates as desired
 # current_dates <- seq(as.Date("1982-01-01"), as.Date("2017-12-31"), by = "day")
 
-chosen_sub <- 230
+chosen_sub <- 1
 chosen_lat <- -5.125
 
 ## test a single run
