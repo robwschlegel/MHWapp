@@ -4,6 +4,7 @@ function(input, output, session) {
   
   callModule(map, "map")
   
+  hide(id = "loading-content", anim = TRUE, animType = "fade", time = 1)
+  # shinyjs::show(id = "app-content")
 }
-# cat("\nserver.R finished")
 
