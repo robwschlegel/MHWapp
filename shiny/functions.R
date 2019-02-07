@@ -4,6 +4,9 @@
 # lon_step <- lat_OISST[132]
 # lon_step <- xy[1]
 # lat_step <- xy[2]
+# Overland
+# lon_step <- -80.875
+# lat_step <- 38.125
 sst_seas_thresh_ts <- function(lon_step, lat_step){
   
   lon_row <- which(lon_OISST == lon_step)
@@ -17,6 +20,12 @@ sst_seas_thresh_ts <- function(lon_step, lat_step){
   # time_extract_index <- time_index[which(min(previous_event_index$date_end) == time_index):length(time_index)]
   sst_raw <- ncvar_get(nc_OISST, "sst", start = c(lat_row,1,1), count = c(1,1,-1))
   nc_close(nc_OISST)
+  
+  if(length(sst_raw[complete.cases(sst_raw)]) == 0){
+    sst_seas_thresh <- data.frame(doy = NA, t = NA, temp = NA,
+                                  seas = NA, thresh = NA)
+    return(sst_seas_thresh)
+  }
   
   # Prep SST for further use
   sst <- as.data.frame(reshape2::melt(sst_raw, value.name = "temp"), row.names = NULL) %>%

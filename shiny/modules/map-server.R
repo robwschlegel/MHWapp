@@ -144,50 +144,60 @@ map <- function(input, output, session) {
   tsPlot <- reactive({
     # Time series data prep
     ts_data <- pixelData()$ts
-    ts_data_sub <- ts_data %>%
-      filter(t >= input$from, t <= input$to)
-    
-    # Event data prep
-    event_data <- pixelData()$event
-    event_data_sub <- event_data %>%
-      filter(date_start >= input$from, date_end <= input$to)
-    
-    suppressWarnings(
-    p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
-      geom_flame(aes(y2 = thresh)) +
-      geom_line(colour = "grey20",
-                aes(group = 1, text = paste0("Date: ",t,
-                                  "<br>Temperature: ",temp,"°C"))) +
-      geom_line(linetype = "dashed", colour = "steelblue3",
-                aes(x = t, y = seas, group = 1,
-                    text = paste0("Date: ",t,
-                                  "<br>Climatology: ",seas,"°C"))) +
-      geom_line(linetype = "dotted", colour = "tomato3",
-                aes(x = t, y = thresh, group = 1,
-                    text = paste0("Date: ",t,
-                                  "<br>Threshold: ",thresh,"°C"))) +
-      geom_segment(aes(x = input$date_choice, 
-                       xend = input$date_choice,
-                       y = min(ts_data_sub$temp), 
-                       yend = max(ts_data_sub$temp),
-                       text = "Map date"), colour = "bisque") +
-      labs(x = "", y = "Temperature (°C)") +
-      scale_x_date(expand = c(0, 0))
-    )
-    if(length(event_data_sub$date_start) > 0){
-      suppressWarnings(
-      p <- p +
-        geom_rug(data = event_data_sub, sides = "b", colour = "red3", size = 2,
-                 aes(x = date_peak, y = min(ts_data_sub$temp),
-                     text = paste0("Event: ",event_no,
-                                   "<br>Duration: ",duration," days",
-                                   "<br>Start Date: ", date_start,
-                                   "<br>Peak Date: ", date_peak,
-                                   "<br>End Date: ", date_end,
-                                   "<br>Mean Intensity: ",intensity_mean,"°C",
-                                   "<br>Max. Intensity: ",intensity_max,"°C",
-                                   "<br>Cum. Intensity: ",intensity_cumulative,"°C"))) 
-    )
+    if(length(ts_data$temp) == 1){
+      p <- ggplot() + geom_text(aes(x = 0, y = 0,label = "Please select an ocean pixel")) +
+        labs(x = "", y = "Temperature (°C)")
+    } else {
+      if(!input$to %in% current_dates | !input$from %in% current_dates | input$from >= input$to | is.null(input$from) | is.null(input$to)){
+        p <- ggplot() + geom_text(aes(x = 0, y = 0,label = "Please select valid dates")) +
+          labs(x = "", y = "Temperature (°C)")
+      } else {
+        
+        ts_data_sub <- ts_data %>%
+          filter(t >= input$from, t <= input$to)
+        # Event data prep
+        event_data <- pixelData()$event
+        event_data_sub <- event_data %>%
+          filter(date_start >= input$from, date_end <= input$to)
+        
+        suppressWarnings(
+          p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
+            geom_flame(aes(y2 = thresh)) +
+            geom_line(colour = "grey20",
+                      aes(group = 1, text = paste0("Date: ",t,
+                                                   "<br>Temperature: ",temp,"°C"))) +
+            geom_line(linetype = "dashed", colour = "steelblue3",
+                      aes(x = t, y = seas, group = 1,
+                          text = paste0("Date: ",t,
+                                        "<br>Climatology: ",seas,"°C"))) +
+            geom_line(linetype = "dotted", colour = "tomato3",
+                      aes(x = t, y = thresh, group = 1,
+                          text = paste0("Date: ",t,
+                                        "<br>Threshold: ",thresh,"°C"))) +
+            geom_segment(aes(x = input$date_choice, 
+                             xend = input$date_choice,
+                             y = min(ts_data_sub$temp), 
+                             yend = max(ts_data_sub$temp),
+                             text = "Map date"), colour = "bisque") +
+            labs(x = "", y = "Temperature (°C)") +
+          scale_x_date(expand = c(0, 0), limits = c(min(ts_data_sub$t), max(ts_data_sub$t)))
+        )
+        if(length(event_data_sub$date_start) > 0){
+          suppressWarnings(
+            p <- p +
+              geom_rug(data = event_data_sub, sides = "b", colour = "red3", size = 2,
+                       aes(x = date_peak, y = min(ts_data_sub$temp),
+                           text = paste0("Event: ",event_no,
+                                         "<br>Duration: ",duration," days",
+                                         "<br>Start Date: ", date_start,
+                                         "<br>Peak Date: ", date_peak,
+                                         "<br>End Date: ", date_end,
+                                         "<br>Mean Intensity: ",intensity_mean,"°C",
+                                         "<br>Max. Intensity: ",intensity_max,"°C",
+                                         "<br>Cum. Intensity: ",intensity_cumulative,"°C"))) 
+          )
+        }
+      }
     }
     
     # Convert to plotly
