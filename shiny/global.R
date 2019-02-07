@@ -72,9 +72,6 @@ lat_OISST <- seq(-89.875, 89.875, by = 0.25)
 #   iconUrl = "input/marker.png",
 #   iconWidth = 30, iconHeight = 30
 # )
-# sites <- readRDS('input/sites.rds')
-
-# appCSS <- ".mandatory_star { color: red; }"
 
 MHW_cat_clim_sub <- data.frame(category = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
 
@@ -105,11 +102,6 @@ inputProj <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0
 leafletProj <- "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +towgs84=0,0,0,0,0,0,0 +units=m +nadgrids=@null +wktext +no_defs"
 
 # The dates currently processed
-# current_dates <- as.character(dir(path = "cat_clim", pattern = "cat.clim",
-#                                   full.names = TRUE, recursive = TRUE))
-# current_dates <- sapply(strsplit(current_dates, "cat.clim."), "[[", 3)
-# current_dates <- as.Date(as.vector(sapply(strsplit(current_dates, ".Rda"), "[[", 1)))
-# current_dates <- seq(as.Date("1982-01-01"), as.Date("2018-12-31"), by = "day")
 load("current_dates.RData")
 
 # Placeholder xy before first click
