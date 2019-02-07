@@ -123,8 +123,14 @@ map <- function(input, output, session) {
   ### Download data
   downloadEventData <- reactive({
     data <- pixelData()$event
-    data_sub <- data #%>% 
+    lon <- pixelData()$lon[1]
+    lat <- pixelData()$lat[1]
+    data_sub <- data %>% 
+      mutate(lon = lon,
+             lat = lat) %>% 
+      select(lon, lat, everything()) #%>% 
     # filter(date_start >= input$from, date_start <= input$to)
+    return(data_sub)
   })
   
   downloadClimData <- reactive({
@@ -138,6 +144,7 @@ map <- function(input, output, session) {
       dplyr::distinct() %>% 
       arrange(doy)
     # filter(date_start >= input$from, date_start <= input$to)
+    return(data_sub)
   })
   
   ### Create time series plot
@@ -381,6 +388,10 @@ map <- function(input, output, session) {
   
   # UI panel
   output$uiModal <- renderUI({
+    to_date <- ifelse(lubridate::year(input$date_choice) >= lubridate::year(max(current_dates)),
+                      input$date_choice, as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-12-31")))
+    to_date <- as.Date(to_date, origin = "1970-01-01")
+    from_date <- to_date-364
     bsModal(ns('modal'), title = div(id = ns('modalTitle'), pixelLabel()), trigger = 'click2', size = "large",
             # div(id = ns("top_row"),
             fluidPage(
@@ -393,13 +404,12 @@ map <- function(input, output, session) {
                                    fluidRow(
                                    column(width = 2,
                                           h4("From"),
-                                          # This falls over if a user tries to type the dates manually
                                           dateInput(inputId = ns("from"), label = NULL, format = "M d, yyyy",
-                                                    value = paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"))),
+                                                    value = from_date)),
                                    column(width = 2,
                                           h4("To"),
                                           dateInput(inputId = ns("to"), label = NULL, format = "M d, yyyy",
-                                                    value = paste0(lubridate::year(as.Date(input$date_choice)),"-12-31"))),
+                                                    value = to_date)),
                                    column(width = 2,
                                           h4("Download"),
                                           downloadButton(outputId = ns("download_clim"),
