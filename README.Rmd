@@ -5,6 +5,9 @@ Presently the interactive map holds all of the MHWs detected in the NOAA OISST d
 
 # Updates
 
+* February 7th, 2019
+  * More snag list
+
 * February 6th, 2019
   * Working through the snag list
 

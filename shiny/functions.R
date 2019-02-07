@@ -4,6 +4,9 @@
 # lon_step <- lat_OISST[132]
 # lon_step <- xy[1]
 # lat_step <- xy[2]
+# Overland
+# lon_step <- -80.875
+# lat_step <- 38.125
 sst_seas_thresh_ts <- function(lon_step, lat_step){
   
   lon_row <- which(lon_OISST == lon_step)
@@ -17,6 +20,12 @@ sst_seas_thresh_ts <- function(lon_step, lat_step){
   # time_extract_index <- time_index[which(min(previous_event_index$date_end) == time_index):length(time_index)]
   sst_raw <- ncvar_get(nc_OISST, "sst", start = c(lat_row,1,1), count = c(1,1,-1))
   nc_close(nc_OISST)
+  
+  if(length(sst_raw[complete.cases(sst_raw)]) == 0){
+    sst_seas_thresh <- data.frame(doy = NA, t = NA, temp = NA,
+                                  seas = NA, thresh = NA)
+    return(sst_seas_thresh)
+  }
   
   # Prep SST for further use
   sst <- as.data.frame(reshape2::melt(sst_raw, value.name = "temp"), row.names = NULL) %>%
@@ -49,78 +58,3 @@ sst_seas_thresh_ts <- function(lon_step, lat_step){
   return(sst_seas_thresh)
 }
 
-# Set up a button to have an animated loading indicator and a checkmark
-# for better user experience
-# Need to use with the corresponding `withBusyIndicator` server function
-withBusyIndicatorUI <- function(button) {
-  id <- button[['attribs']][['id']]
-  div(
-    `data-for-btn` = id,
-    button,
-    span(
-      class = "btn-loading-container",
-      hidden(
-        img(src = "ajax-loader-bar.gif", class = "btn-loading-indicator"),
-        icon("check", class = "btn-done-indicator")
-      )
-    ),
-    hidden(
-      div(class = "btn-err",
-          div(icon("exclamation-circle"),
-              tags$b("Error: "),
-              span(class = "btn-err-msg")
-          )
-      )
-    )
-  )
-}
-
-# Call this function from the server with the button id that is clicked and the
-# expression to run when the button is clicked
-withBusyIndicatorServer <- function(buttonId, expr) {
-  # UX stuff: show the "busy" message, hide the other messages, disable the button
-  loadingEl <- sprintf("[data-for-btn=%s] .btn-loading-indicator", buttonId)
-  doneEl <- sprintf("[data-for-btn=%s] .btn-done-indicator", buttonId)
-  errEl <- sprintf("[data-for-btn=%s] .btn-err", buttonId)
-  shinyjs::disable(buttonId)
-  shinyjs::show(selector = loadingEl)
-  shinyjs::hide(selector = doneEl)
-  shinyjs::hide(selector = errEl)
-  on.exit({
-    shinyjs::enable(buttonId)
-    shinyjs::hide(selector = loadingEl)
-  })
-  
-  # Try to run the code when the button is clicked and show an error message if
-  # an error occurs or a success message if it completes
-  tryCatch({
-    value <- expr
-    shinyjs::show(selector = doneEl)
-    shinyjs::delay(2000, shinyjs::hide(selector = doneEl, anim = TRUE, animType = "fade",
-                                       time = 0.5))
-    value
-  }, error = function(err) { errorFunc(err, buttonId) })
-}
-
-# When an error happens after a button click, show the error
-errorFunc <- function(err, buttonId) {
-  errEl <- sprintf("[data-for-btn=%s] .btn-err", buttonId)
-  errElMsg <- sprintf("[data-for-btn=%s] .btn-err-msg", buttonId)
-  errMessage <- gsub("^ddpcr: (.*)", "\\1", err$message)
-  shinyjs::html(html = errMessage, selector = errElMsg)
-  shinyjs::show(selector = errEl, anim = TRUE, animType = "fade")
-}
-
-appCSS <- "
-.btn-loading-container {
-  margin-left: 10px;
-  font-size: 1.2em;
-}
-.btn-done-indicator {
-  color: green;
-}
-.btn-err {
-  margin-top: 10px;
-  color: red;
-}
-"

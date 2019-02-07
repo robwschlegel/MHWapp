@@ -4,7 +4,7 @@ function(input, output, session) {
   
   callModule(map, "map")
   
-  hide(id = "loading-content", anim = TRUE, animType = "fade", time = 1)
+  hide(id = "loading-content", anim = TRUE, animType = "fade", time = 2)
   # shinyjs::show(id = "app-content")
 }
 

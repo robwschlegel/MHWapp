@@ -6,6 +6,8 @@ map <- function(input, output, session) {
 
   # testers...
   # xy <- c(-42.125, 39.875)
+  # x <- -42.125
+  # y <- 39.875
   # input <- data.frame(from = as.Date("2018-01-01"),
   #                     to = as.Date("2018-12-31"),
   #                     date_choice = as.Date("2018-02-14"))#,
@@ -56,7 +58,6 @@ map <- function(input, output, session) {
   
   ### Pixel data
   pixelData <- reactive({
-    
     # Leaflet click
     xy <- input$map_click
     if(!is.null(xy)){
@@ -69,21 +70,14 @@ map <- function(input, output, session) {
         xy$lng <- xy$lng + 360
       }
     }
-    
     # Plotly click
     # xy <- input$plotly_click
-    
     if(!is.null(xy)){
-      
-      # Leaflet processing
       rasterNonProj <- rasterNonProj()
       cell <- cellFromXY(rasterNonProj, c(xy$lng, xy$lat))
-      #If the click is inside the raster...
       xy <- xyFromCell(rasterNonProj, cell)
-      
       # Grab time series data
       ts_data <- sst_seas_thresh_ts(lon_step = xy[1], lat_step = xy[2])
-      
       # Grab event data
       event_file <- dir("event", full.names = T)[which(lon_OISST == xy[1])]
       event_data <- readRDS(event_file) %>% 
@@ -115,18 +109,34 @@ map <- function(input, output, session) {
       }
     }
     if(!is.null(xy)){
-    if(xy$lng[1] >= 0) xy_lon <- paste0(abs(round(xy$lng[1],2)),"°E")
-    if(xy$lng[1] < 0) xy_lon <- paste0(abs(round(xy$lng[1],2)),"°W")
-    if(xy$lat[1] >= 0) xy_lat <- paste0(abs(round(xy$lat[1],2)),"°N")
-    if(xy$lat[1] < 0) xy_lat <- paste0(abs(round(xy$lat[1],2)),"°S")
-    paste0("Chosen pixel; lon = ",xy_lon,", lat = ",xy_lat)
+      rasterNonProj <- rasterNonProj()
+      cell <- cellFromXY(rasterNonProj, c(xy$lng, xy$lat))
+      xy <- xyFromCell(rasterNonProj, cell)
+      if(xy[1] >= 0) xy_lon <- paste0(abs(xy[1]),"°E")
+      if(xy[1] < 0) xy_lon <- paste0(abs(xy[1]),"°W")
+      if(xy[2] >= 0) xy_lat <- paste0(abs(xy[2]),"°N")
+      if(xy[2] < 0) xy_lat <- paste0(abs(xy[2]),"°S")
+    paste0("Pixel: lon = ",xy_lon,", lat = ",xy_lat)
     }
   })
   
   ### Download data
-  downloadData <- reactive({
+  downloadEventData <- reactive({
     data <- pixelData()$event
     data_sub <- data #%>% 
+    # filter(date_start >= input$from, date_start <= input$to)
+  })
+  
+  downloadClimData <- reactive({
+    data <- pixelData()$ts
+    lon <- pixelData()$lon[1]
+    lat <- pixelData()$lat[1]
+    data_sub <- data %>% 
+      mutate(lon = lon,
+             lat = lat) %>% 
+      select(lon, lat, doy, seas, thresh) %>% 
+      dplyr::distinct() %>% 
+      arrange(doy)
     # filter(date_start >= input$from, date_start <= input$to)
   })
   
@@ -134,50 +144,60 @@ map <- function(input, output, session) {
   tsPlot <- reactive({
     # Time series data prep
     ts_data <- pixelData()$ts
-    ts_data_sub <- ts_data %>%
-      filter(t >= input$from, t <= input$to)
-    
-    # Event data prep
-    event_data <- pixelData()$event
-    event_data_sub <- event_data %>%
-      filter(date_start >= input$from, date_end <= input$to)
-    
-    suppressWarnings(
-    p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
-      geom_flame(aes(y2 = thresh)) +
-      geom_line(colour = "grey20",
-                aes(group = 1, text = paste0("Date: ",t,
-                                  "<br>Temperature: ",temp,"°C"))) +
-      geom_line(linetype = "dashed", colour = "steelblue3",
-                aes(x = t, y = seas, group = 1,
-                    text = paste0("Date: ",t,
-                                  "<br>Climatology: ",seas,"°C"))) +
-      geom_line(linetype = "dotted", colour = "tomato3",
-                aes(x = t, y = thresh, group = 1,
-                    text = paste0("Date: ",t,
-                                  "<br>Threshold: ",thresh,"°C"))) +
-      geom_segment(aes(x = input$date_choice, 
-                       xend = input$date_choice,
-                       y = min(ts_data_sub$temp), 
-                       yend = max(ts_data_sub$temp),
-                       text = "Map date"), colour = "bisque") +
-      labs(x = "", y = "Temperature (°C)") +
-      scale_x_date(expand = c(0, 0))
-    )
-    if(length(event_data_sub$date_start) > 0){
-      suppressWarnings(
-      p <- p +
-        geom_rug(data = event_data_sub, sides = "b", colour = "red3", size = 2,
-                 aes(x = date_peak, y = min(ts_data_sub$temp),
-                     text = paste0("Event: ",event_no,
-                                   "<br>Duration: ",duration," days",
-                                   "<br>Start Date: ", date_start,
-                                   "<br>Peak Date: ", date_peak,
-                                   "<br>End Date: ", date_end,
-                                   "<br>Mean Intensity: ",intensity_mean,"°C",
-                                   "<br>Max. Intensity: ",intensity_max,"°C",
-                                   "<br>Cum. Intensity: ",intensity_cumulative,"°C"))) 
-    )
+    if(length(ts_data$temp) == 1){
+      p <- ggplot() + geom_text(aes(x = 0, y = 0,label = "Please select an ocean pixel")) +
+        labs(x = "", y = "Temperature (°C)")
+    } else {
+      if(!input$to %in% current_dates | !input$from %in% current_dates | input$from >= input$to | is.null(input$from) | is.null(input$to)){
+        p <- ggplot() + geom_text(aes(x = 0, y = 0,label = "Please select valid dates")) +
+          labs(x = "", y = "Temperature (°C)")
+      } else {
+        
+        ts_data_sub <- ts_data %>%
+          filter(t >= input$from, t <= input$to)
+        # Event data prep
+        event_data <- pixelData()$event
+        event_data_sub <- event_data %>%
+          filter(date_start >= input$from, date_end <= input$to)
+        
+        suppressWarnings(
+          p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
+            geom_flame(aes(y2 = thresh)) +
+            geom_line(colour = "grey20",
+                      aes(group = 1, text = paste0("Date: ",t,
+                                                   "<br>Temperature: ",temp,"°C"))) +
+            geom_line(linetype = "dashed", colour = "steelblue3",
+                      aes(x = t, y = seas, group = 1,
+                          text = paste0("Date: ",t,
+                                        "<br>Climatology: ",seas,"°C"))) +
+            geom_line(linetype = "dotted", colour = "tomato3",
+                      aes(x = t, y = thresh, group = 1,
+                          text = paste0("Date: ",t,
+                                        "<br>Threshold: ",thresh,"°C"))) +
+            geom_segment(aes(x = input$date_choice, 
+                             xend = input$date_choice,
+                             y = min(ts_data_sub$temp), 
+                             yend = max(ts_data_sub$temp),
+                             text = "Map date"), colour = "bisque") +
+            labs(x = "", y = "Temperature (°C)") +
+          scale_x_date(expand = c(0, 0), limits = c(min(ts_data_sub$t), max(ts_data_sub$t)))
+        )
+        if(length(event_data_sub$date_start) > 0){
+          suppressWarnings(
+            p <- p +
+              geom_rug(data = event_data_sub, sides = "b", colour = "red3", size = 2,
+                       aes(x = date_peak, y = min(ts_data_sub$temp),
+                           text = paste0("Event: ",event_no,
+                                         "<br>Duration: ",duration," days",
+                                         "<br>Start Date: ", date_start,
+                                         "<br>Peak Date: ", date_peak,
+                                         "<br>End Date: ", date_end,
+                                         "<br>Mean Intensity: ",intensity_mean,"°C",
+                                         "<br>Max. Intensity: ",intensity_max,"°C",
+                                         "<br>Cum. Intensity: ",intensity_cumulative,"°C"))) 
+          )
+        }
+      }
     }
     
     # Convert to plotly
@@ -260,10 +280,66 @@ map <- function(input, output, session) {
     }
   })
   
-  # Leaflet clicking
-  observeEvent(input$map_click, {
-    toggleModal(session, "modal", "open")
+  # Observer to show Popups on click
+  observe({
+    click <- input$map_click
+    if(!is.null(click)){
+      showpos(x = click$lng, y = click$lat)
+    }
   })
+  
+  # Show popup on clicks
+  showpos <- function(x = NULL, y = NULL) {
+    rasterNonProj <- rasterNonProj()
+    rasterProj <- rasterProj()
+    # Translate Lon-Lat to cell number using the unprojected raster
+    # This is because the projected raster is not in degrees
+    cell <- cellFromXY(rasterNonProj, c(x, y))
+    #If the click is inside the raster...
+    if(!is.na(cell)) {
+      xy <- xyFromCell(rasterNonProj, cell) # Get the center of the cell
+      if(xy[1] >= 0) xy_lon <- paste0(abs(xy[1]),"°E")
+      if(xy[1] < 0) xy_lon <- paste0(abs(xy[1]),"°W")
+      if(xy[2] >= 0) xy_lat <- paste0(abs(xy[2]),"°N")
+      if(xy[2] < 0) xy_lat <- paste0(abs(xy[2]),"°S")
+      x <- xy[1]
+      y <- xy[2]
+      xy <- SpatialPoints(data.frame(x,y))
+      proj4string(xy) <- inputProj
+      xy <- as.data.frame(spTransform(xy, leafletProj))
+      cell <- cellFromXY(rasterProj, c(xy$x, xy$y))
+      xy <- SpatialPoints(xyFromCell(rasterProj, cell))
+      proj4string(xy) <- leafletProj
+      xy <- as.data.frame(spTransform(xy, inputProj))
+      rc <- rowColFromCell(rasterNonProj, cell)
+      val <- rasterProj[cell]
+      content <- paste0("Lon = ", xy_lon,
+                        "<br>Lat = ", xy_lat,
+                        "<br>Category = ", names(MHW_colours)[val])
+      
+    }
+    #add Popup
+    leafletProxy("map") %>% clearPopups() %>% addPopups(lng = x, lat = y, popup = paste(content))#, "</b></br>", 
+                                                                                        # actionButton("showmodal", "Show modal", 
+                                                                                                     # onclick = 'Shiny.onInputChange(\"button_click\",  Math.random())')))
+  }
+  
+  observeEvent(input$open_modal, {
+    click <- input$map_click
+    if(!is.null(click)){
+      toggleModal(session, "modal", "open")
+    } else {
+      showModal(modalDialog(
+        title = "Pixel: Lon = NA, Lat = NA",
+        "Please first click on a pixel in order to view more information about it."
+      ))
+    }
+  })
+  
+  # # Leaflet clicking
+  # observeEvent(input$map_click, {
+  #   toggleModal(session, "modal", "open")
+  # })
   
 # Leaflet -----------------------------------------------------------------
   
@@ -323,7 +399,11 @@ map <- function(input, output, session) {
                                    column(width = 2,
                                           h4("To"),
                                           dateInput(inputId = ns("to"), label = NULL, format = "M d, yyyy",
-                                                    value = paste0(lubridate::year(as.Date(input$date_choice)),"-12-31"))))
+                                                    value = paste0(lubridate::year(as.Date(input$date_choice)),"-12-31"))),
+                                   column(width = 2,
+                                          h4("Download"),
+                                          downloadButton(outputId = ns("download_clim"),
+                                                         label = "Climatology & Threshold (csv)", class = 'small-dl')))
                           ),
                           # tabPanel(title = "Lolli",
                           #          br(),
@@ -336,7 +416,7 @@ map <- function(input, output, session) {
                                    fluidRow(
                                      column(width = 2,
                                             h4("Download"),
-                                            downloadButton(outputId = ns("download"),
+                                            downloadButton(outputId = ns("download_event"),
                                                            label = "MHW data (csv)", class = 'small-dl')))
                           )
               )#,
@@ -359,14 +439,25 @@ map <- function(input, output, session) {
     )
   })
   
-  # Downloading
-  output$download <- downloadHandler(
+  # Download event data
+  output$download_event <- downloadHandler(
     filename = function() {
-      paste0("lon_",downloadData()$lon[1],"_lat_",downloadData()$lat[1],".csv")
+      paste0("event_lon_",downloadEventData()$lon[1],"_lat_",downloadEventData()$lat[1],".csv")
       # paste0(pretty_label(), "_", gsub("-", "", as.character(input$from)), "_", gsub("-", "", as.character(input$to)), ".csv")
     },
     content <- function(file) {
-      readr::write_csv(downloadData(), file)
+      readr::write_csv(downloadEventData(), file)
+    }
+  )
+  
+  # Download clin/thresh
+  output$download_clim <- downloadHandler(
+    filename = function() {
+      paste0("clim_lon_",downloadClimData()$lon[1],"_lat_",downloadClimData()$lat[1],".csv")
+      # paste0(pretty_label(), "_", gsub("-", "", as.character(input$from)), "_", gsub("-", "", as.character(input$to)), ".csv")
+    },
+    content <- function(file) {
+      readr::write_csv(downloadClimData(), file)
     }
   )
 }
