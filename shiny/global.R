@@ -13,6 +13,7 @@ library(shinyjs)
 library(shinycssloaders)
 library(dplyr)
 library(readr)
+library(tidyr)
 library(lubridate)
 library(magrittr)
 library(leaflet)
@@ -21,7 +22,6 @@ library(raster)
 library(rgdal)
 library(DT)
 library(shinyBS)
-library(tidyr)
 library(plotly)
 library(ncdf4)
 library(heatwaveR)
@@ -100,8 +100,6 @@ pal_factor <- colorFactor(palette = MHW_colours, levels = levels(MHW_cat_clim_su
 # pal_factor <- colorFactor(palette = MHW_colours$val, domain = MHW_colours$label)
 pal_cat <- colorNumeric(palette = MHW_colours, domain = c(1,2,3,4), na.color = NA)
 
-# previewColors(colorFactor(palette = MHW_colours$val, domain = MHW_colours$label), MHW_cat_clim_sub)
-
 # Establish projection choices
 inputProj <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
 leafletProj <- "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +towgs84=0,0,0,0,0,0,0 +units=m +nadgrids=@null +wktext +no_defs"
@@ -112,16 +110,6 @@ leafletProj <- "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +to
 # current_dates <- sapply(strsplit(current_dates, "cat.clim."), "[[", 3)
 # current_dates <- as.Date(as.vector(sapply(strsplit(current_dates, ".Rda"), "[[", 1)))
 current_dates <- seq(as.Date("1982-01-01"), as.Date("2018-12-31"), by = "day")
-
-# The base map
-# map_base <- ggplot2::fortify(maps::map(fill = TRUE, plot = FALSE)) %>% 
-#   dplyr::rename(lon = long) %>% 
-#   # filter(lat >= 25.6) %>%
-#   mutate(group = ifelse(lon > 180, group+9999, group),
-#          lon = ifelse(lon > 180, lon-360, lon)) %>% 
-#   group_by(group)
-# 
-# saveRDS(map_base, "map_base.Rda")
 
 # Placeholder xy before first click
 # xy <- data.frame(lng = 0, lat = 0)
