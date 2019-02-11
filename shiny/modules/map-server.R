@@ -169,7 +169,7 @@ map <- function(input, output, session) {
         
         suppressWarnings(
           p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
-            geom_flame(aes(y2 = thresh)) +
+            geom_flame(aes(y2 = thresh), n = 5, n_gap = 2) +
             geom_line(colour = "grey20",
                       aes(group = 1, text = paste0("Date: ",t,
                                                    "<br>Temperature: ",temp,"°C"))) +
@@ -208,7 +208,8 @@ map <- function(input, output, session) {
     }
     
     # Convert to plotly
-    pp <- ggplotly(p, tooltip = "text", dynamicTicks = T) %>% 
+    # NB: Setting dynamicTicks = T causes the flames to be rendered incorrectly
+    pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) %>% 
       layout(hovermode = 'compare') #%>% 
       # style(traces = 2, hoverlabel = list(bgcolor = "grey10"))# %>% 
       # style(traces = 3, hoverlabel = list(bgcolor = "tomato2")) %>% 
