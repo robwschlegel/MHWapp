@@ -4,6 +4,7 @@
 # Libraries ---------------------------------------------------------------
 
 # .libPaths(c("~/R-packages", .libPaths()))
+# devtools::install_github("robwschlegel/heatwaveR")
 library(tidyverse)
 library(ncdf4)
 library(abind)
@@ -32,7 +33,7 @@ cat_clim_files <- as.character(dir(path = "../data/cat_clim", pattern = "cat.cli
 # Date range of already processed data
 ## NB: Thi is currently static but must be self-updating to work correctly
 ### A self updating file that grabs dates from somewhere...
-load("current_dates.RData")
+load("../MHWapp/shiny/current_dates.RData")
 head(current_dates)
 tail(current_dates)
 # current_dates <- seq(as.Date("1982-01-01"), as.Date("2018-12-31"), by = "day")
