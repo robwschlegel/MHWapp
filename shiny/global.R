@@ -102,7 +102,11 @@ inputProj <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0
 leafletProj <- "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +towgs84=0,0,0,0,0,0,0 +units=m +nadgrids=@null +wktext +no_defs"
 
 # The dates currently processed
-load("current_dates.RData")
+nc <- nc_open("OISST/avhrr-only-v2.ts.0001.nc")
+current_dates <- as.Date(nc$dim$time$vals, origin = "1970-01-01")
+# tail(current_dates)
+nc_close(nc)
+# load("current_dates.RData")
 
 # Placeholder xy before first click
 # xy <- data.frame(lng = 0, lat = 0)
