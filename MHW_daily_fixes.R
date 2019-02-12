@@ -221,3 +221,9 @@ event_calc_all <- function(df){
   return(event_cat)
 }
 
+
+# First run to create the OISST_pixel files -------------------------------
+# NB: After this has been run once it won't need to be run again
+# NB: Rather this code should replace the NetCDF creation step in the daily workflow
+
+

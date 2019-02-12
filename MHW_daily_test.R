@@ -17,8 +17,7 @@ chosen_lat <- -5.125
 
 ## Load sst/seas/thresh
 sst_seas_thresh <- sst_seas_thresh_merge(lon_step = lon_OISST[chosen_sub], 
-                                         as.Date("2018-01-01"),
-                                         as.Date("2018-12-31"))
+                                         as.Date("1982-01-01"))
 sst_seas_thresh_sub <- sst_seas_thresh %>% 
   filter(lat == chosen_lat)
 

@@ -46,11 +46,14 @@ if(download_date_start != FALSE){
 }
 
 # Prep for inclusion in NetCDF files
-OISST_update_2 <- OISST_prep(OISST_update_1)
+if(download_date_start != FALSE){
+  OISST_update_2 <- OISST_prep(OISST_update_1)
+}
 
 # Update the files
-plyr::ldply(lon_OISST, .fun = OISST_merge, .parallel = TRUE, df = OISST_update_2)
-
+if(download_date_start != FALSE){
+  plyr::ldply(lon_OISST, .fun = OISST_merge, .parallel = TRUE, df = OISST_update_2)
+}
 
 # Fix files that didn't run correctly
 # This happens occassionally and appears to be an almost
@@ -72,10 +75,12 @@ plyr::ldply(lon_OISST, .fun = OISST_merge, .parallel = TRUE, df = OISST_update_2
 # doMC::registerDoMC(cores = 50)
 # 
 # This takes roughly 15 minutes and is by far the largest time requirement
-system.time(
-plyr::ldply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE)
-) # ~ 26 seconds per cycle
-# Occasionaly the cat_clim files don't come right
+if(download_date_start != FALSE){
+  # system.time(
+    plyr::ldply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE)
+  # ) # ~ 26 seconds per cycle
+}
+  # Occasionaly the cat_clim files don't come right
 # One can usually tell if the size is under 400 kb
 # This function can fix a specific file
   
@@ -102,10 +107,11 @@ update_dates <- time_index[time_index > max(current_dates)]
 
 # Process the lot of them
 # The function uses dplyr so a for loop is used here
-for(i in 1:length(update_dates)){
-  cat_clim_global_daily(update_dates[i])
-} # ~15 seconds for one
-
+if(length(update_dates) > 0){
+  for(i in 1:length(update_dates)){
+    cat_clim_global_daily(update_dates[i])
+  } # ~15 seconds for one
+}
 
 # 4: Update current_dates -------------------------------------------------
 
