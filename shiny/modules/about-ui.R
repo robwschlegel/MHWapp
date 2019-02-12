@@ -75,8 +75,6 @@ aboutUI <- function(id, label = 'About') {
              alphabetical order:"),
            column(1), p("AIMS - ", a(href = "https://www.aims.gov.au/", 
                                        "Australian Institute of Marine Science")),
-           column(1), p("ARCCSS - ", a(href = "https://www.climatescience.org.au/tags/arccss", 
-                                       "ARC Centre of Excellence for Climate System Science")),
            column(1), p("CLEX - ", a(href = "https://climateextremes.org.au/", 
                                      "ARC Centre of Excellence for Climate Extremes")),
            column(1), p("CSIRO - ", a(href = "https://www.csiro.au/", 
