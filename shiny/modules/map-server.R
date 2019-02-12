@@ -323,7 +323,9 @@ map <- function(input, output, session) {
       val <- rasterProj[cell]
       content <- paste0("Lon = ", xy_lon,
                         "<br>Lat = ", xy_lat,
-                        "<br>Category = ", names(MHW_colours)[val])
+                        "<br>Category = ", names(MHW_colours)[val],
+                        "<hr>",
+                        "<i>please click <br>'Pixel information'<br>for time series</i>")
       
     }
     #add Popup
