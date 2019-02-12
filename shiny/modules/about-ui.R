@@ -12,6 +12,15 @@ aboutUI <- function(id, label = 'About') {
              two-week delay. The MHW tracker also hosts all of the historic MHW records for the entire planet going 
              back to January 1st, 1982."),
            br(),
+           h4("What is a Marine Heatwave (MHW)?"),
+           br(),
+           p("A MHW is generally defined as when the temperature in a given location is in the top 10% of temperatures 
+             ever recorded during that time of year for at least 5 straight days. For example, if the coastal waters off
+             Durban in South Africa are roughly 22°C on any given April 1st, then if temperatures in excess of perhaps 28°C 
+             are recorded there in 2019 over March 28th to April 10th, this could be flagged as a MHW. This is a definition
+             for MHWs first put forward by ", a(href = "https://www.sciencedirect.com/science/article/pii/S0079661116000057", "Hobday et al. 2016"),
+             ". For more detailed information please follow this ", a(href = "http://www.marineheatwaves.org/all-about-mhws.html", "link"), "."),
+           br(),
            h4("How do I use this?"),
            br(),
            p("This site works similarly to any Google map one may have used in day-to-day life. Click and drag to move 
@@ -28,24 +37,16 @@ aboutUI <- function(id, label = 'About') {
              temperature data please go to the", a(href = "https://www.ncdc.noaa.gov/oisst", "NOAA website"),".
              The plot tab allows the user to mouse-over the time series information to get immediate feedback on what the 
              temperature, climatology, and threshold were on any given day. One can also select any desired range of 
-             dates to look at from the date selectors in the bottom left of the panel. One may also download
-             The table tab shows a table of all of the MHWs that have ever occurred at the chosen longitude/latitude. 
+             dates to look at from the date selectors in the bottom left of the panel. The table tab shows a table of all of 
+             the MHWs that have ever occurred at the chosen longitude/latitude. 
              This information is shown as a simple table and may be downloaded as a .csv file with a button
              in the bottom left corner of the of the window."),
-           br(),
-           h4("What is a Marine Heatwave (MHW)?"),
-           br(),
-           p("A MHW is generally defined as when the temperature in a given location is in the top 10% of temperatures 
-             ever recorded during that time of year for at least 5 straight days. For example, if the coastal waters off
-             Durban in South Africa are roughly 22°C on any given April 1st, then if temperatures in excess of perhaps 28°C 
-             are recorded there in 2019 over March 28th to April 10th, this could be flagged as a MHW. This is a definition
-             for MHWs first put forward by Hobday et al. 2016. An interested reader may find the paper ", 
-             a(href = "https://www.sciencedirect.com/science/article/pii/S0079661116000057", "here"),"."),
            br(),
            h4("What do these colours mean?"),
            br(),
            p("One may see in the map panel of the MHW tracker that there is a particular colour palette being used. Each of 
-             these four colours corresponds to increasing categories of MHWs. The first category, severe, is somewhat common
+             these four colours corresponds to increasing categories of MHWs as first proposed in ", 
+             a(href = "https://www.jstor.org/stable/26542662", "Hobday et al. 2018"), ". The first category, severe, is somewhat common
              and no category one MHWs have yet been recorded as causing lasting ecological or financial damage. The second
              category of MHWs, strong, are increasing the most rapidly of the four categories and are becoming as 
              common as category one MHWs were when record keeping began in the 80's. Luckily, no category two MHWs 
@@ -68,11 +69,13 @@ aboutUI <- function(id, label = 'About') {
            br(),
            h4("Who made this?"),
            br(),
-           p("The MHW Tracker is a product of the work of the", 
-             a(href = "http://www.marineheatwaves.org/", "Marine Heatwaves International Working Group"),". Therefore,
-             this work has been directly and indirectly supported by several governmental, academic, and private 
+           p("The MHW tracker was developed by ", a(href = "https://theoceancode.netlify.com/", "Robert Schlegel"),
+             " and is an outcome of the ", a(href = "http://www.marineheatwaves.org/", "Marine Heatwaves International Working Group"),
+             ". Therefore, this work has been directly and indirectly supported by several governmental, academic, and private 
              organisations/funding bodies. The full list with links to further information is provided below in
              alphabetical order:"),
+           column(1), p("AU - ", a(href = "https://www.aber.ac.uk/en/", 
+                                     "Aberystwyth University")),
            column(1), p("AIMS - ", a(href = "https://www.aims.gov.au/", 
                                        "Australian Institute of Marine Science")),
            column(1), p("CLEX - ", a(href = "https://climateextremes.org.au/", 
@@ -86,7 +89,7 @@ aboutUI <- function(id, label = 'About') {
            column(1), p("NESP - ", a(href = "http://nespclimate.com.au/", 
                                      "National Environmental Science Programme")),
            column(1), p("OFI - ", a(href = "https://www.oceanfrontierinstitute.com/", 
-                                    "Ocean Frontiers Insitute")),
+                                    "Ocean Frontier Insitute")),
            column(1), p("SAMS - ", a(href = "https://www.sams.ac.uk/", 
                                      "The Sottish Association for Marine Science")),
            column(1), p("UC - ", a(href = "https://www.canterbury.ac.nz/", 
@@ -108,30 +111,28 @@ aboutUI <- function(id, label = 'About') {
              It will therefore appear rather clumsy if being viewed on a small screen. This has been noted and an item
              has been opened to address this issue."),
            br(),
-           h4("Citation"),
+           h4("How do I cite this app?"),
            br(),
-           p("The marine heatwave data displayed in this app were calculated witht the `heatwaveR` R package. To cite 
-             `heatwaveR` in publications use:"),
-           p("Robert W. Schlegel and Albertus J. Smit (2018). heatwaveR: A central algorithm for the detection of 
-             heatwaves and cold-spells. Journal of Open Source Software, 3(27), 821, https://doi.org/10.21105/joss.00821"),
-           p("A BibTeX entry for LaTeX users is:"),
-           p("@Article{,
-             title = {{heatwaveR}: A central algorithm for the detection of heatwaves and cold-spells},
-             author = {Robert W. Schlegel and Albertus J. Smit},
-             journal = {Journal of Open Source Software},
-             year = {2018},
-             volume = {3},
-             number = {27},
-             pages = {821},
-             doi = {10.21105/joss.00821},
-             }"),
            p("To cite the app itself one may use:"),
-           p("Robert W. Schlegel (2018). mhwtracker: Global daily updating on the occurrence of marine heatwaves. 
-             https://www.marineheatwavetracker.com"),
+           p("Robert W. Schlegel (2018). Marine Heatwave Tracker: The app to see when and where marine heatwaves are happening around the world. 
+             http://www.marineheatwaves.org/tracker"),
            br(),
-           hr(),
-           h6("The MHW tracker was developed by ", a(href = " https://theoceancode.netlify.com/", "Robert Schlegel"))
-          ),
+           h4("References"),
+           br(),
+           p("The marine heatwave data displayed in this app were calculated with the `heatwaveR` R package. To cite 
+             `heatwaveR` in publications use:"),
+           p("Schlegel, R. W., & Smit, A. J. (2018). heatwaveR: A central algorithm for the detection of heatwaves and cold-spells. 
+             The Journal of Open Source Software, 3, 821."),
+           br(),
+           p("The definition and categorisation of marine heatwaves may be found in the following two papers:"),
+           p("Hobday, A. J., Alexander, L. V., Perkins, S. E., Smale, D. A., Straub, S. C., Oliver, E. C., ... & Holbrook, N. J. (2016). 
+             A hierarchical approach to defining marine heatwaves. Progress in Oceanography, 141, 227-238."),
+           p("Hobday, A. J., Oliver, E. C., Gupta, A. S., Benthuysen, J. A., Burrows, M. T., Donat, M. G., ... & Smale, D. A. (2018). 
+             Categorizing and naming marine heatwaves. Oceanography, 31(2), 162-173."),
+           br(),
+           br()
+    ),
     column(1,
-           HTML("")))
+           HTML(""))
+  )
 }
