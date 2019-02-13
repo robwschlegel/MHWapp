@@ -11,6 +11,11 @@
 source("../MHWapp/MHW_daily_functions.R")
 source("../MHWapp/MHW_daily_fixes.R")
 
+## NB: Don't run any of this code manually
+## NB: only run it via source("MHW_daily.R") in an R terminal
+## NB: The NetCDF files seem to stop cooperating if they are opened manually via RStudio Server
+## NB: My thinking is this somehow confuses the write privileges for the files
+
 # 1: Update OISST data ----------------------------------------------------
 
 doMC::registerDoMC(cores = 25) # 50 cores uses up too much RAM
