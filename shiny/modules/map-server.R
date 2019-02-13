@@ -55,13 +55,21 @@ map <- function(input, output, session) {
   ### Shiny-projected raster data
   rasterProj <- reactive({
     rasterNonProj <- rasterNonProj()$rasterNonProj
-    if(input$pixels == "Smooth"){
-      rasterdf <- raster::as.data.frame(rasterNonProj, xy = T)
-      
-      rasterProj <- projectRasterForLeaflet(rasterNonProj, method = "bilinear")
-    } else{
+    # if(input$pixels == "Smooth"){
+    #   MHW_raster <- rasterNonProj()$MHW_raster
+    #   akima_raster <- akima::interp(x = MHW_raster$X, y = MHW_raster$Y, z = MHW_raster$Z,
+    #                                 xo = seq(-180, 180, 0.1), yo = seq(-90, 90, 0.1), linear = T)
+    #   akima_df <- akima_raster$z
+    #   dimnames(akima_df) <- list(akima_raster$x,
+    #                              akima_raster$y)
+    #   akima_df <- as.data.frame(reshape2::melt(akima_df, value.name = "Z"), row.names = NULL) %>% 
+    #     dplyr::rename(X = Var1, Y = Var2)
+    #   akima_proj <- rasterFromXYZ(akima_df, res = c(0.1, 0.1),
+    #                                  digits = 1, crs = inputProj)
+    #   rasterProj <- projectRasterForLeaflet(akima_proj, method = "bilinear")
+    # } else{
       rasterProj <- projectRasterForLeaflet(rasterNonProj, method = "ngb")
-    }
+    # }
     return(rasterProj)
   })
   
@@ -82,7 +90,7 @@ map <- function(input, output, session) {
     # Plotly click
     # xy <- input$plotly_click
     if(!is.null(xy)){
-      rasterNonProj <- rasterNonProj()
+      rasterNonProj <- rasterNonProj()$rasterNonProj
       cell <- cellFromXY(rasterNonProj, c(xy$lng, xy$lat))
       xy <- xyFromCell(rasterNonProj, cell)
       # Grab time series data
@@ -118,7 +126,7 @@ map <- function(input, output, session) {
       }
     }
     if(!is.null(xy)){
-      rasterNonProj <- rasterNonProj()
+      rasterNonProj <- rasterNonProj()$rasterNonProj
       cell <- cellFromXY(rasterNonProj, c(xy$lng, xy$lat))
       xy <- xyFromCell(rasterNonProj, cell)
       if(xy[1] >= 0) xy_lon <- paste0(abs(xy[1]),"°E")
@@ -270,16 +278,25 @@ map <- function(input, output, session) {
 # Observers ---------------------------------------------------------------
   
   # Observer to show Popups on click
+  xy <- data.frame(lng = -42.125, lat = 39.875)
   observe({
-    click <- input$map_click
-    if(!is.null(click)){
-      showpos(x = click$lng, y = click$lat)
+    xy <- input$map_click
+    if(!is.null(xy)){
+        while(xy$lng > 180){
+          xy$lng <- xy$lng - 360
+        }
     }
+    if(!is.null(xy)){
+        while(xy$lng < -180){
+          xy$lng <- xy$lng + 360
+        }
+      }
+      showpos(x = xy$lng, y = xy$lat)
   })
   
   # Show popup on clicks
   showpos <- function(x = NULL, y = NULL) {
-    rasterNonProj <- rasterNonProj()
+    rasterNonProj <- rasterNonProj()$rasterNonProj
     rasterProj <- rasterProj()
     # Translate Lon-Lat to cell number using the unprojected raster
     # This is because the projected raster is not in degrees

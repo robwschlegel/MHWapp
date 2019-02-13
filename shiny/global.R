@@ -25,7 +25,7 @@ library(shinyBS)
 library(plotly)
 library(ncdf4)
 library(heatwaveR)
-library(akima)
+# library(akima)
 # cat(packageDescription("heatwaveR")$Version)
 
 
@@ -85,11 +85,6 @@ current_dates <- as.Date(nc$dim$time$vals, origin = "1970-01-01")
 # tail(current_dates)
 nc_close(nc)
 # load("current_dates.RData")
-
-# Interpolation grid
-akima_lon <- seq(-180, 180, by = 0.1)
-akima_lat <- seq(-90, 90, by = 0.1)
-akima_grid <- as.matrix(expand.grid(akima_lon, akima_lat))
 
 # Placeholder xy before first click
 # xy <- data.frame(lng = 0, lat = 0)
