@@ -58,3 +58,15 @@ sst_seas_thresh_ts <- function(lon_step, lat_step){
   return(sst_seas_thresh)
 }
 
+# Function for correcting the map wrap-around lon issue
+# NB: This function assumes lon is the first value and lat is the second
+lon_wrap <- function(xy){
+    while(xy[1] > 180){
+      xy[1] <- xy[1] - 360
+    }
+    while(xy[1] < -180){
+      xy[1] <- xy[1] + 360
+    }
+  return(xy)
+}
+

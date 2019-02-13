@@ -1,4 +1,4 @@
-ui = tagList(useShinyjs(),  
+ui = tagList(shinyjs::useShinyjs(),  
              tags$head(includeCSS("style.css")),
              # Loading message
              div(

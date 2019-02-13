@@ -14,34 +14,30 @@ mapUI <- function(id, label = 'map') {
     absolutePanel(top = 0, left = 0, right = 0, bottom = 0, height = 'auto',
                   leafletOutput(ns('map'))),
     
-    # absolutePanel(verbatimTextOutput(outputId = ns("click_info"), placeholder = T),
-    #               bottom = 300, right = 10, draggable = TRUE),
-    
-    # sidebarPanel(width = 12,
-    absolutePanel(top = 60, right = 10, draggable = T,
-                  # sidebarPanel(width = 12,
+    # The main menu panel
+    absolutePanel(top = menu_panel_top, right = menu_panel_right, draggable = T, width = "200px",
                   dateInput(inputId = ns("date_choice"),
-                  # sliderInput(inputId = ns("date_choice"), 
                             label = "Date",
                             # value = MHW_cat_clim_sub$t[MHW_cat_clim_sub$intensity == max(MHW_cat_clim_sub$intensity)][1],
-                            value = max(current_dates),
+                            value = date_menu_choice,
                             min = min(current_dates), max = max(current_dates)),
-                  actionButton(inputId = ns("open_modal"), label = "Time series", icon = icon("map-marked")),
-                  radioButtons(inputId = ns("pixels"),
-                                     label = "Pixels",
-                                     choices = c("Smooth", "Course"),
-                                     selected = c("Course"),
-                                     inline = T),
-                  checkboxGroupInput(inputId = ns("categories"),
-                              label = "Categories",
-                              choices = c("I Moderate", "II Strong", "III Severe", "IV Extreme"),
-                              selected = c("I Moderate", "II Strong", "III Severe", "IV Extreme"),
-                              inline = T, width = "50px"),
-                  checkboxInput(inputId = ns("legend"), label = "Legend", value = TRUE)
-                  # verbatimTextOutput(outputId = ns("map_hover"), placeholder = TRUE)
+                  # radioButtons(inputId = ns("pixels"),
+                  #                    label = "Pixels",
+                  #                    choices = c("Smooth", "Course"),
+                  #                    selected = c("Course"),
+                  #                    inline = T),
+                  shinyWidgets::checkboxGroupButtons(inputId = ns("categories"),
+                                       label = "Categories",
+                                       choices = c("I Moderate", "II Strong", "III Severe", "IV Extreme"),
+                                       selected = c("I Moderate", "II Strong", "III Severe", "IV Extreme"),
+                                       # status = "primary",
+                                       checkIcon = list(yes = icon("ok", lib = "glyphicon"),
+                                                        no = icon("remove", lib = "glyphicon"))),
+                  shinyWidgets::materialSwitch(inputId = ns("legend"), label = "Legend", inline = F, 
+                                 value = TRUE, status = "success"),
+                  uiOutput(outputId = ns("button_ts"))
     ),
     uiOutput(ns('uiModal'))
-    # bsModal('popUp', '', '', uiOutput(ns('uiModal')))
   )
   
 }
