@@ -5,6 +5,22 @@ Presently the interactive map holds all of the MHWs detected in the NOAA OISST d
 
 # Updates
 
+* February 13th, 2019
+  * Two bug fixes
+  *A CSS overhaul
+  * Project-wide improvements to UI
+  * Edited about section to reflect changes
+
+* February 12th, 2019
+  * Updates to about section
+  * Added a bit more safety to daily script
+
+* February 11th, 2019
+  * Adressed heatspike issue
+  * Changed data syncing with app so no git pulling is required
+  * Smoothed out bugs in daily updating script
+  * Minor about section edits
+  
 * February 7th, 2019
   * More snag list
 
