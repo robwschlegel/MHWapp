@@ -10,7 +10,8 @@ map <- function(input, output, session) {
   # y <- 39.875
   # input <- data.frame(from = as.Date("2018-01-01"),
   #                     to = as.Date("2018-12-31"),
-  #                     date_choice = as.Date("2018-02-14"))#,
+  #                     date_choice = as.Date("2018-02-14"),
+  #                     pixel = "Smooth")
   #                     #categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
   
   ### base map data
@@ -44,15 +45,23 @@ map <- function(input, output, session) {
       dplyr::select(lon, lat, category)
     colnames(MHW_raster) <- c("X", "Y", "Z")
     MHW_raster$Z <- as.numeric(MHW_raster$Z)
-    MHW_raster <- rasterFromXYZ(MHW_raster, res = c(0.25, 0.25), digits = 3,
-                                crs = inputProj)
-    return(MHW_raster)
+    rasterNonProj <- rasterFromXYZ(MHW_raster, res = c(0.25, 0.25),
+                                   digits = 3, crs = inputProj)
+    res_list <- list(MHW_raster = MHW_raster,
+                     rasterNonProj = rasterNonProj)
+    return(res_list)
   })
   
   ### Shiny-projected raster data
   rasterProj <- reactive({
-    rasterProj <- rasterNonProj()
-    rasterProj <- projectRasterForLeaflet(rasterProj, method = "ngb")
+    rasterNonProj <- rasterNonProj()$rasterNonProj
+    if(input$pixels == "Smooth"){
+      rasterdf <- raster::as.data.frame(rasterNonProj, xy = T)
+      
+      rasterProj <- projectRasterForLeaflet(rasterNonProj, method = "bilinear")
+    } else{
+      rasterProj <- projectRasterForLeaflet(rasterNonProj, method = "ngb")
+    }
     return(rasterProj)
   })
   
@@ -260,34 +269,6 @@ map <- function(input, output, session) {
   
 # Observers ---------------------------------------------------------------
   
-  
-  # Show raster image
-  observe({
-    leafletProxy("map") %>%
-      clearImages() %>%
-      addRasterImage(rasterProj(), colors = pal_cat, layerId = "map_raster",
-                     project = FALSE, opacity = 0.7) %>%
-      addScaleBar(position = "bottomright") #%>%
-      # addMouseCoordinates() %>%
-      # addImageQuery(rasterProj(), type = "mousemove", layerId = "map_raster")
-      # fitBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90,
-      #           options = tileOptions(minZoom = 3, maxZoom = 6))
-  })
-  
-  ### Recreate the legend as needed.
-  observe({
-    proxy <- leafletProxy("map", data = MHW_cat_clim_sub)
-    proxy %>% clearControls()
-    if (input$legend) {
-      proxy %>% addLegend(position = "bottomright",
-                          pal = pal_factor,
-                          values = ~category,
-                          title = "Category", 
-                          opacity = 0.75
-      )
-    }
-  })
-  
   # Observer to show Popups on click
   observe({
     click <- input$map_click
@@ -325,13 +306,11 @@ map <- function(input, output, session) {
                         "<br>Lat = ", xy_lat,
                         "<br>Category = ", names(MHW_colours)[val],
                         "<hr>",
-                        "<i>please click <br>'Pixel information'<br>for time series</i>")
+                        "<i>please click <br>'Time series' button<br>for more info</i>")
       
     }
     #add Popup
-    leafletProxy("map") %>% clearPopups() %>% addPopups(lng = x, lat = y, popup = paste(content))#, "</b></br>", 
-                                                                                        # actionButton("showmodal", "Show modal", 
-                                                                                                     # onclick = 'Shiny.onInputChange(\"button_click\",  Math.random())')))
+    leafletProxy("map") %>% clearPopups() %>% addPopups(lng = x, lat = y, popup = paste(content))
   }
   
   observeEvent(input$open_modal, {
@@ -356,15 +335,35 @@ map <- function(input, output, session) {
   # The leaflet option
   output$map <- renderLeaflet({
     leaflet(MHW_cat_clim_sub) %>%
-      setView(-60, 45, zoom = 5, options = tileOptions(minZoom = 1, maxZoom = 7, noWrap = F)) %>%
+      setView(initial_lon, initial_lat, zoom = initial_zoom, options = tileOptions(minZoom = 1, maxZoom = 8, noWrap = F)) %>%
       addTiles(group = "OSM",
-               options = tileOptions(minZoom = 1, maxZoom = 7, opacity = 0.5, noWrap = F)) #%>%
-      # addMouseCoordinates() #%>%
-      # fitBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90,
-      #           options = tileOptions(minZoom = 1, maxZoom = 7))
+               options = tileOptions(minZoom = 1, maxZoom = 8, opacity = 0.5, noWrap = F))
   })
   
+  ### Show raster image
+  observe({
+    leafletProxy("map") %>%
+      clearImages() %>% clearPopups() %>% 
+      addRasterImage(rasterProj(), colors = pal_cat, layerId = "map_raster",
+                     project = FALSE, opacity = 0.7) %>%
+      addScaleBar(position = "bottomright")
+  })
   
+  ### Recreate the legend as needed.
+  observe({
+    proxy <- leafletProxy("map", data = MHW_cat_clim_sub)
+    proxy %>% clearControls()
+    if (input$legend) {
+      proxy %>% addLegend(position = "bottomright",
+                          pal = pal_factor,
+                          values = ~category,
+                          title = "Category", 
+                          opacity = 0.75
+      )
+    }
+  })
+
+
 # Outputs -----------------------------------------------------------------
   
   # Click info
@@ -384,9 +383,8 @@ map <- function(input, output, session) {
   
   # table
   output$table <- renderDataTable({
-    datatable(tsTable(), options = list(
-      pageLength = 50
-    ))
+    datatable(tsTable(), 
+              options = list(pageLength = 50))
   })
   
   # UI panel
@@ -432,25 +430,10 @@ map <- function(input, output, session) {
                                             downloadButton(outputId = ns("download_event"),
                                                            label = "MHW data (csv)", class = 'small-dl')))
                           )
-              )#,
-              # hr(),
-              # fluidRow(
-              #   column(2,
-              #          h4("Download"),
-              #          downloadButton(outputId = ns("download"),
-              #                         label = "MHW data (csv)", class = 'small-dl'))#,
-                # column(4,
-                #        h4("From"),
-                #        dateInput(inputId = ns("from"), label = NULL, format = "M d, yyyy",
-                #                  value = paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"))),
-                # column(6,
-                #        h4("To"),
-                #        dateInput(inputId = ns("to"), label = NULL, format = "M d, yyyy",
-                #                  value = paste0(lubridate::year(as.Date(input$date_choice)),"-12-31")))
-                # )
+                          )
+              )
             )
-    )
-  })
+    })
   
   # Download event data
   output$download_event <- downloadHandler(
