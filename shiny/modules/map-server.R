@@ -39,23 +39,29 @@ map <- function(input, output, session) {
 
 # Map projection data -----------------------------------------------------
 
-  ### Base map data
-  baseData <- reactive({
+  ### Base map data before screening categories
+  baseDataPre <- reactive({
     date_filter <- input$date_choice
     year_filter <- lubridate::year(date_filter)
     sub_dir <- paste0("cat_clim/",year_filter)
     sub_file <- paste0(sub_dir,"/cat.clim.",date_filter,".Rda")
     if(file.exists(sub_file)){
-      baseData <- readRDS(sub_file)
-      baseData <- baseData %>% 
-        filter(category %in% input$categories)
-      # Temporary fix for the issue caused by de-slecting all of the cateogries
-      if(length(baseData$category) == 0){
-        baseData <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>% 
-          slice(1) %>% 
-          mutate(category = NA)
-      }
+      baseDataPre <- readRDS(sub_file)
     } else {
+      baseDataPre <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>% 
+        slice(1) %>% 
+        mutate(category = NA)
+    }
+    return(baseDataPre)
+  })
+  
+  ### Base map data after screening categories
+  baseData <- reactive({
+    baseDataPre <- baseDataPre()
+    baseData <- baseDataPre %>% 
+      filter(category %in% input$categories)
+    # Fix for the issue caused by de-slecting all of the cateogries
+    if(length(baseData$category) == 0){
       baseData <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>% 
         slice(1) %>% 
         mutate(category = NA)
@@ -137,9 +143,10 @@ map <- function(input, output, session) {
     FALSE
   }
   observe({
+    begin_dl <- begin_dl
     if(begin_dl == TRUE){
       begin_dl <- begin_dl_no()
-      pixelData()
+      pixelData <- pixelData()
     }
   })
   
@@ -203,18 +210,50 @@ map <- function(input, output, session) {
   ### The leaflet base
   output$map <- renderLeaflet({
     leaflet(MHW_cat_clim_sub) %>%
-      setView(initial_lon, initial_lat, zoom = initial_zoom, options = tileOptions(minZoom = 1, maxZoom = 8, noWrap = F)) %>%
-      addTiles(group = "OSM",
-               options = tileOptions(minZoom = 1, maxZoom = 8, opacity = 0.5, noWrap = F))
+      setView(initial_lon, initial_lat, zoom = initial_zoom,
+              options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) %>%
+      # Different tile options
+      addTiles(group = "OSM (default)", 
+               options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
+      # addProviderTiles(providers$OpenStreetMap.BlackAndWhite, group = "Black and white", 
+      #                  options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
+      # addProviderTiles(providers$Thunderforest.Landscape, group = "Thunder forest", 
+      #                  options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
+      # The map data
+      # addRasterImage(rasterProj(), colors = pal_cat, layerId = "map_raster",
+      #                project = FALSE, opacity = 0.7) %>% 
+      # Leaflet UI features
+      # addLayersControl(
+      #   baseGroups = c("OSM (default)", "Black and white", "Thunder forest"),
+      #   options = layersControlOptions(collapsed = TRUE), position = "topleft") %>% 
+      addMiniMap(
+          tiles = providers$Esri.WorldStreetMap, collapsedWidth = 32, collapsedHeight = 32,
+          toggleDisplay = TRUE, position = "topleft", minimized = T, width = 200) %>% 
+      addEasyButton(easyButton(
+        icon = "fa-globe", title = "Global view",
+        onClick = JS("function(btn, map){ map.setZoom(2); }"))) %>%
+      addScaleBar(position = "bottomright")
+      # addLayersControl(baseGroups = c("Default", "Black and white"), 
+      #                  options = layersControlOptions(collapsed = TRUE), position = "topleft")
+      # addWMSTiles(
+      #       "https://gis.ngdc.noaa.gov/arcgis/services/graticule/MapServer/WMSServer/",
+      #       layers = c("1-degree grid", "5-degree grid"),
+      #       options = WMSTileOptions(format = "image/png8", transparent = TRUE),
+      #       attribution = NULL) #%>%
+      # addEasyButton(easyButton(
+      #   icon="fa-crosshairs", title="Locate Me",
+      #   onClick=JS("function(btn, map){ map.locate({setView: true}); }"))) #%>% 
+      # addGraticule(group = "Graticule", interval = 1) %>%
+      # addLayersControl(overlayGroups = c("Graticule"),
+      #                  options = layersControlOptions(collapsed = FALSE, left = 20))
   })
   
   ### The raster layer
   observe({
     leafletProxy("map") %>%
-      clearImages() %>% clearPopups() %>% 
+      clearImages() %>% clearPopups() %>%
       addRasterImage(rasterProj(), colors = pal_cat, layerId = "map_raster",
-                     project = FALSE, opacity = 0.7) %>%
-      addScaleBar(position = "bottomright")
+                     project = FALSE, opacity = 0.7)
   })
   
   ### Legend that can be de-activated by the user
@@ -440,7 +479,7 @@ map <- function(input, output, session) {
     to_date <- ifelse(lubridate::year(input$date_choice) >= lubridate::year(max(current_dates)),
                       input$date_choice, as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-12-31")))
     to_date <- as.Date(to_date, origin = "1970-01-01")
-    from_date <- to_date-364
+    from_date <- to_date-365
     shinyBS::bsModal(ns('modal'), title = div(id = ns('modalTitle'), pixelLabel()), trigger = 'click2', size = "large",
             # div(id = ns("top_row"),
             fluidPage(

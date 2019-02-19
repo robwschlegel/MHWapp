@@ -23,6 +23,20 @@ aboutUI <- function(id, label = 'About') {
              ". For a more detailed explanation with visuals please follow this ", 
              a(href = "http://www.marineheatwaves.org/all-about-mhws.html", "link"), "."),
            br(),
+           h2("Why should I care?"),
+           br(),
+           p("If you've found your way to this website then you are likely interested in the effects we are having on
+             the worlds oceans and probably have your own personal reasons to care about the health of the oceans. There are
+             many anthropogenic (man-made) threats to the health of the oceans, which include but are not limited to:
+             over-fishing, chemical run-off from land, and climate change in the form of extreme warm water events known as
+             Marine heatwaves (MHWs). All of these different threats may impact the ocean in different ways, but one of the 
+             main concerns is that we are changing the oceans so much that we will not be able to repair them ourselves. 
+             MHWs are not new to our oceans, but our ability to quantify them and put them up on a website like this is. 
+             Thanks to this tool we can now see for ourselves in near real time where in the world extreme temperatures may 
+             be threatening the parts of the ocean where we work, live, and play. It is our hope that this website can be used
+             around the world to help anyone that is interested to see if the changes they have noticed in their ocean are 
+             due to a MHWs or not."),
+           br(),
            h2("How do I use this?"),
            br(),
            p("This site works similarly to the Google maps we use in day-to-day life. Click and drag to move 
@@ -47,14 +61,13 @@ aboutUI <- function(id, label = 'About') {
            br(),
            p("In the map panel of the Marine Heatwave Tracker we can see that there is a particular colour palette being used. Each of 
              these four colours corresponds to increasing categories of MHWs as first proposed in ", 
-             a(href = "https://www.jstor.org/stable/26542662", "Hobday et al. 2018"), ". The first category, severe, is somewhat common
+             a(href = "https://www.jstor.org/stable/26542662", "Hobday et al. 2018"), ". The first category, 'I Moderate', is somewhat common
              and no category one MHWs have yet been recorded as causing lasting ecological or financial damage. The second
-             category of MHWs, strong, are increasing the most rapidly of the four categories and are becoming as 
+             category of MHWs, 'II Strong', are increasing the most rapidly of the four categories and are on course to become as 
              common as category one MHWs were when record keeping began in the 80's. Luckily, no category two MHWs 
-             have yet been documented as being destructive either. Category three MHWs, severe, are less common but can be 
-             devastating when they persist for multiple months. The last category, extreme, is thankfully a rare occurrence.
-             It is now known that less than three months of a persistent category four MHW can destroy hundreds of kilometres 
-             of ocean ecosystems."),
+             have yet been documented as being destructive either. Category three MHWs, 'III Severe', are less common but can be 
+             devastating when they persist for multiple months. The last category, 'IV Extreme', is thankfully a rare occurrence.
+             It is now known that less than three months of a persistent category four MHW can destroy coastal ecosystems."),
            br(),
            h2("Where do these data come from?"),
            br(),
@@ -109,11 +122,13 @@ aboutUI <- function(id, label = 'About') {
            column(1), p("UWC - ", a(href = "www.uwc.ac.za", 
                                     "University of the Western Cape")),
            br(),
-           h2("Bugs"),
+           h2("Bugs?"),
            br(),
            p("Unfortunately this app is not currently optimised for use on mobile devices (e.g. cell phones or tablets).
              It will therefore appear rather clumsy if being viewed on a screen smaller than a laptop. There is currently 
              not a plan to address this issue."),
+           p("Occasionally the marine heatwave polygons do not render correctly. Changing the date selection will cause the 
+             figure to re-render correctly."),
            br(),
            p("To report any bugs or to provide any other feedback on the app please contact the developer at:
              robert.schlegel@dal.ca"),

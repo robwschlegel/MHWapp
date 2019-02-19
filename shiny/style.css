@@ -94,8 +94,8 @@ label {
                
 .leaflet-top {
   z-index: 999 !important;
-  top: 115px;
-  left: 3px;
+  top: 60px;
+  left: 10px;
 }
 
 .leaflet-control {
@@ -103,6 +103,7 @@ label {
   box-shadow: 0 4px 4px -2px rgba(0,0,0,.2);
   z-index: 1000;
 }
+
 
 /*********************** navbar css ****************************/
 .navbar .navbar-nav {float: right}
