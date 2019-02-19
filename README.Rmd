@@ -1,7 +1,7 @@
 # MHWapp
-A proof of concept for a daily updating global MHW map.
 
-Presently the interactive map holds all of the MHWs detected in the NOAA OISST data for 2017. One may click on the pixels to see a small summary of the stats for a given event.
+This interactive map holds all of the MHWs detected in the NOAA OISST data from 1982 to near real time. One may click on a pixel to then bring up a time series at that location. Data on climatologies, thresholds, and event metrics may be downloaded for any ocean pixel.
+
 
 # Updates
 
