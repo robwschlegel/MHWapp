@@ -19,8 +19,8 @@ cat_lon_files <- dir("../data/cat_lon", full.names = T)
 
 # This is not saved in an object as this script is not designed to be autonomous
 # The human running this script must look at this output and act accordingly
-rerddap::info(datasetid = "ncdc_oisst_v2_avhrr_by_time_zlev_lat_lon",
-              url = "https://www.ncei.noaa.gov/erddap/")
+# rerddap::info(datasetid = "ncdc_oisst_v2_avhrr_by_time_zlev_lat_lon",
+#               url = "https://www.ncei.noaa.gov/erddap/")
 
 
 # Download a specific OISST lon slice -------------------------------------

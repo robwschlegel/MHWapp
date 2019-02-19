@@ -9,7 +9,7 @@
 ## 4: Updates the current_dates index
 
 source("../MHWapp/MHW_daily_functions.R")
-source("../MHWapp/MHW_daily_fixes.R")
+# source("../MHWapp/MHW_daily_fixes.R")
 
 ## NB: Don't run any of this code manually
 ## NB: only run it via source("MHW_daily.R") in an R terminal
@@ -21,7 +21,7 @@ source("../MHWapp/MHW_daily_fixes.R")
 doMC::registerDoMC(cores = 25) # 50 cores uses up too much RAM
 
 # The information for the NOAA OISST data
-rerddap::info(datasetid = "ncdc_oisst_v2_avhrr_by_time_zlev_lat_lon", url = "https://www.ncei.noaa.gov/erddap/")
+# rerddap::info(datasetid = "ncdc_oisst_v2_avhrr_by_time_zlev_lat_lon", url = "https://www.ncei.noaa.gov/erddap/")
 
 # Find most up-to-date NOAA data
 NOAA_info <- rerddap::info(datasetid = "ncdc_oisst_v2_avhrr_by_time_zlev_lat_lon", url = "https://www.ncei.noaa.gov/erddap/")
