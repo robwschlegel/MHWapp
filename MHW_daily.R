@@ -77,8 +77,8 @@ if(download_date_start != FALSE){
 
 # 2: Update MHW event and category data -----------------------------------
 
-# doMC::registerDoMC(cores = 50)
-# 
+doMC::registerDoMC(cores = 50)
+
 # This takes roughly 15 minutes and is by far the largest time requirement
 if(download_date_start != FALSE){
   # system.time(
