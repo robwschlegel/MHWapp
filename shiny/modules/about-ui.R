@@ -7,10 +7,9 @@ aboutUI <- function(id, label = 'About') {
     column(10,
            h2("Welcome!"),
            br(),
-           p("You have arrived at the Marine Heatwave (MHW) Tracker. This web application has been designed to show the 
-             most up-to-date information available on the occurrence of MHWs around the world, which is currently a 
-             two-week delay. The Marine Heatwave Tracker also hosts all of the historic MHW records for the entire planet going 
-             back to January 1st, 1982."),
+           p("You have arrived at the Marine Heatwave (MHW) Tracker. This web application has been designed to show 
+             the occurrence of MHWs around the world in near-real-time (usually a 0 - 2 day delay). The Marine Heatwave 
+             Tracker also hosts all of the historic MHW records for the entire planet going back to January 1st, 1982."),
            br(),
            h2("What is a Marine Heatwave (MHW)?"),
            br(),
@@ -75,6 +74,10 @@ aboutUI <- function(id, label = 'About') {
              (OISST) data that we can download from the National Oceanic and Atmospheric Administration (NOAA). These data are 
              on an even 1/4 degree grid over the surface of the planet. The daily values go back as far as September 1st, 1981.
              More information about these data may be found ", a(href = "https://www.ncdc.noaa.gov/oisst", "here"),"."),
+           p("Please note that the data are released in near-real-time, and then go through a second layer of quality control that
+             takes roughly two weeks. Therefore any MHW results shown in this app within two weeks of the current date are possibly
+             subject to minor changes. All MHW results older than two weeks may be taken as final. In practice the difference between
+             the preliminary results and the final results are negligible."),
            p("A tutorial for how to download these data in R may be found ", 
              a(href = "https://robwschlegel.github.io/heatwaveR/articles/OISST_preparation.html", "here"),
              ", and a tutorial on how to calculate marine heatwaves from these data in R may be found ",
