@@ -154,11 +154,6 @@ OISST_ncdf_fix <- function(lon_step, end_date){
   return(paste0("Finished ",lon_OISST[lon_step]))
 }
 
-NOAA_date <- function(date_string, piece){
-  res <- as.Date(as.POSIXct(as.numeric(sapply(strsplit(as.character(date_string), ", "), "[[", piece)),
-                            origin = "1970-01-01 00:00:00"))
-}
-
 
 # Fix data at the event/cat lon level -------------------------------------
 

@@ -41,6 +41,12 @@ tail(current_dates)
 # The current date
 current_date <- Sys.Date()
 
+# Wrapper function to coerce ERDDAP date format to R
+NOAA_date <- function(date_string, piece){
+  res <- as.Date(as.POSIXct(as.numeric(sapply(strsplit(as.character(date_string), ", "), "[[", piece)),
+                            origin = "1970-01-01 00:00:00"))
+}
+
 
 # 1: Update OISST data functions ------------------------------------------
 
@@ -145,9 +151,9 @@ OISST_merge <- function(lon_step, df_prelim, df_final){
   print(paste0("Began run on avhrr-only-v2.ts.",lon_row_pad,".nc at ",Sys.time()))
   
   # Determine file name
-  # ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
+  ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
   # tester...
-  ncdf_file_name <- paste0("../data/test/avhrr-only-v2.ts.",lon_row_pad,".nc")
+  # ncdf_file_name <- paste0("../data/test/avhrr-only-v2.ts.",lon_row_pad,".nc")
   #
   
   ### Open NetCDF and determine dates present
@@ -262,7 +268,8 @@ sst_seas_thresh_merge <- function(lon_step, start_date){
 
 # Function for updating the MHW event metric lon slice files
 # tester...
-# lon_step <- lon_OISST[1]
+# lon_step <- lon_OISST[17]
+# final_start <- "2019-02-10"
 MHW_event_cat_update <- function(lon_step, final_start){
   
   # Determine correct lon/row/slice
@@ -330,7 +337,7 @@ MHW_event_cat_update <- function(lon_step, final_start){
 
 # Function for extracting correct sst data based on pre-determined subsets
 # It also calculates and returns corrected MHW metric results
-# df <- final_event_index[250,]
+# df <- final_event_index[319,]
 event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon){
   
   # Extract necessary SST
@@ -357,8 +364,8 @@ event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon){
            lat = df$lat) %>% 
     select(t, lon, lat, event_no, intensity, category)
   cat_step_2 <- MHW_cat_lon %>%
-    filter(lat == df$lat) %>%
-    filter(!event_no %in% cat_step_1$event_no) %>%
+    filter(lat == df$lat,
+           t <= df$date_end[1]) %>%
     rbind(cat_step_1)
   
   # Exit
@@ -386,6 +393,7 @@ load_sub_cat_clim <- function(cat_lon_file, date_choice){
 # Function for loading, prepping, and saving the daily global category slices
 # tester...
 # date_choice <- max(current_dates)+1
+# date_choice <- as.Date("2019-02-10")
 cat_clim_global_daily <- function(date_choice){
   print(paste0("Began creating ", date_choice," slice at ",Sys.time()))
   cat_clim_daily <- plyr::ldply(cat_lon_files,
