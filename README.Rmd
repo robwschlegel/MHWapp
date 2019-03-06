@@ -5,6 +5,12 @@ This interactive map holds all of the MHWs detected in the NOAA OISST data from 
 
 # Updates
 
+* March 6th, 2019
+  * Added logic breaks to catch when the NOAA data are not up on the ERDDAP server
+  * Added screen to filter out erroneously high OISST data
+  * Added functionality to download preliminary data
+  * Updated pipeline to create new app files based on final data
+
 * February 14th, 2019
   * Some tweeks to the daily scripts
   * Added a "Why should I care?" section in the about panel

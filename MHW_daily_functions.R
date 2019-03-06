@@ -45,8 +45,8 @@ current_date <- Sys.Date()
 # 1: Update OISST data functions ------------------------------------------
 
 # This downloads the data
-OISST_dl <- function(times){
-  oisst_res <- griddap(x = "ncdc_oisst_v2_avhrr_by_time_zlev_lat_lon", 
+OISST_dl <- function(times, product){
+  oisst_res <- griddap(x = product, 
                        url = "https://www.ncei.noaa.gov/erddap/", 
                        time = times, 
                        depth = c(0, 0),
@@ -106,11 +106,36 @@ OISST_acast <- function(df){
   return(res_array)
 }
 
+# Wrapper function that serves as the last step before
+# data are entered into the NetCDF files
+# df <- OISST_prelim_sub
+OISST_temp <- function(df){
+  # Filter NA and convert dates to integer
+  OISST_step <- df %>% 
+    mutate(temp = ifelse(is.na(temp), NA, temp),
+           t = as.integer(t)) %>% 
+    na.omit()
+  
+  # Acast
+  dfa <- OISST_step %>%
+    mutate(t2 = t) %>% 
+    group_by(t2) %>%
+    nest() %>%
+    mutate(data2 = purrr::map(data, OISST_acast)) %>%
+    select(-data)
+  
+  # Final form
+  dfa_temp <- abind(dfa$data2, along = 3, hier.names = T)
+  # dimnames(dfa_temp)
+  return(dfa_temp)
+}
+
 # Function for merging OISST data into existing NetCDF files
 # tester...
 # lon_step <- lon_OISST[1]
-# df <- OISST_update_2
-OISST_merge <- function(lon_step, df){
+# df_final <- OISST_final_2
+# df_prelim <- OISST_prelim_2
+OISST_merge <- function(lon_step, df_prelim, df_final){
   
   ### Determine the correct lon slice/file
   # Determine lon slice
@@ -120,9 +145,9 @@ OISST_merge <- function(lon_step, df){
   print(paste0("Began run on avhrr-only-v2.ts.",lon_row_pad,".nc at ",Sys.time()))
   
   # Determine file name
-  ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
+  # ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
   # tester...
-  # ncdf_file_name <- paste0("../data/test/avhrr-only-v2.ts.",lon_row_pad,".nc")
+  ncdf_file_name <- paste0("../data/test/avhrr-only-v2.ts.",lon_row_pad,".nc")
   #
   
   ### Open NetCDF and determine dates present
@@ -131,38 +156,43 @@ OISST_merge <- function(lon_step, df){
   time_vals <- as.Date(nc$dim$time$vals, origin = "1970-01-01")
   # tail(time_vals)
   
-  ### Grab the lon slice and data not yet in the NetCDF file
-  OISST_step_1 <- df %>% 
+  ### Grab the lon slice intended for the chosen NetCDF file
+  OISST_prelim_sub <- df_prelim %>% 
     filter(lon  == lon_step,
-           as.integer(t) > max(time_vals))
+           as.integer(t) > max(time_vals),
+           temp < 100)
   
-  if(nrow(OISST_step_1) > 0){
+  OISST_final_sub <- df_final %>% 
+    filter(lon  == lon_step,
+           temp < 100)
+  
+  ### Create data arrays and insert into NetCDF file
+  if(nrow(OISST_prelim_sub) > 0){
     
-    ### Create data arrays
-    OISST_step_2 <- OISST_step_1 %>% 
-      mutate(temp = ifelse(is.na(temp), NA, temp),
-             t = as.integer(t)) %>% 
-      na.omit()
-    
-    dfa <- OISST_step_2 %>%
-      mutate(t2 = t) %>% 
-      group_by(t2) %>%
-      nest() %>%
-      mutate(data2 = purrr::map(data, OISST_acast)) %>%
-      select(-data)
-    
-    dfa_temp <- abind(dfa$data2, along = 3)
-    
-    ### Add data to the corresponding NetCDF file
-    for(i in 1:length(dfa$t2)){
-      ncvar_put(nc = nc, varid = "sst", vals = dfa_temp[,,i], verbose = FALSE,
+    prelim_temp <- OISST_temp(OISST_prelim_sub)
+
+    for(i in 1:length(prelim_temp[1,1,])){
+      ncvar_put(nc = nc, varid = "sst", vals = prelim_temp[,,i], verbose = FALSE,
                 start = c(1,1,(length(nc$dim$time$vals)+i)), count = c(720,1,1))
-      ncvar_put(nc = nc, varid = "time", vals = dfa$t2[i],
+      ncvar_put(nc = nc, varid = "time", vals = as.integer(dimnames(prelim_temp)[[3]])[i],
                 start = (length(nc$dim$time$vals)+i), verbose = FALSE)
       nc_sync(nc)
     }
   }
+  
+  if(nrow(OISST_final_sub) > 0){
+    
+    final_temp <- OISST_temp(OISST_final_sub)
+    
+    for(i in 1:length(final_temp[1,1,])){
+      date_put <- which(nc$dim$time$vals == as.integer(dimnames(final_temp)[[3]])[i])
+      ncvar_put(nc = nc, varid = "sst", vals = final_temp[,,i], verbose = FALSE,
+                start = c(1,1,date_put), count = c(720,1,1))
+      nc_sync(nc)
+    }
+  }
   # sst <- ncvar_get(nc, "sst")
+  # tail(as.Date(nc$dim$time$vals, origin = "1970-01-01"))
   
   ### Close file and exit
   nc_close(nc)
@@ -173,7 +203,7 @@ OISST_merge <- function(lon_step, df){
 # 2: Update MHW event and category data functions -------------------------
 
 # Function that loads and merges sst/seas/thresh for a given lon_step
-# lon_step <- lon_OISST[357]
+# lon_step <- lon_OISST[2]
 # start_date <- as.Date("2018-01-01")
 # end_date <- as.Date("2018-12-31")
 sst_seas_thresh_merge <- function(lon_step, start_date){
@@ -232,8 +262,8 @@ sst_seas_thresh_merge <- function(lon_step, start_date){
 
 # Function for updating the MHW event metric lon slice files
 # tester...
-# lon_step <- lon_OISST[357]
-MHW_event_cat_update <- function(lon_step){
+# lon_step <- lon_OISST[1]
+MHW_event_cat_update <- function(lon_step, final_start){
   
   # Determine correct lon/row/slice
   lon_row <- which(lon_OISST == lon_step)
@@ -251,19 +281,20 @@ MHW_event_cat_update <- function(lon_step){
   # Determine how far back in time to get old data based on the occurrence of the previous MHW
   # Screen out events where the date_end is the same as max(MHW_event_data$date_end)
   # This implies that the event is still ongoing and we will need to update the values
-  previous_event_index <- MHW_event_data %>% 
+  final_event_index <- MHW_event_data %>% 
     group_by(lat) %>% 
+    filter(date_end <= final_start) %>% 
     mutate(previous_event = ifelse(max(date_end) == max(MHW_event_data$date_end), max(event_no)-1, max(event_no))) %>%
     filter(event_no == previous_event)
   
   # Extract each pixel time series based on how far back the oldest event occurred for the entire longitude slice
   sst_seas_thresh <- sst_seas_thresh_merge(lon_step, 
-                                           start_date = min(previous_event_index$date_start))
+                                           start_date = min(final_event_index$date_start))
                                            # Use to recalculate everything
                                            # start_date = as.Date("1982-01-01"))
   
   # Calculate new event metrics with new data as necessary
-  MHW_event_cat <- previous_event_index %>% 
+  MHW_event_cat <- final_event_index %>% 
     mutate(lat2 = lat) %>% 
     group_by(lat2) %>% 
     nest() %>% 
@@ -277,7 +308,8 @@ MHW_event_cat_update <- function(lon_step){
   MHW_event_new <- MHW_event_cat %>% 
     filter(row_number() %% 2 == 1) %>% 
     unnest()
-  if(length(MHW_event_new$lon) != 0) saveRDS(MHW_event_new, file = MHW_event_files[lon_row])
+  if(length(MHW_event_new$lon) != 0) 
+    saveRDS(MHW_event_new, file = MHW_event_files[lon_row])
   # tester...
   # MHW_event_new_test <- MHW_event_new %>% 
   #   filter(lat == df$lat)
@@ -286,7 +318,8 @@ MHW_event_cat_update <- function(lon_step){
   MHW_cat_new <- MHW_event_cat %>% 
     filter(row_number() %% 2 == 0) %>% 
     unnest()
-  if(length(MHW_cat_new$lon) != 0) saveRDS(MHW_cat_new, file = cat_lon_files[lon_row])
+  if(length(MHW_cat_new$lon) != 0) 
+    saveRDS(MHW_cat_new, file = cat_lon_files[lon_row])
   # tester...
   # MHW_cat_new_test <- MHW_cat_new %>% 
   #   filter(lat == df$lat)
@@ -297,7 +330,7 @@ MHW_event_cat_update <- function(lon_step){
 
 # Function for extracting correct sst data based on pre-determined subsets
 # It also calculates and returns corrected MHW metric results
-# df <- previous_event_index[300,]
+# df <- final_event_index[250,]
 event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon){
   
   # Extract necessary SST
@@ -313,7 +346,7 @@ event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon){
     mutate_all(round, 3)
   event_step_2 <- MHW_event_data %>%
     filter(lat == df$lat[1],
-           date_end != max(MHW_event_data$date_end)) %>%
+           date_end <= df$date_end[1]) %>%
     rbind(event_step_1) %>%
     mutate(event_no = seq(1:n()))
   

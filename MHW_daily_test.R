@@ -2,6 +2,14 @@
 # at the MHW_daily.R and MHW_daily_functions.R scripts
 
 # source("../tikoraluk/MHW_2018.R")
+source("../MHWapp/MHW_daily_functions.R")
+
+
+# 1: Testing the downloaded NOAA data -------------------------------------
+
+OISST_update_1 <- OISST_dl(c("2019-02-17T00:00:00Z", "2019-02-17T00:00:00Z"))
+OISST_update_2 <- OISST_prep(OISST_update_1)
+
 
 # 2: Testing the MHW event and cat production -----------------------------
 
