@@ -5,6 +5,10 @@ This interactive map holds all of the MHWs detected in the NOAA OISST data from 
 
 # Updates
 
+* March 8th, 2019
+  * More aggressive error trapping
+  * Preventing access to pre-1985 data as these are apparently error prone
+
 * March 6th, 2019
   * Added logic breaks to catch when the NOAA data are not up on the ERDDAP server
   * Added screen to filter out erroneously high OISST data

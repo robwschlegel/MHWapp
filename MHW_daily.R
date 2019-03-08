@@ -152,18 +152,18 @@ if(nrow(OISST_final_2) > 1 | nrow(OISST_prelim_2) > 1){
 doMC::registerDoMC(cores = 50)
 
 # This takes roughly 15 minutes and is by far the largest time requirement
-# if(final_date_start != FALSE){
+if(final_date_start != FALSE){
   print("Updating MHW results based on new final+prelim data")
   # system.time(
     plyr::ldply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE,
-                # final_start = gsub("T00:00:00Z", "", final_date_start))
-                final_start = "2019-02-10")
+                final_start = gsub("T00:00:00Z", "", final_date_start))
+                # final_start = "2019-02-10")
   # ) # ~ 26 seconds per cycle
-# } else if(prelim_date_start != FALSE) {
-#   print("Updating MHW results based on new prelim data only")
-#   plyr::ldply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE,
-#               final_start = gsub("T00:00:00Z", "", prelim_date_start))
-# }
+} else if(prelim_date_start != FALSE) {
+  print("Updating MHW results based on new prelim data only")
+  plyr::ldply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE,
+              final_start = gsub("T00:00:00Z", "", prelim_date_start))
+}
 
   # Occasionaly the cat_lon files don't come right
 # One can usually tell if the size is under 400 kb
@@ -187,8 +187,8 @@ nc_close(nc_OISST)
 
 # Get the range of dates that need to be run
 # Manually control dates as desired
-update_dates <- seq(as.Date("2019-02-10"), as.Date("2019-03-02"), by = "day")
-# update_dates <- time_index[which(time_index > max(final_dates))]
+# update_dates <- seq(as.Date("2019-02-10"), as.Date("2019-03-02"), by = "day")
+update_dates <- time_index[which(time_index > max(final_dates))]
 
 # Process the lot of them
 # The function `cat_clim_global_daily()` uses dplyr so a for loop is used here

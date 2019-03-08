@@ -165,12 +165,13 @@ OISST_merge <- function(lon_step, df_prelim, df_final){
   ### Grab the lon slice intended for the chosen NetCDF file
   OISST_prelim_sub <- df_prelim %>% 
     filter(lon  == lon_step,
-           as.integer(t) > max(time_vals),
-           temp < 100)
+           as.integer(t) > max(time_vals))
   
   OISST_final_sub <- df_final %>% 
-    filter(lon  == lon_step,
-           temp < 100)
+    filter(lon  == lon_step)
+  
+  if(max(OISST_prelim_sub$temp, na.rm = T) > 100 | max(OISST_final_sub$temp, na.rm = T) > 100)
+    stop("There are errors in the OISST data.")
   
   ### Create data arrays and insert into NetCDF file
   if(nrow(OISST_prelim_sub) > 0){
