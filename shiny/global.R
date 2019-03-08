@@ -40,7 +40,7 @@ source("modules/about-ui.R", local = TRUE)
 source("modules/map-server.R", local = TRUE)
 source("modules/map-ui.R", local = TRUE)
 
-# mapbox_moon <- "https://api.mapbox.com/styles/v1/sebpoisson/cjjfvxsqh1nrd2rnqabh10sx4/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1Ijoic2VicG9pc3NvbiIsImEiOiJjamk1YXBiYm4waHd0M2twNmM3ODRuZjN4In0.WKHsGJ3K7SWyqO4lObCkfA"
+# mapbox_moon <- "https://api.mapbox.com/styles/v1/..."
 
 
 # Meta-data ---------------------------------------------------------------
