@@ -8,8 +8,8 @@ aboutUI <- function(id, label = 'About') {
            h2("Welcome!"),
            br(),
            p("You have arrived at the Marine Heatwave (MHW) Tracker. This web application has been designed to show 
-             the occurrence of MHWs around the world in near-real-time (usually a 0 - 2 day delay). The Marine Heatwave 
-             Tracker also hosts all of the historic MHW records for the entire planet going back to January 1st, 1982."),
+             the occurrence of MHWs around the world in near-real-time (roughly a 5 day delay). The Marine Heatwave 
+             Tracker also hosts all of the historic MHW records for the entire planet going back to January 1st, 1985."),
            br(),
            h2("What is a Marine Heatwave (MHW)?"),
            br(),
@@ -73,6 +73,7 @@ aboutUI <- function(id, label = 'About') {
            p("The global satellite product used in the Marine Heatwave Tracker are the daily Optimally Interpolated Sea Surface Temperature 
              (OISST) data that we can download from the National Oceanic and Atmospheric Administration (NOAA). These data are 
              on an even 1/4 degree grid over the surface of the planet. The daily values go back as far as September 1st, 1981.
+             The MHW Tracker only hosts results from these data starting on 1985-01-01 as the older data are error prone.
              More information about these data may be found ", a(href = "https://www.ncdc.noaa.gov/oisst", "here"),"."),
            p("Please note that the data are released in near-real-time, and then go through a second layer of quality control that
              takes roughly two weeks. Therefore any MHW results shown in this app within two weeks of the current date are possibly
