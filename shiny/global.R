@@ -46,7 +46,7 @@ source("modules/map-ui.R", local = TRUE)
 # Meta-data ---------------------------------------------------------------
 
 ### The dates currently processed
-nc <- nc_open("OISST/avhrr-only-v2.ts.0001.nc")
+nc <- nc_open("OISST/avhrr-only-v2.ts.1440.nc")
 current_dates <- as.Date(nc$dim$time$vals, origin = "1970-01-01")
 # tail(current_dates)
 nc_close(nc)
