@@ -1,65 +1,71 @@
+# MHW_anim.R
+# The purpose of this script currently is to make animations of the 
+# three reference time series that are pacakge in heatwaveR.
+# it does this based on the daily category files used in the MHW Tracker
 
-# Load libraries ----------------------------------------------------------
+
+
+# Libraries ---------------------------------------------------------------
 
 library(tidyverse)
-library(gganimate)
-library(padr)
+library(gganimate, lib.loc = "../R-packages/")
+library(heatwaveR, lib.loc = "../R-packages/")
+# library(padr)
 
+
+# Meta-data ---------------------------------------------------------------
+
+category_files <- as.character(dir(path = "../data/cat_clim", pattern = "cat.clim",
+                                   full.names = TRUE, recursive = TRUE))
+
+site_coords <- data.frame(site = c("WA", "NW_Atl", "Med"),
+                          lon = c(112.5, -67, 9),
+                          lat = c(-29.5, 43, 43.5))
 
 # Load data ---------------------------------------------------------------
 
-# load("data/MHW_res.RData")
-load("shiny/MHWapp/MHW_cat_clim.RData")
-load("shiny/MHWapp/MHW_event.RData")
-
-# The climatologies
-# MHW_clim <- MHW_res %>% 
-#   unnest(event) %>% 
-#   filter(row_number() %% 2 == 1) %>% 
-#   unnest(event) %>% 
-#   select(-(threshCriterion:event))
-# rm(MHW_res)
-
-# MHW_cat_clim_short <- MHW_cat %>% 
-#   unnest(cat) %>% 
-#   filter(row_number() %% 2 == 1) %>% 
-#   unnest(cat)
-# 
-# MHW_cat_clim_long <- MHW_cat %>% 
-#   unnest(cat) %>% 
-#   filter(row_number() %% 2 == 1) %>% 
-#   unnest(cat) %>%
-#   group_by(lon, lat) %>%
-#   nest() %>%
-#   mutate(long = map(data, pad, interval = "day")) %>%
-#   select(-data) %>%
-#   unnest(long) %>%
-#   ungroup()
-# rm(MHW_cat)
-# 
-# MHW_cat_clim_sub <- MHW_cat_clim_long %>% 
-#   filter(t %in% seq(as.Date("2016-01-01"), as.Date("2016-01-15"), by = "day")) #%>% 
-#   # mutate(category = factor(category, levels = c("I Moderate", "II Strong", 
-#   #                                               "III Severe", "IV Extreme")))
-# 
-# date_holder <- data.frame(index = "x", 
-#                           t = unique(MHW_cat_clim_sub$t)) %>% 
-#   nest(t)
-# 
-# place_holder <- MHW_cat_clim_sub %>% 
-#   select(lon, lat) %>% 
-#   unique() %>% 
-#   mutate(t = date_holder$data) %>% 
-#   unnest(t)
-
-MHW_cat_1 <- filter(MHW_cat_clim, t == as.Date("2017-12-01"))
-MHW_event_1 <- filter(MHW_event_sub, date_start >= as.Date("2017-12-01"))
+sst_ALL <- rbind(sst_Med, sst_NW_Atl, sst_WA) %>% 
+  mutate(site = rep(c("Med", "NW_Atl", "WA"), each = nrow(sst_WA)))
 
 
-# Test visuals ------------------------------------------------------------
+# Calculate MHWs ----------------------------------------------------------
+
+# Calculate all results
+MHW_res <- sst_ALL %>% 
+  group_by(site) %>% 
+  nest() %>% 
+  mutate(clim = map(data, ts2clm, climatologyPeriod = c("1982-01-01", "2011-12-31")),
+         event = map(clim, detect_event),
+         cat = map(event, category)) %>% 
+  select(-data, -clim)
+
+# Clim data.frame
+MHW_clim <- MHW_res %>% 
+  select(-cat) %>% 
+  unnest(event) %>% 
+  filter(row_number() %% 2 == 1) %>% 
+  unnest(event)
+
+# Event data.frame
+MHW_event <- MHW_res %>% 
+  select(-cat) %>% 
+  unnest(event) %>% 
+  filter(row_number() %% 2 == 0) %>% 
+  unnest(event)
+
+# Category data.frame
+MHW_cat <- MHW_res %>% 
+  select(-event) %>% 
+  unnest(cat) 
+
+
+# Determine MHW of choice -------------------------------------------------
 
 
 
+# Decide on bounding box --------------------------------------------------
+
+#
 
 # Create animation --------------------------------------------------------
 

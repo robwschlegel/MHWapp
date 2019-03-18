@@ -34,8 +34,8 @@ cat_clim_files <- as.character(dir(path = "../data/cat_clim", pattern = "cat.cli
 ## NB: Thi is currently static but must be self-updating to work correctly
 ### A self updating file that grabs dates from somewhere...
 load("../MHWapp/shiny/current_dates.RData")
-head(current_dates)
-tail(current_dates)
+# head(current_dates)
+# tail(current_dates)
 # current_dates <- seq(as.Date("1982-01-01"), as.Date("2018-12-31"), by = "day")
 
 # The current date
