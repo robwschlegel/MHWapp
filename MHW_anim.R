@@ -79,6 +79,7 @@ WA_focus <- MHW_focus[3,] %>%
   left_join(site_coords, by = "site")
 NW_Atl_focus <- MHW_focus[2,] %>% 
   left_join(site_coords, by = "site")
+Blob_focus <- data.frame()
 
   
 # Decide on bounding box --------------------------------------------------
@@ -152,24 +153,39 @@ Med_cat_dat <- category_load(Med_focus)
 # testers...
 # df <- WA_cat_dat
 # spread <- 0
+# site <- "WA"
 category_animate <- function(df, site, spread = 0){
-  base_map <- ggplot(data = df, aes(x = lon, y = lat)) +
-    geom_blank() +
-    borders(fill = "grey80", colour = "black") +
+  df$t <- as.Date(df$t)
+  anim_days <- unique(df$t)
+  # base_map <- ggplot(data = df, aes(x = lon, y = lat)) +
+  #   borders(fill = "grey80", colour = "black") +
+  #   coord_cartesian(xlim = c(min(df$lon)-spread, max(df$lon)+spread),
+  #                   ylim = c(min(df$lat)-spread, max(df$lat)+spread)) +
+  #   labs(x = NULL, y = NULL)
+  world <- ggplot() +
+    borders("world", colour = "black", fill = "gray80") +
     coord_cartesian(xlim = c(min(df$lon)-spread, max(df$lon)+spread),
-                    ylim = c(min(df$lat)-spread, max(df$lat)+spread)) +
+                    ylim = c(min(df$lat)-spread, max(df$lat)+spread),
+                    expand = c(0, 0)) +
     labs(x = NULL, y = NULL)
-  cat_anim <- ggplot(df, aes(x = lon, y = lat, fill = category)) +
-    geom_raster() +
-    # base_map +
+  cat_anim <- world +
+    geom_raster(data = df, aes(x = lon, y = lat, fill = category)) +
     scale_fill_manual("Category",
                       values = c("#ffc866", "#ff6900", "#9e0000", "#2d0000"),
                       labels = c("I Moderate", "II Strong", "III Severe", "IV Extreme")) +
+    # borders(fill = "grey80", colour = "black") +
+    # coord_cartesian(xlim = c(min(df$lon)-spread, max(df$lon)+spread),
+                    # ylim = c(min(df$lat)-spread, max(df$lat)+spread)) +
     labs(title = 'Date: {frame_time}') +
-    transition_time(t)
-  res <- animate(cat_anim)
-  # gganimate(cat_anim, "anim/test.mp4")
-  anim_save(animation = res, filename = paste0(site,"_infamous.gif"), path = "anim")
+    transition_time(time = t) #+
+    # ease_aes(interval = 10)
+  # options = "-t 00:01:00"
+  # It seems as though it is impossible to get the video to render as anything other than 4 seconds...
+  res <- animate(cat_anim, renderer = ffmpeg_renderer())
+                 # nframes = length(anim_days), fps = 1)
+  anim_save(animation = res, filename = paste0(site,"_infamous.mp4"), path = "anim")
+  # Create a slower video using console commands
+  system(paste0("ffmpeg -i anim/",site,"_infamous.mp4 -vf 'setpts=7*PTS' anim/",site,"_infamous_slow.mp4"))
 }
 
 # Render and save the animations
