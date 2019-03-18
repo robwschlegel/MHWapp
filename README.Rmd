@@ -5,6 +5,9 @@ This interactive map holds all of the MHWs detected in the NOAA OISST data from 
 
 # Updates
 
+* March 18th, 2019
+  * Updated the animation script to create chosen animations of infamous MHWs
+
 * March 8th, 2019
   * More aggressive error trapping
   * Preventing access to pre-1985 data as these are apparently error prone

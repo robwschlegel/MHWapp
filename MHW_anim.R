@@ -6,10 +6,10 @@
 
 
 # Libraries ---------------------------------------------------------------
-
 library(tidyverse)
 library(gganimate, lib.loc = "../R-packages/")
 library(heatwaveR, lib.loc = "../R-packages/")
+doMC::registerDoMC(cores = 50)
 # library(padr)
 
 
@@ -56,47 +56,123 @@ MHW_event <- MHW_res %>%
 # Category data.frame
 MHW_cat <- MHW_res %>% 
   select(-event) %>% 
-  unnest(cat) 
+  unnest(cat) %>% 
+  mutate(category = factor(category, 
+                           levels = c("I Moderate", "II Strong", 
+                                      "III Severe", "IV Extreme")))
+# levels(MHW_cat$category)
 
 
 # Determine MHW of choice -------------------------------------------------
 
+MHW_focus <- MHW_event %>% 
+  group_by(site) %>% 
+  filter(intensity_cumulative == max(intensity_cumulative))
+# Interestingly this grabs a different MHW for the Med
+# so we need to more manually grab that one
 
+Med_focus <- MHW_event %>% 
+  filter(site == "Med", date_end <= "2004-01-01") %>% 
+  filter(intensity_cumulative == max(intensity_cumulative)) %>% 
+  left_join(site_coords, by = "site")
+WA_focus <- MHW_focus[3,] %>% 
+  left_join(site_coords, by = "site")
+NW_Atl_focus <- MHW_focus[2,] %>% 
+  left_join(site_coords, by = "site")
 
+  
 # Decide on bounding box --------------------------------------------------
 
-#
+# Load the category days from the peak of the chosen MHWs
+# category_test <- readRDS(category_files[1])
+category_WA <- readRDS(category_files[grepl(pattern = as.character(WA_focus$date_peak), 
+                                            x = category_files)])
+category_NW_Atl <- readRDS(category_files[grepl(pattern = as.character(NW_Atl_focus$date_peak), 
+                                                x = category_files)])
+category_Med <- readRDS(category_files[grepl(pattern = as.character(Med_focus$date_peak), 
+                                             x = category_files)])
+
+# Test figure to look at extent of focus MHW
+ggplot(data = category_Med, aes(x = lon, y = lat)) +
+  borders(fill = "grey70", colour = "black") +
+  geom_tile(aes(fill = category)) +
+  scale_fill_manual("Category",
+                    values = c("#ffc866", "#ff6900", "#9e0000", "#2d0000"),
+                    labels = c("I Moderate", "II Strong", "III Severe", "IV Extreme")) +
+  coord_cartesian(xlim = c(Med_focus$lon[1]-20, Med_focus$lon[1]+20),
+                  ylim = c(Med_focus$lat[1]-20, Med_focus$lat[1]+20)) +
+  labs(x = NULL, y = NULL)
+
+# Bounding boxes from center point of MHW
+# WA = lon+-20 lat+-20
+# NW_Atl = lon+-20 lat+-20
+# Med = lon+-20 lat+-20
+
+
+# Subset category files ---------------------------------------------------
+
+# Function that loads, subsets and returns a day of category data
+# testers...
+# vc <- category_files_focus[1]
+# lon_point <- WA_focus$lon
+# lat_point <- WA_focus$lat
+# spread <- 20
+category_subset <- function(vc, lon_point, lat_point, spread = 20){
+  cat_dat <- readRDS(vc)
+  res <- cat_dat %>%
+    filter(lon >= lon_point-spread, lon <= lon_point+spread,
+           lat >= lat_point-spread, lat <= lat_point+spread) %>%
+    mutate(t = sapply(strsplit(vc, "[.]"), "[[", 5))
+  return(res)
+}
+
+# This function is fed the one line dataframe with the focus event meta-data etc.
+# testers...
+# df <- WA_focus
+category_load <- function(df){
+  start_extract <- df$date_start-7
+  end_extract <- df$date_end+7
+  seq_extract <- seq(start_extract, end_extract, by = "day")
+  category_files_focus <- grep(paste(seq_extract, collapse = "|"), 
+                               category_files, value = TRUE)
+  res <- plyr::ldply(category_files_focus, category_subset, 
+                     lon = df$lon, lat = df$lat, .parallel = T)
+  return(res)
+}
+
+
+WA_cat_dat <- category_load(WA_focus)
+NW_Atl_cat_dat <- category_load(NW_Atl_focus)
+Med_cat_dat <- category_load(Med_focus)
+
 
 # Create animation --------------------------------------------------------
 
-gb <- ggplot(place_holder, aes(x = lon, y = lat)) +
-  borders(fill = "grey70", colour = "black") +
-  coord_cartesian(xlim = c(10, 40), ylim = c(-40, -25), expand = 0)
-gb
+# Function that is fed a category dataframe and creates an animation
+# testers...
+# df <- WA_cat_dat
+# spread <- 0
+category_animate <- function(df, site, spread = 0){
+  base_map <- ggplot(data = df, aes(x = lon, y = lat)) +
+    geom_blank() +
+    borders(fill = "grey80", colour = "black") +
+    coord_cartesian(xlim = c(min(df$lon)-spread, max(df$lon)+spread),
+                    ylim = c(min(df$lat)-spread, max(df$lat)+spread)) +
+    labs(x = NULL, y = NULL)
+  cat_anim <- ggplot(df, aes(x = lon, y = lat, fill = category)) +
+    geom_raster() +
+    # base_map +
+    scale_fill_manual("Category",
+                      values = c("#ffc866", "#ff6900", "#9e0000", "#2d0000"),
+                      labels = c("I Moderate", "II Strong", "III Severe", "IV Extreme")) +
+    labs(title = 'Date: {frame_time}') +
+    transition_time(t)
+  res <- animate(cat_anim)
+  # gganimate(cat_anim, "anim/test.mp4")
+  anim_save(animation = res, filename = paste0(site,"_infamous.gif"), path = "anim")
+}
 
-gb + geom_raster(data = MHW_cat_clim_sub, aes(fill = category)) +
-  scale_fill_manual(values = c("#ffc866", "#ff6900", "#9e0000", "#2d0000")) +
-  # coord_cartesian(xlim = c(10, 40), ylim = c(-40, -25), expand = 0) +
-  labs(title = 'Date: {frame_time}', x = '', y = '') +
-  transition_time(t)
-
-  
-  
-ggplot(MHW_cat_clim_sub, aes(x = lon, y = lat)) +
-  geom_raster(aes(fill = category)) +
-  # borders(fill = "grey70", colour = "black") +
-  # scale_fill_manual(values = c("#ffc866", "#ff6900", "#9e0000", "#2d0000")) +
-  # coord_cartesian(xlim = c(10, 40), ylim = c(-40, -25), expand = 0) +
-  labs(title = 'Date: {frame_time}', x = '', y = '') +
-  transition_time(t)
-# )
-anim_save(filename = "MHW_cat_anim.gif", path = "anim")
-
-ggplot(place_holder, aes(x = lon, y = lat)) +
-  # geom_raster(data = MHW_cat_clim_sub, aes(fill = category)) +
-  borders(fill = "grey70", colour = "black") +
-  # scale_fill_manual(values = c("#ffc866", "#ff6900", "#9e0000", "#2d0000")) +
-  coord_cartesian(xlim = c(10, 40), ylim = c(-40, -25), expand = 0) +
-  labs(title = 'Date: {frame_time}', x = '', y = '') +
-  transition_time(t)
-
+# Render and save the animations
+category_animate(WA_cat_dat, "WA")
+category_animate(NW_Atl_cat_dat, "NW_Atl")
+category_animate(Med_cat_dat, "Med")
