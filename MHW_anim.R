@@ -123,7 +123,10 @@ category_subset <- function(vc, lon_point, lat_point, spread = 20){
   res <- cat_dat %>%
     filter(lon >= lon_point-spread, lon <= lon_point+spread,
            lat >= lat_point-spread, lat <= lat_point+spread) %>%
-    mutate(t = sapply(strsplit(vc, "[.]"), "[[", 5))
+    mutate(t = as.Date(sapply(strsplit(vc, "[.]"), "[[", 5)),
+           category = factor(category, 
+                             levels = c("I Moderate", "II Strong", 
+                                        "III Severe", "IV Extreme")))
   return(res)
 }
 
@@ -149,25 +152,24 @@ Med_cat_dat <- category_load(Med_focus)
 
 # Create animation --------------------------------------------------------
 
+
+# df <- df %>% 
+#   filter(t == "2003-05-29")
+
 # Function that is fed a category dataframe and creates an animation
 # testers...
 # df <- WA_cat_dat
 # spread <- 0
 # site <- "WA"
 category_animate <- function(df, site, spread = 0){
-  df$t <- as.Date(df$t)
-  anim_days <- unique(df$t)
-  # base_map <- ggplot(data = df, aes(x = lon, y = lat)) +
-  #   borders(fill = "grey80", colour = "black") +
-  #   coord_cartesian(xlim = c(min(df$lon)-spread, max(df$lon)+spread),
-  #                   ylim = c(min(df$lat)-spread, max(df$lat)+spread)) +
-  #   labs(x = NULL, y = NULL)
+  anim_days <- length(unique(df$t))
   world <- ggplot() +
     borders("world", colour = "black", fill = "gray80") +
     coord_cartesian(xlim = c(min(df$lon)-spread, max(df$lon)+spread),
                     ylim = c(min(df$lat)-spread, max(df$lat)+spread),
-                    expand = c(0, 0)) +
-    labs(x = NULL, y = NULL)
+                    expand = 0) +
+    labs(x = NULL, y = NULL) +
+    theme(panel.background = element_rect(fill = "lightblue"))
   cat_anim <- world +
     geom_raster(data = df, aes(x = lon, y = lat, fill = category)) +
     scale_fill_manual("Category",
@@ -177,18 +179,18 @@ category_animate <- function(df, site, spread = 0){
     # coord_cartesian(xlim = c(min(df$lon)-spread, max(df$lon)+spread),
                     # ylim = c(min(df$lat)-spread, max(df$lat)+spread)) +
     labs(title = 'Date: {frame_time}') +
-    transition_time(time = t) #+
-    # ease_aes(interval = 10)
-  # options = "-t 00:01:00"
+    transition_time(time = t)# +
+    # ease_aes("linear", interval = 2)
   # It seems as though it is impossible to get the video to render as anything other than 4 seconds...
   res <- animate(cat_anim, renderer = ffmpeg_renderer())
-                 # nframes = length(anim_days), fps = 1)
+  # res <- animate(cat_anim, fps = 10, duration = anim_days)
   anim_save(animation = res, filename = paste0(site,"_infamous.mp4"), path = "anim")
   # Create a slower video using console commands
   system(paste0("ffmpeg -i anim/",site,"_infamous.mp4 -vf 'setpts=7*PTS' anim/",site,"_infamous_slow.mp4"))
 }
 
 # Render and save the animations
+# NB: Must manually delete the slow versions of the following outputs to re-create them
 category_animate(WA_cat_dat, "WA")
 category_animate(NW_Atl_cat_dat, "NW_Atl")
 category_animate(Med_cat_dat, "Med")
