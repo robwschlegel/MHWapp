@@ -220,7 +220,7 @@ if(length(update_dates) > 0){
   print(paste0("Updating global MHW slices from ",min(update_dates)," to ",max(update_dates)))
   for(i in 1:length(update_dates)){
     cat_clim_global_daily(update_dates[i])
-  } # ~6 seconds for one
+  } # ~15 seconds for one
 }
 
 
