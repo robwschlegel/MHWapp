@@ -7,15 +7,15 @@
 
 # Libraries ---------------------------------------------------------------
 library(tidyverse)
-library(gganimate, lib.loc = "../R-packages/")
-library(heatwaveR, lib.loc = "../R-packages/")
+library(gganimate, lib.loc = "~/R-packages/")
+library(heatwaveR, lib.loc = "~/R-packages/")
 doMC::registerDoMC(cores = 50)
 # library(padr)
 
 
 # Meta-data ---------------------------------------------------------------
 
-category_files <- as.character(dir(path = "../data/cat_clim", pattern = "cat.clim",
+category_files <- as.character(dir(path = "~/data/cat_clim", pattern = "cat.clim",
                                    full.names = TRUE, recursive = TRUE))
 
 site_coords <- data.frame(site = c("WA", "NW_Atl", "Med"),
