@@ -7,7 +7,7 @@ map <- function(input, output, session) {
   # y <- 39.875
   # input <- data.frame(from = as.Date("2018-01-01"),
   #                     to = as.Date("2018-12-31"),
-  #                     date_choice = as.Date("2018-02-14"),
+  #                     date_choice = as.Date("2019-03-14"),
   #                     pixel = "Smooth")
   #                     #categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
   
@@ -46,6 +46,7 @@ map <- function(input, output, session) {
     sub_dir <- paste0("cat_clim/",year_filter)
     sub_file <- paste0(sub_dir,"/cat.clim.",date_filter,".Rda")
     if(file.exists(sub_file)){
+      # baseDataPre <- qs::qread(sub_file)
       baseDataPre <- readRDS(sub_file)
     } else {
       baseDataPre <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>% 

@@ -53,7 +53,6 @@ load("metadata/final_dates.Rdata")
 if(max(final_dates) < final_time_end) {
   final_date_start <- paste0(max(final_dates)+1,"T00:00:00Z")
   final_date_end <- paste0(final_time_end,"T00:00:00Z")
-  if(final_date_end > final_time_end) stop("Trying to download final data that are not yet available.")
 } else {
   final_date_start <- FALSE
 }
@@ -63,13 +62,18 @@ load("metadata/prelim_dates.Rdata")
 if(max(prelim_dates) < prelim_time_end) {
   prelim_date_start <- paste0(max(prelim_dates)+1,"T00:00:00Z")
   prelim_date_end <- paste0(prelim_time_end,"T00:00:00Z")
-  if(prelim_date_end > prelim_time_end) stop("Trying to download prelim data that are not yet available.")
+  if(max(prelim_dates)+1 < prelim_time_start){
+    prelim_date_blank <- seq(max(prelim_dates)+1, prelim_time_start-1, by = "day")
+    prelim_date_start <- paste0(prelim_time_start, "T00:00:00Z")
+    print(paste0("The day(s) ",prelim_date_blank," are not available in the prelim data and are being filled with ",prelim_time_start))
+  }
 } else {
   prelim_date_start <- FALSE
 }
 
 if(final_date_start == FALSE & prelim_date_start == FALSE)
   stop("No new data to download")
+
 
 # Download data not in 'final_dates' if necessary/possible
 if(final_date_start != FALSE){
@@ -102,6 +106,26 @@ if(prelim_date_start != FALSE){
   OISST_prelim_2 <- data.frame(lon = NA, lat = NA, t = NA, temp = NA)
 }
 
+# Fill blank days from prelim data with earliest day available
+# NB: This should only occur very rarely
+if(prelim_date_blank){
+  prelim_blank_plug <- filter(OISST_prelim_2, t == prelim_time_start)
+  for(i in length(prelim_date_blank):1){
+    prelim_blank_plug_step <- prelim_blank_plug
+    prelim_blank_plug_step$t <- prelim_date_blank[i]
+    OISST_prelim_2 <- rbind(prelim_blank_plug_step ,OISST_prelim_2)
+  }
+}
+
+# Catch the dates when the data may be incorrect and remove anything from there forward
+if(max(OISST_final_2$temp, na.rm = T) > 100){
+  final_date_error <- min(filter(OISST_final_2, temp > 100)$t)
+  OISST_final_2 <- filter(OISST_final_2, t < final_date_error)
+}
+if(max(OISST_prelim_2$temp, na.rm = T) > 100){
+  prelim_date_error <- min(filter(OISST_prelim_2, temp > 100)$t)
+  OISST_prelim_2 <- filter(OISST_prelim_2, t < prelim_date_error)
+}
 
 # Add new prelim and final data to the files
 ## NB: -NEVER- run this in RStudio Server!
@@ -173,7 +197,7 @@ if(final_date_start != FALSE){
 # MHW_event_cat_fix(lon_OISST[370])
 
   # Run many
-# plyr::ldply(lon_OISST[c(2, 21, 370)], .fun = MHW_event_cat_fix, .parallel = TRUE)
+# plyr::ldply(lon_OISST, .fun = MHW_event_cat_fix, .parallel = TRUE)
 
 
 # 3: Create daily global files --------------------------------------------
@@ -187,7 +211,7 @@ nc_close(nc_OISST)
 
 # Get the range of dates that need to be run
 # Manually control dates as desired
-# update_dates <- seq(as.Date("2019-02-10"), as.Date("2019-03-02"), by = "day")
+# update_dates <- seq(as.Date("2019-02-10"), as.Date("2019-03-23"), by = "day")
 update_dates <- time_index[which(time_index > max(final_dates))]
 
 # Process the lot of them
@@ -196,7 +220,7 @@ if(length(update_dates) > 0){
   print(paste0("Updating global MHW slices from ",min(update_dates)," to ",max(update_dates)))
   for(i in 1:length(update_dates)){
     cat_clim_global_daily(update_dates[i])
-  } # ~15 seconds for one
+  } # ~6 seconds for one
 }
 
 

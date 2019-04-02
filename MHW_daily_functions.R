@@ -9,6 +9,7 @@ library(tidyverse)
 library(ncdf4)
 library(abind)
 library(rerddap)
+# library(qs, lib.loc = "../R-packages/")
 library(heatwaveR, lib.loc = "../R-packages/")
 cat(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))
 # doMC::registerDoMC(cores = 25)
@@ -317,6 +318,7 @@ MHW_event_cat_update <- function(lon_step, final_start){
     filter(row_number() %% 2 == 1) %>% 
     unnest()
   if(length(MHW_event_new$lon) != 0) 
+    # qsave(MHW_event_new, file = MHW_event_files[lon_row])
     saveRDS(MHW_event_new, file = MHW_event_files[lon_row])
   # tester...
   # MHW_event_new_test <- MHW_event_new %>% 
@@ -327,6 +329,7 @@ MHW_event_cat_update <- function(lon_step, final_start){
     filter(row_number() %% 2 == 0) %>% 
     unnest()
   if(length(MHW_cat_new$lon) != 0) 
+    # qsave(MHW_cat_new, file = cat_lon_files[lon_row])
     saveRDS(MHW_cat_new, file = cat_lon_files[lon_row])
   # tester...
   # MHW_cat_new_test <- MHW_cat_new %>% 
@@ -384,6 +387,7 @@ event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon){
 # date_choice <- max(current_dates)+1
 # date_choice <- min(update_dates)
 load_sub_cat_clim <- function(cat_lon_file, date_choice){
+  # cat_clim <- qs::qread(cat_lon_file)
   cat_clim <- readRDS(cat_lon_file)
   cat_clim_sub <- cat_clim %>%
     filter(t == date_choice)
@@ -410,7 +414,8 @@ cat_clim_global_daily <- function(date_choice){
   cat_clim_year <- lubridate::year(date_choice)
   cat_clim_dir <- paste0("../data/cat_clim/",cat_clim_year)
   dir.create(as.character(cat_clim_dir), showWarnings = F)
-  cat_clim_name <- paste0("cat.clim.",date_choice,".Rda")
+  cat_clim_name <- paste0("cat.clim.",date_choice,".q")
+  # qsave(cat_clim_daily, file = paste0(cat_clim_dir,"/",cat_clim_name))
   saveRDS(cat_clim_daily, file = paste0(cat_clim_dir,"/",cat_clim_name))
   print(paste0("Finished creating ", date_choice," slice at ",Sys.time()))
 }
