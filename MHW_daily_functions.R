@@ -270,8 +270,8 @@ sst_seas_thresh_merge <- function(lon_step, start_date){
 
 # Function for updating the MHW event metric lon slice files
 # tester...
-# lon_step <- lon_OISST[17]
-# final_start <- "2019-02-10"
+# lon_step <- lon_OISST[1117]
+# final_start <- "2019-03-24"
 MHW_event_cat_update <- function(lon_step, final_start){
   
   # Determine correct lon/row/slice
@@ -279,9 +279,11 @@ MHW_event_cat_update <- function(lon_step, final_start){
   lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
   
   # Load current lon slice for event/category
-  MHW_event_data <- readRDS(MHW_event_files[lon_row])
+  MHW_event_data <- readRDS(MHW_event_files[lon_row]) %>% 
+    na.omit()
   if(MHW_event_data$lon[1] != lon_step) stop("The lon_row indexing has broken down somewhere")
-  MHW_cat_lon <- readRDS(cat_lon_files[lon_row])
+  MHW_cat_lon <- readRDS(cat_lon_files[lon_row]) %>%
+    na.omit()
   if(MHW_cat_lon$lon[1] != lon_step) stop("The lon_row indexing has broken down somewhere")
   
   # Begin the calculations
@@ -383,7 +385,7 @@ event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon){
 
 # Function for loading a cat_lon slice and extracting a single day of values
 # testers...
-# cat_lon_file <- cat_lon_files[1]
+# cat_lon_file <- cat_lon_files[1118]
 # date_choice <- max(current_dates)+1
 # date_choice <- min(update_dates)
 load_sub_cat_clim <- function(cat_lon_file, date_choice){
@@ -401,10 +403,9 @@ load_sub_cat_clim <- function(cat_lon_file, date_choice){
 # date_choice <- as.Date("2019-02-10")
 cat_clim_global_daily <- function(date_choice){
   print(paste0("Began creating ", date_choice," slice at ",Sys.time()))
-  cat_clim_daily <- plyr::ldply(cat_lon_files,
   # tester...
   # cat_clim_daily <- plyr::ldply(dir("../data/test/", pattern = "MHW.cat", full.names = T), 
-  #
+  cat_clim_daily <- plyr::ldply(cat_lon_files,
                                 load_sub_cat_clim,
                                 .parallel = T, date_choice = date_choice) %>% 
     mutate(category = factor(category, levels = c("I Moderate", "II Strong",
@@ -414,7 +415,7 @@ cat_clim_global_daily <- function(date_choice){
   cat_clim_year <- lubridate::year(date_choice)
   cat_clim_dir <- paste0("../data/cat_clim/",cat_clim_year)
   dir.create(as.character(cat_clim_dir), showWarnings = F)
-  cat_clim_name <- paste0("cat.clim.",date_choice,".q")
+  cat_clim_name <- paste0("cat.clim.",date_choice,".Rda")
   # qsave(cat_clim_daily, file = paste0(cat_clim_dir,"/",cat_clim_name))
   saveRDS(cat_clim_daily, file = paste0(cat_clim_dir,"/",cat_clim_name))
   print(paste0("Finished creating ", date_choice," slice at ",Sys.time()))

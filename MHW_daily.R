@@ -62,6 +62,7 @@ load("metadata/prelim_dates.Rdata")
 if(max(prelim_dates) < prelim_time_end) {
   prelim_date_start <- paste0(max(prelim_dates)+1,"T00:00:00Z")
   prelim_date_end <- paste0(prelim_time_end,"T00:00:00Z")
+  prelim_date_blank <- FALSE
   if(max(prelim_dates)+1 < prelim_time_start){
     prelim_date_blank <- seq(max(prelim_dates)+1, prelim_time_start-1, by = "day")
     prelim_date_start <- paste0(prelim_time_start, "T00:00:00Z")
@@ -108,7 +109,7 @@ if(prelim_date_start != FALSE){
 
 # Fill blank days from prelim data with earliest day available
 # NB: This should only occur very rarely
-if(prelim_date_blank){
+if(prelim_date_blank != FALSE){
   prelim_blank_plug <- filter(OISST_prelim_2, t == prelim_time_start)
   for(i in length(prelim_date_blank):1){
     prelim_blank_plug_step <- prelim_blank_plug
@@ -194,10 +195,10 @@ if(final_date_start != FALSE){
 # This function can fix a specific file
 
   # Run one
-# MHW_event_cat_fix(lon_OISST[370])
+# MHW_event_cat_fix(lon_OISST[1178])
 
   # Run many
-# plyr::ldply(lon_OISST, .fun = MHW_event_cat_fix, .parallel = TRUE)
+# plyr::ldply(lon_OISST[1117:1182], .fun = MHW_event_cat_fix, .parallel = TRUE)
 
 
 # 3: Create daily global files --------------------------------------------
