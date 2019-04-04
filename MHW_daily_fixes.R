@@ -158,7 +158,7 @@ OISST_ncdf_fix <- function(lon_step, end_date){
 # Fix data at the event/cat lon level -------------------------------------
 
 # tester...
-# lon_step <- lon_OISST[370]
+# lon_step <- lon_OISST[1117]
 MHW_event_cat_fix <- function(lon_step){
   
   # Determine correct lon/row/slice
@@ -173,7 +173,7 @@ MHW_event_cat_fix <- function(lon_step){
                                            start_date = as.Date("1982-01-01"))
   
   # Calculate new event metrics with new data as necessary
-  system.time(
+  # system.time(
   MHW_event_cat <- sst_seas_thresh %>%
     mutate(lat2 = lat,
            lon = lon_step) %>% 
@@ -182,16 +182,18 @@ MHW_event_cat_fix <- function(lon_step){
     mutate(event_cat_res = map(data, event_calc_all)) %>% 
     select(-data, -lat2) %>% 
     unnest() # ~89 seconds to redo everything
-  )
+  # )
   # Save results and exit
   MHW_event_new <- MHW_event_cat %>% 
     filter(row_number() %% 2 == 1) %>% 
-    unnest()
+    unnest() %>% 
+    na.omit()
   if(length(MHW_event_new$lon) != 0) saveRDS(MHW_event_new, file = MHW_event_files[lon_row])
   
   MHW_cat_new <- MHW_event_cat %>% 
     filter(row_number() %% 2 == 0) %>% 
-    unnest()
+    unnest() %>% 
+    na.omit()
   if(length(MHW_cat_new$lon) != 0) saveRDS(MHW_cat_new, file = cat_lon_files[lon_row])
   
   print(paste0("Finished run on MHW.event.",lon_row_pad,".Rda at ",Sys.time()))
@@ -199,7 +201,8 @@ MHW_event_cat_fix <- function(lon_step){
 
 # Function for extracting correct sst data based on pre-determined subsets
 # It also calculates and returns corrected MHW metric results
-# df <- previous_event_index[300,]
+# df <- slice(MHW_event_cat, 1) %>%
+# unnest()
 event_calc_all <- function(df){
   
   # Calculate events
@@ -208,12 +211,19 @@ event_calc_all <- function(df){
     mutate(lon = df$lon[1], lat = df$lat[1]) %>% 
     dplyr::select(lon, lat, event_no, duration:intensity_max, intensity_cumulative) %>%
     mutate_all(round, 3)
-  
-  # Calculate categories
-  cat_step_1 <- category(event_base, climatology = T)$climatology %>% 
-    mutate(lon = df$lon[1],
-           lat = df$lat[1]) %>% 
-    select(t, lon, lat, event_no, intensity, category)
+  if(nrow(event_step_1) == 0){
+    event_step_1 <- data.frame(lon = df$lon[1], lat = df$lat[1],
+                               event_no = NA, duration = NA, intensity_mean = NA,
+                               intensity_max = NA, intensity_cumulative = NA)
+    cat_step_1 <- data.frame(t = NA, lon = df$lon[1], lat = df$lat[1],
+                             event_no = NA, intensity = NA, category = NA)
+  } else {
+    # Calculate categories
+    cat_step_1 <- category(event_base, climatology = T)$climatology %>% 
+      mutate(lon = df$lon[1],
+             lat = df$lat[1]) %>% 
+      select(t, lon, lat, event_no, intensity, category)
+  }
   
   # Exit
   event_cat <- list(event = event_step_1,
