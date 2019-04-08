@@ -9,7 +9,7 @@ aboutUI <- function(id, label = 'About') {
            br(),
            p("You have arrived at the Marine Heatwave (MHW) Tracker. This web application has been designed to show 
              the occurrence of MHWs around the world in near-real-time (roughly a 5 day delay). The Marine Heatwave 
-             Tracker also hosts all of the historic MHW records for the entire planet going back to January 1st, 1985."),
+             Tracker also hosts all of the historic MHW records for the entire planet going back to January 1st, 1982."),
            br(),
            h2("What is a Marine Heatwave (MHW)?"),
            br(),
