@@ -7,13 +7,13 @@ map <- function(input, output, session) {
   # y <- 39.875
   # input <- data.frame(from = as.Date("2018-01-01"),
   #                     to = as.Date("2018-12-31"),
-  #                     date_choice = as.Date("2019-03-14"),
+  #                     date_choice = as.Date("2018-02-14"),
   #                     pixel = "Smooth")
   #                     #categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
   
-
+  
 # Reactive UI features ----------------------------------------------------
-
+  
   output$button_ts <-  renderUI({
     click <- input$map_click
     if(is.null(click)){
@@ -21,7 +21,7 @@ map <- function(input, output, session) {
       #        style = "stretch", color = "danger")
     } else {
       shinyWidgets::actionBttn(inputId = ns("open_modal"), label = "Time series", icon = icon("map-marked"),
-                 style = "unite", color = "success")
+                               style = "unite", color = "success")
     }
   })
   
@@ -36,9 +36,9 @@ map <- function(input, output, session) {
     }
   })
   
-
+  
 # Map projection data -----------------------------------------------------
-
+  
   ### Base map data before screening categories
   baseDataPre <- reactive({
     date_filter <- input$date_choice
@@ -46,7 +46,6 @@ map <- function(input, output, session) {
     sub_dir <- paste0("cat_clim/",year_filter)
     sub_file <- paste0(sub_dir,"/cat.clim.",date_filter,".Rda")
     if(file.exists(sub_file)){
-      # baseDataPre <- qs::qread(sub_file)
       baseDataPre <- readRDS(sub_file)
     } else {
       baseDataPre <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>% 
@@ -78,7 +77,7 @@ map <- function(input, output, session) {
     colnames(MHW_raster) <- c("X", "Y", "Z")
     MHW_raster$Z <- as.numeric(MHW_raster$Z)
     rasterNonProj <- raster::rasterFromXYZ(MHW_raster, res = c(0.25, 0.25),
-                                   digits = 3, crs = inputProj)
+                                           digits = 3, crs = inputProj)
     # res_list <- list(MHW_raster = MHW_raster,
     #                  rasterNonProj = rasterNonProj)
     return(rasterNonProj)
@@ -88,14 +87,14 @@ map <- function(input, output, session) {
   rasterProj <- reactive({
     rasterNonProj <- rasterNonProj()
     # if(input$pixels == "Smooth"){
-      # rasterProj <- projectRasterForLeaflet(rasterNonProj, method = "bilinear")
+    # rasterProj <- projectRasterForLeaflet(rasterNonProj, method = "bilinear")
     # } else {
-      rasterProj <- projectRasterForLeaflet(rasterNonProj, method = "ngb")
+    rasterProj <- projectRasterForLeaflet(rasterNonProj, method = "ngb")
     # }
     return(rasterProj)
   })
   
-
+  
 # Time series data --------------------------------------------------------
   
   ### Pixel data
@@ -151,7 +150,7 @@ map <- function(input, output, session) {
     }
   })
   
-
+  
 # Pop-ups -----------------------------------------------------------------
   
   # testers...
@@ -227,26 +226,26 @@ map <- function(input, output, session) {
       # addLayersControl(
       #   baseGroups = c("OSM (default)", "Black and white", "Thunder forest"),
       #   options = layersControlOptions(collapsed = TRUE), position = "topleft") %>% 
-      addMiniMap(
-          tiles = providers$Esri.WorldStreetMap, collapsedWidth = 32, collapsedHeight = 32,
-          toggleDisplay = TRUE, position = "topleft", minimized = T, width = 200) %>% 
+    addMiniMap(
+      tiles = providers$Esri.WorldStreetMap, collapsedWidth = 32, collapsedHeight = 32,
+      toggleDisplay = TRUE, position = "topleft", minimized = T, width = 200) %>% 
       addEasyButton(easyButton(
         icon = "fa-globe", title = "Global view",
         onClick = JS("function(btn, map){ map.setZoom(2); }"))) %>%
       addScaleBar(position = "bottomright")
-      # addLayersControl(baseGroups = c("Default", "Black and white"), 
-      #                  options = layersControlOptions(collapsed = TRUE), position = "topleft")
-      # addWMSTiles(
-      #       "https://gis.ngdc.noaa.gov/arcgis/services/graticule/MapServer/WMSServer/",
-      #       layers = c("1-degree grid", "5-degree grid"),
-      #       options = WMSTileOptions(format = "image/png8", transparent = TRUE),
-      #       attribution = NULL) #%>%
-      # addEasyButton(easyButton(
-      #   icon="fa-crosshairs", title="Locate Me",
-      #   onClick=JS("function(btn, map){ map.locate({setView: true}); }"))) #%>% 
-      # addGraticule(group = "Graticule", interval = 1) %>%
-      # addLayersControl(overlayGroups = c("Graticule"),
-      #                  options = layersControlOptions(collapsed = FALSE, left = 20))
+    # addLayersControl(baseGroups = c("Default", "Black and white"), 
+    #                  options = layersControlOptions(collapsed = TRUE), position = "topleft")
+    # addWMSTiles(
+    #       "https://gis.ngdc.noaa.gov/arcgis/services/graticule/MapServer/WMSServer/",
+    #       layers = c("1-degree grid", "5-degree grid"),
+    #       options = WMSTileOptions(format = "image/png8", transparent = TRUE),
+    #       attribution = NULL) #%>%
+    # addEasyButton(easyButton(
+    #   icon="fa-crosshairs", title="Locate Me",
+    #   onClick=JS("function(btn, map){ map.locate({setView: true}); }"))) #%>% 
+    # addGraticule(group = "Graticule", interval = 1) %>%
+    # addLayersControl(overlayGroups = c("Graticule"),
+    #                  options = layersControlOptions(collapsed = FALSE, left = 20))
   })
   
   ### The raster layer
@@ -271,9 +270,9 @@ map <- function(input, output, session) {
     }
   })
   
-
+  
 # Figures/tables ----------------------------------------------------------
-
+  
   ### Create time series plot
   tsPlot <- reactive({
     # Get time series
@@ -360,7 +359,7 @@ map <- function(input, output, session) {
           scale_x_date(expand = c(0, 0), limits = c(min(ts_data_sub$t), max(ts_data_sub$t)))
       )
     }
-
+    
     # Convert to plotly
     # NB: Setting dynamicTicks = T causes the flames to be rendered incorrectly
     pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) %>% 
@@ -410,8 +409,8 @@ map <- function(input, output, session) {
     # filter(date_start >= input$from, date_start <= input$to)
     # event_data$date_start <- strftime(event_data$date_start, format = "%H:%M %p")
   })
-
-
+  
+  
 # Modal panel -------------------------------------------------------------
   
   ### Label/title for modal panel
@@ -472,7 +471,7 @@ map <- function(input, output, session) {
   ### Event metrics table
   output$table <- renderDataTable({
     DT::datatable(tsTable(), 
-              options = list(pageLength = 50))
+                  options = list(pageLength = 50))
   })
   
   ### UI panel
@@ -482,54 +481,50 @@ map <- function(input, output, session) {
     to_date <- as.Date(to_date, origin = "1970-01-01")
     from_date <- to_date-365
     shinyBS::bsModal(ns('modal'), title = div(id = ns('modalTitle'), pixelLabel()), trigger = 'click2', size = "large",
-            # div(id = ns("top_row"),
-            fluidPage(
-              # title = "",
-              tabsetPanel(id = ns("tabs"),
-                          tabPanel(title = "Plot",
-                                   br(),
-                                   shinycssloaders::withSpinner(plotlyOutput(ns("tsPlot")), type = 6, color = "#b0b7be"),
-                                   hr(),
-                                   fluidRow(
-                                     column(width = 2,
-                                            h4("From"),
-                                            dateInput(inputId = ns("from"), label = NULL, format = "M d, yyyy",
-                                                      value = from_date,
-                                                      min = "1985-01-01",
-                                                      max = input$to-1)),
-                                     column(width = 2,
-                                            h4("To"),
-                                            dateInput(inputId = ns("to"), label = NULL, format = "M d, yyyy",
-                                                      value = to_date, 
-                                                      min = input$from+1,
-                                                      max = max(current_dates))),
-                                     column(width = 2,
-                                            h4("Download"),
-                                            downloadButton(outputId = ns("download_clim"),
-                                                           label = "Climatology & Threshold (csv)", class = 'small-dl')))
-                          ),
-                          # tabPanel(title = "Lolli",
-                          #          br(),
-                          #          plotlyOutput(ns("lolliPlot"))),
-                          tabPanel(title = "Table",
-                                   br(),
-                                   wellPanel(class = 'wellpanel',
-                                             DT::dataTableOutput(ns('table'))),
-                                   hr(),
-                                   fluidRow(
-                                     column(width = 2,
-                                            h4("Download"),
-                                            downloadButton(outputId = ns("download_event"),
-                                                           label = "MHW data (csv)", class = 'small-dl')))
-                          )
-              )
-            )
+                     # div(id = ns("top_row"),
+                     fluidPage(
+                       # title = "",
+                       tabsetPanel(id = ns("tabs"),
+                                   tabPanel(title = "Plot",
+                                            br(),
+                                            shinycssloaders::withSpinner(plotlyOutput(ns("tsPlot")), type = 6, color = "#b0b7be"),
+                                            hr(),
+                                            fluidRow(
+                                              column(width = 2,
+                                                     h4("From"),
+                                                     dateInput(inputId = ns("from"), label = NULL, format = "M d, yyyy",
+                                                               value = from_date)),
+                                              column(width = 2,
+                                                     h4("To"),
+                                                     dateInput(inputId = ns("to"), label = NULL, format = "M d, yyyy",
+                                                               value = to_date)),
+                                              column(width = 2,
+                                                     h4("Download"),
+                                                     downloadButton(outputId = ns("download_clim"),
+                                                                    label = "Climatology & Threshold (csv)", class = 'small-dl')))
+                                   ),
+                                   # tabPanel(title = "Lolli",
+                                   #          br(),
+                                   #          plotlyOutput(ns("lolliPlot"))),
+                                   tabPanel(title = "Table",
+                                            br(),
+                                            wellPanel(class = 'wellpanel',
+                                                      DT::dataTableOutput(ns('table'))),
+                                            hr(),
+                                            fluidRow(
+                                              column(width = 2,
+                                                     h4("Download"),
+                                                     downloadButton(outputId = ns("download_event"),
+                                                                    label = "MHW data (csv)", class = 'small-dl')))
+                                   )
+                       )
+                     )
     )
   })
   
-
+  
 # Downloads ---------------------------------------------------------------
-
+  
   ### Prep event data
   downloadEventData <- reactive({
     data <- pixelData()$event

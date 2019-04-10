@@ -119,13 +119,17 @@ if(prelim_date_blank != FALSE){
 }
 
 # Catch the dates when the data may be incorrect and remove anything from there forward
-if(max(OISST_final_2$temp, na.rm = T) > 100){
-  final_date_error <- min(filter(OISST_final_2, temp > 100)$t)
-  OISST_final_2 <- filter(OISST_final_2, t < final_date_error)
+if(nrow(OISST_final_2) > 1){
+  if(max(OISST_final_2$temp, na.rm = T) > 100){
+    final_date_error <- min(filter(OISST_final_2, temp > 100)$t)
+    OISST_final_2 <- filter(OISST_final_2, t < final_date_error)
+  }
 }
-if(max(OISST_prelim_2$temp, na.rm = T) > 100){
-  prelim_date_error <- min(filter(OISST_prelim_2, temp > 100)$t)
-  OISST_prelim_2 <- filter(OISST_prelim_2, t < prelim_date_error)
+if(nrow(OISST_prelim_2) > 1){
+  if(max(OISST_prelim_2$temp, na.rm = T) > 100){
+    prelim_date_error <- min(filter(OISST_prelim_2, temp > 100)$t)
+    OISST_prelim_2 <- filter(OISST_prelim_2, t < prelim_date_error)
+  }
 }
 
 # Add new prelim and final data to the files
