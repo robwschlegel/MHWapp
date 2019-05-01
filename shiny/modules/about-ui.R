@@ -159,6 +159,9 @@ aboutUI <- function(id, label = 'About') {
            br()
     ),
     column(1,
-           HTML(""))
+           HTML("")),
+    if(length(server_instance) > 1){
+      print(server_instance)
+    }
   )
 }
