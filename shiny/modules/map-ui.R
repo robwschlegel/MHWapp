@@ -20,7 +20,7 @@ mapUI <- function(id, label = 'map') {
                             label = "Date",
                             # value = MHW_cat_clim_sub$t[MHW_cat_clim_sub$intensity == max(MHW_cat_clim_sub$intensity)][1],
                             value = date_menu_choice,
-                            min = "1985-01-01", 
+                            min = "1982-01-01", 
                             max = max(current_dates)),
                   # radioButtons(inputId = ns("pixels"),
                   #                    label = "Pixels",
