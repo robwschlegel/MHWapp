@@ -118,7 +118,11 @@ map <- function(input, output, session) {
       cell <- raster::cellFromXY(rasterNonProj, c(xy$lng, xy$lat))
       xy <- raster::xyFromCell(rasterNonProj, cell)
       # Grab time series data
-      ts_data <- sst_seas_thresh_ts(lon_step = xy[1], lat_step = xy[2])
+      ts_data <- sst_seas_thresh_ts(lon_step = xy[1], lat_step = xy[2]) %>% 
+        dplyr::mutate(diff = thresh - seas,
+                      thresh_2x = thresh + diff,
+                      thresh_3x = thresh_2x + diff,
+                      thresh_4x = thresh_3x + diff)
       # Grab event data
       event_file <- dir("event", full.names = T)[which(lon_OISST == xy[1])]
       event_data <- readRDS(event_file) %>% 
@@ -257,18 +261,18 @@ map <- function(input, output, session) {
   })
   
   ### Legend that can be de-activated by the user
-  observe({
-    proxy <- leafletProxy("map", data = MHW_cat_clim_sub)
-    proxy %>% clearControls()
-    if (input$legend) {
-      proxy %>% addLegend(position = "bottomright",
-                          pal = pal_factor,
-                          values = ~category,
-                          title = "Category", 
-                          opacity = 0.75
-      )
-    }
-  })
+  # observe({
+  #   proxy <- leafletProxy("map", data = MHW_cat_clim_sub)
+  #   proxy %>% clearControls()
+  #   if (input$legend) {
+  #     proxy %>% addLegend(position = "bottomright",
+  #                         pal = pal_factor,
+  #                         values = ~category,
+  #                         title = "Category", 
+  #                         opacity = 0.75
+  #     )
+  #   }
+  # })
   
   
 # Figures/tables ----------------------------------------------------------
@@ -301,6 +305,14 @@ map <- function(input, output, session) {
     event_data_sub <- event_data %>%
       filter(date_start >= input$from, date_end <= input$to)
     
+    # Set category fill colours
+    # fillColCat <- c(
+    #   "I Moderate" = "#ffc866",
+    #   "II Strong" = "#ff6900",
+    #   "III Severe" = "#9e0000",
+    #   "IV Extreme" = "#2d0000"
+    # )
+    
     # Create figure with no flames or rug because no events are present
     if(length(event_data_sub$date_start) == 0){
       suppressWarnings(
@@ -326,12 +338,21 @@ map <- function(input, output, session) {
       )
       # Create full figure
     } else {
-      suppressWarnings(
-        p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
-          heatwaveR::geom_flame(aes(y2 = thresh), n = 5, n_gap = 2) +
-          geom_line(colour = "grey20",
-                    aes(group = 1, text = paste0("Date: ",t,
-                                                 "<br>Temperature: ",temp,"°C"))) +
+      p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
+        heatwaveR::geom_flame(aes(y2 = thresh), fill = "#ffc866", n = 5, n_gap = 2)
+      if(any(ts_data_sub$temp > ts_data_sub$thresh_2x)){
+        p <- p + heatwaveR::geom_flame(aes(y2 = thresh_2x), fill = "#ff6900")
+      }
+      if(any(ts_data_sub$temp > ts_data_sub$thresh_3x)){
+        p <- p + heatwaveR::geom_flame(aes(y2 = thresh_3x), fill = "#9e0000")
+      }
+      if(any(ts_data_sub$temp > ts_data_sub$thresh_4x)){
+        p <- p + heatwaveR::geom_flame(aes(y2 = thresh_4x), fill = "#2d0000")
+      }
+      suppressWarnings( # Supress warning about ggplot not understanding the text aesthetic  fed to plotly
+        p <- p + geom_line(colour = "grey20",
+                           aes(group = 1, text = paste0("Date: ",t,
+                                                        "<br>Temperature: ",temp,"°C"))) +
           geom_line(linetype = "dashed", colour = "steelblue3",
                     aes(x = t, y = seas, group = 1,
                         text = paste0("Date: ",t,
@@ -356,7 +377,10 @@ map <- function(input, output, session) {
                                      "<br>Max. Intensity: ",intensity_max,"°C",
                                      "<br>Cum. Intensity: ",intensity_cumulative,"°C"))) +
           labs(x = "", y = "Temperature (°C)") +
-          scale_x_date(expand = c(0, 0), limits = c(min(ts_data_sub$t), max(ts_data_sub$t)))
+          scale_x_date(expand = c(0, 0), limits = c(min(ts_data_sub$t), max(ts_data_sub$t))) #+
+        # scale_fill_manual(name = NULL, values = fillColCat,
+        #                   breaks = c("I Moderate", "II Strong",
+        #                              "III Severe", "IV Extreme"))
       )
     }
     
@@ -493,11 +517,13 @@ map <- function(input, output, session) {
                                               column(width = 2,
                                                      h4("From"),
                                                      dateInput(inputId = ns("from"), label = NULL, format = "M d, yyyy",
-                                                               value = from_date)),
+                                                               value = from_date, 
+                                                               min = "1982-01-01", max = max(current_dates)-1)),
                                               column(width = 2,
                                                      h4("To"),
                                                      dateInput(inputId = ns("to"), label = NULL, format = "M d, yyyy",
-                                                               value = to_date)),
+                                                               value = to_date,
+                                                               min = "1982-01-02", max = max(current_dates))),
                                               column(width = 2,
                                                      h4("Download"),
                                                      downloadButton(outputId = ns("download_clim"),
