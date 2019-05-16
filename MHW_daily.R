@@ -47,7 +47,7 @@ prelim_time_start <- NOAA_date(prelim_time_range, 1)
 prelim_time_end <- NOAA_date(prelim_time_range, 2)
 
 
-# Check if newer data need to/can be downloaded
+# Check if newer final data need to/can be downloaded
 print("Checking if new final data need downloading")
 load("metadata/final_dates.Rdata")
 if(max(final_dates) < final_time_end) {
@@ -57,6 +57,8 @@ if(max(final_dates) < final_time_end) {
   final_date_start <- FALSE
 }
 
+
+# Check if newer final data need to/can be downloaded
 print("Checking if new prelim data need downloading")
 load("metadata/prelim_dates.Rdata")
 if(max(prelim_dates) < prelim_time_end) {
@@ -70,8 +72,11 @@ if(max(prelim_dates) < prelim_time_end) {
   }
 } else {
   prelim_date_start <- FALSE
+  prelim_date_blank <- FALSE
 }
 
+
+# If there are no new data, stop the process
 if(final_date_start == FALSE & prelim_date_start == FALSE)
   stop("No new data to download")
 
@@ -82,6 +87,7 @@ if(final_date_start != FALSE){
   OISST_final_1 <- OISST_dl(c(final_date_start, final_date_end),
                             "ncdc_oisst_v2_avhrr_by_time_zlev_lat_lon")
 }
+
 
 # Download data not in 'prelim_dates' if necessary/possible
 if(prelim_date_start != FALSE){
@@ -99,6 +105,7 @@ if(final_date_start != FALSE){
   OISST_final_2 <- data.frame(lon = NA, lat = NA, t = NA, temp = NA)
 }
 
+
 # Prep prelim data for NetCDF files
 if(prelim_date_start != FALSE){
   print("Prepping new prelim data")
@@ -106,6 +113,7 @@ if(prelim_date_start != FALSE){
 } else {
   OISST_prelim_2 <- data.frame(lon = NA, lat = NA, t = NA, temp = NA)
 }
+
 
 # Fill blank days from prelim data with earliest day available
 # NB: This should only occur very rarely
@@ -117,6 +125,7 @@ if(prelim_date_blank != FALSE){
     OISST_prelim_2 <- rbind(prelim_blank_plug_step ,OISST_prelim_2)
   }
 }
+
 
 # Catch the dates when the data may be incorrect and remove anything from there forward
 if(nrow(OISST_final_2) > 1){
@@ -131,6 +140,7 @@ if(nrow(OISST_prelim_2) > 1){
     OISST_prelim_2 <- filter(OISST_prelim_2, t < prelim_date_error)
   }
 }
+
 
 # Add new prelim and final data to the files
 ## NB: -NEVER- run this in RStudio Server!
