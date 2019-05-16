@@ -6,8 +6,12 @@ This interactive map holds all of the MHWs detected in the NOAA OISST data from 
 # Updates
 
 * May 15th, 2019
+  * Added coloured category filtering buttons
+  * Added info popup on start up
+
+* May 15th, 2019
   * Playing with coloured button options
-  * added category colours to time series plot
+  * Added category colours to time series plot
   * Removed category legend from map
 
 * March 18th, 2019
@@ -26,7 +30,7 @@ This interactive map holds all of the MHWs detected in the NOAA OISST data from 
   * These changes are accounted for in the `about` section
 
 * February 14th, 2019
-  * Some tweeks to the daily scripts
+  * Some tweaks to the daily scripts
   * Added a "Why should I care?" section in the about panel
   * Added a break in the category screening that should help with speed
   
@@ -41,7 +45,7 @@ This interactive map holds all of the MHWs detected in the NOAA OISST data from 
   * Added a bit more safety to daily script
 
 * February 11th, 2019
-  * Adressed heatspike issue
+  * Addressed heatspike issue
   * Changed data syncing with app so no git pulling is required
   * Smoothed out bugs in daily updating script
   * Minor about section edits

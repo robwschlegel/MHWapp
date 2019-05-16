@@ -43,6 +43,83 @@ map <- function(input, output, session) {
     }
   })
   
+  ### Strong filtering button
+  ## The base reactive value for clicking
+  button_II <- reactiveValues(clicked = FALSE)
+  ## Observe button click to filter category
+  observeEvent(input$strong_filter, {
+    if(!button_II$clicked){
+      button_II$clicked <- TRUE
+      categories$categories <- categories$categories[!grepl("II Strong", categories$categories)]
+    } else{
+      button_II$clicked <- FALSE
+      if(!"II Strong" %in% categories$categories){
+        categories$categories <- c(categories$categories, "II Strong")
+      }
+    }
+  })
+  ## Change button icon upon click
+  output$strong <-  renderUI({
+    if(button_II$clicked){
+      actionButton(inputId = ns("strong_filter"), "II Strong", icon = icon("remove", lib = "glyphicon"),
+                   style = "color: black; background-color: #ff6900; border-color: black")     
+    } else {
+      actionButton(inputId = ns("strong_filter"), "II Strong", icon = icon("ok", lib = "glyphicon"),
+                   style = "color: black; background-color: #ff6900; border-color: black")
+    }
+  })
+  
+  ### Severe filtering button
+  ## The base reactive value for clicking
+  button_III <- reactiveValues(clicked = FALSE)
+  ## Observe button click to filter category
+  observeEvent(input$severe_filter, {
+    if(!button_III$clicked){
+      button_III$clicked <- TRUE
+      categories$categories <- categories$categories[!grepl("III Severe", categories$categories)]
+    } else{
+      button_III$clicked <- FALSE
+      if(!"III Severe" %in% categories$categories){
+        categories$categories <- c(categories$categories, "III Severe")
+      }
+    }
+  })
+  ## Change button icon upon click
+  output$severe <-  renderUI({
+    if(button_III$clicked){
+      actionButton(inputId = ns("severe_filter"), "III Severe", icon = icon("remove", lib = "glyphicon"),
+                   style = "color: white; background-color: #9e0000; border-color: black")     
+    } else {
+      actionButton(inputId = ns("severe_filter"), "III Severe", icon = icon("ok", lib = "glyphicon"),
+                   style = "color: white; background-color: #9e0000; border-color: black")
+    }
+  })
+  
+  ### Extreme filtering button
+  ## The base reactive value for clicking
+  button_IV <- reactiveValues(clicked = FALSE)
+  ## Observe button click to filter category
+  observeEvent(input$extreme_filter, {
+    if(!button_IV$clicked){
+      button_IV$clicked <- TRUE
+      categories$categories <- categories$categories[!grepl("IV Extreme", categories$categories)]
+    } else{
+      button_IV$clicked <- FALSE
+      if(!"IV Extreme" %in% categories$categories){
+        categories$categories <- c(categories$categories, "IV Extreme")
+      }
+    }
+  })
+  ## Change button icon upon click
+  output$extreme <-  renderUI({
+    if(button_IV$clicked){
+      actionButton(inputId = ns("extreme_filter"), "IV Extreme", icon = icon("remove", lib = "glyphicon"),
+                   style = "color: white; background-color: #2d0000; border-color: black")     
+    } else {
+      actionButton(inputId = ns("extreme_filter"), "IV Extreme", icon = icon("ok", lib = "glyphicon"),
+                   style = "color: white; background-color: #2d0000; border-color: black")
+    }
+  })
   
   ### Time series button
   output$button_ts <-  renderUI({
@@ -86,20 +163,9 @@ map <- function(input, output, session) {
     return(baseDataPre)
   })
   
-  # categories <- reactive({
-  #   baseDataPre <- baseDataPre()
-  #   categories <- c("I Moderate", "II Strong", "III Severe", "IV Extreme")
-  #   if(button_I$clicked) categories <- categories[!grepl("I Moderate", categories)]
-  #   if(button_II$clicked) categories <- categories[!grepl("II Strong", categories)]
-  #   if(button_III$clicked) categories <- categories[!grepl("III Severe", categories)]
-  #   if(button_IV$clicked) categories <- categories[!grepl("IV Extreme", categories)]
-  #   return(categories)
-  # })
-  
   ### Base map data after screening categories
   baseData <- reactive({
     baseDataPre <- baseDataPre()
-    # categories <- categories()
     baseData <- baseDataPre %>%
       filter(category %in% categories$categories)
     # Fix for the issue caused by de-slecting all of the cateogries
@@ -258,6 +324,15 @@ map <- function(input, output, session) {
     leaflet(MHW_cat_clim_sub) %>%
       setView(initial_lon, initial_lat, zoom = initial_zoom,
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) %>%
+      addPopups(initial_lon, initial_lat-5, popup = HTML("<b>Welcome to the Marine Heatwave Tracker!</b> 
+                                                       <hr>
+                                                       This web application shows up to date information on where in the world marine heatwaves (MHWs) are occurring and how intense they are.
+                                                       <hr>
+                                                       Use the <b>Date</b> box in the top left corner to choose a day to display on the map.
+                                                       <hr>
+                                                       Clicking on the different <b>Category</b> buttons will filter those pixels from the map.
+                                                       <hr>
+                                                       After clicking on a pixel of interest, click the <b>Time Series</b> button on the left to see more information.")) %>%
       # Different tile options
       addTiles(group = "OSM (default)", 
                options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
