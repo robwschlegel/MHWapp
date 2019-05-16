@@ -14,6 +14,37 @@ map <- function(input, output, session) {
   
 # Reactive UI features ----------------------------------------------------
   
+  ### Reactive category filters
+  categories <- reactiveValues(categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
+  
+  ### Moderate filtering button
+  ## The base reactive value for clicking
+  button_I <- reactiveValues(clicked = FALSE)
+  ## Observe button click to filter category
+  observeEvent(input$moderate_filter, {
+    if(!button_I$clicked){
+      button_I$clicked <- TRUE
+      categories$categories <- categories$categories[!grepl("I Moderate", categories$categories)]
+    } else{
+      button_I$clicked <- FALSE
+      if(!"I Moderate" %in% categories$categories){
+        categories$categories <- c(categories$categories, "I Moderate")
+      }
+    }
+  })
+  ## Change button icon upon click
+  output$moderate <-  renderUI({
+    if(button_I$clicked){
+      actionButton(inputId = ns("moderate_filter"), "I Moderate", icon = icon("remove", lib = "glyphicon"),
+                   style = "color: black; background-color: #ffc866; border-color: black")     
+    } else {
+      actionButton(inputId = ns("moderate_filter"), "I Moderate", icon = icon("ok", lib = "glyphicon"),
+                   style = "color: black; background-color: #ffc866; border-color: black")
+    }
+  })
+  
+  
+  ### Time series button
   output$button_ts <-  renderUI({
     click <- input$map_click
     if(is.null(click)){
@@ -26,15 +57,15 @@ map <- function(input, output, session) {
   })
   
   ### Observer to change time series button colour after first click
-  change_colour <- function(){
-    "success"
-  }
-  observe({
-    click <- input$map_click
-    if(!is.null(click)){
-      button_colour_ts <- change_colour()
-    }
-  })
+  # change_colour <- function(){
+  #   "success"
+  # }
+  # observe({
+  #   click <- input$map_click
+  #   if(!is.null(click)){
+  #     button_colour_ts <- change_colour()
+  #   }
+  # })
   
   
 # Map projection data -----------------------------------------------------
@@ -55,11 +86,22 @@ map <- function(input, output, session) {
     return(baseDataPre)
   })
   
+  # categories <- reactive({
+  #   baseDataPre <- baseDataPre()
+  #   categories <- c("I Moderate", "II Strong", "III Severe", "IV Extreme")
+  #   if(button_I$clicked) categories <- categories[!grepl("I Moderate", categories)]
+  #   if(button_II$clicked) categories <- categories[!grepl("II Strong", categories)]
+  #   if(button_III$clicked) categories <- categories[!grepl("III Severe", categories)]
+  #   if(button_IV$clicked) categories <- categories[!grepl("IV Extreme", categories)]
+  #   return(categories)
+  # })
+  
   ### Base map data after screening categories
   baseData <- reactive({
     baseDataPre <- baseDataPre()
-    baseData <- baseDataPre %>% 
-      filter(category %in% input$categories)
+    # categories <- categories()
+    baseData <- baseDataPre %>%
+      filter(category %in% categories$categories)
     # Fix for the issue caused by de-slecting all of the cateogries
     if(length(baseData$category) == 0){
       baseData <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>% 
