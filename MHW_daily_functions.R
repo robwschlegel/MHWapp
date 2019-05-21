@@ -149,7 +149,7 @@ OISST_merge <- function(lon_step, df_prelim, df_final){
   lon_row <- which(lon_OISST == lon_step)
   lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
   
-  print(paste0("Began run on avhrr-only-v2.ts.",lon_row_pad,".nc at ",Sys.time()))
+  # print(paste0("Began run on avhrr-only-v2.ts.",lon_row_pad,".nc at ",Sys.time()))
   
   # Determine file name
   ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
@@ -172,7 +172,7 @@ OISST_merge <- function(lon_step, df_prelim, df_final){
     filter(lon  == lon_step)
   
   if(max(OISST_prelim_sub$temp, na.rm = T) > 100 | max(OISST_final_sub$temp, na.rm = T) > 100)
-    stop("There are errors in the OISST data.")
+    stop(paste0("There are errors in the OISST data for ",ncdf_file_name))
   
   ### Create data arrays and insert into NetCDF file
   if(nrow(OISST_prelim_sub) > 0){
@@ -204,7 +204,7 @@ OISST_merge <- function(lon_step, df_prelim, df_final){
   
   ### Close file and exit
   nc_close(nc)
-  print(paste0("Finished run on avhrr-only-v2.ts.",lon_row_pad,".nc at ",Sys.time()))
+  # print(paste0("Finished run on avhrr-only-v2.ts.",lon_row_pad,".nc at ",Sys.time()))
 }
 
 
@@ -281,13 +281,13 @@ MHW_event_cat_update <- function(lon_step, final_start){
   # Load current lon slice for event/category
   MHW_event_data <- readRDS(MHW_event_files[lon_row]) %>% 
     na.omit()
-  if(MHW_event_data$lon[1] != lon_step) stop("The lon_row indexing has broken down somewhere")
+  if(MHW_event_data$lon[1] != lon_step) stop(paste0("The lon_row indexing has broken down somewhere for ",lon_row_pad))
   MHW_cat_lon <- readRDS(cat_lon_files[lon_row]) %>%
     na.omit()
-  if(MHW_cat_lon$lon[1] != lon_step) stop("The lon_row indexing has broken down somewhere")
+  if(MHW_cat_lon$lon[1] != lon_step) stop(paste0("The lon_row indexing has broken down somewhere for ",lon_row_pad))
   
   # Begin the calculations
-  print(paste0("Began run on ",MHW_event_files[lon_row]," at ",Sys.time()))
+  # print(paste0("Began run on ",MHW_event_files[lon_row]," at ",Sys.time()))
   
   # Determine how far back in time to get old data based on the occurrence of the previous MHW
   # Screen out events where the date_end is the same as max(MHW_event_data$date_end)
@@ -338,7 +338,7 @@ MHW_event_cat_update <- function(lon_step, final_start){
   #   filter(lat == df$lat)
   # saveRDS(MHW_cat_new, dir("../data/test", pattern = "MHW.cat", full.names = T)[lon_row])
   
-  print(paste0("Finished run on MHW.event.",lon_row_pad,".Rda at ",Sys.time()))
+  # print(paste0("Finished run on MHW.event.",lon_row_pad,".Rda at ",Sys.time()))
 }
 
 # Function for extracting correct sst data based on pre-determined subsets
@@ -402,7 +402,7 @@ load_sub_cat_clim <- function(cat_lon_file, date_choice){
 # date_choice <- max(current_dates)+1
 # date_choice <- as.Date("2019-02-10")
 cat_clim_global_daily <- function(date_choice){
-  print(paste0("Began creating ", date_choice," slice at ",Sys.time()))
+  # print(paste0("Began creating ", date_choice," slice at ",Sys.time()))
   # tester...
   # cat_clim_daily <- plyr::ldply(dir("../data/test/", pattern = "MHW.cat", full.names = T), 
   cat_clim_daily <- plyr::ldply(cat_lon_files,
