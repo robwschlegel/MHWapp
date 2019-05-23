@@ -14,6 +14,22 @@ map <- function(input, output, session) {
   
 # Reactive UI features ----------------------------------------------------
   
+  ### The popup modal when starting the app
+  ## Open on startup
+  # shinyBS::toggleModal(session, modalId = ns("startupModal"), toggle = "open")
+  shinyBS::toggleModal(session, "startupModal", "open")
+  ## The content of the welcome window
+  output$uiStartupModal <- renderUI({
+    shinyBS::bsModal(ns('startupModal'), title = strong("Welcome to the Marine Heatwave Tracker!"), trigger = "click2", size = "m",
+                     HTML("This web application shows up to date information on where in the world marine heatwaves (MHWs) are occurring and how intense they are.
+                           <hr>
+                           Use the <b>Date</b> box in the top right corner to choose a day to display on the map.
+                           <hr>
+                           Clicking on the different <b>Category</b> buttons will filter those pixels from the map.
+                           <hr>
+                           After clicking on a pixel of interest, click the <b>Time Series</b> button on the right to see more information."))
+    })
+  
   ### Reactive category filters
   categories <- reactiveValues(categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
   
@@ -33,7 +49,7 @@ map <- function(input, output, session) {
     }
   })
   ## Change button icon upon click
-  output$moderate <-  renderUI({
+  output$moderate <- renderUI({
     if(button_I$clicked){
       actionButton(inputId = ns("moderate_filter"), "I Moderate", icon = icon("remove", lib = "glyphicon"),
                    style = "color: black; background-color: #ffc866; border-color: black")     
@@ -59,7 +75,7 @@ map <- function(input, output, session) {
     }
   })
   ## Change button icon upon click
-  output$strong <-  renderUI({
+  output$strong <- renderUI({
     if(button_II$clicked){
       actionButton(inputId = ns("strong_filter"), "II Strong", icon = icon("remove", lib = "glyphicon"),
                    style = "color: black; background-color: #ff6900; border-color: black")     
@@ -85,7 +101,7 @@ map <- function(input, output, session) {
     }
   })
   ## Change button icon upon click
-  output$severe <-  renderUI({
+  output$severe <- renderUI({
     if(button_III$clicked){
       actionButton(inputId = ns("severe_filter"), "III Severe", icon = icon("remove", lib = "glyphicon"),
                    style = "color: white; background-color: #9e0000; border-color: black")     
@@ -111,7 +127,7 @@ map <- function(input, output, session) {
     }
   })
   ## Change button icon upon click
-  output$extreme <-  renderUI({
+  output$extreme <- renderUI({
     if(button_IV$clicked){
       actionButton(inputId = ns("extreme_filter"), "IV Extreme", icon = icon("remove", lib = "glyphicon"),
                    style = "color: white; background-color: #2d0000; border-color: black")     
@@ -125,7 +141,7 @@ map <- function(input, output, session) {
   output$button_ts <-  renderUI({
     click <- input$map_click
     if(is.null(click)){
-      # actionBttn(inputId = ns("open_modal"), label = "Time series", icon = icon("map-marked"),
+      # shinyWidgets::actionBttn(inputId = ns("does_nothing"), label = "Time series", icon = icon("map-marked"),
       #        style = "stretch", color = "danger")
     } else {
       shinyWidgets::actionBttn(inputId = ns("open_modal"), label = "Time series", icon = icon("map-marked"),
@@ -324,15 +340,6 @@ map <- function(input, output, session) {
     leaflet(MHW_cat_clim_sub) %>%
       setView(initial_lon, initial_lat, zoom = initial_zoom,
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) %>%
-      addPopups(initial_lon, initial_lat-5, popup = HTML("<b>Welcome to the Marine Heatwave Tracker!</b> 
-                                                       <hr>
-                                                       This web application shows up to date information on where in the world marine heatwaves (MHWs) are occurring and how intense they are.
-                                                       <hr>
-                                                       Use the <b>Date</b> box in the top left corner to choose a day to display on the map.
-                                                       <hr>
-                                                       Clicking on the different <b>Category</b> buttons will filter those pixels from the map.
-                                                       <hr>
-                                                       After clicking on a pixel of interest, click the <b>Time Series</b> button on the left to see more information.")) %>%
       # Different tile options
       addTiles(group = "OSM (default)", 
                options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%

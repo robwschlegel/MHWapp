@@ -5,7 +5,11 @@ This interactive map holds all of the MHWs detected in the NOAA OISST data from 
 
 # Updates
 
-* May 21th, 2019
+* May 23rd, 2019
+  * Corrected a couple of typos in the welcome message
+  * Changed welcome popup to a modal window for more stability
+
+* May 21st, 2019
   * MHW_daily.R now running at 22:00 AST via a cron job
     * Reduced verbosity of output so that logs are more readable
 
