@@ -80,7 +80,7 @@ OISST_prep <- function(nc_file){
                           lat = nc$dim$latitude$vals,
                           t = nc$dim$time$vals)
   } else {
-    stop("Something has gone horribly wrong and the NOAA sst data have more than 3 dimensions.")
+    stop("Something has gone horribly wrong and the NOAA SST data have more than 3 dimensions.")
   }
   
   # Convert the data into a 'long' dataframe for use in the 'tidyverse' ecosystem
@@ -167,12 +167,20 @@ OISST_merge <- function(lon_step, df_prelim, df_final){
   OISST_prelim_sub <- df_prelim %>% 
     filter(lon  == lon_step,
            as.integer(t) > max(time_vals))
-  
   OISST_final_sub <- df_final %>% 
     filter(lon  == lon_step)
   
-  if(max(OISST_prelim_sub$temp, na.rm = T) > 100 | max(OISST_final_sub$temp, na.rm = T) > 100)
-    stop(paste0("There are errors in the OISST data for ",ncdf_file_name))
+  ### Check again for errors in the data
+  if(nrow(OISST_prelim_sub) > 1){
+    if(max(OISST_prelim_sub$temp, na.rm = T) > 100){
+      stop(paste0("There are errors in the OISST data for ",ncdf_file_name))
+    }
+  }
+  if(nrow(OISST_final_sub) > 1){
+    if(max(OISST_final_sub$temp, na.rm = T) > 100){
+      stop(paste0("There are errors in the OISST data for ",ncdf_file_name))
+    }
+  }
   
   ### Create data arrays and insert into NetCDF file
   if(nrow(OISST_prelim_sub) > 0){

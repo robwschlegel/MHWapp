@@ -149,8 +149,9 @@ if(nrow(OISST_final_2) > 1 | nrow(OISST_prelim_2) > 1){
   print("Adding new data to NetCDF files")
   ## NB: 50 cores uses too much RAM
   doMC::registerDoMC(cores = 25)
-  plyr::ldply(lon_OISST, .fun = OISST_merge, .parallel = TRUE,
+  plyr::l_ply(lon_OISST, .fun = OISST_merge, .parallel = TRUE,
               df_prelim = OISST_prelim_2, df_final = OISST_final_2)
+  print("Added new data to NetCDF files")
 
   # Create date indexes
   # Get range of complete dates from the above `OISST_merge()` runs
@@ -194,13 +195,13 @@ doMC::registerDoMC(cores = 50)
 if(final_date_start != FALSE){
   print("Updating MHW results based on new final+prelim data")
   # system.time(
-    plyr::ldply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE,
+    plyr::l_ply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE,
                 final_start = gsub("T00:00:00Z", "", final_date_start))
                 # final_start = "2019-02-10")
   # ) # ~ 26 seconds per cycle
 } else if(prelim_date_start != FALSE) {
   print("Updating MHW results based on new prelim data only")
-  plyr::ldply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE,
+  plyr::l_ply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE,
               final_start = gsub("T00:00:00Z", "", prelim_date_start))
 }
 
@@ -209,7 +210,7 @@ if(final_date_start != FALSE){
 # This function can fix a specific file
 
   # Run one
-# MHW_event_cat_fix(lon_OISST[1178])
+# MHW_event_cat_fix(lon_OISST[20])
 
   # Run many
 # plyr::ldply(lon_OISST[1117:1182], .fun = MHW_event_cat_fix, .parallel = TRUE)
