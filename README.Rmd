@@ -5,6 +5,10 @@ This interactive map holds all of the MHWs detected in the NOAA OISST data from 
 
 # Updates
 
+* May 28th, 2019
+  * Edited the text in the About section
+  * Added a link to the press release
+
 * May 27th, 2019
   * Changed use of `plyr::ldply` to `plyr::l_ply` as this was causing issues
 

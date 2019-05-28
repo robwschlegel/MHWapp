@@ -27,7 +27,9 @@ map <- function(input, output, session) {
                            <hr>
                            Clicking on the different <b>Category</b> buttons will filter those pixels from the map.
                            <hr>
-                           After clicking on a pixel of interest, click the <b>Time Series</b> button on the right to see more information."))
+                           After clicking on a pixel of interest, click the <b>Time Series</b> button on the right to see more information.
+                          <hr>
+                          For more information please click on the <b>About</b> tab in the top right of the screen."))
     })
   
   ### Reactive category filters
