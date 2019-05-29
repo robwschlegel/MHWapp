@@ -126,12 +126,6 @@ aboutUI <- function(id, label = 'About') {
            column(1), p("UWC - ", a(href = "www.uwc.ac.za", 
                                     "University of the Western Cape")),
            br(),
-           h2("Press realease"),
-           br(),
-           p("A press release was issued for the Marine Heatwave Tracker on May 27th, 2019. A link to the initial release on 
-             the Ocean Frontier Institute (OFI) page may be found ", 
-             a(href = "https://oceanfrontierinstitute.com/news/news/the-ocean-feels-the-heat", "here"), "."),
-           br(),
            h2("Bugs?"),
            br(),
            p("Unfortunately this app is not currently optimised for use on mobile devices (e.g. cell phones or tablets).
@@ -151,6 +145,12 @@ aboutUI <- function(id, label = 'About') {
            p("To cite the app itself please use:"),
            p("Schlegel, R. W. (2018). Marine Heatwave Tracker: The app to see when and where marine heatwaves are happening around the world. 
              http://www.marineheatwaves.org/tracker"),
+           br(),
+           h2("Press release"),
+           br(),
+           p("A press release was issued for the Marine Heatwave Tracker on May 27th, 2019. A link to the initial release on 
+             the Ocean Frontier Institute (OFI) page may be found ", 
+             a(href = "https://oceanfrontierinstitute.com/news/news/the-ocean-feels-the-heat", "here"), "."),
            br(),
            h2("References"),
            br(),
