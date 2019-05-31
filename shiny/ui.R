@@ -1,5 +1,6 @@
 ui = tagList(shinyjs::useShinyjs(),  
-             tags$head(includeCSS("style.css")),
+             tags$head(includeScript("google-analytics.js"),
+                       includeCSS("style.css")),
              # Loading message
              div(
                id = "loading-content",
