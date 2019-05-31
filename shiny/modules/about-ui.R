@@ -136,6 +136,8 @@ aboutUI <- function(id, label = 'About') {
            p("Very rarely when the app starts up no MHW pixels will be displayed. Refreshing the website will fix this."),
            p("If one clicks on a pixel, and then filters out all four categories of MHWs, the app will crash.
              Refreshing the website will fix this."),
+           p("The map panel of the app may not render if one is using the Safari web browser. This is likely due to a 
+             Javascript extension issue."),
            br(),
            p("To report any bugs or to provide any other feedback on the app please contact the developer at:
              robert.schlegel@dal.ca"),
