@@ -226,17 +226,25 @@ time_index <- as.Date(ncvar_get(nc_OISST, "time"), origin = "1970-01-01")
 nc_close(nc_OISST)
 
 # Get the range of dates that need to be run
-# Manually control dates as desired
-# update_dates <- seq(as.Date("2019-02-10"), as.Date("2019-03-23"), by = "day")
-update_dates <- time_index[which(time_index > max(final_dates))]
-
-# Process the lot of them
 # The function `cat_clim_global_daily()` uses dplyr so a for loop is used here
-if(length(update_dates) > 0){
-  print(paste0("Updating global MHW slices from ",min(update_dates)," to ",max(update_dates)))
-  for(i in 1:length(update_dates)){
-    cat_clim_global_daily(update_dates[i])
-  } # ~15 seconds for one
+  # Manually control dates as desired
+  # update_dates <- seq(as.Date("2019-05-10"), as.Date("2019-05-16"), by = "day")
+if(final_date_start != FALSE){
+  update_dates <- time_index[which(time_index >= gsub("T00:00:00Z", "", final_date_start)]
+  if(length(update_dates) > 0){
+    print(paste0("Updating global MHW slices from ",min(update_dates)," to ",max(update_dates)))
+    for(i in 1:length(update_dates)){
+      cat_clim_global_daily(update_dates[i])
+    } # ~11 seconds for one
+  }
+} else if(prelim_date_start != FALSE) {
+  update_dates <- time_index[which(time_index >= gsub("T00:00:00Z", "", prelim_date_start)]
+  if(length(update_dates) > 0){
+    print(paste0("Updating global MHW slices from ",min(update_dates)," to ",max(update_dates)))
+    for(i in 1:length(update_dates)){
+      cat_clim_global_daily(update_dates[i])
+    } # ~11 seconds for one
+  }
 }
 
 

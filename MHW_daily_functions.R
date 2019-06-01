@@ -5,6 +5,7 @@
 
 # .libPaths(c("~/R-packages", .libPaths()))
 # devtools::install_github("robwschlegel/heatwaveR")
+library(jsonlite, lib.loc = "../R-packages/")
 library(tidyverse)
 library(ncdf4)
 library(abind)
