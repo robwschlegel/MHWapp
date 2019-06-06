@@ -221,7 +221,7 @@ if(final_date_start != FALSE){
 doMC::registerDoMC(cores = 50)
 
 # Get most current processed OISST dates
-nc_OISST <- nc_open(OISST_files[1])
+nc_OISST <- nc_open(OISST_files[1440])
 time_index <- as.Date(ncvar_get(nc_OISST, "time"), origin = "1970-01-01")
 nc_close(nc_OISST)
 
@@ -229,23 +229,23 @@ nc_close(nc_OISST)
 # The function `cat_clim_global_daily()` uses dplyr so a for loop is used here
   # Manually control dates as desired
   # update_dates <- seq(as.Date("2019-05-10"), as.Date("2019-05-16"), by = "day")
-if(final_date_start != FALSE){
-  update_dates <- time_index[which(time_index >= gsub("T00:00:00Z", "", final_date_start)]
-  if(length(update_dates) > 0){
+if(final_date_start != FALSE) {
+  update_dates <- time_index[which(time_index >= gsub("T00:00:00Z", "", final_date_start))]
+  if(length(update_dates) > 0) {
     print(paste0("Updating global MHW slices from ",min(update_dates)," to ",max(update_dates)))
-    for(i in 1:length(update_dates)){
+    for(i in 1:length(update_dates)) {
       cat_clim_global_daily(update_dates[i])
     } # ~11 seconds for one
-  }
-} else if(prelim_date_start != FALSE) {
-  update_dates <- time_index[which(time_index >= gsub("T00:00:00Z", "", prelim_date_start)]
-  if(length(update_dates) > 0){
-    print(paste0("Updating global MHW slices from ",min(update_dates)," to ",max(update_dates)))
-    for(i in 1:length(update_dates)){
-      cat_clim_global_daily(update_dates[i])
-    } # ~11 seconds for one
-  }
-}
+    }
+  } else if(prelim_date_start != FALSE) {
+    update_dates <- time_index[which(time_index >= gsub("T00:00:00Z", "", prelim_date_start))]
+    if(length(update_dates) > 0) {
+      print(paste0("Updating global MHW slices from ",min(update_dates)," to ",max(update_dates)))
+      for(i in 1:length(update_dates)) {
+        cat_clim_global_daily(update_dates[i])
+      } # ~11 seconds for one
+    }
+    }
 
 
 # 4: Update current_dates -------------------------------------------------
