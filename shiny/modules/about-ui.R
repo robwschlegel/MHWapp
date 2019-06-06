@@ -81,13 +81,14 @@ aboutUI <- function(id, label = 'About') {
              the preliminary results and the final results are negligible."),
            p("A tutorial for how to download these data in R may be found ", 
              a(href = "https://robwschlegel.github.io/heatwaveR/articles/OISST_preparation.html", "here"),
-             ", and a tutorial on how to calculate marine heatwaves from these data in R may be found ",
+             ", and a tutorial on how to calculate MHWs from these data in R may be found ",
              a(href = "https://robwschlegel.github.io/heatwaveR/articles/gridded_event_detection.html", "here"),"."),
-           p("The marine heatwaves were calculated using the Hobday et al. 2016 definition briefly outlined above. The results on the MHW
-             Tracker were calculated with the R version of this algorithm and extensive documentation on this may be found ",
+           p("The MHW results on the Marine Heatwave Tracker were calculated with the R version of the Hobday et al. 2016 definition 
+             briefly outlined above. Extensive documentation on the R code may be found ",
              a(href = "https://robwschlegel.github.io/heatwaveR/index.html", "here"),". This algorithm is also available for", 
              a(href = "https://github.com/ecjoliver/marineHeatWaves", "python ")," and ",
-             a(href = "https://github.com/ZijieZhaoMMHW/m_mhw1.0", "MATLAB"),"."),
+             a(href = "https://github.com/ZijieZhaoMMHW/m_mhw1.0", "MATLAB"),". 
+             The climatology period used in calculating the MHWs was 1982-01-01 to 2011-12-31."),
            br(),
            h2("Who made this?"),
            br(),
