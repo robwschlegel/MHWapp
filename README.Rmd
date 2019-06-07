@@ -5,6 +5,9 @@ This interactive map holds all of the MHWs detected in the NOAA OISST data from 
 
 # Updates
 
+* June 6th, 2019
+  * Added the climatology period used to the about section
+
 * May 31st, 2019
   * Attempting to connect Google Analytics
 
