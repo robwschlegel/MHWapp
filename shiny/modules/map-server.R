@@ -443,6 +443,11 @@ map <- function(input, output, session) {
     if(length(event_data_sub$date_start) == 0){
       suppressWarnings(
         p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
+          geom_segment(aes(x = input$date_choice, 
+                           xend = input$date_choice,
+                           y = min(ts_data_sub$temp), 
+                           yend = max(ts_data_sub$temp),
+                           text = "Date show"), colour = "limegreen") +
           geom_line(colour = "grey20",
                     aes(group = 1, text = paste0("Date: ",t,
                                                  "<br>Temperature: ",temp,"°C"))) +
@@ -454,17 +459,17 @@ map <- function(input, output, session) {
                     aes(x = t, y = thresh, group = 1,
                         text = paste0("Date: ",t,
                                       "<br>Threshold: ",thresh,"°C"))) +
-          geom_segment(aes(x = input$date_choice, 
-                           xend = input$date_choice,
-                           y = min(ts_data_sub$temp), 
-                           yend = max(ts_data_sub$temp),
-                           text = "Map date"), colour = "bisque") +
           labs(x = "", y = "Temperature (°C)") +
           scale_x_date(expand = c(0, 0), limits = c(min(ts_data_sub$t), max(ts_data_sub$t)))
       )
       # Create full figure
     } else {
       p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
+        geom_segment(aes(x = input$date_choice, 
+                         xend = input$date_choice,
+                         y = min(ts_data_sub$temp), 
+                         yend = max(ts_data_sub$temp),
+                         text = "Date shown"), colour = "limegreen") +
         heatwaveR::geom_flame(aes(y2 = thresh), fill = "#ffc866", n = 5, n_gap = 2)
       if(any(ts_data_sub$temp > ts_data_sub$thresh_2x)){
         p <- p + heatwaveR::geom_flame(aes(y2 = thresh_2x), fill = "#ff6900")
@@ -487,11 +492,6 @@ map <- function(input, output, session) {
                     aes(x = t, y = thresh, group = 1,
                         text = paste0("Date: ",t,
                                       "<br>Threshold: ",thresh,"°C"))) +
-          geom_segment(aes(x = input$date_choice, 
-                           xend = input$date_choice,
-                           y = min(ts_data_sub$temp), 
-                           yend = max(ts_data_sub$temp),
-                           text = "Map date"), colour = "bisque") +
           geom_rug(data = event_data_sub, sides = "b", colour = "red3", size = 2,
                    aes(x = date_peak, y = min(ts_data_sub$temp),
                        text = paste0("Event: ",event_no,
