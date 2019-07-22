@@ -32,8 +32,6 @@ mapUI <- function(id, label = 'map') {
 
     ),
     # The welcome popup
-    # bsModal(id = ns('startupModal'), title = 'Dum Dum', trigger = '',
-    #         size = 'large', p("here is my mumbo jumbo")),
     uiOutput(ns('uiStartupModal')),
     # The popup time series panel
     uiOutput(ns('uiModal'))
