@@ -45,6 +45,13 @@ source("modules/map-ui.R", local = TRUE)
 
 # Meta-data ---------------------------------------------------------------
 
+### Check that main data folders exist
+if(!dir.exists("cat_clim")) stop("The 'cast_clim' folder is missing.")
+if(!dir.exists("event")) stop("The 'event' folder is missing.")
+if(!dir.exists("modules")) stop("The 'modules' folder is missing.")
+if(!dir.exists("OISST")) stop("The 'OISST' folder is missing.")
+if(!dir.exists("thresh")) stop("The 'thresh' folder is missing.")
+
 ### The dates currently processed
 current_dates <- dir(dir("cat_clim", full.names = T), pattern = "cat.clim", full.names = T)
 current_dates <- sapply(strsplit(current_dates, split = "cat.clim."), "[[", 3)
