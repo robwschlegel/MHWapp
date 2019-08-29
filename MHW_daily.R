@@ -172,19 +172,28 @@ if(nrow(OISST_final_2) > 1 | nrow(OISST_prelim_2) > 1){
 }
 
 
-  # Fix files that didn't run correctly
-# This happens occassionally and appears to be an almost
-# random access rights issue.
-# It may have something to do with plyr accessing multiple files at once
-# But that is just a guess
+# Fix files that didn't run correctly
+# This happens every few months, usaually due to a core slipping
 
-# which(lon_OISST == 92.375)
+# Rhe easiest way to fix this is actually to load the 
+# `final_dates` and `prelim_dates` objects,
+# alter them to require re-downloading the affected data,
+# and then save the files.
+# One then runs source() on this script IN A TERMINAL AND NOT RSTUDIO
+# Check the MHW Tracker in a few minutes after this finishes running again
+# to see if the correction propogated through successfully
 
-  # Run one
-# OISST_ncdf_fix(370, end_date = "2019-01-22")
+# Fix one longitude slice
+# fix_lon_step <- which(lon_OISST == 92.375)
+# OISST_ncdf_fix(fix_lon_step, end_date = "2019-01-22")
 
-  # Run many
-# plyr::ldply(c(2, 21, 370), .fun = OISST_ncdf_fix, .parallel = TRUE, end_date = "2019-01-22")
+# Fix many
+# fix_lon_steps <- which(lon_OISST %in% seq(-173.875, -11.375, by = 12.5))
+# plyr::ldply(fix_lon_steps, .fun = OISST_ncdf_fix, .parallel = TRUE, end_date = "2019-08-21")
+
+# Dates/reasons this needed to be run:
+# August 29th, 2019: Core 45 slipped, affecting every 12.5th longitude value
+# from -173.875 to -11.375 and 136.125 to 173.625 for 08-09 to 08-11
 
 
 # 2: Update MHW event and category data -----------------------------------
@@ -228,7 +237,7 @@ nc_close(nc_OISST)
 # Get the range of dates that need to be run
 # The function `cat_clim_global_daily()` uses dplyr so a for loop is used here
   # Manually control dates as desired
-  # update_dates <- seq(as.Date("2019-05-10"), as.Date("2019-05-16"), by = "day")
+  # update_dates <- seq(as.Date("2019-08-08"), as.Date("2019-08-21"), by = "day")
 if(final_date_start != FALSE) {
   update_dates <- time_index[which(time_index >= gsub("T00:00:00Z", "", final_date_start))]
   if(length(update_dates) > 0) {

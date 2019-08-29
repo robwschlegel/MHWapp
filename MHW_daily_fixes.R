@@ -1,5 +1,5 @@
 # This script houses all of the functions that may be used when,
-# for whatever reason, something goes sideways with "MHW_dail.R"
+# for whatever reason, something goes sideways with "MHW_daily.R"
 # These functions are not meant to be run in mutiples,
 # rather they should be run one at a time as spot fixes
 
@@ -26,13 +26,14 @@ cat_lon_files <- dir("../data/cat_lon", full.names = T)
 # Download a specific OISST lon slice -------------------------------------
 
 # This downloads the data
-OISST_lon_dl <- function(times, lon_step){
-  oisst_res <- griddap(x = "ncdc_oisst_v2_avhrr_by_time_zlev_lat_lon", 
+OISST_lon_dl <- function(times, lon_step, product){
+  lon_val <- ifelse(lon_OISST[lon_step] < 0, lon_OISST[lon_step]+ 360, lon_OISST[lon_step])
+  oisst_res <- griddap(x = product, 
                        url = "https://www.ncei.noaa.gov/erddap/", 
                        time = times, 
                        depth = c(0, 0),
                        latitude = c(-89.875, 89.875),
-                       longitude = rep(lon_OISST[lon_step], 2),
+                       longitude = rep(lon_val, 2),
                        fields = "sst")
 }
 
@@ -124,8 +125,8 @@ OISST_ncdf <- function(df){
 # Currently it does not seem reliable to "fix" a NetCDF file in place
 # Rather the 1982 - 2017 data are fetched from the old MHW results,
 # and the most up-to-date data are fetched and merged into a brand new file
-# lon_step <- 2
-# end_date <- "2019-01-22"
+# lon_step <- 745
+# end_date <- "2019-08-21"
 OISST_ncdf_fix <- function(lon_step, end_date){
   
   # Load existing data
@@ -134,17 +135,42 @@ OISST_ncdf_fix <- function(lon_step, end_date){
     select(lon, lat, t, temp)
   rm(MHW_res)
   
-  # Download 1982 onwards
-  dl_times <- c("2018-01-01T00:00:00Z", paste0(end_date,"T00:00:00Z"))
-  sst_new <- OISST_lon_dl(dl_times, lon_step)
-  
-  sst_new_prep <- OISST_lon_prep(sst_new) %>% 
+  # Download all available final data from 2018 onwards
+  final_info <- rerddap::info(datasetid = "ncdc_oisst_v2_avhrr_by_time_zlev_lat_lon", url = "https://www.ncei.noaa.gov/erddap/")
+  final_time_range <- final_info$alldata$time$value[3]
+  final_time_start <- NOAA_date(final_time_range, 1)
+  final_time_end <- NOAA_date(final_time_range, 2)
+  dl_times_final <- c("2018-01-01T00:00:00Z", paste0(final_time_end,"T00:00:00Z"))
+  sst_final <- OISST_lon_dl(dl_times_final, lon_step, "ncdc_oisst_v2_avhrr_by_time_zlev_lat_lon")
+
+  # Prep final data
+  sst_final_prep <- OISST_lon_prep(sst_final) %>% 
     mutate(lon = lon_OISST[lon_step]) %>% 
     select(lon, lat, t, temp) %>% 
     na.omit()
+    
+  # Download all available prelim data up to the given date
+  prelim_info <- rerddap::info(datasetid = "ncdc_oisst_v2_avhrr_prelim_by_time_zlev_lat_lon", url = "https://www.ncei.noaa.gov/erddap/")
+  prelim_time_range <- prelim_info$alldata$time$value[3]
+  prelim_time_start <- NOAA_date(prelim_time_range, 1)
+  prelim_time_end <- NOAA_date(prelim_time_range, 2)
+  if(end_date > prelim_time_end) stop("The end date provided is after the current end date of the prelim data")
+  dl_times_prelim <- c(paste0(prelim_time_start ,"T00:00:00Z"), paste0(end_date,"T00:00:00Z"))
+  sst_prelim <- OISST_lon_dl(dl_times_prelim, lon_step, "ncdc_oisst_v2_avhrr_prelim_by_time_zlev_lat_lon")
+
+  # Prep prelim data
+  sst_prelim_prep <- OISST_lon_prep(sst_prelim) %>% 
+    mutate(lon = lon_OISST[lon_step]) %>% 
+    select(lon, lat, t, temp) %>% 
+    filter(!t %in% sst_final_prep$t) %>% 
+    na.omit() %>% 
+    group_by(t) %>% 
+    filter(temp > 100) %>% 
+    ungroup()
   
   # Combine and prep
-  sst_all <- rbind(sst_old, sst_new_prep) %>% 
+  sst_all <- rbind(sst_old, sst_final_prep) %>%
+    rbind(., sst_prelim_prep) %>% 
   mutate(temp = ifelse(is.na(temp), NA, temp),
          t = as.integer(t)) %>% 
     na.omit()
@@ -235,5 +261,4 @@ event_calc_all <- function(df){
 # First run to create the OISST_pixel files -------------------------------
 # NB: After this has been run once it won't need to be run again
 # NB: Rather this code should replace the NetCDF creation step in the daily workflow
-
 

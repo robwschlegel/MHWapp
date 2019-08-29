@@ -10,12 +10,68 @@ library(tidyverse)
 library(ncdf4)
 library(abind)
 library(rerddap)
+library(padr)
 # library(qs, lib.loc = "../R-packages/")
 library(heatwaveR, lib.loc = "../R-packages/")
 cat(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))
-# doMC::registerDoMC(cores = 25)
+doMC::registerDoMC(cores = 25)
 
-source("../tikoraluk/MHW_prep.R")
+
+# Prep functions ----------------------------------------------------------
+
+# Tester...
+load("../data/MHW/MHW.calc.0001.RData")
+
+# Pull out climatologies
+MHW_clim <- function(df){
+  clim <- df %>% 
+    unnest(event) %>% 
+    filter(row_number() %% 2 == 1) %>% 
+    unnest(event)# %>% 
+  # select(-(threshCriterion:event))
+}
+# test <- MHW_clim(MHW_res)
+
+# Pull out events
+MHW_event <- function(df){
+  event <- df %>% 
+    unnest(event) %>% 
+    filter(row_number() %% 2 == 0) %>% 
+    unnest(event)
+}
+# test <- MHW_event(MHW_res)
+
+# Pull out category climatologies
+MHW_cat_clim <- function(df, long = FALSE){
+  cat_clim <- df %>% 
+    unnest(cat) %>% 
+    filter(row_number() %% 2 == 1) %>% 
+    unnest(cat)
+  if(long){
+    cat_clim_long <- cat_clim %>% 
+      group_by(lon, lat) %>%
+      nest() %>%
+      mutate(long = map(data, pad, interval = "day", 
+                        start_val = as.Date("1982-01-01"))) %>% 
+      dplyr::select(-data) %>%
+      unnest()
+  } else {
+    return(cat_clim)
+  }
+}
+# test <- MHW_cat_clim(MHW_res)
+# test <- MHW_cat_clim(MHW_res, long = T)
+
+# Pull out event category summaries
+MHW_cat_event <- function(df){
+  suppressWarnings(
+    cat_event <- df %>% 
+      unnest(cat) %>% 
+      filter(row_number() %% 2 == 0) %>% 
+      unnest(cat)
+  )
+}
+# test <- MHW_cat_event(MHW_res)
 
 
 # Meta-data ---------------------------------------------------------------
