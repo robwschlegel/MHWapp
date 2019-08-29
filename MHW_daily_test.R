@@ -2,7 +2,7 @@
 # at the MHW_daily.R and MHW_daily_functions.R scripts
 
 # source("../tikoraluk/MHW_2018.R")
-source("../MHWapp/MHW_daily_functions.R")
+source("MHW_daily_functions.R")
 
 
 # 1: Testing the downloaded NOAA data -------------------------------------
@@ -73,3 +73,18 @@ if(length(MHW_event_data$date_start) > 0){
 
 }
 p
+
+
+# 3: Testing cat_clim files -----------------------------------------------
+
+# Load a single file
+MHW_cat_clim <- readRDS("shiny/cat_clim/2019/cat.clim.2019-08-09.Rda")
+
+# Crude global plot
+ggplot(data = MHW_cat_clim, aes(x = lon, y = lat)) +
+  borders(fill = "grey70", colour = "black") +
+  geom_raster(aes(fill = category)) +
+  scale_fill_manual("Category",
+                    values = c("#ffc866", "#ff6900", "#9e0000", "#2d0000"),
+                    labels = c("I Moderate", "II Strong", "III Severe", "IV Extreme")) +
+  labs(x = NULL, y = NULL)
