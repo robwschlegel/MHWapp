@@ -141,32 +141,15 @@ map <- function(input, output, session) {
   
   ### Time series button
   output$button_ts <- renderUI({
-    # click <- input$map_click
-    # if(is.null(click)){
+    click <- input$map_click
+    if(is.null(click)){
       # shinyWidgets::actionBttn(inputId = ns("does_nothing"), label = "Time series", icon = icon("map-marked"),
       #        style = "stretch", color = "danger")
-    # } else {
+    } else {
       shinyWidgets::actionBttn(inputId = ns("open_modal"), label = "Time series", icon = icon("map-marked"),
                                style = "unite", color = "success")
-    # }
+    }
   })
-  
-  output$popup4 <- renderUI({
-    actionButton(inputId = ns("Go4"), "Anywhere")
-  })
-  observeEvent(input$Go4, {
-    insertUI("#Showcase", where = "beforeEnd", div("Popup button is fully reactive."))
-  })
-  ### Observer to change time series button colour after first click
-  # change_colour <- function(){
-  #   "success"
-  # }
-  # observe({
-  #   click <- input$map_click
-  #   if(!is.null(click)){
-  #     button_colour_ts <- change_colour()
-  #   }
-  # })
   
   
 # Map projection data -----------------------------------------------------
@@ -339,9 +322,7 @@ map <- function(input, output, session) {
                         "<br>Category = ", names(MHW_colours)[val],
                         regional_link,
                         "<hr>",
-                        "<div id=\"popup4\" class=\"shiny-html-output\"></div>")
-                        # "<button id='open_modal' type='button' class='btn btn-default action-button'>Time series</button>")
-                        # "<i>Please click <br>'Time series' button<br>for more info</i>")
+                        "<i>Please click <br>'Time series' button<br>for more info</i>")
       
     }
     
@@ -349,7 +330,7 @@ map <- function(input, output, session) {
     leafletProxy("map") %>% 
       # clearPopups() %>% 
       addPopups(lng = xy_click[1], lat = xy_click[2], 
-                popup = paste0("Blahblah", "<br>", "<hr>","<div id=ns(\"popup4\") class=\"shiny-html-output\"></div>"))#paste(content))
+                popup = paste(content))
   }
   
   
@@ -380,32 +361,7 @@ map <- function(input, output, session) {
       addEasyButton(easyButton(
         icon = "fa-globe", title = "Global view",
         onClick = JS("function(btn, map){ map.setZoom(2); }"))) %>%
-      addScaleBar(position = "bottomright") %>% 
-      htmlwidgets::onRender(
-        'function(el, x) {
-        var target = document.querySelector(".leaflet-popup-pane");
-        
-        var observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-        if(mutation.addedNodes.length > 0){
-        Shiny.bindAll(".leaflet-popup-content");
-        }
-        if(mutation.removedNodes.length > 0){
-        var popupNode = mutation.removedNodes[0];
-        
-        var garbageCan = document.getElementById(ns("garbage"));
-        garbageCan.appendChild(popupNode);
-        
-        Shiny.unbindAll("#garbage");
-        garbageCan.innerHTML = "";
-        }
-        });
-        });
-        
-        var config = {childList: true};
-        
-        observer.observe(target, config);
-  }')
+      addScaleBar(position = "bottomright")
     # addLayersControl(baseGroups = c("Default", "Black and white"), 
     #                  options = layersControlOptions(collapsed = TRUE), position = "topleft")
     # addWMSTiles(
@@ -428,20 +384,6 @@ map <- function(input, output, session) {
       addRasterImage(rasterProj(), colors = pal_cat, layerId = "map_raster",
                      project = FALSE, opacity = 0.7)
   })
-  
-  ### Legend that can be de-activated by the user
-  # observe({
-  #   proxy <- leafletProxy("map", data = MHW_cat_clim_sub)
-  #   proxy %>% clearControls()
-  #   if (input$legend) {
-  #     proxy %>% addLegend(position = "bottomright",
-  #                         pal = pal_factor,
-  #                         values = ~category,
-  #                         title = "Category", 
-  #                         opacity = 0.75
-  #     )
-  #   }
-  # })
   
   
 # Figures/tables ----------------------------------------------------------
