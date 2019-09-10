@@ -140,17 +140,23 @@ map <- function(input, output, session) {
   })
   
   ### Time series button
-  output$button_ts <-  renderUI({
-    click <- input$map_click
-    if(is.null(click)){
+  output$button_ts <- renderUI({
+    # click <- input$map_click
+    # if(is.null(click)){
       # shinyWidgets::actionBttn(inputId = ns("does_nothing"), label = "Time series", icon = icon("map-marked"),
       #        style = "stretch", color = "danger")
-    } else {
+    # } else {
       shinyWidgets::actionBttn(inputId = ns("open_modal"), label = "Time series", icon = icon("map-marked"),
                                style = "unite", color = "success")
-    }
+    # }
   })
   
+  output$popup4 <- renderUI({
+    actionButton(inputId = ns("Go4"), "Anywhere")
+  })
+  observeEvent(input$Go4, {
+    insertUI("#Showcase", where = "beforeEnd", div("Popup button is fully reactive."))
+  })
   ### Observer to change time series button colour after first click
   # change_colour <- function(){
   #   "success"
@@ -322,16 +328,28 @@ map <- function(input, output, session) {
                lat == xy[2]) %>% 
         select(category) %>% 
         as.numeric()
+      if(xy[1] >= -160 & xy[1] <= -110 & xy[2] >= 25 & xy[2] <= 60){
+        regional_link <- paste0("<hr>",
+                                "<a href=https://www.integratedecosystemassessment.noaa.gov/regions/california-current/cc-projects-blobtracker>Regional website (NOAA)</a>")
+      } else{
+        regional_link <- ""
+      }
       content <- paste0("Lon = ", xy_lon,
                         "<br>Lat = ", xy_lat,
                         "<br>Category = ", names(MHW_colours)[val],
+                        regional_link,
                         "<hr>",
-                        "<i>please click <br>'Time series' button<br>for more info</i>")
+                        "<div id=\"popup4\" class=\"shiny-html-output\"></div>")
+                        # "<button id='open_modal' type='button' class='btn btn-default action-button'>Time series</button>")
+                        # "<i>Please click <br>'Time series' button<br>for more info</i>")
       
     }
     
     ### Add Popup to leaflet
-    leafletProxy("map") %>% clearPopups() %>% addPopups(lng = xy_click[1], lat = xy_click[2], popup = paste(content))
+    leafletProxy("map") %>% 
+      # clearPopups() %>% 
+      addPopups(lng = xy_click[1], lat = xy_click[2], 
+                popup = paste0("Blahblah", "<br>", "<hr>","<div id=ns(\"popup4\") class=\"shiny-html-output\"></div>"))#paste(content))
   }
   
   
@@ -362,7 +380,32 @@ map <- function(input, output, session) {
       addEasyButton(easyButton(
         icon = "fa-globe", title = "Global view",
         onClick = JS("function(btn, map){ map.setZoom(2); }"))) %>%
-      addScaleBar(position = "bottomright")
+      addScaleBar(position = "bottomright") %>% 
+      htmlwidgets::onRender(
+        'function(el, x) {
+        var target = document.querySelector(".leaflet-popup-pane");
+        
+        var observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+        if(mutation.addedNodes.length > 0){
+        Shiny.bindAll(".leaflet-popup-content");
+        }
+        if(mutation.removedNodes.length > 0){
+        var popupNode = mutation.removedNodes[0];
+        
+        var garbageCan = document.getElementById(ns("garbage"));
+        garbageCan.appendChild(popupNode);
+        
+        Shiny.unbindAll("#garbage");
+        garbageCan.innerHTML = "";
+        }
+        });
+        });
+        
+        var config = {childList: true};
+        
+        observer.observe(target, config);
+  }')
     # addLayersControl(baseGroups = c("Default", "Black and white"), 
     #                  options = layersControlOptions(collapsed = TRUE), position = "topleft")
     # addWMSTiles(
@@ -464,7 +507,7 @@ map <- function(input, output, session) {
       )
       # Create full figure
     } else {
-      suppressWarnings( # Supress warning about ggplot not understanding the text aesthetic  fed to plotly
+      suppressWarnings( # Supress warning about ggplot not understanding the text aesthetic fed to plotly
         p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
           geom_segment(aes(x = input$date_choice, 
                            xend = input$date_choice,
@@ -482,7 +525,7 @@ map <- function(input, output, session) {
       if(any(ts_data_sub$temp > ts_data_sub$thresh_4x)){
         p <- p + heatwaveR::geom_flame(aes(y2 = thresh_4x), fill = "#2d0000")
       }
-      suppressWarnings( # Supress warning about ggplot not understanding the text aesthetic  fed to plotly
+      suppressWarnings( # Supress warning about ggplot not understanding the text aesthetic fed to plotly
         p <- p + geom_line(colour = "grey20",
                            aes(group = 1, text = paste0("Date: ",t,
                                                         "<br>Temperature: ",temp,"°C"))) +
@@ -605,7 +648,7 @@ map <- function(input, output, session) {
   })
   
   ### Open modal panel through direct leaflet clicking
-  ### NB: This allows craching if the user clicks twice quickly
+  ### NB: This allows crashing if the user clicks twice quickly
   # observeEvent(input$map_click, {
   #   toggleModal(session, "modal", "open")
   # })

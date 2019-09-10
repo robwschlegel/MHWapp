@@ -2,6 +2,7 @@ mapUI <- function(id, label = 'map') {
   ns <- NS(id)
   
   fluidRow(
+    tags$div(id = ns("garbage")),  # Copy this disposal-div
     # The plotly option
     # Could potentially replace leaflet with plot_mapbox() or something from plotly
     # Then draw a heatmap on top of the land polygons to show MHW categories
@@ -26,9 +27,9 @@ mapUI <- function(id, label = 'map') {
                   uiOutput(outputId = ns("severe")),
                   uiOutput(outputId = ns("extreme")),
                   # The shiny server instance info
-                  h5(paste0("Shiny server instance: ",Sys.getenv("R_SHNYSRVINST"))),
+                  h5(paste0("Shiny server instance: ",Sys.getenv("R_SHNYSRVINST")))#,
                   # The time series button
-                  uiOutput(outputId = ns("button_ts"))
+                  # uiOutput(outputId = ns("button_ts"))
 
     ),
     # The welcome popup
