@@ -313,7 +313,8 @@ map <- function(input, output, session) {
         as.numeric()
       if(xy[1] >= -160 & xy[1] <= -110 & xy[2] >= 25 & xy[2] <= 60){
         regional_link <- paste0("<hr>",
-                                "<a href=https://www.integratedecosystemassessment.noaa.gov/regions/california-current/cc-projects-blobtracker>Regional website (NOAA)</a>")
+                                "<a target='_blank' rel='noopener noreferrer' href=",
+                                regional_NOAA,">Regional website (NOAA)</a>")
       } else{
         regional_link <- ""
       }
@@ -322,7 +323,7 @@ map <- function(input, output, session) {
                         "<br>Category = ", names(MHW_colours)[val],
                         regional_link,
                         "<hr>",
-                        "<i>Please click <br>'Time series' button<br>for more info</i>")
+                        "<i>Please click <br><b>Time series</b><br> button for more info</i>")
       
     }
     
