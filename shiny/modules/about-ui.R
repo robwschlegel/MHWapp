@@ -132,13 +132,13 @@ aboutUI <- function(id, label = 'About') {
            p("Unfortunately this app is not currently optimised for use on mobile devices (e.g. cell phones or tablets).
              It will therefore appear rather clumsy if being viewed on a screen smaller than a laptop. There is currently 
              not a plan to address this issue."),
-           p("Occasionally the marine heatwave polygons do not render correctly. Changing the date selection will cause the 
-             figure to re-render correctly."),
+           p("Occasionally the marine heatwave polygons in the <b>Time series</b> view do not render correctly. 
+             Changing the date selection will cause the figure to re-render correctly."),
            p("Very rarely when the app starts up no MHW pixels will be displayed. Refreshing the website will fix this."),
            p("If one clicks on a pixel, and then filters out all four categories of MHWs, the app will crash.
              Refreshing the website will fix this."),
-           p("The map panel of the app may not render if one is using the Safari web browser. This is likely due to a 
-             Javascript extension issue."),
+           p("The map panel of the app may not render on a machine running on an Apple operating System. This is likely due to a 
+             Javascript extension issue and is not caused by the MHW Tracker."),
            br(),
            p("To report any bugs or to provide any other feedback on the app please contact the developer at:
              robert.schlegel@dal.ca"),

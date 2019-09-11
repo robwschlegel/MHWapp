@@ -21,15 +21,17 @@ map <- function(input, output, session) {
   ## The content of the welcome window
   output$uiStartupModal <- renderUI({
     shinyBS::bsModal(ns('startupModal'), title = strong("Welcome to the Marine Heatwave Tracker!"), trigger = "click2", size = "m",
-                     HTML("This web application shows up to date information on where in the world marine heatwaves (MHWs) are occurring and how intense they are.
+                     HTML("This web application shows up to date information on where in the world marine heatwaves (MHWs) are occurring and what category they are.
                            <hr>
-                           Use the <b>Date</b> box in the top right corner to choose a day to display on the map.
+                           All of the necessary <b>Controls</b> for this app may be found on the right of the screen.
+                           <hr>
+                           Click in the <b>Date</b> box to choose a day to display on the map.
                            <hr>
                            Clicking on the different <b>Category</b> buttons will filter those pixels from the map.
                            <hr>
-                           After clicking on a pixel of interest, click the <b>Time Series</b> button on the right to see more information.
-                          <hr>
-                          For more information please click on the <b>About</b> tab in the top right of the screen."))
+                           After clicking on a pixel of interest, click the <b>Time Series</b> button to see more.
+                           <hr>
+                           For more information please click on the <b>About</b> tab in the top right of the screen."))
     })
   
   ### Reactive category filters
@@ -323,7 +325,7 @@ map <- function(input, output, session) {
                         "<br>Category = ", names(MHW_colours)[val],
                         regional_link,
                         "<hr>",
-                        "<i>Please click <br><b>Time series</b><br> button for more info</i>")
+                        "<i>Please click the<br><b>Time series</b><br>button in the<br><b>Controls</b> panel<br>for more info</i>")
       
     }
     
