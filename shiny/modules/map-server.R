@@ -317,6 +317,10 @@ map <- function(input, output, session) {
         regional_link <- paste0("<hr>",
                                 "<a target='_blank' rel='noopener noreferrer' href=",
                                 regional_NOAA,">Regional website (NOAA)</a>")
+      } else if(xy[1] >= -7 & xy[1] <= 37 & xy[2] >= 27 & xy[2] <= 47){
+        regional_link <- paste0("<hr>",
+                                "<a target='_blank' rel='noopener noreferrer' href=",
+                                regional_TMEDNET,">Regional website (T-MEDNet)</a>")
       } else{
         regional_link <- ""
       }

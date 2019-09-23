@@ -107,6 +107,7 @@ server_instance <- Sys.getenv("R_SHNYSRVINST")
 
 ### Regional website URLs
 regional_NOAA <- "https://www.integratedecosystemassessment.noaa.gov/regions/california-current/cc-projects-blobtracker"
+regional_TMEDNET <- "http://t-mednet.org/t-resources/marine-heatwaves"
 
 # cat("\nglobal.R finished")
 
