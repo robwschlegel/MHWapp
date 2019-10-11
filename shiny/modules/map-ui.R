@@ -3,7 +3,7 @@ mapUI <- function(id, label = 'map') {
   # Set seesion guide
   ns <- NS(id)
   
-  fluidRow(
+  fluidPage(
     # The plotly option
     # Could potentially replace leaflet with plot_mapbox() or something from plotly
     # Then draw a heatmap on top of the land polygons to show MHW categories

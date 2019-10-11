@@ -362,12 +362,12 @@ map <- function(input, output, session) {
       # addLayersControl(
       #   baseGroups = c("OSM (default)", "Black and white", "Thunder forest"),
       #   options = layersControlOptions(collapsed = TRUE), position = "topleft") %>% 
-    addMiniMap(
-      tiles = providers$Esri.WorldStreetMap, collapsedWidth = 32, collapsedHeight = 32,
-      toggleDisplay = TRUE, position = "topleft", minimized = T, width = 200) %>% 
-      addEasyButton(easyButton(
-        icon = "fa-globe", title = "Global view",
-        onClick = JS("function(btn, map){ map.setZoom(2); }"))) %>%
+    # addMiniMap(
+    #   tiles = providers$Esri.WorldStreetMap, collapsedWidth = 32, collapsedHeight = 32,
+    #   toggleDisplay = TRUE, position = "topleft", minimized = T, width = 200) %>% 
+    #   addEasyButton(easyButton(
+    #     icon = "fa-globe", title = "Global view",
+    #     onClick = JS("function(btn, map){ map.setZoom(2); }"))) %>%
       addScaleBar(position = "bottomright")
     # addLayersControl(baseGroups = c("Default", "Black and white"), 
     #                  options = layersControlOptions(collapsed = TRUE), position = "topleft")
@@ -683,7 +683,7 @@ map <- function(input, output, session) {
     data_sub <- data %>% 
       mutate(lon = lon,
              lat = lat) %>% 
-      select(lon, lat, everything()) #%>% 
+      select(lon, lat, event_no, date_start, date_peak, date_end, everything()) #%>% 
     # filter(date_start >= input$from, date_start <= input$to)
     return(data_sub)
   })

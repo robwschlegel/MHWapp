@@ -136,7 +136,7 @@ label {
 
 .navbar.navbar-default.navbar-static-top{
   padding:0;
-  margin-bottom: 0px;
+  margin-bottom: 0;
   background: rgba(16,16,16,0.8);
 }
 
@@ -196,4 +196,3 @@ label {
   background-color: #101010;
   color:#07A8FF;
 }
-

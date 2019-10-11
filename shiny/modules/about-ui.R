@@ -1,7 +1,7 @@
 aboutUI <- function(id, label = 'About') {
   ns <- NS(id)
   
-  fluidRow(
+  fluidPage(
     column(1,
            HTML("")),
     column(10,
@@ -142,9 +142,8 @@ aboutUI <- function(id, label = 'About') {
            br(),
            h2("Bugs?"),
            br(),
-           p("Unfortunately this app is not currently optimised for use on mobile devices (e.g. cell phones or tablets).
-             It will therefore appear rather clumsy if being viewed on a screen smaller than a laptop. There is currently 
-             not a plan to address this issue."),
+           p("This app is visually heavy and so appears clumsy on a screen smaller than a laptop (e.g. cell phones or tablets).
+             It has been optimised for use on mobile devices as much as is possible."),
            p("Occasionally the marine heatwave polygons in the <b>Time series</b> view do not render correctly. 
              Changing the date selection will cause the figure to re-render correctly."),
            p("Very rarely when the app starts up no MHW pixels will be displayed. Refreshing the website will fix this."),
