@@ -1,7 +1,9 @@
 mapUI <- function(id, label = 'map') {
+  
+  # Set seesion guide
   ns <- NS(id)
   
-  fluidRow(
+  fluidPage(
     # The plotly option
     # Could potentially replace leaflet with plot_mapbox() or something from plotly
     # Then draw a heatmap on top of the land polygons to show MHW categories
@@ -12,8 +14,10 @@ mapUI <- function(id, label = 'map') {
     absolutePanel(top = 0, left = 0, right = 0, bottom = 0, height = 'auto',
                   leafletOutput(ns('map'))),
     # The main menu panel
-    absolutePanel(top = menu_panel_top, right = menu_panel_right, draggable = T, width = "200px",
+    absolutePanel(id = ns("controls"), class = "panel panel-default",
+                  top = menu_panel_top, right = menu_panel_right, draggable = T, width = "200px",
                   # The date input box
+                  h2("Controls"),
                   dateInput(inputId = ns("date_choice"),
                             label = "Date",
                             value = date_menu_choice,

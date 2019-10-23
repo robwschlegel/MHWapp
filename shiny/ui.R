@@ -11,11 +11,12 @@ ui = tagList(shinyjs::useShinyjs(),
              navbarPage(title =  "Marine Heatwave Tracker",
                         selected = 'Map',
                         tabPanel(title = 'Map',
-                                 br(),
+                                 # br(),
                                  mapUI('map')),
                         tabPanel(title = 'About',
-                                 br(),
-                                 aboutUI('about')))
+                                 # br(),
+                                 aboutUI('about')),
+                        collapsible = TRUE)
                # )
              # )
 )

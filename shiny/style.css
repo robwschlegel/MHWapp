@@ -39,16 +39,36 @@ label {
   color: #FFFFFF;
 }
 
+#map-modalTitle {
+  font-weight: 600;
+  font-size: 18px;
+}
+
+#btn-customButtons {
+  background-color: black;
+}
+
+#map-controls {
+  /* Appearance */
+  background-color: white;
+  padding: 0 20px 20px 20px;
+  cursor: move;
+  /* Fade out while not hovering */
+  opacity: 0.65;
+  zoom: 0.9;
+  transition: opacity 500ms 1s;
+}
+
+#map-controls:hover {
+  /* Fade in while hovering */
+  opacity: 0.95;
+  transition-delay: 0;
+}
 
 /****************************************** classes ********************************/
 
 .modal-lg {
   width: 90%;
-}
-
-#map-modalTitle {
-  font-weight: 600;
-  font-size: 18px;
 }
 
 .wellpanel {
@@ -59,11 +79,8 @@ label {
   font-size:100%;
 }
 
-#btn-customButtons {
-  background-color: black;
-}
-
 /****************************************** leaflets **********************************/
+
 .leaflet {height: calc(100vh) !important;}
 
 .leaflet .legend i{
@@ -109,6 +126,7 @@ label {
 
 
 /*********************** navbar css ****************************/
+
 .navbar .navbar-nav {float: right}
 
 .navbar-header {
@@ -118,7 +136,7 @@ label {
 
 .navbar.navbar-default.navbar-static-top{
   padding:0;
-  margin-bottom: 0px;
+  margin-bottom: 0;
   background: rgba(16,16,16,0.8);
 }
 
@@ -178,4 +196,3 @@ label {
   background-color: #101010;
   color:#07A8FF;
 }
-
