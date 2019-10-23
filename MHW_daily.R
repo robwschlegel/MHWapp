@@ -224,6 +224,9 @@ if(final_date_start != FALSE){
   # Run many
 # plyr::ldply(lon_OISST[1117:1182], .fun = MHW_event_cat_fix, .parallel = TRUE)
 
+  # Run ALL
+# plyr::ldply(lon_OISST[356:1440], .fun = MHW_event_cat_fix, .parallel = TRUE)
+
 
 # 3: Create daily global files --------------------------------------------
 
@@ -244,7 +247,7 @@ if(final_date_start != FALSE) {
     print(paste0("Updating global MHW slices from ",min(update_dates)," to ",max(update_dates)))
     for(i in 1:length(update_dates)) {
       cat_clim_global_daily(update_dates[i])
-    } # ~11 seconds for one
+      } # ~11 seconds for one
     }
   } else if(prelim_date_start != FALSE) {
     update_dates <- time_index[which(time_index >= gsub("T00:00:00Z", "", prelim_date_start))]
@@ -254,7 +257,7 @@ if(final_date_start != FALSE) {
         cat_clim_global_daily(update_dates[i])
       } # ~11 seconds for one
     }
-    }
+  }
 
 
 # 4: Update current_dates -------------------------------------------------

@@ -78,7 +78,7 @@ p
 # 3: Testing cat_clim files -----------------------------------------------
 
 # Load a single file
-MHW_cat_clim <- readRDS("shiny/cat_clim/2019/cat.clim.2019-08-09.Rda")
+MHW_cat_clim <- readRDS("shiny/cat_clim/2019/cat.clim.2019-10-12.Rda")
 
 # Crude global plot
 ggplot(data = MHW_cat_clim, aes(x = lon, y = lat)) +
