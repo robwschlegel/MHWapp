@@ -76,9 +76,9 @@ if(max(prelim_dates) < prelim_time_end) {
 }
 
 
-# If there are no new data, stop the process
+# If there are no new data, say so
 if(final_date_start == FALSE & prelim_date_start == FALSE)
-  stop("No new data to download")
+  cat("No new data to download")
 
 
 # Download data not in 'final_dates' if necessary/possible
@@ -145,6 +145,7 @@ if(nrow(OISST_prelim_2) > 1){
 # Add new prelim and final data to the files
 ## NB: -NEVER- run this in RStudio Server!
   ## It breaks the NetCDF write privileges
+doMC::registerDoMC(cores = 25)
 if(nrow(OISST_final_2) > 1 | nrow(OISST_prelim_2) > 1){
   print("Adding new data to NetCDF files")
   ## NB: 50 cores uses too much RAM
@@ -198,9 +199,9 @@ if(nrow(OISST_final_2) > 1 | nrow(OISST_prelim_2) > 1){
 
 # 2: Update MHW event and category data -----------------------------------
 
-doMC::registerDoMC(cores = 50)
+doMC::registerDoMC(cores = 25)
 
-# This takes roughly 15 minutes and is by far the largest time requirement
+# This takes roughly 30 minutes and is by far the largest time requirement
 if(final_date_start != FALSE){
   print("Updating MHW results based on new final+prelim data")
   # system.time(
@@ -230,7 +231,7 @@ if(final_date_start != FALSE){
 
 # 3: Create daily global files --------------------------------------------
 
-doMC::registerDoMC(cores = 50)
+doMC::registerDoMC(cores = 25)
 
 # Get most current processed OISST dates
 nc_OISST <- nc_open(OISST_files[1440])
@@ -240,7 +241,7 @@ nc_close(nc_OISST)
 # Get the range of dates that need to be run
 # The function `cat_clim_global_daily()` uses dplyr so a for loop is used here
   # Manually control dates as desired
-  # update_dates <- seq(as.Date("2019-08-08"), as.Date("2019-08-21"), by = "day")
+  # update_dates <- seq(as.Date("2019-10-19"), as.Date("2019-10-25"), by = "day")
 if(final_date_start != FALSE) {
   update_dates <- time_index[which(time_index >= gsub("T00:00:00Z", "", final_date_start))]
   if(length(update_dates) > 0) {
