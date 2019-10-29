@@ -42,13 +42,16 @@ system.time(
 # the tidy approach and the direct NetCDF write appraoch
 # But what about csv?
 
-library(feather)
 system.time(
-  feather::write_feather(OISST_ALL, "proc/test/test.0001.csv")
+  data.table::fwrite(OISST_ALL, "proc/test/test.0001.csv")
 ) # ~0.2 seconds
 system.time(
-  feather::read_feather("proc/test/test.0001.csv")
-) # ~0.2 seconds
+  OISST_ALL <- data.table::fread("proc/test/test.0001.csv", colClasses = c()) %>% 
+    mutate(t = as.Date(t))
+) # ~0.4 seconds, 10 seconds with date correction
+
+# These read and write times become comparable, but the file sizes are much too large
+# It looks like the NetCDF pipeline retains the crown... for now
 
 
 # Calculating MHWs --------------------------------------------------------

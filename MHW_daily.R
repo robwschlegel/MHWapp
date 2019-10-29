@@ -144,19 +144,19 @@ if(nrow(OISST_final_1) > 1 | nrow(OISST_prelim_1) > 1){
   
   # Create date indexes
   # Get range of complete dates from the above `OISST_merge()` runs
-  nc <- nc_open("../data/OISST/avhrr-only-v2.ts.1440.nc")
-  ncdf_dates <- as.Date(nc$dim$time$vals, origin = "1970-01-01")
-  # tail(current_dates)
-  nc_close(nc)
+  ncdf_dates <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transforms$time$time, origin = "1970-01-01")
 
   # final_dates index
   final_dates <- ncdf_dates[ncdf_dates <= final_time_end]
+  # tester...
   # final_dates <- final_dates[1:length(final_dates-2)]
   # tail(final_dates)
   save(final_dates, file = "metadata/final_dates.Rdata")
 
   # prelim_dates index
-  prelim_dates <- ncdf_dates[final_dates >= prelim_time_end]
+  prelim_dates <- ncdf_dates[ncdf_dates > max(final_dates)]
+  # tester...
+  # prelim_dates <- prelim_dates[1:length(prelim_dates-2)]
   # tail(prelim_dates)
   save(prelim_dates, file = "metadata/prelim_dates.Rdata")
 }
@@ -186,23 +186,21 @@ if(nrow(OISST_final_1) > 1 | nrow(OISST_prelim_1) > 1){
 # August 29th, 2019: Core 45 slipped, affecting every 12.5th longitude value
 # from -173.875 to -11.375 and 136.125 to 173.625 for 08-09 to 08-11
 
+# stop("Break before MHW calcs")
+
 
 # 2: Update MHW event and category data -----------------------------------
 
 doMC::registerDoMC(cores = 25)
+load("metadata/final_dates.Rdata")
+load("metadata/prelim_dates.Rdata")
 
 # This takes roughly 30 minutes and is by far the largest time requirement
-if(final_date_start != FALSE){
-  print("Updating MHW results based on new final+prelim data")
+if(final_date_start != FALSE | prelim_date_start != FALSE){
+  print("Updating MHW results")
   # system.time(
-    plyr::l_ply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE,
-                final_start = final_date_start)
-                # final_start = "2019-02-10")
+    plyr::l_ply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE)
   # ) # ~ 26 seconds per cycle
-} else if(prelim_date_start != FALSE) {
-  print("Updating MHW results based on new prelim data only")
-  plyr::l_ply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE,
-              final_start = prelim_date_start)
 }
 
 # Occasionaly the cat_lon files don't come right

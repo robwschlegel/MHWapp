@@ -130,39 +130,6 @@ OISST_dl <- function(times, product){
     na.omit()
 }
 
-
-# This then preps them for further use
-# OISST_prep <- function(nc_file){
-#   
-#   # Open the NetCDF connection
-#   nc <- nc_open(nc_file$summary$filename)
-#   
-#   # Extract the SST values and add the lon/lat/time dimension names
-#   res <- ncvar_get(nc, varid = "sst")
-#   if(length(dim(res)) == 2){
-#     res <- base::array(res, dim = c(1440, 720, 1))
-#     dimnames(res) <- list(lon = nc$dim$longitude$vals,
-#                           lat = nc$dim$latitude$vals,
-#                           t = nc$dim$time$vals)
-#   } else if(length(dim(res)) == 3){
-#     dimnames(res) <- list(lon = nc$dim$longitude$vals,
-#                           lat = nc$dim$latitude$vals,
-#                           t = nc$dim$time$vals)
-#   } else {
-#     stop("Something has gone horribly wrong and the NOAA SST data have more than 3 dimensions.")
-#   }
-#   
-#   # Convert the data into a 'long' dataframe for use in the 'tidyverse' ecosystem
-#   res <- as.data.frame(reshape2::melt(res, value.name = "temp"), row.names = NULL) %>% 
-#     mutate(t = as.Date(as.POSIXct(t, origin = "1970-01-01 00:00:00")),
-#            temp = round(temp, 2),
-#            lon = ifelse(lon > 180, lon-360, lon))
-#   
-#   # Close the NetCDF connection and finish
-#   nc_close(nc)
-#   return(res)
-# }
-
 # Function for creating arrays from data.frames
 # df <- OISST_step_2
 OISST_acast <- function(df){
@@ -209,8 +176,8 @@ OISST_temp <- function(df){
 # Function for merging OISST data into existing NetCDF files
 # tester...
 # lon_step <- lon_OISST[1]
-# df_final <- OISST_final_2
-# df_prelim <- OISST_prelim_2
+# df_final <- OISST_final_1
+# df_prelim <- OISST_prelim_1
 OISST_merge <- function(lon_step, df_prelim, df_final){
   
   ### Determine the correct lon slice/file
@@ -221,9 +188,9 @@ OISST_merge <- function(lon_step, df_prelim, df_final){
   # print(paste0("Began run on avhrr-only-v2.ts.",lon_row_pad,".nc at ",Sys.time()))
   
   # Determine file name
-  # ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
+  ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
   # tester...
-  ncdf_file_name <- paste0("proc/test/test-only-v2.ts.",lon_row_pad,".nc")
+  # ncdf_file_name <- paste0("proc/test/test-only-v2.ts.",lon_row_pad,".nc")
   #
   
   ### Open NetCDF and determine dates present
@@ -293,104 +260,70 @@ OISST_merge <- function(lon_step, df_prelim, df_final){
 # end_date <- as.Date("2018-12-31")
 sst_seas_thresh_merge <- function(lon_step, start_date){
   
-  lon_row <- which(lon_OISST == lon_step)
-  
   # OISST data
-  nc_OISST <- nc_open(OISST_files[lon_row])
-  # tester...
-  # nc_OISST <- nc_open(dir("../data/test", pattern = "avhrr", full.names = T)[lon_row])
-  #
-  lat_vals <- as.vector(nc_OISST$dim$lat$vals)
-  time_index <- as.Date(ncvar_get(nc_OISST, "time"), origin = "1970-01-01")
-  # time_old_index <- time_index[time_index <= max(current_dates)]
-  time_extract_index <- time_index[which(start_date == time_index):length(time_index)]
-  sst_raw <- ncvar_get(nc_OISST, "sst", start = c(1,1,(which(start_date == time_index))))
-  if(length(time_extract_index) == 1) dim(sst_raw) <- c(720,1,1)
-  dimnames(sst_raw) <- list(lat = nc_OISST$dim$lat$vals,
-                            t = time_extract_index)
-  nc_close(nc_OISST)
+  tidync_OISST <- tidync(OISST_files[which(lon_OISST == lon_step)]) %>% 
+    hyper_filter(time = between(time, as.integer(start_date), as.integer(Sys.Date()))) %>% 
+    hyper_tibble() %>% 
+    mutate(time = as.Date(time, origin = "1970-01-01")) %>% 
+    dplyr::rename(ts_x = time, ts_y = sst) %>%
+    group_by(lon, lat) %>% 
+    group_modify(~heatwaveR:::make_whole_fast(.x)) %>% # This is necessary for the doy column
+    ungroup() %>% 
+    dplyr::rename(t = ts_x, temp = ts_y) %>%
+    select(lon, lat, t, doy, temp)
   
-  # Prep SST for further use
-  sst <- as.data.frame(reshape2::melt(sst_raw, value.name = "temp"), row.names = NULL) %>%
-    mutate(t = as.Date(t, origin = "1970-01-01")) %>%
-    na.omit() %>% 
-    dplyr::rename(ts_x = t, ts_y = temp) %>% 
-    group_by(lat) %>%
-    nest() %>%
-    mutate(whole_data = map(data, heatwaveR:::make_whole_fast)) %>%
-    select(-data) %>%
-    unnest() %>% 
-    dplyr::rename(t = ts_x, temp = ts_y)
-  
-  # seas.thresh data
-  nc_seas <- nc_open(seas_thresh_files[lon_row])
-  seas <- ncvar_get(nc_seas, "seas")
-  dimnames(seas) <- list(lat = nc_seas$dim$lat$vals,
-                         doy = nc_seas$dim$time$vals)
-  thresh <- ncvar_get(nc_seas, "thresh")
-  dimnames(thresh) <- list(lat = nc_seas$dim$lat$vals,
-                           doy = nc_seas$dim$time$vals)
-  nc_close(nc_seas)
-  seas <- as.data.frame(reshape2::melt(seas, value.name = "seas"), row.names = NULL) %>%
-    na.omit() %>% 
-    dplyr::arrange(lat, doy)
-  thresh <- as.data.frame(reshape2::melt(thresh, value.name = "thresh"), row.names = NULL) %>%
-    na.omit() %>% 
-    dplyr::arrange(lat, doy)
-  
-  # Merge and exit
-  sst_seas_thresh <- sst %>% 
-    left_join(seas, by = c("lat", "doy")) %>%
-    left_join(thresh, by = c("lat", "doy"))
+  # Merge to seas/thresh and exit
+  sst_seas_thresh <- tidync_OISST %>% 
+    left_join(hyper_tibble(tidync(seas_thresh_files[lon_row])), 
+              by = c("lon", "lat", "doy" = "time"))
   return(sst_seas_thresh)
 }
 
 # Function for updating the MHW event metric lon slice files
 # tester...
 # lon_step <- lon_OISST[1117]
-# final_start <- "2019-03-24"
-MHW_event_cat_update <- function(lon_step, final_start){
+MHW_event_cat_update <- function(lon_step){
+  
+  # load the final download date
+  load("metadata/final_dates.Rdata")
   
   # Determine correct lon/row/slice
   lon_row <- which(lon_OISST == lon_step)
   lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
   
   # Load current lon slice for event/category
-  MHW_event_data <- readRDS(MHW_event_files[lon_row]) %>% 
-    na.omit()
+  MHW_event_data <- na.omit(readRDS(MHW_event_files[lon_row]))
   if(MHW_event_data$lon[1] != lon_step) stop(paste0("The lon_row indexing has broken down somewhere for ",lon_row_pad))
-  MHW_cat_lon <- readRDS(cat_lon_files[lon_row]) %>%
-    na.omit()
+  MHW_cat_lon <- na.omit(readRDS(cat_lon_files[lon_row]))
   if(MHW_cat_lon$lon[1] != lon_step) stop(paste0("The lon_row indexing has broken down somewhere for ",lon_row_pad))
   
   # Begin the calculations
   # print(paste0("Began run on ",MHW_event_files[lon_row]," at ",Sys.time()))
   
-  # Determine how far back in time to get old data based on the occurrence of the previous MHW
-  # Screen out events where the date_end is the same as max(MHW_event_data$date_end)
-  # This implies that the event is still ongoing and we will need to update the values
-  final_event_index <- MHW_event_data %>% 
-    group_by(lat) %>% 
-    filter(date_end <= final_start) %>% 
-    mutate(previous_event = ifelse(max(date_end) == max(MHW_event_data$date_end), max(event_no)-1, max(event_no))) %>%
-    filter(event_no == previous_event)
+  # Determine how far back in time to get old data based on the occurrence of previous MHWs
+  # The problem here is that sometimes the prelim data will dip below the threshold long enough
+  # that the MHW will be considered finished and the code would incorrectly begin calculating another MHW
+  # To correct for this we must use the final_dates R object, which is tied to the OISST downloading
+  previous_event_index <- MHW_event_data %>% 
+    group_by(lon, lat) %>% 
+    filter(date_start < max(final_dates)) %>% 
+    filter(event_no == max(event_no))
   
   # Extract each pixel time series based on how far back the oldest event occurred for the entire longitude slice
   sst_seas_thresh <- sst_seas_thresh_merge(lon_step, 
-                                           start_date = min(final_event_index$date_start))
+                                           start_date = min(previous_event_index$date_start))
                                            # Use to recalculate everything
                                            # start_date = as.Date("1982-01-01"))
   
   # Calculate new event metrics with new data as necessary
-  MHW_event_cat <- final_event_index %>% 
+  MHW_event_cat <- previous_event_index %>% 
     mutate(lat2 = lat) %>% 
     group_by(lat2) %>% 
-    nest() %>% 
-    mutate(event_cat_res = map(data, event_calc,
-                               sst_seas_thresh = sst_seas_thresh,
-                               MHW_event_data = MHW_event_data,
-                               MHW_cat_lon = MHW_cat_lon)) %>% 
-    select(-data, -lat2) %>% 
+    group_modify(~event_calc(.x,
+                 sst_seas_thresh = sst_seas_thresh,
+                 MHW_event_data = MHW_event_data,
+                 MHW_cat_lon = MHW_cat_lon))# %>% 
+    select(-lat2) %>% 
     unnest() # ~16 seconds for 478 pixels
   # Save results and exit
   MHW_event_new <- MHW_event_cat %>% 
@@ -420,7 +353,7 @@ MHW_event_cat_update <- function(lon_step, final_start){
 
 # Function for extracting correct sst data based on pre-determined subsets
 # It also calculates and returns corrected MHW metric results
-# df <- final_event_index[319,]
+# df <- previous_event_index[319,]
 event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon){
   
   # Extract necessary SST
@@ -442,7 +375,7 @@ event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon){
   
   # Calculate categories
   cat_step_1 <- category(event_base, climatology = T)$climatology %>% 
-    mutate(event_no = event_no + df$previous_event[1],
+    mutate(event_no = event_no + df$event_no[1],
            lon = df$lon,
            lat = df$lat) %>% 
     select(t, lon, lat, event_no, intensity, category)
