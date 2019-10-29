@@ -3,13 +3,14 @@
 
 # Libraries ---------------------------------------------------------------
 
-# .libPaths(c("~/R-packages", .libPaths()))
+.libPaths(c("~/R-packages", .libPaths()))
 # devtools::install_github("robwschlegel/heatwaveR")
-library(jsonlite, lib.loc = "../R-packages/")
+# library(jsonlite, lib.loc = "../R-packages/")
 library(tidyverse)
+library(rerddap)
+library(tidync)
 library(ncdf4)
 library(abind)
-library(rerddap)
 library(padr)
 # library(qs, lib.loc = "../R-packages/")
 library(heatwaveR, lib.loc = "../R-packages/")
@@ -20,7 +21,7 @@ doMC::registerDoMC(cores = 25)
 # Prep functions ----------------------------------------------------------
 
 # Tester...
-load("../data/MHW/MHW.calc.0001.RData")
+# load("../data/MHW/MHW.calc.0001.RData")
 
 # Pull out climatologies
 MHW_clim <- function(df){
@@ -76,9 +77,12 @@ MHW_cat_event <- function(df){
 
 # Meta-data ---------------------------------------------------------------
 
-load("../MHWapp/shiny/lon_OISST.RData")
-load("../tikoraluk/metadata/lon_lat_OISST.RData")
-lon_lat_OISST <- arrange(lon_lat_OISST, lon, lat)
+lon_OISST <- c(seq(0.125, 179.875, by = 0.25), seq(-179.875, -0.125, by = 0.25))
+lat_OISST <- seq(-89.875, 89.875, by = 0.25)
+lon_lat_OISST <- base::expand.grid(lon_OISST, lat_OISST) %>% 
+  dplyr::rename(lon = Var1, lat = Var2) %>% 
+  arrange(lon, lat) %>% 
+  data.frame()
 
 # File locations
 OISST_files <- dir("../data/OISST", pattern = "avhrr-only", full.names = T)
@@ -89,14 +93,15 @@ cat_clim_files <- as.character(dir(path = "../data/cat_clim", pattern = "cat.cli
                                    full.names = TRUE, recursive = TRUE))
 
 # Date range of already processed data
-## NB: Thi is currently static but must be self-updating to work correctly
+## NB: This is currently static but must be self-updating to work correctly
 ### A self updating file that grabs dates from somewhere...
-load("../MHWapp/shiny/current_dates.RData")
+# load("../MHWapp/shiny/current_dates.RData")
 # head(current_dates)
 # tail(current_dates)
 # current_dates <- seq(as.Date("1982-01-01"), as.Date("2018-12-31"), by = "day")
 
 # The current date
+  # NB: This script is running from a server in Atlantic Canada (UTC-3)
 current_date <- Sys.Date()
 
 # Wrapper function to coerce ERDDAP date format to R
@@ -116,40 +121,47 @@ OISST_dl <- function(times, product){
                        depth = c(0, 0),
                        latitude = c(-89.875, 89.875),
                        longitude = c(0.125, 359.875),
-                       fields = "sst")
+                       fields = "sst")$data %>% 
+    dplyr::rename(temp = sst, t = time) %>% 
+    mutate(temp = round(temp, 2),
+           lon = ifelse(lon > 180, lon-360, lon),
+           t = as.Date(str_remove(t, "T00:00:00Z"))) %>%
+    select(lon, lat, t, temp) %>% 
+    na.omit()
 }
 
+
 # This then preps them for further use
-OISST_prep <- function(nc_file){
-  
-  # Open the NetCDF connection
-  nc <- nc_open(nc_file$summary$filename)
-  
-  # Extract the SST values and add the lon/lat/time dimension names
-  res <- ncvar_get(nc, varid = "sst")
-  if(length(dim(res)) == 2){
-    res <- base::array(res, dim = c(1440, 720, 1))
-    dimnames(res) <- list(lon = nc$dim$longitude$vals,
-                          lat = nc$dim$latitude$vals,
-                          t = nc$dim$time$vals)
-  } else if(length(dim(res)) == 3){
-    dimnames(res) <- list(lon = nc$dim$longitude$vals,
-                          lat = nc$dim$latitude$vals,
-                          t = nc$dim$time$vals)
-  } else {
-    stop("Something has gone horribly wrong and the NOAA SST data have more than 3 dimensions.")
-  }
-  
-  # Convert the data into a 'long' dataframe for use in the 'tidyverse' ecosystem
-  res <- as.data.frame(reshape2::melt(res, value.name = "temp"), row.names = NULL) %>% 
-    mutate(t = as.Date(as.POSIXct(t, origin = "1970-01-01 00:00:00")),
-           temp = round(temp, 2),
-           lon = ifelse(lon > 180, lon-360, lon))
-  
-  # Close the NetCDF connection and finish
-  nc_close(nc)
-  return(res)
-}
+# OISST_prep <- function(nc_file){
+#   
+#   # Open the NetCDF connection
+#   nc <- nc_open(nc_file$summary$filename)
+#   
+#   # Extract the SST values and add the lon/lat/time dimension names
+#   res <- ncvar_get(nc, varid = "sst")
+#   if(length(dim(res)) == 2){
+#     res <- base::array(res, dim = c(1440, 720, 1))
+#     dimnames(res) <- list(lon = nc$dim$longitude$vals,
+#                           lat = nc$dim$latitude$vals,
+#                           t = nc$dim$time$vals)
+#   } else if(length(dim(res)) == 3){
+#     dimnames(res) <- list(lon = nc$dim$longitude$vals,
+#                           lat = nc$dim$latitude$vals,
+#                           t = nc$dim$time$vals)
+#   } else {
+#     stop("Something has gone horribly wrong and the NOAA SST data have more than 3 dimensions.")
+#   }
+#   
+#   # Convert the data into a 'long' dataframe for use in the 'tidyverse' ecosystem
+#   res <- as.data.frame(reshape2::melt(res, value.name = "temp"), row.names = NULL) %>% 
+#     mutate(t = as.Date(as.POSIXct(t, origin = "1970-01-01 00:00:00")),
+#            temp = round(temp, 2),
+#            lon = ifelse(lon > 180, lon-360, lon))
+#   
+#   # Close the NetCDF connection and finish
+#   nc_close(nc)
+#   return(res)
+# }
 
 # Function for creating arrays from data.frames
 # df <- OISST_step_2
@@ -209,9 +221,9 @@ OISST_merge <- function(lon_step, df_prelim, df_final){
   # print(paste0("Began run on avhrr-only-v2.ts.",lon_row_pad,".nc at ",Sys.time()))
   
   # Determine file name
-  ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
+  # ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
   # tester...
-  # ncdf_file_name <- paste0("../data/test/avhrr-only-v2.ts.",lon_row_pad,".nc")
+  ncdf_file_name <- paste0("proc/test/test-only-v2.ts.",lon_row_pad,".nc")
   #
   
   ### Open NetCDF and determine dates present
@@ -228,14 +240,14 @@ OISST_merge <- function(lon_step, df_prelim, df_final){
     filter(lon  == lon_step)
   
   ### Check again for errors in the data
-  if(nrow(OISST_prelim_sub) > 1){
-    if(max(OISST_prelim_sub$temp, na.rm = T) > 100){
-      stop(paste0("There are errors in the OISST data for ",ncdf_file_name))
-    }
-  }
   if(nrow(OISST_final_sub) > 1){
     if(max(OISST_final_sub$temp, na.rm = T) > 100){
-      stop(paste0("There are errors in the OISST data for ",ncdf_file_name))
+      stop(paste0("There are errors in the final OISST data for ",ncdf_file_name))
+    }
+  }
+  if(nrow(OISST_prelim_sub) > 1){
+    if(max(OISST_prelim_sub$temp, na.rm = T) > 100){
+      stop(paste0("There are errors in the prelim OISST data for ",ncdf_file_name))
     }
   }
   
