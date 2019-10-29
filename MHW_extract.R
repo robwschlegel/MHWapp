@@ -64,12 +64,33 @@ munge_lon_steps <- function(lon_steps, lon_files){
 }
 
 
+# Extract US coastal EEZ for EPA ------------------------------------------
+
+# Saving the files with .Rdds compression is much more efficient
 
 # US west coast
-USWC <- seq(-130, -117)
-USWC_MHW_event_files <- MHW_event_files %>% 
-  filter(lon_step >= min(USWC), lon_step <= max(USWC))
-USWC_MHW_event_file <- plyr::ldply(USWC_MHW_event_files$file_name, readRDS, .parallel = T)
-save(USWC_MHW_event_file, file = "data/USWC_MHW_event_file.RData")
+USWC <- c(-130, -117)
+USWC_MHW_event_file <- munge_lon_steps(USWC, MHW_event_files) %>% 
+  filter(lat >= 10, lat <= 50)
+saveRDS(USWC_MHW_event_file, file = "data/USWC_MHW_event_file.Rds")
+USWC_cat_lon_file <- munge_lon_steps(USWC, cat_lon_files) %>% 
+  filter(lat >= 10, lat <= 50)
+saveRDS(USWC_cat_lon_file, file = "data/USWC_cat_lon_file.Rds")
 
+# US east coast
+USEC <- c(-81, -65)
+USEC_MHW_event_file <- munge_lon_steps(USEC, MHW_event_files) %>% 
+  filter(lat >= 10, lat <= 50)
+saveRDS(USEC_MHW_event_file, file = "data/USEC_MHW_event_file.Rds")
+USEC_cat_lon_file <- munge_lon_steps(USEC, cat_lon_files) %>% 
+  filter(lat >= 10, lat <= 50)
+saveRDS(USEC_cat_lon_file, file = "data/USEC_cat_lon_file.Rds")
 
+# US Gulf coast
+USGC <- c(-98, -81)
+USGC_MHW_event_file <- munge_lon_steps(USGC, MHW_event_files) %>% 
+  filter(lat >= 10, lat <= 50)
+saveRDS(USGC_MHW_event_file, file = "data/USGC_MHW_event_file.Rds")
+USGC_cat_lon_file <- munge_lon_steps(USGC, cat_lon_files) %>% 
+  filter(lat >= 10, lat <= 50)
+saveRDS(USGC_cat_lon_file, file = "data/USGC_cat_lon_file.Rds")

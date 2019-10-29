@@ -3,8 +3,8 @@
 # These functions are not meant to be run in mutiples,
 # rather they should be run one at a time as spot fixes
 
-source("../MHWapp/MHW_daily_functions.R")
-source("../tikoraluk/MHW_prep.R")
+source("MHW_daily_functions.R")
+# source("../tikoraluk/MHW_prep.R")
 
 
 # Meta-data ---------------------------------------------------------------
@@ -34,7 +34,13 @@ OISST_lon_dl <- function(times, lon_step, product){
                        depth = c(0, 0),
                        latitude = c(-89.875, 89.875),
                        longitude = rep(lon_val, 2),
-                       fields = "sst")
+                       fields = "sst")$data %>% 
+    dplyr::rename(temp = sst, t = time) %>% 
+    mutate(temp = round(temp, 2),
+           lon = ifelse(lon > 180, lon-360, lon),
+           t = as.Date(str_remove(t, "T00:00:00Z"))) %>%
+    select(lon, lat, t, temp) %>% 
+    na.omit()
 }
 
 
@@ -42,25 +48,25 @@ OISST_lon_dl <- function(times, lon_step, product){
 
 # Prep a single lon download
 # nc_file <- sst_new
-OISST_lon_prep <- function(nc_file){
-  
-  # Open the NetCDF connection
-  nc <- nc_open(nc_file$summary$filename)
-  
-  # Extract the SST values and add the lon/lat/time dimension names
-  res <- ncvar_get(nc, varid = "sst")
-  dimnames(res) <- list(lat = nc$dim$latitude$vals,
-                        t = nc$dim$time$vals)
-  
-  # Convert the data into a 'long' dataframe for use in the 'tidyverse' ecosystem
-  res <- as.data.frame(reshape2::melt(res, value.name = "temp"), row.names = NULL) %>% 
-    mutate(t = as.Date(as.POSIXct(t, origin = "1970-01-01 00:00:00")),
-           temp = round(temp, 2))
-  
-  # Close the NetCDF connection and finish
-  nc_close(nc)
-  return(res)
-}
+# OISST_lon_prep <- function(nc_file){
+#   
+#   # Open the NetCDF connection
+#   nc <- nc_open(nc_file$summary$filename)
+#   
+#   # Extract the SST values and add the lon/lat/time dimension names
+#   res <- ncvar_get(nc, varid = "sst")
+#   dimnames(res) <- list(lat = nc$dim$latitude$vals,
+#                         t = nc$dim$time$vals)
+#   
+#   # Convert the data into a 'long' dataframe for use in the 'tidyverse' ecosystem
+#   res <- as.data.frame(reshape2::melt(res, value.name = "temp"), row.names = NULL) %>% 
+#     mutate(t = as.Date(as.POSIXct(t, origin = "1970-01-01 00:00:00")),
+#            temp = round(temp, 2))
+#   
+#   # Close the NetCDF connection and finish
+#   nc_close(nc)
+#   return(res)
+# }
 
 # Function for creating NetCDF files from OISST data
 OISST_ncdf <- function(df){
@@ -70,7 +76,9 @@ OISST_ncdf <- function(df){
   lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
   
   # Set file name
-  ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
+  # ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
+  # tester...
+  ncdf_file_name <- paste0("proc/test/test.",lon_row_pad,".nc")
   
   # Set the dataframe in question
   dataset <- df %>% 
@@ -85,7 +93,7 @@ OISST_ncdf <- function(df){
   lon_def <- ncdim_def("lon", "degrees_east", xvals)
   
   # lat
-  yvals <- unique(lon_lat_OISST$lat)
+  yvals <- lat_OISST
   # yvals_df <- data.frame(lat = lon_lat_OISST$lat)
   ny <- length(yvals)
   lat_def <- ncdim_def("lat", "degrees_north", yvals)
@@ -140,14 +148,11 @@ OISST_ncdf_fix <- function(lon_step, end_date){
   final_time_range <- final_info$alldata$time$value[3]
   final_time_start <- NOAA_date(final_time_range, 1)
   final_time_end <- NOAA_date(final_time_range, 2)
-  dl_times_final <- c("2018-01-01T00:00:00Z", paste0(final_time_end,"T00:00:00Z"))
+  dl_times_final <- c("2018-01-01", final_time_end)
   sst_final <- OISST_lon_dl(dl_times_final, lon_step, "ncdc_oisst_v2_avhrr_by_time_zlev_lat_lon")
 
   # Prep final data
-  sst_final_prep <- OISST_lon_prep(sst_final) %>% 
-    mutate(lon = lon_OISST[lon_step]) %>% 
-    select(lon, lat, t, temp) %>% 
-    na.omit()
+  # sst_final_prep <- sst_final
     
   # Download all available prelim data up to the given date
   prelim_info <- rerddap::info(datasetid = "ncdc_oisst_v2_avhrr_prelim_by_time_zlev_lat_lon", url = "https://www.ncei.noaa.gov/erddap/")
@@ -155,22 +160,27 @@ OISST_ncdf_fix <- function(lon_step, end_date){
   prelim_time_start <- NOAA_date(prelim_time_range, 1)
   prelim_time_end <- NOAA_date(prelim_time_range, 2)
   if(end_date > prelim_time_end) stop("The end date provided is after the current end date of the prelim data")
-  dl_times_prelim <- c(paste0(prelim_time_start ,"T00:00:00Z"), paste0(end_date,"T00:00:00Z"))
-  sst_prelim <- OISST_lon_dl(dl_times_prelim, lon_step, "ncdc_oisst_v2_avhrr_prelim_by_time_zlev_lat_lon")
-
-  # Prep prelim data
-  sst_prelim_prep <- OISST_lon_prep(sst_prelim) %>% 
-    mutate(lon = lon_OISST[lon_step]) %>% 
-    select(lon, lat, t, temp) %>% 
+  dl_times_prelim <- c(prelim_time_start, end_date)
+  sst_prelim <- OISST_lon_dl(dl_times_prelim, lon_step, "ncdc_oisst_v2_avhrr_prelim_by_time_zlev_lat_lon") %>% 
     filter(!t %in% sst_final_prep$t) %>% 
     na.omit() %>% 
     group_by(t) %>% 
     filter(temp > 100) %>% 
     ungroup()
+
+  # Prep prelim data
+  # sst_prelim_prep <- sst_prelim %>% 
+  #   # mutate(lon = lon_OISST[lon_step]) %>% 
+  #   # select(lon, lat, t, temp) %>% 
+  #   filter(!t %in% sst_final_prep$t) %>% 
+  #   na.omit() %>% 
+  #   group_by(t) %>% 
+  #   filter(temp > 100) %>% 
+  #   ungroup()
   
   # Combine and prep
-  sst_all <- rbind(sst_old, sst_final_prep) %>%
-    rbind(., sst_prelim_prep) %>% 
+  sst_all <- rbind(sst_old, sst_final) %>%
+    rbind(., sst_prelim) %>% 
   mutate(temp = ifelse(is.na(temp), NA, temp),
          t = as.integer(t)) %>% 
     na.omit()

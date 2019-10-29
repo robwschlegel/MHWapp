@@ -1,6 +1,6 @@
 # This script combines all previous work towards the MHWapp into one location
   # The functions that this script draws on are found in "MHW_daily_functions.R"
-# This script is designed to be run autonomously once per day by a chronjob
+# This script is designed to be run autonomously once per day by a chron job
 # It performs the following tasks:
 ## 1: Downloads the most recent final and prelim NOAA OISST 
 ##    data available and updates the local NetCDF files
@@ -8,7 +8,7 @@
 ## 3: Creates daily global MHW category file(s)
 ## 4: Updates the `final_dates`, `prelim_dates`, and `current_dates` indexes
 
-source("../MHWapp/MHW_daily_functions.R")
+source("MHW_daily_functions.R")
 # source("../MHWapp/MHW_daily_fixes.R")
 
 ## NB: Don't run any of this code manually
@@ -51,8 +51,8 @@ prelim_time_end <- NOAA_date(prelim_time_range, 2)
 print("Checking if new final data need downloading")
 load("metadata/final_dates.Rdata")
 if(max(final_dates) < final_time_end) {
-  final_date_start <- paste0(max(final_dates)+1,"T00:00:00Z")
-  final_date_end <- paste0(final_time_end,"T00:00:00Z")
+  final_date_start <- max(final_dates)+1
+  final_date_end <- final_time_end
 } else {
   final_date_start <- FALSE
 }
@@ -62,12 +62,12 @@ if(max(final_dates) < final_time_end) {
 print("Checking if new prelim data need downloading")
 load("metadata/prelim_dates.Rdata")
 if(max(prelim_dates) < prelim_time_end) {
-  prelim_date_start <- paste0(max(prelim_dates)+1,"T00:00:00Z")
-  prelim_date_end <- paste0(prelim_time_end,"T00:00:00Z")
+  prelim_date_start <- max(prelim_dates)+1
+  prelim_date_end <- prelim_time_end
   prelim_date_blank <- FALSE
   if(max(prelim_dates)+1 < prelim_time_start){
     prelim_date_blank <- seq(max(prelim_dates)+1, prelim_time_start-1, by = "day")
-    prelim_date_start <- paste0(prelim_time_start, "T00:00:00Z")
+    prelim_date_start <- prelim_time_start
     print(paste0("The day(s) ",prelim_date_blank," are not available in the prelim data and are being filled with ",prelim_time_start))
   }
 } else {
@@ -78,7 +78,7 @@ if(max(prelim_dates) < prelim_time_end) {
 
 # If there are no new data, say so
 if(final_date_start == FALSE & prelim_date_start == FALSE)
-  cat("No new data to download")
+  print("No new data to download")
 
 
 # Download data not in 'final_dates' if necessary/possible
@@ -86,6 +86,8 @@ if(final_date_start != FALSE){
   print(paste0("Downloading final data from ",final_date_start," to ",final_date_end))
   OISST_final_1 <- OISST_dl(c(final_date_start, final_date_end),
                             "ncdc_oisst_v2_avhrr_by_time_zlev_lat_lon")
+} else {
+  OISST_final_1 <- data.frame(lon = NA, lat = NA, t = NA, temp = NA)
 }
 
 
@@ -94,50 +96,36 @@ if(prelim_date_start != FALSE){
   print(paste0("Downloading prelim data from ",prelim_date_start," to ",prelim_date_end))
   OISST_prelim_1 <- OISST_dl(c(prelim_date_start, prelim_date_end),
                             "ncdc_oisst_v2_avhrr_prelim_by_time_zlev_lat_lon")
-}
-
-
-# Prep final data for NetCDF files
-if(final_date_start != FALSE){
-  print("Prepping new final data")
-  OISST_final_2 <- OISST_prep(OISST_final_1)
 } else {
-  OISST_final_2 <- data.frame(lon = NA, lat = NA, t = NA, temp = NA)
-}
-
-
-# Prep prelim data for NetCDF files
-if(prelim_date_start != FALSE){
-  print("Prepping new prelim data")
-  OISST_prelim_2 <- OISST_prep(OISST_prelim_1)
-} else {
-  OISST_prelim_2 <- data.frame(lon = NA, lat = NA, t = NA, temp = NA)
+  OISST_prelim_1 <- data.frame(lon = NA, lat = NA, t = NA, temp = NA)
 }
 
 
 # Fill blank days from prelim data with earliest day available
-# NB: This should only occur very rarely
+# NB: This should occur very rarely
 if(prelim_date_blank != FALSE){
-  prelim_blank_plug <- filter(OISST_prelim_2, t == prelim_time_start)
+  prelim_blank_plug <- filter(OISST_prelim_1, t == prelim_time_start)
   for(i in length(prelim_date_blank):1){
     prelim_blank_plug_step <- prelim_blank_plug
     prelim_blank_plug_step$t <- prelim_date_blank[i]
-    OISST_prelim_2 <- rbind(prelim_blank_plug_step ,OISST_prelim_2)
+    OISST_prelim_1 <- rbind(prelim_blank_plug_step ,OISST_prelim_1)
   }
 }
 
 
 # Catch the dates when the data may be incorrect and remove anything from there forward
-if(nrow(OISST_final_2) > 1){
-  if(max(OISST_final_2$temp, na.rm = T) > 100){
-    final_date_error <- min(filter(OISST_final_2, temp > 100)$t)
-    OISST_final_2 <- filter(OISST_final_2, t < final_date_error)
+if(nrow(OISST_final_1) > 1){
+  if(max(OISST_final_1$temp, na.rm = T) > 100){
+    final_date_error <- min(filter(OISST_final_1, temp > 100)$t)
+    OISST_final_1 <- filter(OISST_final_1, t < final_date_error)
+    print(paste0("There was an error in the final OISST data on", final_date_error))
   }
 }
-if(nrow(OISST_prelim_2) > 1){
-  if(max(OISST_prelim_2$temp, na.rm = T) > 100){
-    prelim_date_error <- min(filter(OISST_prelim_2, temp > 100)$t)
-    OISST_prelim_2 <- filter(OISST_prelim_2, t < prelim_date_error)
+if(nrow(OISST_prelim_1) > 1){
+  if(max(OISST_prelim_1$temp, na.rm = T) > 100){
+    prelim_date_error <- min(filter(OISST_prelim_1, temp > 100)$t)
+    OISST_prelim_1 <- filter(OISST_prelim_1, t < prelim_date_error)
+    print(paste0("There was an error in the prelim OISST data on", prelim_date_error))
   }
 }
 
@@ -145,15 +133,15 @@ if(nrow(OISST_prelim_2) > 1){
 # Add new prelim and final data to the files
 ## NB: -NEVER- run this in RStudio Server!
   ## It breaks the NetCDF write privileges
-doMC::registerDoMC(cores = 25)
-if(nrow(OISST_final_2) > 1 | nrow(OISST_prelim_2) > 1){
+# doMC::registerDoMC(cores = 50)
+if(nrow(OISST_final_1) > 1 | nrow(OISST_prelim_1) > 1){
   print("Adding new data to NetCDF files")
-  ## NB: 50 cores uses too much RAM
-  doMC::registerDoMC(cores = 25)
+  ## NB: 50 cores uses too much RAM if more than a few days are being added
+  doMC::registerDoMC(cores = 50)
   plyr::l_ply(lon_OISST, .fun = OISST_merge, .parallel = TRUE,
-              df_prelim = OISST_prelim_2, df_final = OISST_final_2)
+  df_prelim = OISST_prelim_1, df_final = OISST_final_1)
   print("Added new data to NetCDF files")
-
+  
   # Create date indexes
   # Get range of complete dates from the above `OISST_merge()` runs
   nc <- nc_open("../data/OISST/avhrr-only-v2.ts.1440.nc")
@@ -163,11 +151,12 @@ if(nrow(OISST_final_2) > 1 | nrow(OISST_prelim_2) > 1){
 
   # final_dates index
   final_dates <- ncdf_dates[ncdf_dates <= final_time_end]
+  # final_dates <- final_dates[1:length(final_dates-2)]
   # tail(final_dates)
   save(final_dates, file = "metadata/final_dates.Rdata")
 
   # prelim_dates index
-  prelim_dates <- ncdf_dates[ncdf_dates <= prelim_time_end]
+  prelim_dates <- ncdf_dates[final_dates >= prelim_time_end]
   # tail(prelim_dates)
   save(prelim_dates, file = "metadata/prelim_dates.Rdata")
 }
@@ -175,8 +164,9 @@ if(nrow(OISST_final_2) > 1 | nrow(OISST_prelim_2) > 1){
 
 # Fix files that didn't run correctly
 # This happens every few months, usaually due to a core slipping
+  # NB: These fixes have not been updated since the tidync framework was implemented on 2019-10-29
 
-# Rhe easiest way to fix this is actually to load the 
+# The easiest way to fix this is actually to load the 
 # `final_dates` and `prelim_dates` objects,
 # alter them to require re-downloading the affected data,
 # and then save the files.
@@ -206,26 +196,26 @@ if(final_date_start != FALSE){
   print("Updating MHW results based on new final+prelim data")
   # system.time(
     plyr::l_ply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE,
-                final_start = gsub("T00:00:00Z", "", final_date_start))
+                final_start = final_date_start)
                 # final_start = "2019-02-10")
   # ) # ~ 26 seconds per cycle
 } else if(prelim_date_start != FALSE) {
   print("Updating MHW results based on new prelim data only")
   plyr::l_ply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE,
-              final_start = gsub("T00:00:00Z", "", prelim_date_start))
+              final_start = prelim_date_start)
 }
 
-  # Occasionaly the cat_lon files don't come right
+# Occasionaly the cat_lon files don't come right
 # One can usually tell if the size is under 400 kb
 # This function can fix a specific file
 
-  # Run one
+# Run one
 # MHW_event_cat_fix(lon_OISST[20])
 
-  # Run many
+# Run many
 # plyr::ldply(lon_OISST[1117:1182], .fun = MHW_event_cat_fix, .parallel = TRUE)
 
-  # Run ALL
+# Run ALL
 # plyr::ldply(lon_OISST[356:1440], .fun = MHW_event_cat_fix, .parallel = TRUE)
 
 
@@ -243,7 +233,7 @@ nc_close(nc_OISST)
   # Manually control dates as desired
   # update_dates <- seq(as.Date("2019-10-19"), as.Date("2019-10-25"), by = "day")
 if(final_date_start != FALSE) {
-  update_dates <- time_index[which(time_index >= gsub("T00:00:00Z", "", final_date_start))]
+  update_dates <- time_index[which(time_index >= final_date_start)]
   if(length(update_dates) > 0) {
     print(paste0("Updating global MHW slices from ",min(update_dates)," to ",max(update_dates)))
     for(i in 1:length(update_dates)) {
@@ -251,7 +241,7 @@ if(final_date_start != FALSE) {
       } # ~11 seconds for one
     }
   } else if(prelim_date_start != FALSE) {
-    update_dates <- time_index[which(time_index >= gsub("T00:00:00Z", "", prelim_date_start))]
+    update_dates <- time_index[which(time_index >= prelim_date_start)]
     if(length(update_dates) > 0) {
       print(paste0("Updating global MHW slices from ",min(update_dates)," to ",max(update_dates)))
       for(i in 1:length(update_dates)) {
@@ -269,7 +259,7 @@ current_dates <- as.character(dir(path = "../data/cat_clim", pattern = "cat.clim
 current_dates <- sapply(strsplit(current_dates, "cat.clim."), "[[", 3)
 current_dates <- as.Date(as.vector(sapply(strsplit(current_dates, ".Rda"), "[[", 1)))
 # tail(current_dates)
-save(current_dates, file = "shiny/current_dates.RData")
+# save(current_dates, file = "shiny/current_dates.RData")
 
 # Check that no days are missing
 possible_dates <- seq(as.Date("1982-01-01"), max(current_dates), by = "day")
