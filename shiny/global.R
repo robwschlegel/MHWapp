@@ -12,7 +12,8 @@ library(shinyBS)
 library(leaflet)
 library(dplyr)
 library(plotly)
-library(ncdf4)
+library(tidync)
+# library(ncdf4)
 library(DT)
 
 # Dependencies that are called explicitly
@@ -67,7 +68,8 @@ date_menu_choice <- max(current_dates)
 # sidepanel.width <- 400
 
 ### The lon/lat steps
-load("lon_OISST.RData")
+# load("lon_OISST.RData")
+lon_OISST <- c(seq(0.125, 179.875, by = 0.25), seq(-179.875, -0.125, by = 0.25))
 lat_OISST <- seq(-89.875, 89.875, by = 0.25)
 
 ### The file locations

@@ -7,51 +7,34 @@
 # Overland
 # lon_step <- -80.875
 # lat_step <- 38.125
+# lat_step <- 21.125
 sst_seas_thresh_ts <- function(lon_step, lat_step){
   
   lon_row <- which(lon_OISST == lon_step)
-  lat_row <- which(lat_OISST == lat_step)
+  # lat_row <- which(lat_OISST == lat_step)
   
   # OISST data
-  nc_OISST <- nc_open(OISST_files[lon_row])
-  # lat_vals <- as.vector(nc_OISST$dim$lat$vals)
-  time_index <- as.Date(ncvar_get(nc_OISST, "time"), origin = "1970-01-01")
-  # time_old_index <- time_index[time_index <= max(current_dates)]
-  # time_extract_index <- time_index[which(min(previous_event_index$date_end) == time_index):length(time_index)]
-  sst_raw <- ncvar_get(nc_OISST, "sst", start = c(lat_row,1,1), count = c(1,1,-1))
-  nc_close(nc_OISST)
+  tidync_OISST <- tidync(OISST_files[lon_row]) %>% 
+    hyper_filter(lat = lat == lat_step) %>%
+    hyper_tibble() %>% 
+    mutate(time = as.Date(time, origin = "1970-01-01")) %>% 
+    dplyr::rename(ts_x = time, ts_y = sst) %>%
+    group_by(lon, lat) %>% 
+    group_modify(~heatwaveR:::make_whole_fast(.x)) %>% # This is necessary for the doy column
+    ungroup() %>% 
+    dplyr::rename(t = ts_x, temp = ts_y) %>%
+    select(lon, lat, t, doy, temp)
   
-  if(length(sst_raw[complete.cases(sst_raw)]) == 0){
+  if(length(na.omit(tidync_OISST)) == 0){
     sst_seas_thresh <- data.frame(doy = NA, t = NA, temp = NA,
                                   seas = NA, thresh = NA)
     return(sst_seas_thresh)
   }
   
-  # Prep SST for further use
-  sst <- as.data.frame(reshape2::melt(sst_raw, value.name = "temp"), row.names = NULL) %>%
-    mutate(lat = lat_step,
-           t = time_index) %>%
-    na.omit() %>% 
-    dplyr::rename(ts_x = t, ts_y = temp) %>% 
-    heatwaveR:::make_whole_fast() %>%
-    dplyr::rename(t = ts_x, temp = ts_y)
-  
-  # seas.thresh data
-  nc_seas <- nc_open(seas_thresh_files[lon_row])
-  seas <- ncvar_get(nc_seas, "seas", start = c(lat_row,1,1), count = c(1,1,-1))
-  dimnames(seas) <- list(doy = nc_seas$dim$time$vals)
-  thresh <- ncvar_get(nc_seas, "thresh", start = c(lat_row,1,1), count = c(1,1,-1))
-  dimnames(thresh) <- list(doy = nc_seas$dim$time$vals)
-  nc_close(nc_seas)
-  seas <- as.data.frame(reshape2::melt(seas, value.name = "seas"), row.names = NULL) %>%
-    na.omit()
-  thresh <- as.data.frame(reshape2::melt(thresh, value.name = "thresh"), row.names = NULL) %>%
-    na.omit()
-  
-  # Merge and exit
-  sst_seas_thresh <- sst %>% 
-    left_join(seas, by = c("doy")) %>%
-    left_join(thresh, by = c("doy")) %>% 
+  # Merge to seas/thresh and exit
+  sst_seas_thresh <- tidync_OISST %>% 
+    left_join(hyper_tibble(tidync(seas_thresh_files[lon_row])), 
+              by = c("lon", "lat", "doy" = "time")) %>% 
     mutate(temp = round(temp, 2),
            seas = round(seas, 2),
            thresh = round(thresh, 2))
