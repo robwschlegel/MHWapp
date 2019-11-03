@@ -14,7 +14,7 @@ library(abind)
 library(padr)
 # library(qs, lib.loc = "../R-packages/")
 library(heatwaveR, lib.loc = "../R-packages/")
-cat(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))
+print(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))
 doMC::registerDoMC(cores = 25)
 
 
@@ -281,7 +281,7 @@ sst_seas_thresh_merge <- function(lon_step, start_date){
 
 # Function for updating the MHW event metric lon slice files
 # tester...
-# lon_step <- lon_OISST[1117]
+# lon_step <- lon_OISST[0917]
 MHW_event_cat_update <- function(lon_step){
   
   # load the final download date
@@ -304,10 +304,14 @@ MHW_event_cat_update <- function(lon_step){
   # The problem here is that sometimes the prelim data will dip below the threshold long enough
   # that the MHW will be considered finished and the code would incorrectly begin calculating another MHW
   # To correct for this we must use the final_dates R object, which is tied to the OISST downloading
+  # We then go back one event before the final data end date to ensure we are not missing anything
   previous_event_index <- MHW_event_data %>% 
     group_by(lon, lat) %>% 
     filter(date_start < max(final_dates)) %>% 
-    filter(event_no == max(event_no))
+    filter(event_no == max(event_no)-1)
+  
+  test_index <- MHW_event_data %>% 
+    filter(lat == -51.875)
   
   # Extract each pixel time series based on how far back the oldest event occurred for the entire longitude slice
   sst_seas_thresh <- sst_seas_thresh_merge(lon_step, 
@@ -316,22 +320,19 @@ MHW_event_cat_update <- function(lon_step){
                                            # start_date = as.Date("1982-01-01"))
   
   # Calculate new event metrics with new data as necessary
-  MHW_event_cat <- previous_event_index %>% 
+  system.time(
+  MHW_event_new <- previous_event_index %>% 
+    # filter(lat >= -52,
+    #        lat <= -51) %>% 
     mutate(lat2 = lat) %>% 
     group_by(lat2) %>% 
     group_modify(~event_calc(.x,
                  sst_seas_thresh = sst_seas_thresh,
-                 MHW_event_data = MHW_event_data,
-                 MHW_cat_lon = MHW_cat_lon))# %>% 
-    select(-lat2) %>% 
-    unnest() # ~16 seconds for 478 pixels
-  # Save results and exit
-  MHW_event_new <- MHW_event_cat %>% 
-    filter(row_number() %% 2 == 1) %>% 
-    unnest()
-  if(length(MHW_event_new$lon) != 0) 
-    # qsave(MHW_event_new, file = MHW_event_files[lon_row])
-    saveRDS(MHW_event_new, file = MHW_event_files[lon_row])
+                 MHW_event_data = MHW_event_data)) #%>% 
+    # select(-lat2) %>%
+    # unnest() # 26 seconds for 599 pixels
+  )
+  saveRDS(MHW_event_new, file = MHW_event_files[lon_row])
   # tester...
   # MHW_event_new_test <- MHW_event_new %>% 
   #   filter(lat == df$lat)
@@ -351,10 +352,12 @@ MHW_event_cat_update <- function(lon_step){
   # print(paste0("Finished run on MHW.event.",lon_row_pad,".Rda at ",Sys.time()))
 }
 
-# Function for extracting correct sst data based on pre-determined subsets
-# It also calculates and returns corrected MHW metric results
-# df <- previous_event_index[319,]
-event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon){
+# Function for calculating new event metrics
+# df <- previous_event_index%>% 
+#   filter(lat >= -52,
+#          lat <= -51)
+# df <- df[1,]
+event_calc <- function(df, sst_seas_thresh, MHW_event_data){
   
   # Extract necessary SST
   sst_step_1 <- sst_seas_thresh %>% 
@@ -366,28 +369,42 @@ event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon){
   event_step_1 <- event_base$event %>% 
     mutate(lon = df$lon, lat = df$lat) %>% 
     dplyr::select(lon, lat, event_no, duration:intensity_max, intensity_cumulative) %>%
-    mutate_all(round, 3)
+    mutate_all(round, 3) %>% 
+    filter(intensity_max > 0) # Changes to the heatwaveR source code (0.4.1.9001) require a little help now
   event_step_2 <- MHW_event_data %>%
     filter(lat == df$lat[1],
            date_end <= df$date_end[1]) %>%
     rbind(event_step_1) %>%
-    mutate(event_no = seq(1:n()))
+    mutate(event_no = seq_len(n()))
+  
+  # Exit
+  return(event_step_2)
+}
+
+# Function for calculating new daily event category values
+# df <- previous_event_index[319,]
+cat_calc <- function(df, sst_seas_thresh, MHW_cat_lon){
+  
+  # Extract necessary SST
+  sst_step_1 <- sst_seas_thresh %>% 
+    filter(lat == df$lat[1],
+           t >= df$date_end)
   
   # Calculate categories
+  event_base <- detect_event(sst_step_1)
   cat_step_1 <- category(event_base, climatology = T)$climatology %>% 
     mutate(event_no = event_no + df$event_no[1],
            lon = df$lon,
            lat = df$lat) %>% 
-    select(t, lon, lat, event_no, intensity, category)
+    select(t, lon, lat, event_no, intensity, category) %>% 
+    filter(intensity > 0) # Changes to the heatwaveR source code (0.4.1.9001) require a little help now
   cat_step_2 <- MHW_cat_lon %>%
     filter(lat == df$lat,
            t <= df$date_end[1]) %>%
     rbind(cat_step_1)
   
   # Exit
-  event_cat <- list(event = event_step_2,
-                    cat = cat_step_2)
-  return(event_cat)
+  return(cat_step_2)
 }
 
 
