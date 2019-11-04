@@ -186,12 +186,14 @@ if(nrow(OISST_final_1) > 1 | nrow(OISST_prelim_1) > 1){
 # August 29th, 2019: Core 45 slipped, affecting every 12.5th longitude value
 # from -173.875 to -11.375 and 136.125 to 173.625 for 08-09 to 08-11
 
-# stop("Break before MHW calcs")
+# stop("Brake before MHW calcs as they still need to be updated to work with new R parallelism")
 
 
 # 2: Update MHW event and category data -----------------------------------
 
-doMC::registerDoMC(cores = 25)
+# Prep guide info for this section
+# doMC::registerDoMC(cores = 25)
+doParallel::registerDoParallel(cores = 25)
 load("metadata/final_dates.Rdata")
 load("metadata/prelim_dates.Rdata")
 
@@ -200,7 +202,7 @@ if(final_date_start != FALSE | prelim_date_start != FALSE){
   print("Updating MHW results")
   # system.time(
     plyr::l_ply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE)
-  # ) # ~ 26 seconds per cycle
+  # ) # ~ 40 seconds per cycle
 }
 
 # Occasionaly the cat_lon files don't come right
@@ -219,30 +221,31 @@ if(final_date_start != FALSE | prelim_date_start != FALSE){
 
 # 3: Create daily global files --------------------------------------------
 
-doMC::registerDoMC(cores = 25)
+# doMC::registerDoMC(cores = 25)
+doParallel::registerDoParallel(cores = 25)
 
 # Get most current processed OISST dates
-nc_OISST <- nc_open(OISST_files[1440])
-time_index <- as.Date(ncvar_get(nc_OISST, "time"), origin = "1970-01-01")
-nc_close(nc_OISST)
+time_index <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transforms$time$time, origin = "1970-01-01")
 
 # Get the range of dates that need to be run
 # The function `cat_clim_global_daily()` uses dplyr so a for loop is used here
   # Manually control dates as desired
   # update_dates <- seq(as.Date("2019-10-19"), as.Date("2019-10-25"), by = "day")
-if(final_date_start != FALSE) {
+if (final_date_start != FALSE) {
   update_dates <- time_index[which(time_index >= final_date_start)]
-  if(length(update_dates) > 0) {
+  if (length(update_dates) > 0) {
     print(paste0("Updating global MHW slices from ",min(update_dates)," to ",max(update_dates)))
-    for(i in 1:length(update_dates)) {
+    for (i in seq_len(length(update_dates))) {
+      # system.time(
       cat_clim_global_daily(update_dates[i])
-      } # ~11 seconds for one
+      # ) # ~16 seconds for one
+      } 
     }
-  } else if(prelim_date_start != FALSE) {
+  } else if (prelim_date_start != FALSE) {
     update_dates <- time_index[which(time_index >= prelim_date_start)]
-    if(length(update_dates) > 0) {
+    if (length(update_dates) > 0) {
       print(paste0("Updating global MHW slices from ",min(update_dates)," to ",max(update_dates)))
-      for(i in 1:length(update_dates)) {
+      for (i in seq_len(length(update_dates))) {
         cat_clim_global_daily(update_dates[i])
       } # ~11 seconds for one
     }

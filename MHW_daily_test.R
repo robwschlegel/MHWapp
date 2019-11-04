@@ -32,8 +32,8 @@ sst_seas_thresh_sub <- sst_seas_thresh %>%
 
 ## Load events
 MHW_event_data <- readRDS(MHW_event_files[chosen_sub]) %>% 
-  filter(lat == chosen_lat,
-         date_start >= "2018-01-01")
+  filter(lat == chosen_lat)#,
+         # date_start >= "2018-01-01")
 
 
 ## Load a daily slice that should have a MHW
@@ -60,16 +60,16 @@ p <- ggplot(data = sst_seas_thresh_sub, aes(x = t, y = temp)) +
   labs(x = "", y = "Temperature (°C)") +
   scale_x_date(expand = c(0, 0))
 if(length(MHW_event_data$date_start) > 0){
-  p <- p+ geom_rug(data = MHW_event_data, sides = "b", colour = "red3", size = 2,
-           aes(x = date_peak, y = min(sst_seas_thresh_sub$temp),
-               text = paste0("Event: ",event_no,
-                             "<br>Duration: ",duration," days",
-                             "<br>Start Date: ", date_start,
-                             "<br>Peak Date: ", date_peak,
-                             "<br>End Date: ", date_end,
-                             "<br>Mean Intensity: ",intensity_mean,"°C",
-                             "<br>Max. Intensity: ",intensity_max,"°C",
-                             "<br>Cum. Intensity: ",intensity_cumulative,"°C")))
+  p <- p + geom_rug(data = MHW_event_data, sides = "b", colour = "red3", size = 2,
+                    aes(x = date_peak, y = min(sst_seas_thresh_sub$temp),
+                        text = paste0("Event: ",event_no,
+                                      "<br>Duration: ",duration," days",
+                                      "<br>Start Date: ", date_start,
+                                      "<br>Peak Date: ", date_peak,
+                                      "<br>End Date: ", date_end,
+                                      "<br>Mean Intensity: ",intensity_mean,"°C",
+                                      "<br>Max. Intensity: ",intensity_max,"°C",
+                                      "<br>Cum. Intensity: ",intensity_cumulative,"°C")))
 
 }
 p
@@ -78,12 +78,12 @@ p
 # 3: Testing cat_clim files -----------------------------------------------
 
 # Load a single file
-MHW_cat_clim <- readRDS("shiny/cat_clim/2019/cat.clim.2019-10-12.Rda")
+MHW_cat_clim <- readRDS("shiny/cat_clim/2019/cat.clim.2019-10-19.Rda")
 
 # Crude global plot
 ggplot(data = MHW_cat_clim, aes(x = lon, y = lat)) +
   borders(fill = "grey70", colour = "black") +
-  geom_raster(aes(fill = category)) +
+  geom_tile(aes(fill = category)) +
   scale_fill_manual("Category",
                     values = c("#ffc866", "#ff6900", "#9e0000", "#2d0000"),
                     labels = c("I Moderate", "II Strong", "III Severe", "IV Extreme")) +

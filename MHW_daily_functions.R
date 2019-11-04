@@ -324,36 +324,32 @@ MHW_event_cat_update <- function(lon_step){
   
   # Calculate new event metrics with new data as necessary
   # system.time(
-  MHW_event_new <- previous_event_index %>% 
-    # filter(lat >= -70,
-    #        lat <= -69) %>%
+  MHW_event_cat <- previous_event_index %>% 
     mutate(lat2 = lat) %>% 
     group_by(lat2) %>% 
-    group_modify(~event_calc(.x,
-                             sst_seas_thresh = sst_seas_thresh,
-                             MHW_event_data = MHW_event_data)) %>% 
+    nest() %>% 
+    mutate(event_cat_res = map(data, event_calc,
+                               sst_seas_thresh = sst_seas_thresh,
+                               MHW_event_data = MHW_event_data,
+                               MHW_cat_lon = MHW_cat_lon)) %>% 
     ungroup() %>% 
-    select(-lat2) 
-  # ) # 17 seconds for 478 pixels
+    select(-data, -lat2) %>%
+    unnest(cols = event_cat_res)
+  # ) # ~28 seconds for 478 pixels
+  
+  # Save results and exit
+  MHW_event_new <- MHW_event_cat %>% 
+    filter(row_number() %% 2 == 1) %>% 
+    unnest(cols = event_cat_res)
   saveRDS(MHW_event_new, file = MHW_event_files[lon_row])
   # tester...
   # MHW_event_new_test <- MHW_event_new %>% 
   #   filter(lat == df$lat)
   # saveRDS(MHW_event_new, dir("../data/test", pattern = "MHW.event", full.names = T)[lon_row])
   
-  # Calculate daily category values with new data as necessary
-  # system.time(
-  MHW_cat_new <- previous_event_index %>% 
-      # filter(lat >= -52,
-      #        lat <= -51) %>% 
-    mutate(lat2 = lat) %>% 
-    group_by(lat2) %>% 
-    group_modify(~cat_calc(.x,
-                           sst_seas_thresh = sst_seas_thresh,
-                           MHW_cat_lon = MHW_cat_lon)) %>% 
-    ungroup() %>% 
-    select(-lat2) 
-  # ) # 33 seconds for 599 pixels
+  MHW_cat_new <- MHW_event_cat %>% 
+    filter(row_number() %% 2 == 0) %>% 
+    unnest(cols = event_cat_res)
   saveRDS(MHW_cat_new, file = cat_lon_files[lon_row])
   # tester...
   # MHW_cat_new_test <- MHW_cat_new %>% 
@@ -363,16 +359,14 @@ MHW_event_cat_update <- function(lon_step){
   # print(paste0("Finished run on MHW.event.",lon_row_pad,".Rda at ",Sys.time()))
 }
 
-# Function for calculating new event metrics
-# df <- previous_event_index %>%
-#   filter(lat >= -52,
-#          lat <= -51)
-# df <- df[1,]
-event_calc <- function(df, sst_seas_thresh, MHW_event_data){
+# Function for extracting correct sst data based on pre-determined subsets
+# It also calculates and returns corrected MHW metric results
+# df <- final_event_index[319,]
+event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon){
   
   # Extract necessary SST
   sst_step_1 <- sst_seas_thresh %>% 
-    filter(lat == df$lat[1],
+    filter(lat == df$lat,
            t >= df$date_end)
   
   # Calculate events
@@ -380,45 +374,28 @@ event_calc <- function(df, sst_seas_thresh, MHW_event_data){
   event_step_1 <- event_base$event %>% 
     mutate(lon = df$lon, lat = df$lat) %>% 
     dplyr::select(lon, lat, event_no, duration:intensity_max, intensity_cumulative) %>%
-    mutate_all(round, 3) %>% 
-    filter(intensity_max > 0) # Changes to the heatwaveR source code (0.4.1.9001) require a little help now
+    mutate_all(round, 3)
   event_step_2 <- MHW_event_data %>%
-    filter(lat == df$lat[1],
-           date_end <= df$date_end[1]) %>%
+    filter(lat == df$lat,
+           date_end <= df$date_end) %>%
     rbind(event_step_1) %>%
     mutate(event_no = seq_len(n()))
   
-  # Exit
-  return(event_step_2)
-}
-
-# Function for calculating new daily event category values
-# df <- previous_event_index %>%
-#   filter(lat >= -52,
-#          lat <= -51)
-# df <- df[4,]
-cat_calc <- function(df, sst_seas_thresh, MHW_cat_lon){
-  
-  # Extract necessary SST
-  sst_step_1 <- sst_seas_thresh %>% 
-    filter(lat == df$lat[1],
-           t >= df$date_end)
-  
   # Calculate categories
-  event_base <- detect_event(sst_step_1)
   cat_step_1 <- category(event_base, climatology = T)$climatology %>% 
-    mutate(event_no = event_no + max(df$event_no),
+    mutate(event_no = event_no + df$event_no,
            lon = df$lon,
            lat = df$lat) %>% 
-    select(t, lon, lat, event_no, intensity, category) %>% 
-    filter(intensity > 0) # Changes to the heatwaveR source code (0.4.1.9001) require a little help now
+    select(t, lon, lat, event_no, intensity, category)
   cat_step_2 <- MHW_cat_lon %>%
     filter(lat == df$lat,
-           t <= df$date_end[1]) %>%
+           t <= df$date_end) %>%
     rbind(cat_step_1)
   
   # Exit
-  return(cat_step_2)
+  event_cat <- list(event = event_step_2,
+                    cat = cat_step_2)
+  return(event_cat)
 }
 
 
