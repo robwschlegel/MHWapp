@@ -15,7 +15,8 @@ library(padr)
 # library(qs, lib.loc = "../R-packages/")
 library(heatwaveR, lib.loc = "../R-packages/")
 print(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))
-doMC::registerDoMC(cores = 25)
+# doMC::registerDoMC(cores = 25)
+doParallel::registerDoParallel(cores = 25)
 
 
 # Prep functions ----------------------------------------------------------
@@ -260,8 +261,11 @@ OISST_merge <- function(lon_step, df_prelim, df_final){
 # end_date <- as.Date("2018-12-31")
 sst_seas_thresh_merge <- function(lon_step, start_date){
   
+  # Establish lon row number
+  lon_row <- which(lon_OISST == lon_step)
+  
   # OISST data
-  tidync_OISST <- tidync(OISST_files[which(lon_OISST == lon_step)]) %>% 
+  tidync_OISST <- tidync(OISST_files[lon_row]) %>% 
     hyper_filter(time = between(time, as.integer(start_date), as.integer(Sys.Date()))) %>% 
     hyper_tibble() %>% 
     mutate(time = as.Date(time, origin = "1970-01-01")) %>% 
@@ -281,7 +285,7 @@ sst_seas_thresh_merge <- function(lon_step, start_date){
 
 # Function for updating the MHW event metric lon slice files
 # tester...
-# lon_step <- lon_OISST[0917]
+# lon_step <- lon_OISST[1]
 MHW_event_cat_update <- function(lon_step){
   
   # load the final download date
@@ -309,9 +313,8 @@ MHW_event_cat_update <- function(lon_step){
     group_by(lon, lat) %>% 
     filter(date_start < max(final_dates)) %>% 
     filter(event_no == max(event_no)-1)
-  
-  test_index <- MHW_event_data %>% 
-    filter(lat == -51.875)
+  # test_index <- MHW_event_data %>% 
+  #   filter(lat == -51.875)
   
   # Extract each pixel time series based on how far back the oldest event occurred for the entire longitude slice
   sst_seas_thresh <- sst_seas_thresh_merge(lon_step, 
@@ -320,30 +323,38 @@ MHW_event_cat_update <- function(lon_step){
                                            # start_date = as.Date("1982-01-01"))
   
   # Calculate new event metrics with new data as necessary
-  system.time(
+  # system.time(
   MHW_event_new <- previous_event_index %>% 
-    # filter(lat >= -52,
-    #        lat <= -51) %>% 
+    # filter(lat >= -70,
+    #        lat <= -69) %>%
     mutate(lat2 = lat) %>% 
     group_by(lat2) %>% 
     group_modify(~event_calc(.x,
-                 sst_seas_thresh = sst_seas_thresh,
-                 MHW_event_data = MHW_event_data)) #%>% 
-    # select(-lat2) %>%
-    # unnest() # 26 seconds for 599 pixels
-  )
+                             sst_seas_thresh = sst_seas_thresh,
+                             MHW_event_data = MHW_event_data)) %>% 
+    ungroup() %>% 
+    select(-lat2) 
+  # ) # 17 seconds for 478 pixels
   saveRDS(MHW_event_new, file = MHW_event_files[lon_row])
   # tester...
   # MHW_event_new_test <- MHW_event_new %>% 
   #   filter(lat == df$lat)
   # saveRDS(MHW_event_new, dir("../data/test", pattern = "MHW.event", full.names = T)[lon_row])
   
-  MHW_cat_new <- MHW_event_cat %>% 
-    filter(row_number() %% 2 == 0) %>% 
-    unnest()
-  if(length(MHW_cat_new$lon) != 0) 
-    # qsave(MHW_cat_new, file = cat_lon_files[lon_row])
-    saveRDS(MHW_cat_new, file = cat_lon_files[lon_row])
+  # Calculate daily category values with new data as necessary
+  # system.time(
+  MHW_cat_new <- previous_event_index %>% 
+      # filter(lat >= -52,
+      #        lat <= -51) %>% 
+    mutate(lat2 = lat) %>% 
+    group_by(lat2) %>% 
+    group_modify(~cat_calc(.x,
+                           sst_seas_thresh = sst_seas_thresh,
+                           MHW_cat_lon = MHW_cat_lon)) %>% 
+    ungroup() %>% 
+    select(-lat2) 
+  # ) # 33 seconds for 599 pixels
+  saveRDS(MHW_cat_new, file = cat_lon_files[lon_row])
   # tester...
   # MHW_cat_new_test <- MHW_cat_new %>% 
   #   filter(lat == df$lat)
@@ -353,7 +364,7 @@ MHW_event_cat_update <- function(lon_step){
 }
 
 # Function for calculating new event metrics
-# df <- previous_event_index%>% 
+# df <- previous_event_index %>%
 #   filter(lat >= -52,
 #          lat <= -51)
 # df <- df[1,]
@@ -382,7 +393,10 @@ event_calc <- function(df, sst_seas_thresh, MHW_event_data){
 }
 
 # Function for calculating new daily event category values
-# df <- previous_event_index[319,]
+# df <- previous_event_index %>%
+#   filter(lat >= -52,
+#          lat <= -51)
+# df <- df[4,]
 cat_calc <- function(df, sst_seas_thresh, MHW_cat_lon){
   
   # Extract necessary SST
@@ -393,7 +407,7 @@ cat_calc <- function(df, sst_seas_thresh, MHW_cat_lon){
   # Calculate categories
   event_base <- detect_event(sst_step_1)
   cat_step_1 <- category(event_base, climatology = T)$climatology %>% 
-    mutate(event_no = event_no + df$event_no[1],
+    mutate(event_no = event_no + max(df$event_no),
            lon = df$lon,
            lat = df$lat) %>% 
     select(t, lon, lat, event_no, intensity, category) %>% 
