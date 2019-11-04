@@ -312,7 +312,7 @@ MHW_event_cat_update <- function(lon_step){
   previous_event_index <- MHW_event_data %>% 
     group_by(lon, lat) %>% 
     filter(date_start < max(final_dates)) %>% 
-    filter(event_no == max(event_no)-1)
+    filter(event_no == max(event_no)-2)
   # test_index <- MHW_event_data %>% 
   #   filter(lat == -51.875)
   
@@ -429,7 +429,7 @@ cat_clim_global_daily <- function(date_choice){
     mutate(category = factor(category, levels = c("I Moderate", "II Strong",
                                                   "III Severe", "IV Extreme"))) %>% 
     select(-t)
-  #Save
+  # Save
   cat_clim_year <- lubridate::year(date_choice)
   cat_clim_dir <- paste0("../data/cat_clim/",cat_clim_year)
   dir.create(as.character(cat_clim_dir), showWarnings = F)

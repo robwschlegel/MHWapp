@@ -134,10 +134,12 @@ if(nrow(OISST_prelim_1) > 1){
 ## NB: -NEVER- run this in RStudio Server!
   ## It breaks the NetCDF write privileges
 # doMC::registerDoMC(cores = 50)
+# doParallel::registerDoParallel(cores = 50)
 if(nrow(OISST_final_1) > 1 | nrow(OISST_prelim_1) > 1){
   print("Adding new data to NetCDF files")
   ## NB: 50 cores uses too much RAM if more than a few days are being added
-  doMC::registerDoMC(cores = 50)
+  # doMC::registerDoMC(cores = 50)
+  doParallel::registerDoParallel(cores = 50)
   plyr::l_ply(lon_OISST, .fun = OISST_merge, .parallel = TRUE,
   df_prelim = OISST_prelim_1, df_final = OISST_final_1)
   print("Added new data to NetCDF files")
@@ -193,11 +195,11 @@ if(nrow(OISST_final_1) > 1 | nrow(OISST_prelim_1) > 1){
 
 # Prep guide info for this section
 # doMC::registerDoMC(cores = 25)
-doParallel::registerDoParallel(cores = 25)
+doParallel::registerDoParallel(cores = 50)
 load("metadata/final_dates.Rdata")
 load("metadata/prelim_dates.Rdata")
 
-# This takes roughly 30 minutes and is by far the largest time requirement
+# This takes roughly 35 minutes and is by far the largest time requirement
 if(final_date_start != FALSE | prelim_date_start != FALSE){
   print("Updating MHW results")
   # system.time(
@@ -222,7 +224,7 @@ if(final_date_start != FALSE | prelim_date_start != FALSE){
 # 3: Create daily global files --------------------------------------------
 
 # doMC::registerDoMC(cores = 25)
-doParallel::registerDoParallel(cores = 25)
+doParallel::registerDoParallel(cores = 50)
 
 # Get most current processed OISST dates
 time_index <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transforms$time$time, origin = "1970-01-01")
@@ -230,7 +232,7 @@ time_index <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transform
 # Get the range of dates that need to be run
 # The function `cat_clim_global_daily()` uses dplyr so a for loop is used here
   # Manually control dates as desired
-  # update_dates <- seq(as.Date("2019-10-19"), as.Date("2019-10-25"), by = "day")
+  # update_dates <- seq(as.Date("2019-10-17"), as.Date("2019-10-27"), by = "day")
 if (final_date_start != FALSE) {
   update_dates <- time_index[which(time_index >= final_date_start)]
   if (length(update_dates) > 0) {
