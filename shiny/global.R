@@ -105,11 +105,17 @@ leafletProj <- "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +to
 begin_dl <- FALSE
 # button_colour_ts <- "danger"
 
+### The shiny server instance beng run
 server_instance <- Sys.getenv("R_SHNYSRVINST")
 
 ### Regional website URLs
 regional_NOAA <- "https://www.integratedecosystemassessment.noaa.gov/regions/california-current/cc-projects-blobtracker"
 regional_TMEDNET <- "http://t-mednet.org/t-resources/marine-heatwaves"
+
+### Placeholder when a invalid date is typed into the main date selector
+empty_date_map <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>% 
+  slice(1) %>% 
+  mutate(category = NA)
 
 # cat("\nglobal.R finished")
 

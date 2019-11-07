@@ -158,16 +158,18 @@ map <- function(input, output, session) {
   
   ### Base map data before screening categories
   baseDataPre <- reactive({
-    date_filter <- input$date_choice
-    year_filter <- lubridate::year(date_filter)
-    sub_dir <- paste0("cat_clim/",year_filter)
-    sub_file <- paste0(sub_dir,"/cat.clim.",date_filter,".Rda")
-    if(file.exists(sub_file)){
-      baseDataPre <- readRDS(sub_file)
+    if(lubridate::is.Date(input$date_choice)){
+      date_filter <- input$date_choice
+      year_filter <- lubridate::year(date_filter)
+      sub_dir <- paste0("cat_clim/",year_filter)
+      sub_file <- paste0(sub_dir,"/cat.clim.",date_filter,".Rda")
+      if(file.exists(sub_file)){
+        baseDataPre <- readRDS(sub_file)
+      } else {
+        baseDataPre <- empty_date_map
+      }
     } else {
-      baseDataPre <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>% 
-        slice(1) %>% 
-        mutate(category = NA)
+      baseDataPre <- empty_date_map
     }
     return(baseDataPre)
   })
@@ -175,13 +177,15 @@ map <- function(input, output, session) {
   ### Base map data after screening categories
   baseData <- reactive({
     baseDataPre <- baseDataPre()
-    baseData <- baseDataPre %>%
-      filter(category %in% categories$categories)
+    if(nrow(baseDataPre) > 1){
+      baseData <- baseDataPre %>%
+        filter(category %in% categories$categories)
+    } else{
+      baseData <- empty_date_map
+    }
     # Fix for the issue caused by de-slecting all of the cateogries
     if(length(baseData$category) == 0){
-      baseData <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>% 
-        slice(1) %>% 
-        mutate(category = NA)
+      baseData <- empty_date_map
     }
     return(baseData)
   })
@@ -331,11 +335,13 @@ map <- function(input, output, session) {
                         "<hr>",
                         "<i>Please click the<br><b>Time series</b><br>button in the<br><b>Controls</b> panel<br>for more info</i>")
       
+    } else{
+      content <- ""
     }
     
     ### Add Popup to leaflet
     leafletProxy("map") %>% 
-      # clearPopups() %>% 
+      clearPopups() %>%
       addPopups(lng = xy_click[1], lat = xy_click[2], 
                 popup = paste(content))
   }
