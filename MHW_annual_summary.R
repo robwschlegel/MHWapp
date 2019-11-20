@@ -11,6 +11,7 @@ library(tidyverse)
 library(heatwaveR)
 library(tidync, lib.loc = "../R-packages/")
 library(dtplyr, lib.loc = "../R-packages/")
+library(ggrepel)
 library(doParallel); registerDoParallel(cores = 50)
 
 
@@ -110,26 +111,93 @@ MHW_cat_daily <- MHW_cat %>%
   count(category)
 )
 
-# Stacked barplots
+# Stacked barplot
 ggplot(MHW_cat_daily, aes(x = t, y = n)) +
   geom_bar(aes(fill = category), stat = "identity",
            position = position_stack(reverse = TRUE), width = 1) +
   scale_fill_manual("Category", values = MHW_colours) +
-  scale_y_continuous(limits = c(0, nrow(OISST_ocean_coords))) +
-  labs(x = NULL, y = "Daily count of MHWs (global pixel)")
+  scale_y_continuous(limits = c(0, nrow(OISST_ocean_coords)),
+                     breaks = seq(0, nrow(OISST_ocean_coords), length.out = 11),
+                     labels = paste0(seq(0, 100, by = 10), "%")) +
+  scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +
+  labs(x = NULL, y = "Daily count of MHWs (global pixels)") +
+  coord_cartesian(expand = F) +
+  theme(legend.position = "bottom") +
+  ggtitle("MHW categories of 2019 (so far)", subtitle = "NOAA OISST; Climatogy period: 1982 - 2011")
 
-# Cumulative occurrence
-MHW_cat_daily_cum <- MHW_cat_daily %>% 
+# Days of MHW occurrence normalised to total ocean pixels
+MHW_cat_days <- MHW_cat_daily %>% 
   group_by(category) %>% 
-  mutate(n_cum = cumsum(n))
+  mutate(n_cum = cumsum(n),
+         n_normalised = n_cum/nrow(OISST_ocean_coords))
 
-# Stacked barplots
-ggplot(MHW_cat_daily_cum, aes(x = t, y = n_cum)) +
+# Stacked barplot
+ggplot(MHW_cat_daily_cum, aes(x = t, y = n_normalised)) +
   geom_bar(aes(fill = category), stat = "identity",
            position = position_stack(reverse = TRUE), width = 1) +
+  # geom_hline(yintercept = nrow(OISST_ocean_coords)) +
+  # geom_label(aes(x = as.Date("2019-07-01"), y = nrow(OISST_ocean_coords), label = "Gobal pixel count")) +
   scale_fill_manual("Category", values = MHW_colours) +
-  # scale_y_continuous(limits = c(0, nrow(OISST_ocean_coords))) +
-  labs(x = NULL, y = "Cumulative count of MHWs (global pixel)")
+  scale_y_continuous(labels = ) +
+  scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +  
+  coord_cartesian(expand = F) +
+  theme(legend.position = "bottom") +
+  labs(x = NULL, y = "Proportion of ocean affected by MHWs (pixels x days)") #+
+  # ggtitle("MHW categories of 2019 (so far)", subtitle = "NOAA OISST; Climatogy period: 1982 - 2011")
+
+# Cumulative single occurrence
+system.time(
+  MHW_cat_daily_cum_single <- lazy_dt(MHW_cat) %>% 
+    # slice(1:2000, 20000:20100) %>% 
+    # filter(lon == 0.125) %>%
+    group_by(lon, lat) %>% 
+    filter(as.integer(category) == max(as.integer(category))) %>% 
+    filter(t == min(t)) %>% 
+    group_by(t) %>%
+    count(category) %>%
+    ungroup() %>% 
+    arrange(t) %>% 
+    group_by(category) %>%
+    mutate(n_cum = cumsum(n)) %>% 
+    data.frame()
+) # 176 seconds
+
+# Fix cumulative counts so there are no gaps
+fix_grid <- expand_grid(t = seq(as.Date("2019-01-01"), max(MHW_cat$t), by = "day"), 
+                        category = as.factor(levels(MHW_cat_daily_cum_single$category))) %>% 
+  mutate(category = factor(category, levels = levels(MHW_cat_daily_cum_single$category)))
+
+MHW_cat_daily_cum_single_fix <- MHW_cat_daily_cum_single %>% 
+  right_join(fix_grid, by = c("t", "category")) %>% 
+  group_by(category) %>% 
+  fill(n_cum, .direction = "down")
+
+MHW_cat_daily_cum_single_fix_labels <- MHW_cat_daily_cum_single_fix %>% 
+  filter(t == max(t)) %>% 
+  ungroup() %>% 
+  mutate(label_cum = cumsum(n_cum))
+
+# Stacked barplot
+ggplot(MHW_cat_daily_cum_single_fix, aes(x = t, y = n_cum)) +
+  geom_bar(aes(fill = category), stat = "identity",
+           position = position_stack(reverse = TRUE), width = 1) +
+  geom_hline(data = MHW_cat_daily_cum_single_fix_labels, 
+             aes(yintercept = label_cum, colour = category)) +
+  # geom_label_repel(data = MHW_cat_daily_cum_single_fix_labels,
+  #                  aes(y = label_cum, x = as.Date("2019-03-01"), 
+  #                      label = category, fill = category)) +
+  scale_fill_manual("Category", values = MHW_colours) +
+  scale_colour_manual("Category", values = MHW_colours) +
+  scale_y_continuous(limits = c(0, nrow(OISST_ocean_coords)),
+                     breaks = seq(0, nrow(OISST_ocean_coords), length.out = 11),
+                     labels = paste0(seq(0, 100, by = 10), "%")) +
+  scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +
+  labs(x = NULL, y = "Earliest occurrence of largest MHW (cumulative global pixels)",
+       caption = "") +
+  coord_cartesian(expand = F) +
+  theme(legend.position = "bottom") #+
+  # ggtitle("MHW categories of 2019 (so far)", subtitle = "NOAA OISST; Climatogy period: 1982 - 2011")
+
 
 
 # Animations --------------------------------------------------------------
