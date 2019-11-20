@@ -57,11 +57,7 @@ MHW_colours <- c(
 
 # Data --------------------------------------------------------------------
 
-# 1982
-# MHW_cat_files_1982 <- dir("../data/cat_clim/2018", full.names = T)
-# length(MHW_cat_files_1982) # 322
-
-# 2019 MHWs
+# Chosen year of MHWs
 MHW_cat_files <- dir("../data/cat_clim/2019", full.names = T)
 length(MHW_cat_files) # 322
 
@@ -74,37 +70,12 @@ readRDS_date <- function(file_name){
 }
 
 # Load into one file
-# system.time(MHW_cat_1982 <- plyr::ldply(MHW_cat_files_1982, readRDS_date, .parallel = T)) # 16 seconds
 system.time(MHW_cat <- plyr::ldply(MHW_cat_files, readRDS_date, .parallel = T)) # 12 seconds
 
 
 # Map ---------------------------------------------------------------------
 
 # Filter out the max intensity at each pixel
-# First filter by category to ensure the largest category is used
-# Then filter by intensity just in case something odd is happening
-# df <- filter(MHW_cat, lon == MHW_cat$lon[100], lat == MHW_cat$lat[121])
-filter_max <- function(df){
-  res <- lazy_dt(MHW_cat) %>% 
-    select(-event_no, -t) %>% 
-    filter(as.integer(category) == max(as.integer(category))) %>%
-    filter(intensity == max(intensity)) %>% 
-    unique() %>% 
-    data.frame()
-}
-
-test <- data.table(MHW_cat_2019)
-test$category <- as.integer(test$category)
-setkey(test, lon, lat)
-system.time(test_res <- test[test[, .I[category == max(category)], by = list(lon, lat)]$V1])
-bdt[bdt[, .I[g == max(g)], by = id]$V1]
-# [, .SD[g == max(g)], by = id] 
-# Filter years
-system.time(MHW_cat_max_1982 <- plyr::ddply(MHW_cat_1982, .variables = c("lon", "lat"), 
-                                            .fun = filter_max, .parallel = T, .paropts = c(.inorder = F))) # 271 seconds
-system.time(MHW_cat_max <- plyr::ddply(MHW_cat, .variables = c("lon", "lat"),
-                                       .fun = filter_max, .parallel = T, .paropts = c(.inorder = F))) # 271 seconds
-
 system.time(
 MHW_cat_max <- lazy_dt(MHW_cat) %>% 
   select(-event_no, -t, -intensity) %>% 
@@ -124,7 +95,7 @@ ggplot(OISST_ocean_coords, aes(x = lon, y = lat)) +
   theme_void() +
   theme(legend.position = "bottom") +
   ggtitle("MHW categories of 2019 (so far)", subtitle = "NOAA OISST; Climatogy period: 1982 - 2011")
-# ggsave("figures/MHW_cat_map_1982.png", height = 12, width = 24)
+# ggsave("figures/MHW_cat_map_2019.png", height = 12, width = 24)
 
 
 # Time series -------------------------------------------------------------
@@ -133,22 +104,32 @@ ggplot(OISST_ocean_coords, aes(x = lon, y = lat)) +
 # Daily MHW values
 system.time(
 MHW_cat_daily <- MHW_cat %>% 
-  # select(-lon, -lat, -event_no) %>%
-  # slice(1:200000) %>%
-  # unique() %>% 
-  # spread(key = category, value = category) %>% 
   group_by(t) %>% 
-  summarise(itensity_daily = sum(intensity),
-            moderate_daily = nrow(filter(category == "I Moderate")),
-            strong_daily = nrow(filter(category == "II Strong")),
-            severe_daily = nrow(filter(category == "III Severe")),
-            extreme_daily = nrow(filter(category == "IV Extreme")))
+  mutate(itensity_daily = sum(intensity)) %>% 
+  group_by(t, itensity_daily) %>% 
+  count(category)
 )
 
 # Stacked barplots
-
+ggplot(MHW_cat_daily, aes(x = t, y = n)) +
+  geom_bar(aes(fill = category), stat = "identity",
+           position = position_stack(reverse = TRUE), width = 1) +
+  scale_fill_manual("Category", values = MHW_colours) +
+  scale_y_continuous(limits = c(0, nrow(OISST_ocean_coords))) +
+  labs(x = NULL, y = "Daily count of MHWs (global pixel)")
 
 # Cumulative occurrence
+MHW_cat_daily_cum <- MHW_cat_daily %>% 
+  group_by(category) %>% 
+  mutate(n_cum = cumsum(n))
+
+# Stacked barplots
+ggplot(MHW_cat_daily_cum, aes(x = t, y = n_cum)) +
+  geom_bar(aes(fill = category), stat = "identity",
+           position = position_stack(reverse = TRUE), width = 1) +
+  scale_fill_manual("Category", values = MHW_colours) +
+  # scale_y_continuous(limits = c(0, nrow(OISST_ocean_coords))) +
+  labs(x = NULL, y = "Cumulative count of MHWs (global pixel)")
 
 
 # Animations --------------------------------------------------------------
