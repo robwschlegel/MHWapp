@@ -8,12 +8,17 @@
 .libPaths(c("~/R-packages", .libPaths()))
 
 library(tidyverse)
+# library(purrr)
 library(heatwaveR)
 library(ncdf4)
 library(tidync, lib.loc = "../R-packages/")
 library(dtplyr, lib.loc = "../R-packages/")
 # library(ggrepel)
 library(doParallel); registerDoParallel(cores = 50)
+
+# Animation libraries
+# library(animation)
+# library(magick)
 
 
 # Metadata ----------------------------------------------------------------
@@ -305,32 +310,6 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
 
 # Animations --------------------------------------------------------------
 
-library(animation)
-
-# Locate figures created above
-imgs <- list.files(path = "figures", pattern = "*.png", full.names = T)
-
-# saveVideo(
-#   for(img in imgs){
-#     im <- magick::image_read(img)
-#     plot(as.raster(im))
-#   },
-#   video.name = "MHW_cat_summary.mp4"
-# )
-
-
-
-library(purrr)
-library(magick)
-
-# system.time(
-# list.files(path = "figures", pattern = "*.png", full.names = T) %>% 
-#   map(image_read) %>% # reads each path file
-#   image_join() %>% # joins image
-#   image_animate(fps = 1) %>% # animates
-#   image_write("MHW_cat_summary.gif", path = "figures")
-# )
-
 setwd("figures")
-system.time(system("convert -delay 200 *.png MHW_cat_summary.mp4")) # 316 seconds
+system.time(system("convert -delay 200 *.png ../anim/MHW_cat_summary.mp4")) # 316 seconds
 setwd("../")
