@@ -9,6 +9,7 @@
 
 library(tidyverse)
 library(heatwaveR)
+library(ncdf4)
 library(tidync, lib.loc = "../R-packages/")
 library(dtplyr, lib.loc = "../R-packages/")
 # library(ggrepel)
@@ -18,7 +19,7 @@ library(doParallel); registerDoParallel(cores = 50)
 # Metadata ----------------------------------------------------------------
 
 # The OISST data location
-# OISST_files <- dir("../data/OISST", full.names = T, pattern = "avhrr")
+OISST_files <- dir("../data/OISST", full.names = T, pattern = "avhrr")
 
 # Function for extracting one day of data
 # testers...
@@ -37,8 +38,62 @@ library(doParallel); registerDoParallel(cores = 50)
 # save(OISST_ocean_coords, file = "metadata/OISST_ocean_coords.Rdata")
 load("metadata/OISST_ocean_coords.Rdata")
 
-# Visualise
+# Visualise ocean pixels
 # ggplot(OISST_ocean_coords, aes(x = lon, y = lat)) + geom_tile()
+
+# Exclude OISST pixels with any near-ice (-1.6C) cover
+# During iterations of this methodology it was found that there are pixels near
+# the ice edge that don't ever quite reach -1.8C but remain in a "slush" state
+# This was determined to be an artefact of the OISST process and so the new
+# "ice" limit was set to -1.6C
+# load_OISST_no_ice_coords <- function(nc_file){
+# 
+#   # OISST data
+#   nc_OISST <- nc_open(nc_file)
+#   lon_vals <- as.vector(nc_OISST$dim$lon$vals)
+#   lat_vals <- as.vector(nc_OISST$dim$lat$vals)
+#   lat_index <- c(which(lat_vals == -69.875), which(lat_vals == 79.875))
+#   time_vals <- as.Date(ncvar_get(nc_OISST, "time"), origin = "1970-01-01")
+#   time_index <- which(time_vals == as.Date("2018-12-31"))
+#   sst_raw <- ncvar_get(nc_OISST, "sst", start = c(lat_index[1], 1, 1),
+#                        count = c(lat_index[2]-lat_index[1]+1, -1, time_index))
+#   dimnames(sst_raw) <- list(lat = nc_OISST$dim$lat$vals[lat_index[1]:lat_index[2]],
+#                             t = time_vals[seq_len(time_index)])
+#   nc_close(nc_OISST)
+# 
+#   # Prep SST for further use
+#   # system.time(
+#   res <- as.data.frame(reshape2::melt(sst_raw, value.name = "temp"), row.names = NULL) %>%
+#     na.omit() %>%
+#     mutate(lon = lon_vals[1],
+#            t = as.Date(t, origin = "1970-01-01")) %>%
+#     # Filter out pixels with any ice/slush cover during the time series
+#     # Filter out pixels that don't cover the whole time series
+#     group_by(lon, lat) %>%
+#     filter(min(round(temp, 1)) > -1.6,
+#            n() == 13514) %>%
+#     ungroup() %>%
+#     select(lon, lat) %>%
+#     mutate(lon = ifelse(lon > 180, lon-360, lon)) %>%
+#     unique() %>%
+#     data.frame()
+#   # ) ~1.7 seconds
+#   
+#   # Clear some RAM
+#   rm(sst_raw); gc()
+#   return(res)
+# }
+
+# Get coords for each no ice cover pixel 
+# system.time(OISST_no_ice_coords <- plyr::ldply(OISST_files, load_OISST_no_ice_coords, .parallel = T)) # 448 seconds
+# save(OISST_no_ice_coords, file = "metadata/OISST_no_ice_coords.Rdata")
+load("metadata/OISST_no_ice_coords.Rdata")
+
+# Create ice only layer
+OISST_no_ice_coords$index <- paste(OISST_no_ice_coords$lon, OISST_no_ice_coords$lat)
+OISST_ocean_coords$index <- paste(OISST_ocean_coords$lon, OISST_ocean_coords$lat)
+OISST_ice_coords <- OISST_ocean_coords %>%
+  filter(!(index %in% OISST_no_ice_coords$index))
 
 # The base map
 map_base <- ggplot2::fortify(maps::map(fill = TRUE, col = "grey80", plot = FALSE)) %>%
@@ -72,13 +127,13 @@ readRDS_date <- function(file_name){
 
 # Full analysis -----------------------------------------------------------
 
-MHW_annual_state <- function(chosen_year){
+MHW_annual_state <- function(chosen_year, force_calc = F){
   
   print(paste0("Started run on ",chosen_year," at ",Sys.time()))
   
   ## Find file location
   MHW_cat_files <- dir(paste0("../data/cat_clim/", chosen_year), full.names = T)
-  print(paste0("There are currently ",length(MHW_cat_files)," days of data for ",chosen_year)) # 322
+  print(paste0("There are currently ",length(MHW_cat_files)," days of data for ",chosen_year))
   
   ## Create figure title
   if(length(MHW_cat_files) < 365){
@@ -91,61 +146,77 @@ MHW_annual_state <- function(chosen_year){
   
   ## Load data
   print(paste0("Loading ",chosen_year," MHW category data; ~12 seconds"))
-  system.time(MHW_cat <- plyr::ldply(MHW_cat_files, readRDS_date, .parallel = T)) # 12 seconds
+  # system.time(
+  MHW_cat <- plyr::ldply(MHW_cat_files, readRDS_date, .parallel = T) #%>% 
+              #right_join(OISST_no_ice_coords, by = c("lon", "lat")) %>%  # Filter out ice if desired
+    # na.omit()
+  # ) # 12 seconds
+  # MHW_cat <- left_join(OISST_no_ice_coords, MHW_cat)
+  
+  ## Complete dates by categories data.frame
+  full_grid <- expand_grid(t = seq(as.Date(paste0(chosen_year,"-01-01")), max(MHW_cat$t), by = "day"), 
+                           category = as.factor(levels(MHW_cat$category))) %>% 
+    mutate(category = factor(category, levels = levels(MHW_cat$category)))
   
   ## Process data
-  print(paste0("Filtering out the max category at each pixel; ~70 seconds"))
-  # system.time(
-  MHW_cat_max <- lazy_dt(MHW_cat) %>% 
-    select(-event_no, -t, -intensity) %>% 
-    group_by(lon, lat) %>% 
-    filter(as.integer(category) == max(as.integer(category))) %>%
-    unique() %>% 
-    data.frame()
-  # ) # 70 seconds
+  # Max category per pixel
+  if(file.exists(paste0("data/annual_summary/MHW_cat_max_",chosen_year,".Rds")) & !force_calc){
+    MHW_cat_max <- readRDS(paste0("data/annual_summary/MHW_cat_max_",chosen_year,".Rds"))
+  } else{
+    print(paste0("Filtering out the max category at each pixel; ~70 seconds"))
+    # system.time(
+    MHW_cat_max <- lazy_dt(MHW_cat) %>% 
+      select(-event_no, -t, -intensity) %>% 
+      group_by(lon, lat) %>% 
+      filter(as.integer(category) == max(as.integer(category))) %>%
+      unique() %>% 
+      data.frame()
+    # ) # 70 seconds
+    saveRDS(MHW_cat_max, file = paste0("data/annual_summary/MHW_cat_max_",chosen_year,".Rds")) 
+  }
   
-  print(paste0("Counting the daily + cumulative categories globally; ~2 seconds"))
-  # system.time(
-  MHW_cat_daily_cum <- MHW_cat %>% 
-    group_by(t) %>% 
-    # mutate(itensity_daily = sum(intensity)) %>% 
-    # group_by(t, itensity_daily) %>% 
-    count(category) %>% 
-    group_by(category) %>% 
-    mutate(n_cum = cumsum(n),
-           n_prop = n_cum/nrow(OISST_ocean_coords))
-  # ) # 2 seconds
-  
-  print(paste0("Finding the earliest occurrence of the largest MHW per pixel; ~180 seconds"))
-  # system.time(
-  MHW_cat_single <- lazy_dt(MHW_cat) %>% 
-    # slice(1:2000, 20000:20100) %>%
-    # filter(lon == 0.125) %>%
-    group_by(lon, lat) %>% 
-    filter(as.integer(category) == max(as.integer(category))) %>% 
-    filter(t == min(t)) %>% 
-    group_by(t) %>%
-    count(category) %>%
-    ungroup() %>% 
-    arrange(t) %>% 
-    group_by(category) %>%
-    mutate(n_cum = cumsum(n)) %>% 
-    data.frame()
-  # ) # 180 seconds
-  
-  # Fix cumulative counts so there are no gaps
-  fix_grid <- expand_grid(t = seq(as.Date(paste0(chosen_year,"-01-01")), max(MHW_cat$t), by = "day"), 
-                          category = as.factor(levels(MHW_cat_single$category))) %>% 
-    mutate(category = factor(category, levels = levels(MHW_cat_single$category)))
-  
-  # Merge
-  MHW_cat_single_fix <- MHW_cat_single %>% 
-    right_join(fix_grid, by = c("t", "category")) %>% 
-    group_by(category) %>% 
-    fill(n_cum, .direction = "down")
+  # Daily count and cummulative count per pixel
+  if(file.exists(paste0("data/annual_summary/MHW_cat_daily_cum_",chosen_year,".Rds")) & !force_calc){
+    MHW_cat_daily_cum <- readRDS(paste0("data/annual_summary/MHW_cat_daily_cum_",chosen_year,".Rds"))
+  } else{
+    print(paste0("Counting the daily + cumulative categories globally; ~2 seconds"))
+    # system.time(
+    MHW_cat_daily_cum <- MHW_cat %>% 
+      group_by(t) %>% 
+      count(category) %>% 
+      group_by(category) %>% 
+      mutate(n_cum = cumsum(n),
+             n_prop = n_cum/nrow(OISST_ocean_coords))
+    # ) # 2 seconds
+    saveRDS(MHW_cat_daily_cum, file = paste0("data/annual_summary/MHW_cat_daily_cum_",chosen_year,".Rds")) 
+  }
+
+  # First day of largest MHW per pixel
+  if(file.exists(paste0("data/annual_summary/MHW_cat_single_",chosen_year,".Rds")) & !force_calc){
+    MHW_cat_single <- readRDS(paste0("data/annual_summary/MHW_cat_single_",chosen_year,".Rds"))
+  } else{
+    print(paste0("Finding the earliest occurrence of the largest MHW per pixel; ~180 seconds"))
+    system.time(
+    MHW_cat_single <- lazy_dt(MHW_cat) %>% 
+      group_by(lon, lat) %>% 
+      filter(as.integer(category) == max(as.integer(category))) %>% 
+      filter(t == min(t)) %>% 
+      group_by(t) %>%
+      count(category) %>%
+      ungroup() %>% 
+      arrange(t) %>% 
+      group_by(category) %>%
+      mutate(n_cum = cumsum(n)) %>% 
+      data.frame() %>% 
+      right_join(full_grid, by = c("t", "category")) %>% 
+      group_by(category) %>% 
+      fill(n_cum, .direction = "down")
+    ) # 180 seconds
+    saveRDS(MHW_cat_single, file = paste0("data/annual_summary/MHW_cat_single_",chosen_year,".Rds")) 
+  }
   
   # Extract small data.frame for easier labelling
-  MHW_cat_single_fix_labels <- MHW_cat_single_fix %>% 
+  MHW_cat_single_labels <- MHW_cat_single %>% 
     filter(t == max(t)) %>% 
     ungroup() %>% 
     mutate(label_cum = cumsum(n_cum))
@@ -155,7 +226,7 @@ MHW_annual_state <- function(chosen_year){
   
   # Global map of MHW occurrence
   fig_map <- ggplot(MHW_cat_max, aes(x = lon, y = lat)) +
-    # geom_tile(fill = "grey80", colour = NA) +
+    # geom_tile(data = OISST_ice_coords, fill = "powderblue", colour = NA, alpha = 0.5) +
     geom_tile(aes(fill = category)) +
     geom_polygon(data = map_base, aes(x = lon, y = lat, group = group)) +
     scale_fill_manual("Category", values = MHW_colours) +
@@ -163,8 +234,7 @@ MHW_annual_state <- function(chosen_year){
                                          max(OISST_ocean_coords$lat))) +
     theme_void() +
     theme(legend.position = "bottom",
-          panel.background = element_rect(fill = "grey80")) #+
-    # ggtitle("MHW categories of 2019 (so far)", subtitle = "NOAA OISST; Climatogy period: 1982 - 2011")
+          panel.background = element_rect(fill = "grey90"))
   
   # Stacked barplot of global daily count of MHWs by category
   fig_count <- ggplot(MHW_cat_daily_cum, aes(x = t, y = n)) +
@@ -176,18 +246,14 @@ MHW_annual_state <- function(chosen_year){
                        labels = paste0(seq(0, 100, by = 10), "%")) +
     scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +
     labs(x = NULL, y = "Daily count of MHWs") +
-    coord_cartesian(expand = F) #+
-    # theme(legend.position = "bottom") 
+    coord_cartesian(expand = F)
   
   # Stacked barplot of cumulative percent of ocean affected by MHWs
-  fig_cum <- ggplot(MHW_cat_single_fix, aes(x = t, y = n_cum)) +
+  fig_cum <- ggplot(MHW_cat_single, aes(x = t, y = n_cum)) +
     geom_bar(aes(fill = category), stat = "identity", show.legend = F,
              position = position_stack(reverse = TRUE), width = 1) +
-    geom_hline(data = MHW_cat_single_fix_labels, show.legend = F,
+    geom_hline(data = MHW_cat_single_labels, show.legend = F,
                aes(yintercept = label_cum, colour = category)) +
-    # geom_label_repel(data = MHW_cat_daily_cum_single_fix_labels,
-    #                  aes(y = label_cum, x = as.Date("2019-03-01"), 
-    #                      label = category, fill = category)) +
     scale_fill_manual("Category", values = MHW_colours) +
     scale_colour_manual("Category", values = MHW_colours) +
     scale_y_continuous(limits = c(0, nrow(OISST_ocean_coords)),
@@ -196,27 +262,24 @@ MHW_annual_state <- function(chosen_year){
     scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +
     labs(x = NULL, y = "Cumulative occurrence of largest MHW",
          caption = "") +
-    coord_cartesian(expand = F) #+
-    # theme(legend.position = "bottom")
+    coord_cartesian(expand = F)
   
   # Stacked barplot of cumulative proportion of ocean affected by MHWs
   fig_prop <- ggplot(MHW_cat_daily_cum, aes(x = t, y = n_prop)) +
     geom_bar(aes(fill = category), stat = "identity", show.legend = F,
              position = position_stack(reverse = TRUE), width = 1) +
-    # geom_hline(yintercept = nrow(OISST_ocean_coords)) +
-    # geom_label(aes(x = as.Date("2019-07-01"), y = nrow(OISST_ocean_coords), label = "Gobal pixel count")) +
     scale_fill_manual("Category", values = MHW_colours) +
     scale_y_continuous(labels = ) +
     scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +  
     labs(x = NULL, y = "Average MHW days per pixel") +
-    coord_cartesian(expand = F) #+
-    # theme(legend.position = "bottom") 
+    coord_cartesian(expand = F)
   
   print("Combining figures")
   fig_ALL_sub <- ggpubr::ggarrange(fig_count, fig_cum, fig_prop, ncol = 3, align = "hv",
-                                   labels = c("B)", "C)", "D)"), common.legend = T, legend = "bottom")
+                                   labels = c("B)", "C)", "D)"), font.label = list(size = 10))
   fig_ALL <- ggpubr::ggarrange(fig_map, fig_ALL_sub, ncol = 1, heights = c(1, 0.5),
-                               labels = c("A)"), common.legend = T, legend = "bottom")
+                               labels = c("A)"), common.legend = T, legend = "bottom",
+                               font.label = list(size = 10))
   
   # Fancy caption technique
   # fig_ALL_cap <-  grid::textGrob(paste0(strwrap(fig_cap, 140), sep = "", collapse = "\n"),
@@ -233,11 +296,11 @@ MHW_annual_state <- function(chosen_year){
 }
 
 # Test one year
-# system.time(MHW_annual_state(1982)) # 257 seconds
-# MHW_annual_state(2019)
+# system.time(MHW_annual_state(1982, force_calc = T)) # 257 seconds
+# MHW_annual_state(2019, force_calc = T)
 
 # Run ALL years
-plyr::l_ply(1982:2019, MHW_annual_state) # ~2.5 hours
+plyr::l_ply(1982:2019, MHW_annual_state, force_calc = T) # ~2.5 hours, 20:27 to 
 
 
 # Animations --------------------------------------------------------------
