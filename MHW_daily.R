@@ -215,10 +215,10 @@ if(final_date_start != FALSE | prelim_date_start != FALSE){
 # MHW_event_cat_fix(lon_OISST[20])
 
 # Run many
-# plyr::ldply(lon_OISST[1117:1182], .fun = MHW_event_cat_fix, .parallel = TRUE)
+# plyr::l_ply(lon_OISST[1117:1182], .fun = MHW_event_cat_fix, .parallel = TRUE)
 
 # Run ALL
-# plyr::ldply(lon_OISST[356:1440], .fun = MHW_event_cat_fix, .parallel = TRUE)
+# plyr::l_ply(lon_OISST[1:1440], .fun = MHW_event_cat_fix, .parallel = TRUE) # ~1.5 hours on 50 cores
 
 
 # 3: Create daily global files --------------------------------------------
@@ -232,24 +232,20 @@ time_index <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transform
 # Get the range of dates that need to be run
 # The function `cat_clim_global_daily()` uses dplyr so a for loop is used here
   # Manually control dates as desired
-  # update_dates <- seq(as.Date("2019-10-17"), as.Date("2019-10-27"), by = "day")
+  update_dates <- seq(as.Date("1984-01-01"), as.Date("1990-12-31"), by = "day")
 if (final_date_start != FALSE) {
   update_dates <- time_index[which(time_index >= final_date_start)]
   if (length(update_dates) > 0) {
     print(paste0("Updating global MHW slices from ",min(update_dates)," to ",max(update_dates)))
-    for (i in seq_len(length(update_dates))) {
       # system.time(
-      cat_clim_global_daily(update_dates[i])
-      # ) # ~16 seconds for one
-      } 
+      cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)))
+      # ) # ~28 seconds
     }
   } else if (prelim_date_start != FALSE) {
     update_dates <- time_index[which(time_index >= prelim_date_start)]
     if (length(update_dates) > 0) {
       print(paste0("Updating global MHW slices from ",min(update_dates)," to ",max(update_dates)))
-      for (i in seq_len(length(update_dates))) {
-        cat_clim_global_daily(update_dates[i])
-      } # ~11 seconds for one
+      cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)))
     }
   }
 

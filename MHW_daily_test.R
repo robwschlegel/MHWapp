@@ -37,11 +37,13 @@ MHW_event_data <- readRDS(MHW_event_files[chosen_sub]) %>%
 
 
 ## Load a daily slice that should have a MHW
-MHW_cat_data <- readRDS(cat_clim_files[which(as.Date("2018-11-10") == seq(as.Date("1982-01-01"), 
+MHW_cat_data <- readRDS(cat_clim_files[which(as.Date("2018-10-15") == seq(as.Date("1982-01-01"), 
                                             as.Date("2018-12-31"), by = "day"))]) %>% 
   filter(lat == chosen_lat,
          lon == lon_OISST[chosen_sub])
 
+## Load a cat lon slice
+MHW_cat_lon <- readRDS(cat_lon_files[chosen_sub])
 
 ## Visualise
 p <- ggplot(data = sst_seas_thresh_sub, aes(x = t, y = temp)) +
@@ -78,7 +80,7 @@ p
 # 3: Testing cat_clim files -----------------------------------------------
 
 # Load a single file
-MHW_cat_clim <- readRDS("shiny/cat_clim/2019/cat.clim.2019-10-16.Rda")
+MHW_cat_clim <- readRDS("shiny/cat_clim/1983/cat.clim.1983-01-01.Rda")
 
 # Crude global plot
 ggplot(data = MHW_cat_clim, aes(x = lon, y = lat)) +
@@ -88,3 +90,4 @@ ggplot(data = MHW_cat_clim, aes(x = lon, y = lat)) +
                     values = c("#ffc866", "#ff6900", "#9e0000", "#2d0000"),
                     labels = c("I Moderate", "II Strong", "III Severe", "IV Extreme")) +
   labs(x = NULL, y = NULL)
+

@@ -194,7 +194,7 @@ OISST_ncdf_fix <- function(lon_step, end_date){
 # Fix data at the event/cat lon level -------------------------------------
 
 # tester...
-# lon_step <- lon_OISST[1117]
+# lon_step <- lon_OISST[1]
 MHW_event_cat_fix <- function(lon_step){
   
   # Determine correct lon/row/slice
@@ -205,8 +205,7 @@ MHW_event_cat_fix <- function(lon_step){
   print(paste0("Began run on ",MHW_event_files[lon_row]," at ",Sys.time()))
   
   # Extract each pixel time series based on how far back the oldest event occurred for the entire longitude slice
-  sst_seas_thresh <- sst_seas_thresh_merge(lon_step, 
-                                           start_date = as.Date("1982-01-01"))
+  sst_seas_thresh <- sst_seas_thresh_merge(lon_step, start_date = as.Date("1982-01-01"))
   
   # Calculate new event metrics with new data as necessary
   # system.time(
@@ -216,19 +215,21 @@ MHW_event_cat_fix <- function(lon_step){
     group_by(lat2) %>% 
     nest() %>% 
     mutate(event_cat_res = map(data, event_calc_all)) %>% 
+    ungroup() %>% 
     select(-data, -lat2) %>% 
-    unnest() # ~89 seconds to redo everything
-  # )
+    unnest(cols = c(event_cat_res))
+  # ) # ~65 seconds to redo everything
+  
   # Save results and exit
   MHW_event_new <- MHW_event_cat %>% 
     filter(row_number() %% 2 == 1) %>% 
-    unnest() %>% 
+    unnest(cols = c(event_cat_res)) %>% 
     na.omit()
   if(length(MHW_event_new$lon) != 0) saveRDS(MHW_event_new, file = MHW_event_files[lon_row])
   
   MHW_cat_new <- MHW_event_cat %>% 
     filter(row_number() %% 2 == 0) %>% 
-    unnest() %>% 
+    unnest(cols = c(event_cat_res)) %>% 
     na.omit()
   if(length(MHW_cat_new$lon) != 0) saveRDS(MHW_cat_new, file = cat_lon_files[lon_row])
   

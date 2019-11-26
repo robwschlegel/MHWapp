@@ -406,36 +406,46 @@ event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon){
 # cat_lon_file <- cat_lon_files[1118]
 # date_choice <- max(current_dates)+1
 # date_choice <- min(update_dates)
-load_sub_cat_clim <- function(cat_lon_file, date_choice){
+# date_range <- c(as.Date("1982-01-01"), as.Date("1982-01-31"))
+load_sub_cat_clim <- function(cat_lon_file, date_range){
   # cat_clim <- qs::qread(cat_lon_file)
   cat_clim <- readRDS(cat_lon_file)
   cat_clim_sub <- cat_clim %>%
-    filter(t == date_choice)
+    filter(t >= date_range[1], t <= date_range[2])
   rm(cat_clim)
   return(cat_clim_sub)
+}
+
+save_sub_cat_clim <- function(date_choice, df){
+  # Establish flie name and save location
+  cat_clim_year <- lubridate::year(date_choice)
+  cat_clim_dir <- paste0("../data/cat_clim/",cat_clim_year)
+  dir.create(as.character(cat_clim_dir), showWarnings = F)
+  cat_clim_name <- paste0("cat.clim.",date_choice,".Rda")
+  # Extract data and save
+  df_sub <- df %>% 
+    filter(t == date_choice)
+  saveRDS(df_sub, file = paste0(cat_clim_dir,"/",cat_clim_name))
+  print(paste0("Finished creating ", date_choice," slice at ",Sys.time()))
 }
 
 # Function for loading, prepping, and saving the daily global category slices
 # tester...
 # date_choice <- max(current_dates)+1
 # date_choice <- as.Date("2019-02-10")
-cat_clim_global_daily <- function(date_choice){
+# date_range <- c(as.Date("1984-01-01"), as.Date("1986-01-31"))
+cat_clim_global_daily <- function(date_range){
   # print(paste0("Began creating ", date_choice," slice at ",Sys.time()))
   # tester...
   # cat_clim_daily <- plyr::ldply(dir("../data/test/", pattern = "MHW.cat", full.names = T), 
   cat_clim_daily <- plyr::ldply(cat_lon_files,
                                 load_sub_cat_clim,
-                                .parallel = T, date_choice = date_choice) %>% 
+                                .parallel = T, date_range = date_range) %>% 
     mutate(category = factor(category, levels = c("I Moderate", "II Strong",
-                                                  "III Severe", "IV Extreme"))) %>% 
-    select(-t)
-  # Save
-  cat_clim_year <- lubridate::year(date_choice)
-  cat_clim_dir <- paste0("../data/cat_clim/",cat_clim_year)
-  dir.create(as.character(cat_clim_dir), showWarnings = F)
-  cat_clim_name <- paste0("cat.clim.",date_choice,".Rda")
-  # qsave(cat_clim_daily, file = paste0(cat_clim_dir,"/",cat_clim_name))
-  saveRDS(cat_clim_daily, file = paste0(cat_clim_dir,"/",cat_clim_name))
-  print(paste0("Finished creating ", date_choice," slice at ",Sys.time()))
+                                                  "III Severe", "IV Extreme")))
+  
+  # NB: Running this in parallel causes serious RAM issues
+  plyr::l_ply(seq(date_range[1], date_range[2], by = "day"), 
+              save_sub_cat_clim, .parallel = F, df = cat_clim_daily)
 }
 

@@ -168,19 +168,20 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
   if(file.exists(paste0("data/annual_summary/MHW_cat_max_",chosen_year,".Rds")) & !force_calc){
     MHW_cat_max <- readRDS(paste0("data/annual_summary/MHW_cat_max_",chosen_year,".Rds"))
   } else{
-    print(paste0("Filtering out the max category at each pixel; ~70 seconds"))
+    print(paste0("Filtering out the max category at each pixel; ~120 seconds"))
     # system.time(
     MHW_cat_max <- lazy_dt(MHW_cat) %>% 
-      select(-event_no, -t, -intensity) %>% 
+      select(-event_no) %>% 
       group_by(lon, lat) %>% 
-      filter(as.integer(category) == max(as.integer(category))) %>%
+      filter(as.integer(category) == max(as.integer(category)),
+             t == min(t)) %>%
       unique() %>% 
       data.frame()
-    # ) # 70 seconds
+    # ) # 117 seconds
     saveRDS(MHW_cat_max, file = paste0("data/annual_summary/MHW_cat_max_",chosen_year,".Rds")) 
   }
   
-  # Daily count and cummulative count per pixel
+  # Daily count and cumulative count per pixel
   if(file.exists(paste0("data/annual_summary/MHW_cat_daily_cum_",chosen_year,".Rds")) & !force_calc){
     MHW_cat_daily_cum <- readRDS(paste0("data/annual_summary/MHW_cat_daily_cum_",chosen_year,".Rds"))
   } else{
@@ -305,11 +306,12 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
 # MHW_annual_state(2019, force_calc = T)
 
 # Run ALL years
-# plyr::l_ply(1982:2019, MHW_annual_state, force_calc = T) # ~2.5 hours, 20:27 to 
+plyr::l_ply(1982:2019, MHW_annual_state, force_calc = T, .parallel = T) # ~2.5 hours, 20:27 to
 
 
 # Animations --------------------------------------------------------------
 
-setwd("figures")
-system.time(system("convert -delay 200 *.png ../anim/MHW_cat_summary.mp4")) # 316 seconds
-setwd("../")
+# setwd("figures")
+# system.time(system("convert -delay 100 *.png ../anim/MHW_cat_summary.mp4")) # 316 seconds
+# setwd("../")
+
