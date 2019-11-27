@@ -117,6 +117,7 @@ MHW_colours <- c(
 
 # Chosen year for analysis
 # chosen_year <- 2019
+# chosen_year <- 1982
 
 
 # Functions ---------------------------------------------------------------
@@ -156,7 +157,6 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
               #right_join(OISST_no_ice_coords, by = c("lon", "lat")) %>%  # Filter out ice if desired
     # na.omit()
   # ) # 12 seconds
-  # MHW_cat <- left_join(OISST_no_ice_coords, MHW_cat)
   
   ## Complete dates by categories data.frame
   full_grid <- expand_grid(t = seq(as.Date(paste0(chosen_year,"-01-01")), max(MHW_cat$t), by = "day"), 
@@ -165,73 +165,75 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
   
   ## Process data
   # Max category per pixel
-  if(file.exists(paste0("data/annual_summary/MHW_cat_max_",chosen_year,".Rds")) & !force_calc){
-    MHW_cat_max <- readRDS(paste0("data/annual_summary/MHW_cat_max_",chosen_year,".Rds"))
+  if(file.exists(paste0("data/annual_summary/MHW_cat_pixel_",chosen_year,".Rds")) & !force_calc){
+    MHW_cat_pixel <- readRDS(paste0("data/annual_summary/MHW_cat_pixel_",chosen_year,".Rds"))
   } else{
-    print(paste0("Filtering out the max category at each pixel; ~120 seconds"))
+    print(paste0("Filtering out the max category at each pixel and counting sum of intensity; ~220 seconds"))
+    
+    MHW_intensity <- MHW_cat %>% 
+      group_by(lon, lat) %>% 
+      summarise(intensity_sum = sum(intensity)) %>% 
+      ungroup()
+    
     # system.time(
-    MHW_cat_max <- lazy_dt(MHW_cat) %>% 
+    MHW_cat_pixel <- lazy_dt(MHW_cat) %>% 
       select(-event_no) %>% 
       group_by(lon, lat) %>% 
-      filter(as.integer(category) == max(as.integer(category)),
-             t == min(t)) %>%
-      unique() %>% 
-      data.frame()
-    # ) # 117 seconds
-    saveRDS(MHW_cat_max, file = paste0("data/annual_summary/MHW_cat_max_",chosen_year,".Rds")) 
+      filter(as.integer(category) == max(as.integer(category))) %>%
+      filter(t == min(t)) %>% 
+      ungroup() %>% 
+      data.frame() %>% 
+      left_join(MHW_intensity, by = c("lon", "lat"))
+    # ) # 210 seconds
+    saveRDS(MHW_cat_pixel, file = paste0("data/annual_summary/MHW_cat_pixel_",chosen_year,".Rds")) 
   }
   
   # Daily count and cumulative count per pixel
-  if(file.exists(paste0("data/annual_summary/MHW_cat_daily_cum_",chosen_year,".Rds")) & !force_calc){
-    MHW_cat_daily_cum <- readRDS(paste0("data/annual_summary/MHW_cat_daily_cum_",chosen_year,".Rds"))
+  if(file.exists(paste0("data/annual_summary/MHW_cat_daily_",chosen_year,".Rds")) & !force_calc){
+    MHW_cat_daily <- readRDS(paste0("data/annual_summary/MHW_cat_daily_",chosen_year,".Rds"))
   } else{
-    print(paste0("Counting the daily + cumulative categories globally; ~2 seconds"))
+    print(paste0("Counting the daily + cumulative categories per day; ~3 seconds"))
+    
     # system.time(
-    MHW_cat_daily_cum <- MHW_cat %>% 
-      group_by(t) %>% 
-      count(category) %>% 
-      group_by(category) %>% 
-      mutate(n_cum = cumsum(n),
-             n_prop = n_cum/nrow(OISST_ocean_coords))
-    # ) # 2 seconds
-    saveRDS(MHW_cat_daily_cum, file = paste0("data/annual_summary/MHW_cat_daily_cum_",chosen_year,".Rds")) 
-  }
-
-  # First day of largest MHW per pixel
-  if(file.exists(paste0("data/annual_summary/MHW_cat_single_",chosen_year,".Rds")) & !force_calc){
-    MHW_cat_single <- readRDS(paste0("data/annual_summary/MHW_cat_single_",chosen_year,".Rds"))
-  } else{
-    print(paste0("Finding the earliest occurrence of the largest MHW per pixel; ~180 seconds"))
-    system.time(
-    MHW_cat_single <- lazy_dt(MHW_cat) %>% 
-      group_by(lon, lat) %>% 
-      filter(as.integer(category) == max(as.integer(category))) %>% 
-      filter(t == min(t)) %>% 
+    MHW_cat_single <- MHW_cat_pixel %>%
       group_by(t) %>%
       count(category) %>%
+      dplyr::rename(first_n = n) %>% 
       ungroup() %>% 
       arrange(t) %>% 
       group_by(category) %>%
-      mutate(n_cum = cumsum(n)) %>% 
-      data.frame() %>% 
+      mutate(first_n_cum = cumsum(first_n)) %>% 
+      ungroup() %>% 
       right_join(full_grid, by = c("t", "category")) %>% 
       group_by(category) %>% 
-      fill(n_cum, .direction = "down")
-    ) # 180 seconds
-    saveRDS(MHW_cat_single, file = paste0("data/annual_summary/MHW_cat_single_",chosen_year,".Rds")) 
+      fill(first_n_cum, .direction = "down")
+    # ) # 1 second
+    
+    # system.time(
+    MHW_cat_daily <- MHW_cat %>% 
+      group_by(t) %>% 
+      count(category) %>% 
+      group_by(category) %>% 
+      dplyr::rename(cat_n = n) %>% 
+      mutate(cat_n_cum = cumsum(cat_n),
+             cat_n_prop = round(cat_n_cum/nrow(OISST_ocean_coords), 4)) %>% 
+      ungroup() %>% 
+      right_join(MHW_cat_single, by = c("t", "category"))
+    # ) # 2 seconds
+    saveRDS(MHW_cat_daily, file = paste0("data/annual_summary/MHW_cat_daily_",chosen_year,".Rds"))
   }
   
   # Extract small data.frame for easier labelling
-  MHW_cat_single_labels <- MHW_cat_single %>% 
+  MHW_cat_daily_labels <- MHW_cat_daily %>% 
     filter(t == max(t)) %>% 
     ungroup() %>% 
-    mutate(label_cum = cumsum(n_cum))
+    mutate(label_first_n_cum = cumsum(first_n_cum))
   
   ## Create figures
   print("Creating figures")
   
   # Global map of MHW occurrence
-  fig_map <- ggplot(MHW_cat_max, aes(x = lon, y = lat)) +
+  fig_map <- ggplot(MHW_cat_pixel, aes(x = lon, y = lat)) +
     # geom_tile(data = OISST_ice_coords, fill = "powderblue", colour = NA, alpha = 0.5) +
     geom_tile(aes(fill = category)) +
     geom_polygon(data = map_base, aes(x = lon, y = lat, group = group)) +
@@ -243,7 +245,7 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
           panel.background = element_rect(fill = "grey90"))
   
   # Stacked barplot of global daily count of MHWs by category
-  fig_count <- ggplot(MHW_cat_daily_cum, aes(x = t, y = n)) +
+  fig_count <- ggplot(MHW_cat_daily, aes(x = t, y = cat_n)) +
     geom_bar(aes(fill = category), stat = "identity", show.legend = F,
              position = position_stack(reverse = TRUE), width = 1) +
     scale_fill_manual("Category", values = MHW_colours) +
@@ -255,11 +257,11 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
     coord_cartesian(expand = F)
   
   # Stacked barplot of cumulative percent of ocean affected by MHWs
-  fig_cum <- ggplot(MHW_cat_single, aes(x = t, y = n_cum)) +
+  fig_cum <- ggplot(MHW_cat_daily, aes(x = t, y = first_n_cum)) +
     geom_bar(aes(fill = category), stat = "identity", show.legend = F,
              position = position_stack(reverse = TRUE), width = 1) +
-    geom_hline(data = MHW_cat_single_labels, show.legend = F,
-               aes(yintercept = label_cum, colour = category)) +
+    geom_hline(data = MHW_cat_daily_labels, show.legend = F,
+               aes(yintercept = label_first_n_cum, colour = category)) +
     scale_fill_manual("Category", values = MHW_colours) +
     scale_colour_manual("Category", values = MHW_colours) +
     scale_y_continuous(limits = c(0, nrow(OISST_ocean_coords)),
@@ -270,8 +272,8 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
          caption = "") +
     coord_cartesian(expand = F)
   
-  # Stacked barplot of cumulative proportion of ocean affected by MHWs
-  fig_prop <- ggplot(MHW_cat_daily_cum, aes(x = t, y = n_prop)) +
+  # Stacked barplot of average  cumulativeMHWs days per pixel
+  fig_prop <- ggplot(MHW_cat_daily, aes(x = t, y = cat_n_prop)) +
     geom_bar(aes(fill = category), stat = "identity", show.legend = F,
              position = position_stack(reverse = TRUE), width = 1) +
     scale_fill_manual("Category", values = MHW_colours) +
@@ -306,7 +308,8 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
 # MHW_annual_state(2019, force_calc = T)
 
 # Run ALL years
-plyr::l_ply(1982:2019, MHW_annual_state, force_calc = T, .parallel = T) # ~2.5 hours, 20:27 to
+  # NB: Running this in parallel will cause a proper stack overflow
+plyr::l_ply(1982:2019, MHW_annual_state, force_calc = T, .parallel = F) # ~1.5 hours
 
 
 # Animations --------------------------------------------------------------

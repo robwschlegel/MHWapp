@@ -445,7 +445,8 @@ cat_clim_global_daily <- function(date_range){
                                                   "III Severe", "IV Extreme")))
   
   # NB: Running this in parallel causes serious RAM issues
-  plyr::l_ply(seq(date_range[1], date_range[2], by = "day"), 
-              save_sub_cat_clim, .parallel = F, df = cat_clim_daily)
+  doParallel::registerDoParallel(cores = 10)
+  plyr::l_ply(seq(min(cat_clim_daily$t), max(cat_clim_daily$t), by = "day"), 
+              save_sub_cat_clim, .parallel = T, df = cat_clim_daily)
 }
 
