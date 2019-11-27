@@ -151,17 +151,14 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
                       "\nNOAA OISST; Climatogy period: 1982 - 2011")
   
   ## Load data
-  print(paste0("Loading ",chosen_year," MHW category data; ~12 seconds"))
-  # system.time(
-  MHW_cat <- plyr::ldply(MHW_cat_files, readRDS_date, .parallel = T) #%>% 
-              #right_join(OISST_no_ice_coords, by = c("lon", "lat")) %>%  # Filter out ice if desired
+  if(force_calc){
+    print(paste0("Loading ",chosen_year," MHW category data; ~12 seconds"))
+    # system.time(
+    MHW_cat <- plyr::ldply(MHW_cat_files, readRDS_date, .parallel = T) #%>% 
+    #right_join(OISST_no_ice_coords, by = c("lon", "lat")) %>%  # Filter out ice if desired
     # na.omit()
-  # ) # 12 seconds
-  
-  ## Complete dates by categories data.frame
-  full_grid <- expand_grid(t = seq(as.Date(paste0(chosen_year,"-01-01")), max(MHW_cat$t), by = "day"), 
-                           category = as.factor(levels(MHW_cat$category))) %>% 
-    mutate(category = factor(category, levels = levels(MHW_cat$category)))
+    # ) # 12 seconds
+  }
   
   ## Process data
   # Max category per pixel
@@ -193,6 +190,11 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
     MHW_cat_daily <- readRDS(paste0("data/annual_summary/MHW_cat_daily_",chosen_year,".Rds"))
   } else{
     print(paste0("Counting the daily + cumulative categories per day; ~3 seconds"))
+    
+    # Complete dates by categories data.frame
+    full_grid <- expand_grid(t = seq(as.Date(paste0(chosen_year,"-01-01")), max(MHW_cat$t), by = "day"), 
+                             category = as.factor(levels(MHW_cat$category))) %>% 
+      mutate(category = factor(category, levels = levels(MHW_cat$category)))
     
     # system.time(
     MHW_cat_single <- MHW_cat_pixel %>%
@@ -241,8 +243,12 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
     coord_cartesian(expand = F, ylim = c(min(OISST_ocean_coords$lat),
                                          max(OISST_ocean_coords$lat))) +
     theme_void() +
+    guides(fill = guide_legend(override.aes = list(size = 10))) +
     theme(legend.position = "bottom",
+          legend.text = element_text(size = 14),
+          legend.title = element_text(size = 16),
           panel.background = element_rect(fill = "grey90"))
+  # fig_map
   
   # Stacked barplot of global daily count of MHWs by category
   fig_count <- ggplot(MHW_cat_daily, aes(x = t, y = cat_n)) +
@@ -253,8 +259,11 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
                        breaks = seq(0, nrow(OISST_ocean_coords), length.out = 11),
                        labels = paste0(seq(0, 100, by = 10), "%")) +
     scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +
-    labs(x = NULL, y = "Daily count of MHWs") +
-    coord_cartesian(expand = F)
+    labs(y = "Global MHW count\n(non-cumulative)", x = "Day of the year") +
+    coord_cartesian(expand = F) +
+    theme(axis.title = element_text(size = 14),
+          axis.text = element_text(size = 12))
+  # fig_count
   
   # Stacked barplot of cumulative percent of ocean affected by MHWs
   fig_cum <- ggplot(MHW_cat_daily, aes(x = t, y = first_n_cum)) +
@@ -268,34 +277,39 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
                        breaks = seq(0, nrow(OISST_ocean_coords), length.out = 11),
                        labels = paste0(seq(0, 100, by = 10), "%")) +
     scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +
-    labs(x = NULL, y = "Cumulative occurrence of largest MHW",
-         caption = "") +
-    coord_cartesian(expand = F)
+    labs(y = "Top MHW category per pixel\n(cumulative)", x = "Day of first occurrence") +
+    coord_cartesian(expand = F) +
+    theme(axis.title = element_text(size = 14),
+          axis.text = element_text(size = 12))
+  # fig_cum
   
-  # Stacked barplot of average  cumulativeMHWs days per pixel
+  # Stacked barplot of average  cumulative MHW days per pixel
   fig_prop <- ggplot(MHW_cat_daily, aes(x = t, y = cat_n_prop)) +
     geom_bar(aes(fill = category), stat = "identity", show.legend = F,
              position = position_stack(reverse = TRUE), width = 1) +
     scale_fill_manual("Category", values = MHW_colours) +
     scale_y_continuous(labels = ) +
     scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +  
-    labs(x = NULL, y = "Average MHW days per pixel") +
-    coord_cartesian(expand = F)
+    labs(y = "Average MHW days per pixel\n(cumulative)", x = "Day of the year") +
+    coord_cartesian(expand = F) +
+    theme(axis.title = element_text(size = 14),
+          axis.text = element_text(size = 12))
+  # fig_prop
   
   print("Combining figures")
   fig_ALL_sub <- ggpubr::ggarrange(fig_count, fig_cum, fig_prop, ncol = 3, align = "hv",
-                                   labels = c("B)", "C)", "D)"), font.label = list(size = 10))
-  fig_ALL <- ggpubr::ggarrange(fig_map, fig_ALL_sub, ncol = 1, heights = c(1, 0.5),
+                                   labels = c("B)", "C)", "D)"), font.label = list(size = 16))
+  fig_ALL <- ggpubr::ggarrange(fig_map, fig_ALL_sub, ncol = 1, heights = c(1, 0.6),
                                labels = c("A)"), common.legend = T, legend = "bottom",
-                               font.label = list(size = 10))
+                               font.label = list(size = 16))
   
   # Fancy caption technique
   # fig_ALL_cap <-  grid::textGrob(paste0(strwrap(fig_cap, 140), sep = "", collapse = "\n"),
   #                               x = 0.01, just = "left", gp = grid::gpar(fontsize = 10))
   
   # Standard caption technique
-  fig_ALL_cap <- grid::textGrob(fig_title, x = 0.01, just = "left", gp = grid::gpar(fontsize = 16))
-  fig_ALL_cap <- ggpubr::ggarrange(fig_ALL_cap, fig_ALL, heights = c(0.05, 1), nrow = 2)
+  fig_ALL_cap <- grid::textGrob(fig_title, x = 0.01, just = "left", gp = grid::gpar(fontsize = 20))
+  fig_ALL_cap <- ggpubr::ggarrange(fig_ALL_cap, fig_ALL, heights = c(0.07, 1), nrow = 2)
   
   print("Saving final figure")
   ggsave(fig_ALL_cap, filename = paste0("figures/MHW_cat_summary_",chosen_year,".png"), height = 12, width = 18)
@@ -309,12 +323,14 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
 
 # Run ALL years
   # NB: Running this in parallel will cause a proper stack overflow
-plyr::l_ply(1982:2019, MHW_annual_state, force_calc = T, .parallel = F) # ~1.5 hours
+# plyr::l_ply(1982:2019, MHW_annual_state, force_calc = T, .parallel = F) # ~1.5 hours
+  # This is okay to run in parallel as it doesn't load/process any data
+# plyr::l_ply(1982:2019, MHW_annual_state, force_calc = F, .parallel = T) # ~ 1 minute
 
 
 # Animations --------------------------------------------------------------
 
-# setwd("figures")
-# system.time(system("convert -delay 100 *.png ../anim/MHW_cat_summary.mp4")) # 316 seconds
+# setwd("figures") # Need to change working directory for animation code to be able to access png files
+# system.time(system("convert -delay 100 *.png ../anim/MHW_cat_summary.mp4")) # 139 seconds
 # setwd("../")
 
