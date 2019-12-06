@@ -40,6 +40,8 @@ source("modules/about-server.R", local = TRUE)
 source("modules/about-ui.R", local = TRUE)
 source("modules/map-server.R", local = TRUE)
 source("modules/map-ui.R", local = TRUE)
+source("modules/summary-server.R", local = TRUE)
+source("modules/summary-ui.R", local = TRUE)
 
 # mapbox_moon <- "https://api.mapbox.com/styles/v1/..."
 
@@ -116,6 +118,9 @@ regional_TMEDNET <- "http://t-mednet.org/t-resources/marine-heatwaves"
 empty_date_map <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>% 
   slice(1) %>% 
   mutate(category = NA)
+
+### Summary panel starting year
+summary_year <- 2019
 
 # cat("\nglobal.R finished")
 
