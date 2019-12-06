@@ -208,7 +208,7 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
       ungroup() %>% 
       right_join(full_grid, by = c("t", "category")) %>% 
       group_by(category) %>% 
-      fill(first_n_cum, .direction = "down")
+      fill(first_n_cum, .direction = "downup")
     # ) # 1 second
     
     # system.time(
