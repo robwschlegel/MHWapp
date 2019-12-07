@@ -120,7 +120,7 @@ empty_date_map <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>%
   mutate(category = NA)
 
 ### Summary panel starting year
-summary_year <- 2019
+# summary_year <- 2019
 
 # cat("\nglobal.R finished")
 

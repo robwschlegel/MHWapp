@@ -3,13 +3,29 @@ summaryUI <- function(id, label = 'summary') {
   # Set seesion guide
   ns <- NS(id)
   
+  # fluidPage(
+  #   numericInput("n", "Simulations", 10),
+  #   actionButton("simulate", "Simulate")
+  # )
+  
   fluidPage(
+    # numericInput(inputId = ns("n"), "Sample size", value = 25),
+    # plotOutput(outputId = ns("hist"))
+    numericInput(inputId = ns("summary_year"), "Display year", value = 2019),
+    plotOutput(outputId = ns("summaryMapGG"))
+  )
+  
+  # fluidPage(
+  #   plotOutput(outputId = ns('summaryMapGG'))
+  # #   absolutePanel(shiny::plotOutput(ns('summaryMapGG')))
+  # )
+  # fluidPage(
     # The plotly option
     # Could potentially replace leaflet with plot_mapbox() or something from plotly
     # Then draw a heatmap on top of the land polygons to show MHW categories
     # absolutePanel(leafletOutput(ns('summary')), top = 0, left = 0,
-    plotlyOutput(ns('summaryMapPlotly'), height = '100%')#,
-    # shinycssloaders::withSpinner(plotlyOutput(ns("tsPlot")), type = 6, color = "#b0b7be")
+    # plotlyOutput(ns('summaryMapPlotly'), height = '100%')#,
+    # shinycssloaders::withSpinner(plotlyOutput(ns('summaryMapPlotly'), height = '100%')), type = 6, color = "#b0b7be")
     # The leaflet option
     # absolutePanel(top = 0, left = 0, right = 0, bottom = 0, height = 'auto',
     #               leafletOutput(ns('map'))),
@@ -39,7 +55,7 @@ summaryUI <- function(id, label = 'summary') {
     # uiOutput(ns('uiStartupModal')),
     # The popup time series panel
     # uiOutput(ns('uiModal'))
-  )
+  # )
 }
 # cat("\nmap_ui.R finished")
 
