@@ -9,53 +9,29 @@ summaryUI <- function(id, label = 'summary') {
   # )
   
   fluidPage(
-    # numericInput(inputId = ns("n"), "Sample size", value = 25),
-    # plotOutput(outputId = ns("hist"))
-    numericInput(inputId = ns("summary_year"), "Display year", value = 2019),
-    plotOutput(outputId = ns("summaryMapGG"))
+    fluidRow(style = 'height:50vh',
+      column(2,
+             selectInput(inputId = ns("summary_year"), label = h3("Annual summary for:"),
+                         choices = seq(1982, lubridate::year(Sys.time())), selected = 2019, multiple = F)
+  ),
+  # fillRow(
+    column(10,
+           shinycssloaders::withSpinner(plotOutput(outputId = ns("summaryMap")), type = 6, color = "#b0b7be")
+           )
+  ),
+  fluidRow(style = 'height:30vh',
+    column(4,
+           shinycssloaders::withSpinner(plotOutput(outputId = ns("summaryCount")), type = 6, color = "#b0b7be")
+    ),
+    column(4,
+           shinycssloaders::withSpinner(plotOutput(outputId = ns("summaryCum")), type = 6, color = "#b0b7be")
+           ),
+    column(4,
+           shinycssloaders::withSpinner(plotOutput(outputId = ns("summaryProp")), type = 6, color = "#b0b7be")
+           )
+    )
   )
-  
-  # fluidPage(
-  #   plotOutput(outputId = ns('summaryMapGG'))
-  # #   absolutePanel(shiny::plotOutput(ns('summaryMapGG')))
-  # )
-  # fluidPage(
-    # The plotly option
-    # Could potentially replace leaflet with plot_mapbox() or something from plotly
-    # Then draw a heatmap on top of the land polygons to show MHW categories
-    # absolutePanel(leafletOutput(ns('summary')), top = 0, left = 0,
-    # plotlyOutput(ns('summaryMapPlotly'), height = '100%')#,
-    # shinycssloaders::withSpinner(plotlyOutput(ns('summaryMapPlotly'), height = '100%')), type = 6, color = "#b0b7be")
-    # The leaflet option
-    # absolutePanel(top = 0, left = 0, right = 0, bottom = 0, height = 'auto',
-    #               leafletOutput(ns('map'))),
-    # The main menu panel
-    # absolutePanel(id = ns("controls"), class = "panel panel-default",
-    #               top = menu_panel_top, right = menu_panel_right, draggable = T, width = "200px",
-    #               # The date input box
-    #               h2("Controls"),
-    #               dateInput(inputId = ns("date_choice"),
-    #                         label = "Date",
-    #                         value = date_menu_choice,
-    #                         min = "1982-01-01", 
-    #                         max = max(current_dates)),
-    #               # The category filtering buttons
-    #               h5(paste0("Categories")),
-    #               uiOutput(outputId = ns("moderate")),
-    #               uiOutput(outputId = ns("strong")),
-    #               uiOutput(outputId = ns("severe")),
-    #               uiOutput(outputId = ns("extreme")),
-    #               # The shiny server instance info
-    #               h5(paste0("Shiny server instance: ",Sys.getenv("R_SHNYSRVINST"))),
-    #               # The time series button
-    #               uiOutput(outputId = ns("button_ts"))
-    #               
-    # ),
-    # The welcome popup
-    # uiOutput(ns('uiStartupModal')),
-    # The popup time series panel
-    # uiOutput(ns('uiModal'))
-  # )
 }
-# cat("\nmap_ui.R finished")
+
+# cat("\nsummary_ui.R finished")
 

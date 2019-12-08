@@ -13,15 +13,16 @@ library(leaflet)
 library(dplyr)
 library(plotly)
 library(tidync)
-# library(ncdf4)
 library(DT)
 
 # Dependencies that are called explicitly
 # .libPaths(c("~/R-packages", .libPaths()))
+# library(ncdf4)
 # library(shiny)
 # library(shinyjs)
 # library(shinycssloaders)
 # library(shinyWidgets)
+# library(maps)
 # library(readr)
 # library(tidyr)
 # library(lubridate)
@@ -114,13 +115,23 @@ server_instance <- Sys.getenv("R_SHNYSRVINST")
 regional_NOAA <- "https://www.integratedecosystemassessment.noaa.gov/regions/california-current/cc-projects-blobtracker"
 regional_TMEDNET <- "http://t-mednet.org/t-resources/marine-heatwaves"
 
-### Placeholder when a invalid date is typed into the main date selector
+### Placeholders when invalid dates are typed into date selectors
 empty_date_map <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>% 
   slice(1) %>% 
   mutate(category = NA)
+# empty_summary_map <- readRDS("../data/annual_summary/MHW_cat_pixel_1982.Rds") %>% 
+#   slice(1) %>% 
+#   mutate(category = NA)
+# empty_summary_ts <- readRDS("../data/annual_summary/MHW_cat_daily_1982.Rds") %>% 
+#   slice(1) %>% 
+#   mutate(category = NA)
 
-### Summary panel starting year
-# summary_year <- 2019
+#### The base map
+map_base <- ggplot2::fortify(maps::map(fill = TRUE, col = "grey80", plot = FALSE)) %>%
+  dplyr::rename(lon = long) %>%
+  # filter(lat >= 25.6) %>%
+  mutate(group = ifelse(lon > 180, group+9999, group),
+         lon = ifelse(lon > 180, lon-360, lon))
 
 # cat("\nglobal.R finished")
 
