@@ -30,17 +30,16 @@ source("MHW_daily_functions.R")
 load("metadata/final_dates.Rdata")
 load("metadata/prelim_dates.Rdata")
 
-# Check the most recent files on the source index
+# Get the source index files
 OISST_url <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/access/avhrr-only/201911/"
+# OISST_url <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/access/avhrr-only/"
 OISST_url_get <- getURL(OISST_url)
-# OISST_filenames <- xml2::read_html(OISST_url)
-# OISST_filenames <- strsplit(getURL(OISST_url, ftp.use.epsv = FALSE, dirlistonly = TRUE), "\r\n")
-# OISST_filenames <- data.frame(string = getURL(OISST_url, ftp.use.epsv = FALSE, dirlistonly = TRUE), stringsAsFactors = F)
-# separate(data = OISST_filenames, col = string, into = c(NA, "post"), sep = "avhrr-only-v2.*.nc")
+
 OISST_filenames <- data.frame(files = readHTMLTable(OISST_url_get, skip.rows = 1:2)[[1]]$Name) %>% 
   mutate(files = as.character(files)) %>% 
   filter(grepl("avhrr", files)) %>% 
-  mutate(t = lubridate::as_date(sapply(strsplit(files, "[.]"), "[[", 2)))
+  mutate(t = lubridate::as_date(sapply(strsplit(files, "[.]"), "[[", 2)),
+         full_name = paste0(OISST_url, files))
 
 OISST_URL_dl <- function(target_URL){
   download.file(url = target_URL, method = "libcurl", destfile = "data/temp.nc")
@@ -52,7 +51,9 @@ OISST_URL_dl <- function(target_URL){
   return(temp_dat)
 }
 
-test <- OISST_URL_dl(paste0(OISST_url, OISST_filenames$files[1]))
+test <- OISST_URL_dl(OISST_filenames$full_name[1])
+
+test <- plyr::ldply(OISST_filenames$full_name[1:2], .fun = OISST_URL_dl)
 
 
 # First check that the desired data are indeed present
