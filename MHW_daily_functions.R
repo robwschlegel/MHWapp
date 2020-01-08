@@ -12,6 +12,12 @@ library(tidync)
 library(ncdf4)
 library(abind)
 library(padr)
+
+library(RCurl)
+library(XML)
+# library(xml2)
+# library(rlist)
+
 # library(qs, lib.loc = "../R-packages/")
 library(heatwaveR, lib.loc = "../R-packages/")
 print(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))

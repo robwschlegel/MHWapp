@@ -19,7 +19,43 @@ source("MHW_daily_functions.R")
 
 # 1: Update OISST data ----------------------------------------------------
 
-# Firs check that the desired data are indeed present
+# url = "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE1nnn/GSE1297/suppl/"
+# filenames = getURL(url, ftp.use.epsv = FALSE, dirlistonly = TRUE)
+# filenames <- strsplit(filenames, "\r\n")
+# filenames = unlist(filenames)
+# filenames
+
+
+# The most up-to-date data downloaded
+load("metadata/final_dates.Rdata")
+load("metadata/prelim_dates.Rdata")
+
+# Check the most recent files on the source index
+OISST_url <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/access/avhrr-only/201911/"
+OISST_url_get <- getURL(OISST_url)
+# OISST_filenames <- xml2::read_html(OISST_url)
+# OISST_filenames <- strsplit(getURL(OISST_url, ftp.use.epsv = FALSE, dirlistonly = TRUE), "\r\n")
+# OISST_filenames <- data.frame(string = getURL(OISST_url, ftp.use.epsv = FALSE, dirlistonly = TRUE), stringsAsFactors = F)
+# separate(data = OISST_filenames, col = string, into = c(NA, "post"), sep = "avhrr-only-v2.*.nc")
+OISST_filenames <- data.frame(files = readHTMLTable(OISST_url_get, skip.rows = 1:2)[[1]]$Name) %>% 
+  mutate(files = as.character(files)) %>% 
+  filter(grepl("avhrr", files)) %>% 
+  mutate(t = lubridate::as_date(sapply(strsplit(files, "[.]"), "[[", 2)))
+
+OISST_URL_dl <- function(target_URL){
+  download.file(url = target_URL, method = "libcurl", destfile = "data/temp.nc")
+  temp_dat <- tidync("data/temp.nc") %>% 
+    hyper_tibble() %>% 
+    select(lon, lat, time, sst) %>% 
+    dplyr::rename(t = time, temp = sst) %>% 
+    mutate(t = as.Date(t, origin = "1970-01-01"))
+  return(temp_dat)
+}
+
+test <- OISST_URL_dl(paste0(OISST_url, OISST_filenames$files[1]))
+
+
+# First check that the desired data are indeed present
 # Sometimes the NOAA OISST data are not listed up on the ERDDAP server
 print("Checking server availability")
 server_data <- rerddap::ed_datasets(which = "griddap", "https://www.ncei.noaa.gov/erddap/")$Dataset.ID
