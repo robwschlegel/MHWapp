@@ -7,8 +7,9 @@ source("MHW_daily_functions.R")
 
 # 1: Testing the downloaded NOAA data -------------------------------------
 
-OISST_update_1 <- OISST_dl(c("2019-02-17T00:00:00Z", "2019-02-17T00:00:00Z"))
-OISST_update_2 <- OISST_prep(OISST_update_1)
+# NB: This code is for the previous pipeline
+# OISST_update_1 <- OISST_dl(c("2019-02-17T00:00:00Z", "2019-02-17T00:00:00Z"))
+# OISST_update_2 <- OISST_prep(OISST_update_1)
 
 
 # 2: Testing the MHW event and cat production -----------------------------
@@ -80,7 +81,7 @@ p
 # 3: Testing cat_clim files -----------------------------------------------
 
 # Load a single file
-MHW_cat_clim <- readRDS("shiny/cat_clim/1983/cat.clim.1983-01-01.Rda")
+MHW_cat_clim <- readRDS("shiny/cat_clim/2019/cat.clim.2019-11-02.Rda")
 
 # Crude global plot
 ggplot(data = MHW_cat_clim, aes(x = lon, y = lat)) +
@@ -89,5 +90,6 @@ ggplot(data = MHW_cat_clim, aes(x = lon, y = lat)) +
   scale_fill_manual("Category",
                     values = c("#ffc866", "#ff6900", "#9e0000", "#2d0000"),
                     labels = c("I Moderate", "II Strong", "III Severe", "IV Extreme")) +
-  labs(x = NULL, y = NULL)
+  labs(x = NULL, y = NULL) +
+  coord_cartesian(expand = F)
 
