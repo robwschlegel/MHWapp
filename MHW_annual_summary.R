@@ -11,8 +11,8 @@ library(tidyverse)
 # library(purrr)
 library(heatwaveR)
 library(ncdf4)
-library(tidync, lib.loc = "../R-packages/")
-library(dtplyr, lib.loc = "../R-packages/")
+library(tidync)#, lib.loc = "../R-packages/")
+library(dtplyr)#, lib.loc = "../R-packages/")
 # library(ggrepel)
 library(doParallel); registerDoParallel(cores = 50)
 
@@ -255,14 +255,22 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
     geom_bar(aes(fill = category), stat = "identity", show.legend = F,
              position = position_stack(reverse = TRUE), width = 1) +
     scale_fill_manual("Category", values = MHW_colours) +
-    scale_y_continuous(limits = c(0, nrow(OISST_ocean_coords)),
+    scale_y_continuous(limits = c(0, nrow(OISST_ocean_coords)), position = "right",
                        breaks = seq(0, nrow(OISST_ocean_coords), length.out = 11),
                        labels = paste0(seq(0, 100, by = 10), "%")) +
     scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +
-    labs(y = "Global MHW count\n(non-cumulative)", x = "Day of the year") +
-    coord_cartesian(expand = F) +
+    # labs(y = "Global MHW count\n(non-cumulative)", x = "Day of the year") +
+    # coord_cartesian(expand = F) +
+    geom_text(x = as.Date(paste0(chosen_year,"-01-01")), y = nrow(OISST_ocean_coords)/2,
+              vjust = -0.5, size = 5, 
+              aes(label = "Global MHW count\n(non-cumulative)", 
+                  angle = 90, lineheight = 1)) +
+    coord_cartesian(clip = 'off', expand = F) + 
+    labs(x = "Day of the year") +
+    theme(plot.margin = unit(c(1,1,1,3), "lines")) +
     theme(axis.title = element_text(size = 14),
-          axis.text = element_text(size = 12))
+          axis.text = element_text(size = 12),
+          axis.title.y = element_blank())
   # fig_count
   
   # Stacked barplot of cumulative percent of ocean affected by MHWs
@@ -273,32 +281,54 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
                aes(yintercept = label_first_n_cum, colour = category)) +
     scale_fill_manual("Category", values = MHW_colours) +
     scale_colour_manual("Category", values = MHW_colours) +
-    scale_y_continuous(limits = c(0, nrow(OISST_ocean_coords)),
+    scale_y_continuous(limits = c(0, nrow(OISST_ocean_coords)), position = "right",
                        breaks = seq(0, nrow(OISST_ocean_coords), length.out = 11),
                        labels = paste0(seq(0, 100, by = 10), "%")) +
     scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +
-    labs(y = "Top MHW category per pixel\n(cumulative)", x = "Day of first occurrence") +
-    coord_cartesian(expand = F) +
+    # labs(y = "Top MHW category per pixel\n(cumulative)", x = "Day of first occurrence") +
+    geom_text(x = as.Date(paste0(chosen_year,"-01-01")), y = nrow(OISST_ocean_coords)/2,
+              vjust = -0.5, size = 5, 
+              aes(label = "Top MHW category per pixel\n(cumulative)", 
+                  angle = 90, lineheight = 1)) +
+    coord_cartesian(clip = 'off', expand = F) + 
+    labs(x = "Day of first occurrence") +
+    theme(plot.margin = unit(c(1,1,1,3), "lines")) +
     theme(axis.title = element_text(size = 14),
-          axis.text = element_text(size = 12))
+          axis.text = element_text(size = 12),
+          axis.title.y = element_blank())
   # fig_cum
   
-  # Stacked barplot of average  cumulative MHW days per pixel
+  # Midpoint for cumulative MHW days
+  mid_cum <- MHW_cat_daily %>% 
+    filter(t == max(t)) %>% 
+    summarise(mid_prop = sum(cat_n_prop)/2)
+  
+  # Stacked barplot of average cumulative MHW days per pixel
   fig_prop <- ggplot(MHW_cat_daily, aes(x = t, y = cat_n_prop)) +
     geom_bar(aes(fill = category), stat = "identity", show.legend = F,
              position = position_stack(reverse = TRUE), width = 1) +
     scale_fill_manual("Category", values = MHW_colours) +
-    scale_y_continuous(labels = ) +
+    scale_y_continuous(position = "right") +
     scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +  
-    labs(y = "Average MHW days per pixel\n(cumulative)", x = "Day of the year") +
-    coord_cartesian(expand = F) +
+    # labs(y = "Average MHW days per pixel\n(cumulative)", x = "Day of the year") +
+    geom_text(x = as.Date(paste0(chosen_year,"-01-01")), y = mid_cum$mid_prop,
+              vjust = -0.5, size = 5, 
+              aes(label = "Average MHW days per pixel\n(cumulative)", 
+                  angle = 90, lineheight = 1)) +
+    coord_cartesian(clip = 'off', expand = F) + 
+    labs(x = "Day of the year") +
+    theme(plot.margin = unit(c(1,0,1,3), "lines")) +
     theme(axis.title = element_text(size = 14),
-          axis.text = element_text(size = 12))
+          axis.text = element_text(size = 12),
+          axis.title.y = element_blank())
   # fig_prop
   
+  # fig_blank <- ggplot() + theme_void()
+  
   print("Combining figures")
-  fig_ALL_sub <- ggpubr::ggarrange(fig_count, fig_cum, fig_prop, ncol = 3, align = "hv",
+  fig_ALL_sub <- ggpubr::ggarrange(fig_count, fig_cum, fig_prop, ncol = 3,
                                    labels = c("B)", "C)", "D)"), font.label = list(size = 16))
+  # fig_ALL_nudge <- ggpubr::ggarrange(fig_blank, fig_ALL_sub, nrow = 1, ncol = 2, widths = c(0.1, 1))
   fig_ALL <- ggpubr::ggarrange(fig_map, fig_ALL_sub, ncol = 1, heights = c(1, 0.6),
                                labels = c("A)"), common.legend = T, legend = "bottom",
                                font.label = list(size = 16))
@@ -325,7 +355,7 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
   # NB: Running this in parallel will cause a proper stack overflow
 # plyr::l_ply(1982:2019, MHW_annual_state, force_calc = T, .parallel = F) # ~1.5 hours
   # This is okay to run in parallel as it doesn't load/process any data
-# plyr::l_ply(1982:2019, MHW_annual_state, force_calc = F, .parallel = T) # ~ 1 minute
+plyr::l_ply(1982:2019, MHW_annual_state, force_calc = F, .parallel = T) # ~ 1 minute
 
 
 # Animations --------------------------------------------------------------

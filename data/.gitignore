@@ -9,3 +9,5 @@ MHW_cat_clim_*.Rda
 MHW_event_*.Rda
 MHW_thresh_*.Rda
 US*
+*.asc
+temp.nc
