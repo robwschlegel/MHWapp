@@ -19,113 +19,47 @@ source("MHW_daily_functions.R")
 
 # 1: Update OISST data ----------------------------------------------------
 
-# Firs check that the desired data are indeed present
-# Sometimes the NOAA OISST data are not listed up on the ERDDAP server
-print("Checking server availability")
-server_data <- rerddap::ed_datasets(which = "griddap", "https://www.ncei.noaa.gov/erddap/")$Dataset.ID
-if(!"ncdc_oisst_v2_avhrr_by_time_zlev_lat_lon" %in% server_data)
-  stop("Final data are not currently up on the ERDDAP server")
-if(!"ncdc_oisst_v2_avhrr_prelim_by_time_zlev_lat_lon" %in% server_data)
-  stop("Prelim data are not currently up on the ERDDAP server")
-
-
-# The final data
-# rerddap::info(datasetid = "ncdc_oisst_v2_avhrr_by_time_zlev_lat_lon", url = "https://www.ncei.noaa.gov/erddap/")
-print("Fetching final data info")
-final_info <- rerddap::info(datasetid = "ncdc_oisst_v2_avhrr_by_time_zlev_lat_lon", url = "https://www.ncei.noaa.gov/erddap/")
-final_time_range <- final_info$alldata$time$value[3]
-final_time_start <- NOAA_date(final_time_range, 1)
-final_time_end <- NOAA_date(final_time_range, 2)
-
-
-# The preliminary data
-# rerddap::info(datasetid = "ncdc_oisst_v2_avhrr_prelim_by_time_zlev_lat_lon", url = "https://www.ncei.noaa.gov/erddap/")
-print("Fetching prelim data info")
-prelim_info <- rerddap::info(datasetid = "ncdc_oisst_v2_avhrr_prelim_by_time_zlev_lat_lon", url = "https://www.ncei.noaa.gov/erddap/")
-prelim_time_range <- prelim_info$alldata$time$value[3]
-prelim_time_start <- NOAA_date(prelim_time_range, 1)
-prelim_time_end <- NOAA_date(prelim_time_range, 2)
-
-
-# Check if newer final data need to/can be downloaded
-print("Checking if new final data need downloading")
+# The most up-to-date data downloaded
 load("metadata/final_dates.Rdata")
-if(max(final_dates) < final_time_end) {
-  final_date_start <- max(final_dates)+1
-  final_date_end <- final_time_end
-} else {
-  final_date_start <- FALSE
-}
-
-
-# Check if newer final data need to/can be downloaded
-print("Checking if new prelim data need downloading")
 load("metadata/prelim_dates.Rdata")
-if(max(prelim_dates) < prelim_time_end) {
-  prelim_date_start <- max(prelim_dates)+1
-  prelim_date_end <- prelim_time_end
-  prelim_date_blank <- FALSE
-  if(max(prelim_dates)+1 < prelim_time_start){
-    prelim_date_blank <- seq(max(prelim_dates)+1, prelim_time_start-1, by = "day")
-    prelim_date_start <- prelim_time_start
-    print(paste0("The day(s) ",prelim_date_blank," are not available in the prelim data and are being filled with ",prelim_time_start))
-  }
+
+
+# Get the source index monthly file folders with new data
+print(paste0("Fetching OISST folder names at ",Sys.time()))
+OISST_url_month <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/access/avhrr-only/"
+OISST_url_month_get <- getURL(OISST_url_month)
+OISST_months <- data.frame(months = readHTMLTable(OISST_url_month_get, skip.rows = 1:2)[[1]]$Name) %>% 
+  mutate(months = lubridate::as_date(str_replace(as.character(months), "/", "01"))) %>% 
+  filter(months >= max(lubridate::floor_date(final_dates, unit = "month"))) %>% 
+  mutate(months = gsub("-", "", substr(months, 1, 7)))
+
+
+# Check if new data need downloading
+OISST_filenames <- plyr::ldply(OISST_months$months, .fun = OISST_url_daily)
+final_index <- OISST_filenames %>% 
+  filter(!grepl("prelim", files))
+prelim_index <- OISST_filenames %>% 
+  filter(grepl("prelim", files),
+         t > max(prelim_dates))
+OISST_new <- rbind(final_index, prelim_index)
+
+# Download the new data
+if(nrow(OISST_new) > 0){
+  print(paste0("Downloading new data at ", Sys.time()))
+  OISST_dat <- plyr::ldply(OISST_new$full_name, .fun = OISST_url_daily_dl)
+  OISST_dat$lon <- ifelse(OISST_dat$lon > 180, OISST_dat$lon-360, OISST_dat$lon)
 } else {
-  prelim_date_start <- FALSE
-  prelim_date_blank <- FALSE
-}
-
-
-# If there are no new data, say so
-if(final_date_start == FALSE & prelim_date_start == FALSE)
   print("No new data to download")
-
-
-# Download data not in 'final_dates' if necessary/possible
-if(final_date_start != FALSE){
-  print(paste0("Downloading final data from ",final_date_start," to ",final_date_end))
-  OISST_final_1 <- OISST_dl(c(final_date_start, final_date_end),
-                            "ncdc_oisst_v2_avhrr_by_time_zlev_lat_lon")
-} else {
-  OISST_final_1 <- data.frame(lon = NA, lat = NA, t = NA, temp = NA)
-}
-
-
-# Download data not in 'prelim_dates' if necessary/possible
-if(prelim_date_start != FALSE){
-  print(paste0("Downloading prelim data from ",prelim_date_start," to ",prelim_date_end))
-  OISST_prelim_1 <- OISST_dl(c(prelim_date_start, prelim_date_end),
-                            "ncdc_oisst_v2_avhrr_prelim_by_time_zlev_lat_lon")
-} else {
-  OISST_prelim_1 <- data.frame(lon = NA, lat = NA, t = NA, temp = NA)
-}
-
-
-# Fill blank days from prelim data with earliest day available
-# NB: This should occur very rarely
-if(prelim_date_blank != FALSE){
-  prelim_blank_plug <- filter(OISST_prelim_1, t == prelim_time_start)
-  for(i in length(prelim_date_blank):1){
-    prelim_blank_plug_step <- prelim_blank_plug
-    prelim_blank_plug_step$t <- prelim_date_blank[i]
-    OISST_prelim_1 <- rbind(prelim_blank_plug_step ,OISST_prelim_1)
-  }
+  OISST_dat <- data.frame(lon = NA, lat = NA, t = NA, temp = NA)
 }
 
 
 # Catch the dates when the data may be incorrect and remove anything from there forward
-if(nrow(OISST_final_1) > 1){
-  if(max(OISST_final_1$temp, na.rm = T) > 100){
-    final_date_error <- min(filter(OISST_final_1, temp > 100)$t)
-    OISST_final_1 <- filter(OISST_final_1, t < final_date_error)
+if(nrow(OISST_dat) > 2){
+  if(max(OISST_dat$temp, na.rm = T) > 100){
+    final_date_error <- min(filter(OISST_dat, temp > 100)$t)
+    OISST_dat <- filter(OISST_dat, t < final_date_error)
     print(paste0("There was an error in the final OISST data on", final_date_error))
-  }
-}
-if(nrow(OISST_prelim_1) > 1){
-  if(max(OISST_prelim_1$temp, na.rm = T) > 100){
-    prelim_date_error <- min(filter(OISST_prelim_1, temp > 100)$t)
-    OISST_prelim_1 <- filter(OISST_prelim_1, t < prelim_date_error)
-    print(paste0("There was an error in the prelim OISST data on", prelim_date_error))
   }
 }
 
@@ -135,28 +69,27 @@ if(nrow(OISST_prelim_1) > 1){
   ## It breaks the NetCDF write privileges
 # doMC::registerDoMC(cores = 50)
 # doParallel::registerDoParallel(cores = 50)
-if(nrow(OISST_final_1) > 1 | nrow(OISST_prelim_1) > 1){
-  print("Adding new data to NetCDF files")
+if(nrow(OISST_dat) > 2){
+  print(paste0("Adding new data to NetCDF files at ", Sys.time()))
   ## NB: 50 cores uses too much RAM if more than a few days are being added
   # doMC::registerDoMC(cores = 50)
   doParallel::registerDoParallel(cores = 50)
-  plyr::l_ply(lon_OISST, .fun = OISST_merge, .parallel = TRUE,
-  df_prelim = OISST_prelim_1, df_final = OISST_final_1)
-  print("Added new data to NetCDF files")
+  plyr::l_ply(lon_OISST, .fun = OISST_merge, .parallel = TRUE, df = OISST_dat)
+  print(paste0("Finished at ", Sys.time()))
   
   # Create date indexes
   # Get range of complete dates from the above `OISST_merge()` runs
   ncdf_dates <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transforms$time$time, origin = "1970-01-01")
 
   # final_dates index
-  final_dates <- ncdf_dates[ncdf_dates <= final_time_end]
+  final_dates <- ncdf_dates[ncdf_dates <= max(final_index$t)]
   # tester...
   # final_dates <- final_dates[1:length(final_dates-2)]
   # tail(final_dates)
   save(final_dates, file = "metadata/final_dates.Rdata")
 
   # prelim_dates index
-  prelim_dates <- ncdf_dates[ncdf_dates > max(final_dates)]
+  prelim_dates <- ncdf_dates[ncdf_dates > max(final_index$t)]
   # tester...
   # prelim_dates <- prelim_dates[1:length(prelim_dates-2)]
   # tail(prelim_dates)
@@ -188,23 +121,22 @@ if(nrow(OISST_final_1) > 1 | nrow(OISST_prelim_1) > 1){
 # August 29th, 2019: Core 45 slipped, affecting every 12.5th longitude value
 # from -173.875 to -11.375 and 136.125 to 173.625 for 08-09 to 08-11
 
-# stop("Brake before MHW calcs as they still need to be updated to work with new R parallelism")
-
 
 # 2: Update MHW event and category data -----------------------------------
 
 # Prep guide info for this section
 # doMC::registerDoMC(cores = 25)
 doParallel::registerDoParallel(cores = 50)
-load("metadata/final_dates.Rdata")
-load("metadata/prelim_dates.Rdata")
+# load("metadata/final_dates.Rdata")
+# load("metadata/prelim_dates.Rdata")
 
 # This takes roughly 35 minutes and is by far the largest time requirement
-if(final_date_start != FALSE | prelim_date_start != FALSE){
-  print("Updating MHW results")
+if(nrow(OISST_dat) > 2){
+  print(paste0("Updating MHW results at ", Sys.time()))
   # system.time(
     plyr::l_ply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE)
   # ) # ~ 40 seconds per cycle
+  print(paste0("Updated MHW results at ", Sys.time()))
 }
 
 # Occasionaly the cat_lon files don't come right
@@ -228,25 +160,19 @@ doParallel::registerDoParallel(cores = 50)
 
 # Get most current processed OISST dates
 time_index <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transforms$time$time, origin = "1970-01-01")
+# max(time_index)
 
 # Get the range of dates that need to be run
 # The function `cat_clim_global_daily()` uses dplyr so a for loop is used here
   # Manually control dates as desired
-  # update_dates <- seq(as.Date("2017-01-01"), as.Date("2019-12-31"), by = "day")
-if (final_date_start != FALSE) {
-  update_dates <- time_index[which(time_index >= final_date_start)]
-  if (length(update_dates) > 0) {
-    print(paste0("Updating global MHW slices from ",min(update_dates)," to ",max(update_dates)))
-    # system.time(
-    cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)))
-    # ) # ~28 seconds
-  }
-} else if (prelim_date_start != FALSE) {
-  update_dates <- time_index[which(time_index >= prelim_date_start)]
-  if (length(update_dates) > 0) {
-    print(paste0("Updating global MHW slices from ",min(update_dates)," to ",max(update_dates)))
-    cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)))
-  }
+# update_dates <- seq(as.Date("2019-11-01"), as.Date("2020-01-07"), by = "day")
+update_dates <- time_index[which(time_index >= min(final_index$t))]
+if(length(update_dates) > 0) {
+  print(paste0("Updating global MHW slices from ",min(update_dates)," to ",max(update_dates)))
+  # system.time(
+  cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)))
+  # ) # ~28 seconds
+  print(paste0("Updated global MHW slices at ", Sys.time()))
 }
 
 

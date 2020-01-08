@@ -7,9 +7,11 @@
 
 # Libraries ---------------------------------------------------------------
 
+.libPaths(c("~/R-packages", .libPaths()))
+
 library(tidyverse)
 library(raster)
-library(gganimate, lib.loc = "~/R-packages/")
+library(gganimate)#, lib.loc = "~/R-packages/")
 doMC::registerDoMC(cores = 50)
 
 
@@ -31,6 +33,9 @@ MHW_2017 <- map_dfr(dir("shiny/cat_clim/2017", full.names = T), readRDS_date) %>
 
 # Grab a single day
 MHW_2017_single <- readRDS_date("shiny/cat_clim/2017/cat.clim.2017-02-25.Rda")
+
+# 2016 data for NZ MHW
+MHW_2016_single <- readRDS_date("shiny/cat_clim/2016/cat.clim.2016-02-01.Rda")
 
 
 # Create rasters ----------------------------------------------------------
@@ -60,15 +65,18 @@ raster_MHW <- function(df){
 
 # Create single raster
 MHW_2017_single_raster <- raster_MHW(MHW_2017_single)
+MHW_2016_single_raster <- raster_MHW(MHW_2016_single)
 
 # Save single raster
 writeRaster(MHW_2017_single_raster, "data/washington_post.asc")
+writeRaster(MHW_2016_single_raster, "data/washington_post_NZ.asc")
 
 
 # Visualise ---------------------------------------------------------------
 
 # Plot a single raster file
 plot(MHW_2017_single_raster)
+plot(MHW_2016_single_raster)
 
 # Uruguay bounding box
 bbox_uruguay <- c(-67, -6, -55, -23)

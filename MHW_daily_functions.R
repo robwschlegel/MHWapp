@@ -12,6 +12,12 @@ library(tidync)
 library(ncdf4)
 library(abind)
 library(padr)
+
+library(RCurl)
+library(XML)
+# library(xml2)
+# library(rlist)
+
 # library(qs, lib.loc = "../R-packages/")
 library(heatwaveR, lib.loc = "../R-packages/")
 print(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))
@@ -92,15 +98,6 @@ seas_thresh_files <- dir("../data/thresh", pattern = "MHW.seas.thresh.", full.na
 cat_lon_files <- dir("../data/cat_lon", full.names = T)
 cat_clim_files <- as.character(dir(path = "../data/cat_clim", pattern = "cat.clim", 
                                    full.names = TRUE, recursive = TRUE))
-
-# Date range of already processed data
-## NB: This is currently static but must be self-updating to work correctly
-### A self updating file that grabs dates from somewhere...
-# load("../MHWapp/shiny/current_dates.RData")
-# head(current_dates)
-# tail(current_dates)
-# current_dates <- seq(as.Date("1982-01-01"), as.Date("2018-12-31"), by = "day")
-
 # The current date
   # NB: This script is running from a server in Atlantic Canada (UTC-3)
 current_date <- Sys.Date()
@@ -114,7 +111,31 @@ NOAA_date <- function(date_string, piece){
 
 # 1: Update OISST data functions ------------------------------------------
 
-# This downloads the data
+# Find the URLs for all files that need to be downloaded
+OISST_url_daily <- function(target_month){
+  OISST_url <- paste0(OISST_url_month, target_month,"/")
+  OISST_url_get <- getURL(OISST_url)
+  OISST_table <- data.frame(files = readHTMLTable(OISST_url_get, skip.rows = 1:2)[[1]]$Name) %>% 
+    mutate(files = as.character(files)) %>% 
+    filter(grepl("avhrr", files)) %>% 
+    mutate(t = lubridate::as_date(sapply(strsplit(files, "[.]"), "[[", 2)),
+           full_name = paste0(OISST_url, files)) %>% 
+    filter(t > max(final_dates))
+  return(OISST_table)
+}
+
+# Download all of the outstanding data from the links created above
+OISST_url_daily_dl <- function(target_URL){
+  download.file(url = target_URL, method = "libcurl", destfile = "data/temp.nc")
+  temp_dat <- tidync("data/temp.nc") %>% 
+    hyper_tibble() %>% 
+    select(lon, lat, time, sst) %>% 
+    dplyr::rename(t = time, temp = sst) %>% 
+    mutate(t = as.Date(t, origin = "1978-01-01"))
+  return(temp_dat)
+}
+
+# This downloads the data from the ERDDAP server
 OISST_dl <- function(times, product){
   oisst_res <- griddap(x = product, 
                        url = "https://www.ncei.noaa.gov/erddap/", 
@@ -177,9 +198,8 @@ OISST_temp <- function(df){
 # Function for merging OISST data into existing NetCDF files
 # tester...
 # lon_step <- lon_OISST[1]
-# df_final <- OISST_final_1
-# df_prelim <- OISST_prelim_1
-OISST_merge <- function(lon_step, df_prelim, df_final){
+# df <- OISST_dat
+OISST_merge <- function(lon_step, df){
   
   ### Determine the correct lon slice/file
   # Determine lon slice
@@ -201,11 +221,12 @@ OISST_merge <- function(lon_step, df_prelim, df_final){
   # tail(time_vals)
   
   ### Grab the lon slice intended for the chosen NetCDF file
-  OISST_prelim_sub <- df_prelim %>% 
+  OISST_prelim_sub <- df %>% 
     filter(lon  == lon_step,
-           as.integer(t) > max(time_vals))
-  OISST_final_sub <- df_final %>% 
-    filter(lon  == lon_step)
+           t > max(time_vals))
+  OISST_final_sub <- df %>% 
+    filter(lon  == lon_step,
+           t <= max(time_vals))
   
   ### Check again for errors in the data
   if(nrow(OISST_final_sub) > 1){
@@ -223,7 +244,7 @@ OISST_merge <- function(lon_step, df_prelim, df_final){
   if(nrow(OISST_prelim_sub) > 0){
     
     prelim_temp <- OISST_temp(OISST_prelim_sub)
-
+    
     for(i in 1:length(prelim_temp[1,1,])){
       ncvar_put(nc = nc, varid = "sst", vals = prelim_temp[,,i], verbose = FALSE,
                 start = c(1,1,(length(nc$dim$time$vals)+i)), count = c(720,1,1))
@@ -406,7 +427,7 @@ event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon){
 # cat_lon_file <- cat_lon_files[1118]
 # date_choice <- max(current_dates)+1
 # date_choice <- min(update_dates)
-# date_range <- c(as.Date("1982-01-01"), as.Date("1982-01-31"))
+# date_range <- c(as.Date("2019-11-01"), as.Date("2020-01-07"))
 load_sub_cat_clim <- function(cat_lon_file, date_range){
   # cat_clim <- qs::qread(cat_lon_file)
   cat_clim <- readRDS(cat_lon_file)
@@ -426,13 +447,13 @@ save_sub_cat_clim <- function(date_choice, df){
   df_sub <- df %>% 
     filter(t == date_choice)
   saveRDS(df_sub, file = paste0(cat_clim_dir,"/",cat_clim_name))
-  print(paste0("Finished creating ", date_choice," slice at ",Sys.time()))
+  # print(paste0("Finished creating ", date_choice," slice at ",Sys.time()))
 }
 
 # Function for loading, prepping, and saving the daily global category slices
 # tester...
 # date_choice <- max(current_dates)+1
-# date_choice <- as.Date("2019-02-10")
+# date_choice <- as.Date("2019-11-01")
 # date_range <- c(as.Date("1984-01-01"), as.Date("1986-01-31"))
 cat_clim_global_daily <- function(date_range){
   # print(paste0("Began creating ", date_choice," slice at ",Sys.time()))
@@ -442,7 +463,8 @@ cat_clim_global_daily <- function(date_range){
                                 load_sub_cat_clim,
                                 .parallel = T, date_range = date_range) %>% 
     mutate(category = factor(category, levels = c("I Moderate", "II Strong",
-                                                  "III Severe", "IV Extreme")))
+                                                  "III Severe", "IV Extreme"))) %>% 
+    na.omit()
   
   # NB: Running this in parallel causes serious RAM issues
   doParallel::registerDoParallel(cores = 10)
