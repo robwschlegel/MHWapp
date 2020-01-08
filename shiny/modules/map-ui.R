@@ -1,6 +1,4 @@
 mapUI <- function(id, label = 'map') {
-  
-  # Set seesion guide
   ns <- NS(id)
   
   fluidPage(

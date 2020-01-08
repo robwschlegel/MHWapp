@@ -31,6 +31,7 @@ library(DT)
 # library(raster)
 # library(rgdal)
 # library(heatwaveR)
+# library(ggpubr)
 # cat(packageDescription("heatwaveR")$Version)
 
 
@@ -127,11 +128,13 @@ empty_date_map <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>%
 #   mutate(category = NA)
 
 #### The base map
-map_base <- ggplot2::fortify(maps::map(fill = TRUE, col = "grey80", plot = FALSE)) %>%
-  dplyr::rename(lon = long) %>%
-  # filter(lat >= 25.6) %>%
-  mutate(group = ifelse(lon > 180, group+9999, group),
-         lon = ifelse(lon > 180, lon-360, lon))
+# map_base <- ggplot2::fortify(maps::map(fill = TRUE, col = "grey80", plot = FALSE)) %>%
+#   dplyr::rename(lon = long) %>%
+#   # filter(lat >= 25.6) %>%
+#   mutate(group = ifelse(lon > 180, group+9999, group),
+#          lon = ifelse(lon > 180, lon-360, lon))
+# save(map_base, file = "metadata/map_base.Rdata")
+load("../metadata/map_base.Rdata")
 
 # cat("\nglobal.R finished")
 
