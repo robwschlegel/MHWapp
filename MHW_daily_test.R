@@ -19,6 +19,12 @@ test_dl <- download.file(url = test_URL, method = "libcurl", destfile = "data/te
 test_dat <- tidync("data/test.nc") %>% 
   hyper_tibble() # ~ 26 million rows
 
+# NB: This file is 16.5 MB for a daily global file
+test_URL <- "http://data.ceda.ac.uk/neodc/esacci/sst/data/CDR_v2/Analysis/L4/v2.1/1981/09/01/19810901120000-ESACCI-L4_GHRSST-SSTdepth-OSTIA-GLOB_CDR2.1-v02.0-fv01.0.nc"
+test_dl <- download.file(url = test_URL, method = "libcurl", destfile = "data/test.nc")
+test_dat <- tidync("data/test.nc") %>% 
+  hyper_tibble() # ~ 26 million rows
+
 
 # 2: Testing the MHW event and cat production -----------------------------
 
