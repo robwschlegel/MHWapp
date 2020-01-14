@@ -11,6 +11,14 @@ source("MHW_daily_functions.R")
 # OISST_update_1 <- OISST_dl(c("2019-02-17T00:00:00Z", "2019-02-17T00:00:00Z"))
 # OISST_update_2 <- OISST_prep(OISST_update_1)
 
+# Testing new data sources
+
+# NB: This file is 148.4 MB for a daily global file
+test_URL <- "https://opendap.jpl.nasa.gov/opendap/OceanTemperature/ghrsst/data/L4/GLOB/UKMO/OSTIA/2020/001/20200101-UKMO-L4HRfnd-GLOB-v01-fv02-OSTIA.nc.bz2"
+test_dl <- download.file(url = test_URL, method = "libcurl", destfile = "data/test.nc")
+test_dat <- tidync("data/test.nc") %>% 
+  hyper_tibble() # ~ 26 million rows
+
 
 # 2: Testing the MHW event and cat production -----------------------------
 
