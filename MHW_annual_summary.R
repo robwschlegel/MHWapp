@@ -249,7 +249,7 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
           legend.title = element_text(size = 16),
           panel.background = element_rect(fill = "grey90"))
   # fig_map
-  
+   
   # Stacked barplot of global daily count of MHWs by category
   fig_count <- ggplot(MHW_cat_daily, aes(x = t, y = cat_n)) +
     geom_bar(aes(fill = category), stat = "identity", show.legend = F,
