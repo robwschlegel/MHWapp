@@ -283,11 +283,6 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
           axis.text = element_text(size = 12))
   # fig_cum
   
-  # Midpoint for cumulative MHW days
-  mid_cum <- MHW_cat_daily %>% 
-    filter(t == max(t)) %>% 
-    summarise(mid_prop = sum(cat_n_prop)/2)
-  
   # Stacked barplot of average cumulative MHW days per pixel
   fig_prop <- ggplot(MHW_cat_daily, aes(x = t, y = cat_n_prop)) +
     geom_bar(aes(fill = category), stat = "identity", show.legend = F,
