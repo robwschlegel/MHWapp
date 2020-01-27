@@ -255,22 +255,14 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
     geom_bar(aes(fill = category), stat = "identity", show.legend = F,
              position = position_stack(reverse = TRUE), width = 1) +
     scale_fill_manual("Category", values = MHW_colours) +
-    scale_y_continuous(limits = c(0, nrow(OISST_ocean_coords)), position = "right",
+    scale_y_continuous(limits = c(0, nrow(OISST_ocean_coords)),
                        breaks = seq(0, nrow(OISST_ocean_coords), length.out = 11),
                        labels = paste0(seq(0, 100, by = 10), "%")) +
     scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +
-    # labs(y = "Global MHW count\n(non-cumulative)", x = "Day of the year") +
-    # coord_cartesian(expand = F) +
-    geom_text(x = as.Date(paste0(chosen_year,"-01-01")), y = nrow(OISST_ocean_coords)/2,
-              vjust = -0.5, size = 5, 
-              aes(label = "Global MHW count\n(non-cumulative)", 
-                  angle = 90, lineheight = 1)) +
-    coord_cartesian(clip = 'off', expand = F) + 
-    labs(x = "Day of the year") +
-    theme(plot.margin = unit(c(1,1,1,3), "lines")) +
+    labs(y = "Global MHW count\n(non-cumulative)", x = "Day of the year") +
+    coord_cartesian(expand = F) +
     theme(axis.title = element_text(size = 14),
-          axis.text = element_text(size = 12),
-          axis.title.y = element_blank())
+          axis.text = element_text(size = 12))
   # fig_count
   
   # Stacked barplot of cumulative percent of ocean affected by MHWs
@@ -281,21 +273,14 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
                aes(yintercept = label_first_n_cum, colour = category)) +
     scale_fill_manual("Category", values = MHW_colours) +
     scale_colour_manual("Category", values = MHW_colours) +
-    scale_y_continuous(limits = c(0, nrow(OISST_ocean_coords)), position = "right",
+    scale_y_continuous(limits = c(0, nrow(OISST_ocean_coords)),
                        breaks = seq(0, nrow(OISST_ocean_coords), length.out = 11),
                        labels = paste0(seq(0, 100, by = 10), "%")) +
     scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +
-    # labs(y = "Top MHW category per pixel\n(cumulative)", x = "Day of first occurrence") +
-    geom_text(x = as.Date(paste0(chosen_year,"-01-01")), y = nrow(OISST_ocean_coords)/2,
-              vjust = -0.5, size = 5, 
-              aes(label = "Top MHW category per pixel\n(cumulative)", 
-                  angle = 90, lineheight = 1)) +
-    coord_cartesian(clip = 'off', expand = F) + 
-    labs(x = "Day of first occurrence") +
-    theme(plot.margin = unit(c(1,1,1,3), "lines")) +
+    labs(y = "Top MHW category per pixel\n(cumulative)", x = "Day of first occurrence") +
+    coord_cartesian(expand = F) +
     theme(axis.title = element_text(size = 14),
-          axis.text = element_text(size = 12),
-          axis.title.y = element_blank())
+          axis.text = element_text(size = 12))
   # fig_cum
   
   # Midpoint for cumulative MHW days
@@ -308,34 +293,20 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
     geom_bar(aes(fill = category), stat = "identity", show.legend = F,
              position = position_stack(reverse = TRUE), width = 1) +
     scale_fill_manual("Category", values = MHW_colours) +
-    scale_y_continuous(position = "right") +
+    scale_y_continuous(labels = ) +
     scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +  
-    # labs(y = "Average MHW days per pixel\n(cumulative)", x = "Day of the year") +
-    geom_text(x = as.Date(paste0(chosen_year,"-01-01")), y = mid_cum$mid_prop,
-              vjust = -0.5, size = 5, 
-              aes(label = "Average MHW days per pixel\n(cumulative)", 
-                  angle = 90, lineheight = 1)) +
-    coord_cartesian(clip = 'off', expand = F) + 
-    labs(x = "Day of the year") +
-    theme(plot.margin = unit(c(1,0,1,3), "lines")) +
+    labs(y = "Average MHW days per pixel\n(cumulative)", x = "Day of the year") +
+    coord_cartesian(expand = F) +
     theme(axis.title = element_text(size = 14),
-          axis.text = element_text(size = 12),
-          axis.title.y = element_blank())
+          axis.text = element_text(size = 12))
   # fig_prop
   
-  # fig_blank <- ggplot() + theme_void()
-  
   print("Combining figures")
-  fig_ALL_sub <- ggpubr::ggarrange(fig_count, fig_cum, fig_prop, ncol = 3,
+  fig_ALL_sub <- ggpubr::ggarrange(fig_count, fig_cum, fig_prop, ncol = 3, align = "hv",
                                    labels = c("B)", "C)", "D)"), font.label = list(size = 16))
-  # fig_ALL_nudge <- ggpubr::ggarrange(fig_blank, fig_ALL_sub, nrow = 1, ncol = 2, widths = c(0.1, 1))
   fig_ALL <- ggpubr::ggarrange(fig_map, fig_ALL_sub, ncol = 1, heights = c(1, 0.6),
                                labels = c("A)"), common.legend = T, legend = "bottom",
                                font.label = list(size = 16))
-  
-  # Fancy caption technique
-  # fig_ALL_cap <-  grid::textGrob(paste0(strwrap(fig_cap, 140), sep = "", collapse = "\n"),
-  #                               x = 0.01, just = "left", gp = grid::gpar(fontsize = 10))
   
   # Standard caption technique
   fig_ALL_cap <- grid::textGrob(fig_title, x = 0.01, just = "left", gp = grid::gpar(fontsize = 20))
