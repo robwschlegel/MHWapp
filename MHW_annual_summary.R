@@ -288,7 +288,6 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
     geom_bar(aes(fill = category), stat = "identity", show.legend = F,
              position = position_stack(reverse = TRUE), width = 1) +
     scale_fill_manual("Category", values = MHW_colours) +
-    scale_y_continuous(labels = ) +
     scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +  
     labs(y = "Average MHW days per pixel\n(cumulative)", x = "Day of the year") +
     coord_cartesian(expand = F) +
