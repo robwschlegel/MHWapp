@@ -320,7 +320,8 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
   # NB: Running this in parallel will cause a proper stack overflow
 # plyr::l_ply(1982:2019, MHW_annual_state, force_calc = T, .parallel = F) # ~1.5 hours
   # This is okay to run in parallel as it doesn't load/process any data
-plyr::l_ply(1982:2019, MHW_annual_state, force_calc = F, .parallel = T) # ~ 1 minute
+# plyr::l_ply(1982:2019, MHW_annual_state, force_calc = F, .parallel = T) # ~ 1 minute
+MHW_annual_state(2020, force_calc = T)
 
 
 # Animations --------------------------------------------------------------
