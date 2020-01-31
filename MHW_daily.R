@@ -196,7 +196,6 @@ if(length(possible_dates) > length(current_dates)){
 
 # 5: Push to GitHub -------------------------------------------------------
 
-system("git commit -a -m 'Updates download dates'")
+system("git commit -a -m 'Updated download dates'")
+system("git push")
 
-# git commit -a -m "$1"
-# git push
