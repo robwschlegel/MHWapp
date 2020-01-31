@@ -6,7 +6,7 @@
 ##    data available and updates the local NetCDF files
 ## 2: Updates MHW event and category data
 ## 3: Creates daily global MHW category file(s)
-## 4: Updates the `final_dates`, `prelim_dates`, and `current_dates` indexes
+## 4: Check the `current_dates` index to make sure no days are missing
 
 source("MHW_daily_functions.R")
 # source("../MHWapp/MHW_daily_fixes.R")
@@ -176,7 +176,7 @@ if(length(update_dates) > 0) {
 }
 
 
-# 4: Update current_dates -------------------------------------------------
+# 4: Check current dates --------------------------------------------------
 
 # Indexes all files throughout the cat_clim sub-folders to create the current_dates index
 current_dates <- as.character(dir(path = "../data/cat_clim", pattern = "cat.clim",
@@ -193,3 +193,10 @@ if(length(possible_dates) > length(current_dates)){
   stop(paste0("The following dates are missing: ",error_dates))
 }
 
+
+# 5: Push to GitHub -------------------------------------------------------
+
+system("git commit -a -m 'Updates download dates'")
+
+# git commit -a -m "$1"
+# git push
