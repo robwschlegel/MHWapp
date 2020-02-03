@@ -16,11 +16,11 @@ mapUI <- function(id, label = 'map') {
                   top = menu_panel_top, right = menu_panel_right, draggable = T, width = "200px",
                   # The date input box
                   h2("Controls"),
-                  # dateInput(inputId = ns("date_choice"),
-                  #           label = "Date",
-                  #           value = date_menu_choice,
-                  #           min = "1982-01-01", 
-                  #           max = max(current_dates)),
+                  dateInput(inputId = ns("date_choice"),
+                            label = "Date",
+                            value = date_menu_choice,
+                            min = "1982-01-01",
+                            max = date_menu_choice),
                   # The category filtering buttons
                   h5(paste0("Categories")),
                   uiOutput(outputId = ns("moderate")),
@@ -36,27 +36,23 @@ mapUI <- function(id, label = 'map') {
     shinyWidgets::setSliderColor("BurlyWood", sliderId = 1),
     absolutePanel(bottom = 10, left = 30, draggable = F, width = "80%",
                   # The date input box
-                  h1("Date:"),
+                  h1("Animate:"),
+                  dateRangeInput(inputId = ns("date_choice_slider"), 
+                                 start = date_menu_choice, 
+                                 end = date_menu_choice),
                   shinyWidgets::sliderTextInput(
-                    inputId = ns("date_choice"),
-                    label = NULL,
+                    inputId = ns("date_slider"),
+                    label = "Animate:",
                     grid = TRUE, 
                     force_edges = TRUE,
-                    choices = seq(date_menu_choice-4, date_menu_choice, by = "day"), 
-                    selected = date_menu_choice-4, 
+                    choices = seq(input$date_choice_slider[1], input$date_choice_slider[2], by = "day"), 
+                    selected = date_menu_choice, 
                     animate = animationOptions(interval = 5000),
                     width = "80%"
                   )
-                  # dateInput(inputId = ns("date_choice"),
-                  #           label = "Date",
-                  #           value = date_menu_choice,
-                  #           min = "1982-01-01", 
-                  #           max = max(current_dates))
-                  # The shiny server instance info
-                  # h5(paste0("Shiny server instance: ",Sys.getenv("R_SHNYSRVINST"))),
     ),
-    tags$script("$(document).ready(function(){
-                setTimeout(function() {$('.slider-animate-button').click()},2000);});"),
+    # tags$script("$(document).ready(function(){
+    #             setTimeout(function() {$('.slider-animate-button').click()},2000);});"),
     # The welcome popup
     uiOutput(ns('uiStartupModal')),
     # The popup time series panel
