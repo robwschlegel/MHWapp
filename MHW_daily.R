@@ -20,8 +20,14 @@ source("MHW_daily_functions.R")
 # 1: Update OISST data ----------------------------------------------------
 
 # The most up-to-date data downloaded
+  # NB: There appears to be a transient error in the NOAA HTTPS server that
+  # can mess up the date indexing. This has only happened once (2020-02-01)
+  # and the fix was to manually recreate the following two objects and re-source
+  # the script from an R instance running in a terminal
 load("metadata/final_dates.Rdata")
 load("metadata/prelim_dates.Rdata")
+if(!is.Date(final_dates)) stop("Final date indexing has broken.")
+if(!is.Date(prelim_dates)) stop("Final date indexing has broken.")
 
 
 # Get the source index monthly file folders with new data
@@ -42,6 +48,7 @@ prelim_index <- OISST_filenames %>%
   filter(grepl("prelim", files),
          t > max(prelim_dates))
 OISST_new <- rbind(final_index, prelim_index)
+if(nrow(OISST_new) > 10) stop("A suspicious amount of new files are attempting to be downloaded.")
 
 # Download the new data
 if(nrow(OISST_new) > 0){
