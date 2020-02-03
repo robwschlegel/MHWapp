@@ -167,12 +167,11 @@ map <- function(input, output, session) {
                   fixedRow(
                     column(8,
                            dateRangeInput(inputId = ns("date_choice_slider"), 
-                                                               # label = "Date range:",
-                                                               label = "Date range",
-                                                               start = date_menu_choice, 
-                                                               end = date_menu_choice, 
-                                                               min = "1982-01-01", 
-                                                               max = date_menu_choice)),
+                                          label = "Date range",
+                                          start = date_menu_choice, 
+                                          end = date_menu_choice, 
+                                          min = "1982-01-01", 
+                                          max = date_menu_choice)),
                     column(4,
                            numericInput(inputId = ns("slider_time_step"),
                                         label = "Seconds", value = 3, min = 1, max = 30)
@@ -210,28 +209,7 @@ map <- function(input, output, session) {
   
   
 # Map projection data -----------------------------------------------------
-  
-  ### Map date from multiple possible sources
-  
-  # reactiveDateChoice <- reactiveValues(reactive_date = input$date_menu_choice)
-  
-  # observe(input$date_choice, {reactiveDatehoice$reactive_date <- input$date_choice})
-  
-  # observeEvent(input$button1, {values$inDir <- tcltk::tk_choose.dir()})
-  # observeEvent(input$button2, {values$inDir <- input$inText})
-  # output$outText <- renderText(values$inDir)
-  
 
-  
-  # mapDate <- reactive({
-  #   # req(reactiveDateChoice$reactive_date)
-  #   map_date <- input$date_choice
-  #   # map_date <- reactiveDateChoice$reactive_date
-  #   # map_date <- as.Date(input$date_choice)
-  #   # map_date <- as.Date(input$date_choice_slider[1])
-  #   # map_date <- as.Date(input$date_slider)
-  # })
-  
   ### Base map data before screening categories
   baseDataPre <- reactive({
     req(lubridate::is.Date(input$date_choice))
