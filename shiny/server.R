@@ -2,7 +2,7 @@ function(input, output, session) {
   
   callModule(map, "map")
   
-  callModule(summary, "summary")
+  # callModule(summary, "summary")
   
   callModule(about, 'about')
   
