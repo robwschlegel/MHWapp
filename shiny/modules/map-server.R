@@ -27,13 +27,13 @@ map <- function(input, output, session) {
                            <hr>
                            Click in the <b>Date</b> box to choose a day to display on the map.
                            <hr>
-                           Clicking on the different <b>Category</b> buttons will filter those pixels from the map.
+                           Clicking on the different <b>Categories</b> will filter those pixels from the map.
                            <hr>
                            Click on the  <b>Animate</b> box to bring up the animation options.
                            <hr>
                            After clicking on a pixel of interest, click the <b>Time Series</b> button to see more.
                            <hr>
-                           For more information please click on the <b>About</b> tab in the top right of the screen."))
+                           For more information please click on the <b>Summary</b> or <b>About</b> tabs."))
     })
   
   ### Reactive category filters

@@ -9,7 +9,7 @@ ui = tagList(shinyjs::useShinyjs(),
                # div(
                  # id = "app-content",
              navbarPage(title =  "Marine Heatwave Tracker",
-                        selected = 'Summary',
+                        selected = 'Map',
                         tabPanel(title = 'Map',
                                  # br(),
                                  mapUI('map')),
