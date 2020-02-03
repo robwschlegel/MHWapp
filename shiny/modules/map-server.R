@@ -29,6 +29,8 @@ map <- function(input, output, session) {
                            <hr>
                            Clicking on the different <b>Category</b> buttons will filter those pixels from the map.
                            <hr>
+                           Click on the  <b>Animate</b> box to bring up the animation options.
+                           <hr>
                            After clicking on a pixel of interest, click the <b>Time Series</b> button to see more.
                            <hr>
                            For more information please click on the <b>About</b> tab in the top right of the screen."))
@@ -56,10 +58,10 @@ map <- function(input, output, session) {
   output$moderate <- renderUI({
     if(button_I$clicked){
       actionButton(inputId = ns("moderate_filter"), "I Moderate", icon = icon("remove", lib = "glyphicon"),
-                   style = "color: black; background-color: #ffc866; border-color: black")     
+                   style = "color: black; background-color: #ffc866; border-color: black; width: 110px")     
     } else {
       actionButton(inputId = ns("moderate_filter"), "I Moderate", icon = icon("ok", lib = "glyphicon"),
-                   style = "color: black; background-color: #ffc866; border-color: black")
+                   style = "color: black; background-color: #ffc866; border-color: black; width: 110px")
     }
   })
   
@@ -82,10 +84,10 @@ map <- function(input, output, session) {
   output$strong <- renderUI({
     if(button_II$clicked){
       actionButton(inputId = ns("strong_filter"), "II Strong", icon = icon("remove", lib = "glyphicon"),
-                   style = "color: black; background-color: #ff6900; border-color: black")     
+                   style = "color: black; background-color: #ff6900; border-color: black; width: 110px")     
     } else {
       actionButton(inputId = ns("strong_filter"), "II Strong", icon = icon("ok", lib = "glyphicon"),
-                   style = "color: black; background-color: #ff6900; border-color: black")
+                   style = "color: black; background-color: #ff6900; border-color: black; width: 110px")
     }
   })
   
@@ -108,10 +110,10 @@ map <- function(input, output, session) {
   output$severe <- renderUI({
     if(button_III$clicked){
       actionButton(inputId = ns("severe_filter"), "III Severe", icon = icon("remove", lib = "glyphicon"),
-                   style = "color: white; background-color: #9e0000; border-color: black")     
+                   style = "color: white; background-color: #9e0000; border-color: black; width: 110px")     
     } else {
       actionButton(inputId = ns("severe_filter"), "III Severe", icon = icon("ok", lib = "glyphicon"),
-                   style = "color: white; background-color: #9e0000; border-color: black")
+                   style = "color: white; background-color: #9e0000; border-color: black; width: 110px")
     }
   })
   
@@ -134,10 +136,10 @@ map <- function(input, output, session) {
   output$extreme <- renderUI({
     if(button_IV$clicked){
       actionButton(inputId = ns("extreme_filter"), "IV Extreme", icon = icon("remove", lib = "glyphicon"),
-                   style = "color: white; background-color: #2d0000; border-color: black")     
+                   style = "color: white; background-color: #2d0000; border-color: black; width: 110px")     
     } else {
-      actionButton(inputId = ns("extreme_filter"), "IV Extreme", icon = icon("ok", lib = "glyphicon"),
-                   style = "color: white; background-color: #2d0000; border-color: black")
+      actionButton(inputId = ns("extreme_filter"), "IV Extreme ", icon = icon("ok", lib = "glyphicon"),
+                   style = "color: white; background-color: #2d0000; border-color: black; width: 110px")
     }
   })
   
@@ -148,42 +150,40 @@ map <- function(input, output, session) {
       # shinyWidgets::actionBttn(inputId = ns("does_nothing"), label = "Time series", icon = icon("map-marked"),
       #        style = "stretch", color = "danger")
     } else {
-      shinyWidgets::actionBttn(inputId = ns("open_modal"), label = "Time series", icon = icon("map-marked"),
-                               style = "unite", color = "success")
+      shinyWidgets::actionBttn(inputId = ns("open_modal"), label = "Time series", #icon = icon("map-marked"),
+                               style = "unite", color = "success", size = "md")
     }
   })
   
-  ### Date range animation slider
+  ### Date range animation menu
   output$date_animator <- renderUI({
     if(input$check_animate){
     # shinyWidgets::setSliderColor("BurlyWood", sliderId = 1)
-    absolutePanel(bottom = 60, right = menu_panel_right, draggable = T, cursor = "move",
+    absolutePanel(id = ns("controls"), class = "panel panel-default", draggable = T, cursor = "move",
+                  top = menu_panel_top, right = menu_panel_right+10+150, width = "350px",
                   # shinyWidgets::setSliderColor("BurlyWood", sliderId = 1),
-                  # The date input box
-                  # h1("Animate:"),
-                  dateRangeInput(inputId = ns("date_choice_slider"), 
-                                 label = "Date range:",
-                                 start = date_menu_choice, 
-                                 end = date_menu_choice, 
-                                 min = "1982-01-01", 
-                                 max = date_menu_choice),
-                  numericInput(inputId = ns("slider_time_step"),
-                               label = "Seconds:", value = 3, min = 1, max = 30),
-                  uiOutput(ns('date_animator_slider'))
-    # ),
-    # shinyWidgets::sliderTextInput(
-    #   inputId = ns("date_slider"),
-    #   label = NULL,
-    #   grid = TRUE, 
-    #   force_edges = TRUE,
-    #   choices = seq(input$date_choice_slider[1], 
-    #                 input$date_choice_slider[2], by = "day"),
-    #   selected = input$date_choice_slider[1],
-    #   animate = animationOptions(interval = input$slider_time_step*1000)
-    #   )
-    )
-    }
-  })
+                  h2("Animate"),
+                  uiOutput(ns('date_animator_slider')),
+                  fixedRow(
+                    column(8,
+                           dateRangeInput(inputId = ns("date_choice_slider"), 
+                                                               # label = "Date range:",
+                                                               label = "Date range",
+                                                               start = date_menu_choice, 
+                                                               end = date_menu_choice, 
+                                                               min = "1982-01-01", 
+                                                               max = date_menu_choice)),
+                    column(4,
+                           numericInput(inputId = ns("slider_time_step"),
+                                        label = "Seconds", value = 3, min = 1, max = 30)
+                           )
+                    )
+                  )
+      }
+    })
+  
+  ### Animation date slider
+    # NB: This is rendered separately due to date generation order issues
   output$date_animator_slider <- renderUI({
     if(input$check_animate){
       shinyWidgets::sliderTextInput(
@@ -199,18 +199,15 @@ map <- function(input, output, session) {
     }
   })
 
-  
-  ### Observe the changing of dates in other locations
+  ### Observe the changing of dates in the animation slider
   observe({
     req(input$date_slider)
     date <- as.Date(input$date_slider)
     updateDateInput(session = session, inputId = "date_choice",
-                    # label = paste("Date label", input$date_slider),
-                    value = date#,
-                    # min = as.Date("1982-01-01"),
-                    # max = date_menu_choice
+                    value = date
     )
   })
+  
   
 # Map projection data -----------------------------------------------------
   
@@ -226,42 +223,27 @@ map <- function(input, output, session) {
   
 
   
-  mapDate <- reactive({
-    # req(reactiveDateChoice$reactive_date)
-    map_date <- input$date_choice
-    # map_date <- reactiveDateChoice$reactive_date
-    # map_date <- as.Date(input$date_choice)
-    # map_date <- as.Date(input$date_choice_slider[1])
-    # map_date <- as.Date(input$date_slider)
-  })
+  # mapDate <- reactive({
+  #   # req(reactiveDateChoice$reactive_date)
+  #   map_date <- input$date_choice
+  #   # map_date <- reactiveDateChoice$reactive_date
+  #   # map_date <- as.Date(input$date_choice)
+  #   # map_date <- as.Date(input$date_choice_slider[1])
+  #   # map_date <- as.Date(input$date_slider)
+  # })
   
   ### Base map data before screening categories
   baseDataPre <- reactive({
-    # if(lubridate::is.Date(input$date_choice)){
-    #   date_filter <- input$date_choice
-    #   year_filter <- lubridate::year(date_filter)
-    #   sub_dir <- paste0("cat_clim/",year_filter)
-    #   sub_file <- paste0(sub_dir,"/cat.clim.",date_filter,".Rda")
-    #   if(file.exists(sub_file)){
-    #     baseDataPre <- readRDS(sub_file)
-    #   } else {
-    #     baseDataPre <- empty_date_map
-    #   }
-    # } 
-    # if(lubridate::is.Date(input$date_slider)){
-      date_filter <- mapDate()
-      year_filter <- lubridate::year(date_filter)
-      sub_dir <- paste0("cat_clim/",year_filter)
-      sub_file <- paste0(sub_dir,"/cat.clim.",date_filter,".Rda")
-      if(file.exists(sub_file)){
-        baseDataPre <- readRDS(sub_file)
+    req(lubridate::is.Date(input$date_choice))
+    date_filter <- input$date_choice
+    year_filter <- lubridate::year(date_filter)
+    sub_dir <- paste0("cat_clim/",year_filter)
+    sub_file <- paste0(sub_dir,"/cat.clim.",date_filter,".Rda")
+    if(file.exists(sub_file)){
+      baseDataPre <- readRDS(sub_file)
       } else {
         baseDataPre <- empty_date_map
       }
-    # }
-    # } else {
-    #   baseDataPre <- empty_date_map
-    # }
     return(baseDataPre)
   })
   

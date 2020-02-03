@@ -5,6 +5,9 @@ This interactive map holds all of the MHWs detected in the NOAA OISST data from 
 
 # Updates
 
+* February 3rd, 2020
+  * Added an animation menu and functionality
+
 * September 23rd, 2019
   * When one clicks over the eastern Pacific or Mediterranean a link will now be in the popup that allows the user to go to another website that provides a regional analysis of MHWs there
 

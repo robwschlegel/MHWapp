@@ -136,5 +136,8 @@ empty_date_map <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>%
 # save(map_base, file = "metadata/map_base.Rdata")
 load("../metadata/map_base.Rdata")
 
+### Slider colour palette
+# shinyWidgets::setSliderColor("BurlyWood", sliderId = 1)
+
 # cat("\nglobal.R finished")
 

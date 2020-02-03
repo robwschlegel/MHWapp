@@ -56,7 +56,7 @@ label {
   /* Fade out while not hovering */
   opacity: 0.65;
   zoom: 0.9;
-  transition: opacity 500ms 1s;
+  transition: opacity 500ms 500ms;
 }
 
 #map-controls:hover {

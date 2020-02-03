@@ -13,7 +13,7 @@ mapUI <- function(id, label = 'map') {
                   leafletOutput(ns('map'))),
     # The main menu panel
     absolutePanel(id = ns("controls"), class = "panel panel-default",
-                  top = menu_panel_top, right = menu_panel_right, draggable = T, width = "200px",
+                  top = menu_panel_top, right = menu_panel_right, draggable = T, width = "150px",
                   # The date input box
                   h2("Controls"),
                   dateInput(inputId = ns("date_choice"),
