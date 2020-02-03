@@ -19,7 +19,7 @@ summaryUI <- function(id, label = 'summary') {
     sidebarLayout(fluid = T,
       sidebarPanel(width = 2,
         selectInput(inputId = ns("summary_year"), label = h4("Annual summary for:"),
-                    choices = seq(1982, lubridate::year(Sys.time())), selected = 2019, multiple = F),
+                    choices = seq(1982, lubridate::year(Sys.time())-1), selected = 2019, multiple = F),
         # sliderInput(inputId = ns("lon_slider"), label = "Longitude range", 
         #             min = -180, max = 180, value = c(-180, 180), step = 10, ticks = T, dragRange = T),
         # sliderInput(inputId = ns("lat_slider"), label = "Latitude range", 
@@ -31,10 +31,11 @@ summaryUI <- function(id, label = 'summary') {
       mainPanel(width = 10,
                 tabsetPanel(
                   tabPanel("Annual",
-                           shinycssloaders::withSpinner(plotOutput(outputId = ns("summaryAll"), height = "800px"), type = 6, color = "#b0b7be")
-                  ),
-                  tabPanel("Trends"),
-                  tabPanel("Projections")
+                           # shinycssloaders::withSpinner(plotOutput(outputId = ns("summaryAll"), height = "800px"), type = 6, color = "#b0b7be")
+                           imageOutput(outputId = ns("summary_all"), width = "600px")
+                  )#,
+                  # tabPanel("Trends"),
+                  # tabPanel("Projections")
                 )
       )
     )
