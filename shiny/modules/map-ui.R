@@ -18,8 +18,8 @@ mapUI <- function(id, label = 'map') {
                   h2("Controls"),
                   dateInput(inputId = ns("date_choice"),
                             label = "Date",
-                            value = NULL,
-                            # value = date_menu_choice,
+                            # value = NULL,
+                            value = date_menu_choice,
                             min = "1982-01-01",
                             max = date_menu_choice),
                   # The category filtering buttons
@@ -31,25 +31,14 @@ mapUI <- function(id, label = 'map') {
                   # The shiny server instance info
                   h5(paste0("Shiny server instance: ",Sys.getenv("R_SHNYSRVINST"))),
                   # The time series button
-                  uiOutput(outputId = ns("button_ts"))
+                  uiOutput(outputId = ns("button_ts")),
+                  # Animation UI
+                  checkboxInput(inputId = ns("check_animate"), label = "Animate")#,
+                  # uiOutput(ns('date_animator'))
 
     ),
-    absolutePanel(bottom = 10, left = 30, draggable = T, width = "50%", cursor = "move",
-                  shinyWidgets::setSliderColor("BurlyWood", sliderId = 1),
-                  # The date input box
-                  h1("Animate:"),
-                  dateRangeInput(inputId = ns("date_choice_slider"), 
-                                 label = "Date range:",
-                                 start = date_menu_choice, 
-                                 end = date_menu_choice, 
-                                 min = "1982-01-01", 
-                                 max = date_menu_choice),
-                  numericInput(inputId = ns("slider_time_step"), width = "10%",
-                               label = "Seconds:", value = 3, min = 1, max = 30),
-                  uiOutput(ns('date_animator'))
-    ),
-    # tags$script("$(document).ready(function(){
-    #             setTimeout(function() {$('.slider-animate-button').click()},2000);});"),
+    # The separate animation menu
+    uiOutput(ns('date_animator')),
     # The welcome popup
     uiOutput(ns('uiStartupModal')),
     # The popup time series panel

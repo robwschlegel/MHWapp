@@ -155,18 +155,50 @@ map <- function(input, output, session) {
   
   ### Date range animation slider
   output$date_animator <- renderUI({
-    shinyWidgets::setSliderColor("BurlyWood", sliderId = 1)
-    shinyWidgets::sliderTextInput(
-      inputId = ns("date_slider"),
-      label = NULL,
-      grid = TRUE, 
-      force_edges = TRUE,
-      choices = seq(input$date_choice_slider[1], 
-                    input$date_choice_slider[2], by = "day"),
-      selected = input$date_choice_slider[1],
-      animate = animationOptions(interval = input$slider_time_step*1000)
+    if(input$check_animate){
+    # shinyWidgets::setSliderColor("BurlyWood", sliderId = 1)
+    absolutePanel(bottom = 60, right = menu_panel_right, draggable = T, cursor = "move",
+                  # shinyWidgets::setSliderColor("BurlyWood", sliderId = 1),
+                  # The date input box
+                  # h1("Animate:"),
+                  dateRangeInput(inputId = ns("date_choice_slider"), 
+                                 label = "Date range:",
+                                 start = date_menu_choice, 
+                                 end = date_menu_choice, 
+                                 min = "1982-01-01", 
+                                 max = date_menu_choice),
+                  numericInput(inputId = ns("slider_time_step"),
+                               label = "Seconds:", value = 3, min = 1, max = 30),
+                  uiOutput(ns('date_animator_slider'))
+    # ),
+    # shinyWidgets::sliderTextInput(
+    #   inputId = ns("date_slider"),
+    #   label = NULL,
+    #   grid = TRUE, 
+    #   force_edges = TRUE,
+    #   choices = seq(input$date_choice_slider[1], 
+    #                 input$date_choice_slider[2], by = "day"),
+    #   selected = input$date_choice_slider[1],
+    #   animate = animationOptions(interval = input$slider_time_step*1000)
+    #   )
     )
+    }
   })
+  output$date_animator_slider <- renderUI({
+    if(input$check_animate){
+      shinyWidgets::sliderTextInput(
+        inputId = ns("date_slider"),
+        label = NULL,
+        grid = TRUE,
+        force_edges = TRUE,
+        choices = seq(input$date_choice_slider[1],
+                      input$date_choice_slider[2], by = "day"),
+        selected = input$date_choice_slider[1],
+        animate = animationOptions(interval = input$slider_time_step*1000)
+        )
+    }
+  })
+
   
   ### Observe the changing of dates in other locations
   observe({
