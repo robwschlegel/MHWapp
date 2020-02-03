@@ -18,7 +18,8 @@ mapUI <- function(id, label = 'map') {
                   h2("Controls"),
                   dateInput(inputId = ns("date_choice"),
                             label = "Date",
-                            value = date_menu_choice,
+                            value = NULL,
+                            # value = date_menu_choice,
                             min = "1982-01-01",
                             max = date_menu_choice),
                   # The category filtering buttons
@@ -33,23 +34,19 @@ mapUI <- function(id, label = 'map') {
                   uiOutput(outputId = ns("button_ts"))
 
     ),
-    shinyWidgets::setSliderColor("BurlyWood", sliderId = 1),
-    absolutePanel(bottom = 10, left = 30, draggable = F, width = "80%",
+    absolutePanel(bottom = 10, left = 30, draggable = T, width = "50%", cursor = "move",
+                  shinyWidgets::setSliderColor("BurlyWood", sliderId = 1),
                   # The date input box
                   h1("Animate:"),
                   dateRangeInput(inputId = ns("date_choice_slider"), 
+                                 label = "Date range:",
                                  start = date_menu_choice, 
-                                 end = date_menu_choice),
-                  shinyWidgets::sliderTextInput(
-                    inputId = ns("date_slider"),
-                    label = "Animate:",
-                    grid = TRUE, 
-                    force_edges = TRUE,
-                    choices = seq(input$date_choice_slider[1], input$date_choice_slider[2], by = "day"), 
-                    selected = date_menu_choice, 
-                    animate = animationOptions(interval = 5000),
-                    width = "80%"
-                  )
+                                 end = date_menu_choice, 
+                                 min = "1982-01-01", 
+                                 max = date_menu_choice),
+                  numericInput(inputId = ns("slider_time_step"), width = "10%",
+                               label = "Seconds:", value = 3, min = 1, max = 30),
+                  uiOutput(ns('date_animator'))
     ),
     # tags$script("$(document).ready(function(){
     #             setTimeout(function() {$('.slider-animate-button').click()},2000);});"),

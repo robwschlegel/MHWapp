@@ -153,13 +153,71 @@ map <- function(input, output, session) {
     }
   })
   
+  ### Date range animation slider
+  output$date_animator <- renderUI({
+    shinyWidgets::setSliderColor("BurlyWood", sliderId = 1)
+    shinyWidgets::sliderTextInput(
+      inputId = ns("date_slider"),
+      label = NULL,
+      grid = TRUE, 
+      force_edges = TRUE,
+      choices = seq(input$date_choice_slider[1], 
+                    input$date_choice_slider[2], by = "day"),
+      selected = input$date_choice_slider[1],
+      animate = animationOptions(interval = input$slider_time_step*1000)
+    )
+  })
+  
+  ### Observe the changing of dates in other locations
+  observe({
+    req(input$date_slider)
+    date <- as.Date(input$date_slider)
+    updateDateInput(session = session, inputId = "date_choice",
+                    # label = paste("Date label", input$date_slider),
+                    value = date#,
+                    # min = as.Date("1982-01-01"),
+                    # max = date_menu_choice
+    )
+  })
   
 # Map projection data -----------------------------------------------------
   
+  ### Map date from multiple possible sources
+  
+  # reactiveDateChoice <- reactiveValues(reactive_date = input$date_menu_choice)
+  
+  # observe(input$date_choice, {reactiveDatehoice$reactive_date <- input$date_choice})
+  
+  # observeEvent(input$button1, {values$inDir <- tcltk::tk_choose.dir()})
+  # observeEvent(input$button2, {values$inDir <- input$inText})
+  # output$outText <- renderText(values$inDir)
+  
+
+  
+  mapDate <- reactive({
+    # req(reactiveDateChoice$reactive_date)
+    map_date <- input$date_choice
+    # map_date <- reactiveDateChoice$reactive_date
+    # map_date <- as.Date(input$date_choice)
+    # map_date <- as.Date(input$date_choice_slider[1])
+    # map_date <- as.Date(input$date_slider)
+  })
+  
   ### Base map data before screening categories
   baseDataPre <- reactive({
-    if(lubridate::is.Date(input$date_choice)){
-      date_filter <- input$date_choice
+    # if(lubridate::is.Date(input$date_choice)){
+    #   date_filter <- input$date_choice
+    #   year_filter <- lubridate::year(date_filter)
+    #   sub_dir <- paste0("cat_clim/",year_filter)
+    #   sub_file <- paste0(sub_dir,"/cat.clim.",date_filter,".Rda")
+    #   if(file.exists(sub_file)){
+    #     baseDataPre <- readRDS(sub_file)
+    #   } else {
+    #     baseDataPre <- empty_date_map
+    #   }
+    # } 
+    # if(lubridate::is.Date(input$date_slider)){
+      date_filter <- mapDate()
       year_filter <- lubridate::year(date_filter)
       sub_dir <- paste0("cat_clim/",year_filter)
       sub_file <- paste0(sub_dir,"/cat.clim.",date_filter,".Rda")
@@ -168,9 +226,10 @@ map <- function(input, output, session) {
       } else {
         baseDataPre <- empty_date_map
       }
-    } else {
-      baseDataPre <- empty_date_map
-    }
+    # }
+    # } else {
+    #   baseDataPre <- empty_date_map
+    # }
     return(baseDataPre)
   })
   
