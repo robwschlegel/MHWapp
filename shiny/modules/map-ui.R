@@ -62,7 +62,9 @@ mapUI <- function(id, label = 'map') {
     uiOutput(ns('date_animator')),
     # The welcome popup
     uiOutput(ns('uiStartupModal')),
-    # The popup time series panel
+    # The static time series panel
+    uiOutput(ns('uiModalBase')),
+    # The interactive time series panel
     uiOutput(ns('uiModal'))
   )
 }

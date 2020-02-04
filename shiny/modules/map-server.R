@@ -361,7 +361,8 @@ map <- function(input, output, session) {
   observe({
     click <- input$map_click
     if(!is.null(click)){
-      showpos(x = click$lng, y = click$lat)
+      shinyBS::toggleModal(session, "uiModalBase", "open")
+      # showpos(x = click$lng, y = click$lat)
       # begin_dl <- begin_dl_yes()
     }
   })
@@ -578,6 +579,11 @@ map <- function(input, output, session) {
         #                              "III Severe", "IV Extreme"))
       )
     }
+  })
+  
+  tsPlotly <- reactive({
+    
+    p <- tsPlot()
     
     # Convert to plotly
     # NB: Setting dynamicTicks = T causes the flames to be rendered incorrectly
@@ -630,7 +636,7 @@ map <- function(input, output, session) {
   })
   
   
-# Modal panel -------------------------------------------------------------
+# Modal panels ------------------------------------------------------------
   
   ### Label/title for modal panel
   pixelLabel <- reactive({
@@ -658,7 +664,21 @@ map <- function(input, output, session) {
     }
   })
   
-  ### Open the modal panel
+  ### Open the static modal panel
+  observeEvent(input$map_click, {
+    click <- input$map_click
+    # if(!is.null(click)){
+      shinyBS::toggleModal(session, "modal_base", "open")
+      shinyBS::toggleModal(session, "uiModalBase", "open")
+    # } else {
+      # showModal(modalDialog(
+        # title = "Pixel: Lon = NA, Lat = NA",
+        # "Please first click on a pixel in order to view more information about it."
+      # ))
+    # }
+  })
+  
+  ### Open the interactive modal panel
   observeEvent(input$open_modal, {
     click <- input$map_click
     if(!is.null(click)){
@@ -678,8 +698,13 @@ map <- function(input, output, session) {
   # })
   
   ### Time series plot
+  ## ggplot
   output$tsPlot <- renderPlotly({
     tsPlot()
+  })
+  ## plotly
+  output$tsPlotly <- renderPlotly({
+    tsPlotly()
   })
   
   ### Lolli plot
@@ -693,8 +718,8 @@ map <- function(input, output, session) {
                   options = list(pageLength = 50))
   })
   
-  ### UI panel
-  output$uiModal <- renderUI({
+  ### UI interactive panel
+  output$uiModalBase <- renderUI({
     # To date
     to_date <- ifelse(lubridate::year(input$date) >= lubridate::year(max(current_dates)),
                       input$date, as.Date(paste0(lubridate::year(as.Date(input$date)),"-12-31")))
@@ -703,14 +728,14 @@ map <- function(input, output, session) {
     from_date <- ifelse(lubridate::year(input$date) >= lubridate::year(max(current_dates)),
                         input$date-365, as.Date(paste0(lubridate::year(as.Date(input$date)),"-01-01")))
     from_date <- as.Date(from_date, origin = "1970-01-01")
-    shinyBS::bsModal(ns('modal'), title = div(id = ns('modalTitle'), pixelLabel()), trigger = 'click2', size = "large",
+    shinyBS::bsModal(ns('modal_base'), title = div(id = ns('modalTitle'), pixelLabel()), trigger = 'click2', size = "large",
                      # div(id = ns("top_row"),
                      fluidPage(
                        # title = "",
                        tabsetPanel(id = ns("tabs"),
                                    tabPanel(title = "Plot",
                                             br(),
-                                            shinycssloaders::withSpinner(plotlyOutput(ns("tsPlot")), type = 6, color = "#b0b7be"),
+                                            shinycssloaders::withSpinner(plotlyOutput(ns("tsPlotly")), type = 6, color = "#b0b7be"),
                                             hr(),
                                             fluidRow(
                                               column(width = 2,
@@ -727,6 +752,63 @@ map <- function(input, output, session) {
                                                      h4("Download"),
                                                      downloadButton(outputId = ns("download_clim"),
                                                                     label = "Climatology & Threshold (csv)", class = 'small-dl')))
+                                   ),
+                                   # tabPanel(title = "Lolli",
+                                   #          br(),
+                                   #          plotlyOutput(ns("lolliPlot"))),
+                                   tabPanel(title = "Table",
+                                            br(),
+                                            wellPanel(class = 'wellpanel',
+                                                      DT::dataTableOutput(ns('table'))),
+                                            hr(),
+                                            fluidRow(
+                                              column(width = 2,
+                                                     h4("Download"),
+                                                     downloadButton(outputId = ns("download_event"),
+                                                                    label = "MHW data (csv)", class = 'small-dl')))
+                                   )
+                       )
+                     )
+    )
+  })
+  
+  ### UI interactive panel
+  output$uiModal <- renderUI({
+    # To date
+    to_date <- ifelse(lubridate::year(input$date) >= lubridate::year(max(current_dates)),
+                      input$date, as.Date(paste0(lubridate::year(as.Date(input$date)),"-12-31")))
+    to_date <- as.Date(to_date, origin = "1970-01-01")
+    # From date
+    from_date <- ifelse(lubridate::year(input$date) >= lubridate::year(max(current_dates)),
+                        input$date-365, as.Date(paste0(lubridate::year(as.Date(input$date)),"-01-01")))
+    from_date <- as.Date(from_date, origin = "1970-01-01")
+    shinyBS::bsModal(ns('modal'), title = div(id = ns('modalTitle'), pixelLabel()), trigger = 'click2', size = "large",
+                     # div(id = ns("top_row"),
+                     fluidPage(
+                       # title = "",
+                       tabsetPanel(id = ns("tabs"),
+                                   tabPanel(title = "Plot",
+                                            br(),
+                                            shinycssloaders::withSpinner(plotOutput(ns("tsPlot")), type = 6, color = "#b0b7be"),
+                                            hr(),
+                                            fluidRow(
+                                              column(width = 2,
+                                                     h4("From"),
+                                                     dateInput(inputId = ns("from"), label = NULL, format = "M d, yyyy",
+                                                               value = from_date, 
+                                                               min = "1982-01-01", max = max(current_dates)-1)),
+                                              column(width = 2,
+                                                     h4("To"),
+                                                     dateInput(inputId = ns("to"), label = NULL, format = "M d, yyyy",
+                                                               value = to_date,
+                                                               min = "1982-01-02", max = max(current_dates))),
+                                              column(width = 2,
+                                                     h4("Download"),
+                                                     downloadButton(outputId = ns("download_clim"),
+                                                                    label = "Climatology & Threshold (csv)", class = 'small-dl'))),
+                                            column(width = 2,
+                                                   h4("Interactive"),
+                                                   uiOutput(outputId = ns("button_ts")))
                                    ),
                                    # tabPanel(title = "Lolli",
                                    #          br(),
