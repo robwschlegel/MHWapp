@@ -203,7 +203,7 @@ if(length(possible_dates) > length(current_dates)){
 
 # 5: Push to GitHub -------------------------------------------------------
 
-system("git pull")
 system("git commit -a -m 'Daily run'")
+system("git pull")
 system("git push")
 
