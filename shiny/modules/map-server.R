@@ -29,9 +29,9 @@ map <- function(input, output, session) {
                            <hr>
                            Clicking on the different <b>Categories</b> will filter those pixels from the map.
                            <hr>
-                           Click on the  <b>Animate</b> box to bring up the animation options.
+                           Click on the <b>Animate</b> switch to bring up the animation options.
                            <hr>
-                           After clicking on a pixel of interest, click the <b>Time Series</b> button to see more.
+                           After clicking on a pixel of interest, click the <b>Plot pixel</b> button to see more.
                            <hr>
                            For more information please click on the <b>Summary</b> or <b>About</b> tabs."))
     })
@@ -147,30 +147,28 @@ map <- function(input, output, session) {
   output$button_ts <- renderUI({
     click <- input$map_click
     if(is.null(click)){
-      # shinyWidgets::actionBttn(inputId = ns("does_nothing"), label = "Time series", icon = icon("map-marked"),
-      #        style = "stretch", color = "danger")
+      shinyWidgets::actionBttn(inputId = ns("does_nothing"), label = "Plot pixel", #icon = icon("map-marked"),
+             style = "pill", color = "danger", size = "md")
     } else {
-      shinyWidgets::actionBttn(inputId = ns("open_modal"), label = "Time series", #icon = icon("map-marked"),
-                               style = "unite", color = "success", size = "md")
+      shinyWidgets::actionBttn(inputId = ns("open_modal"), label = "Plot pixel", #icon = icon("map-marked"),
+                               style = "pill", color = "success", size = "md")
     }
   })
   
   ### Date range animation menu
   output$date_animator <- renderUI({
     if(input$check_animate){
-    # shinyWidgets::setSliderColor("BurlyWood", sliderId = 1)
     absolutePanel(id = ns("controls"), class = "panel panel-default", draggable = T, cursor = "move",
                   top = menu_panel_top, right = menu_panel_right+10+150, width = "350px",
-                  # shinyWidgets::setSliderColor("BurlyWood", sliderId = 1),
                   h2("Animate"),
                   uiOutput(ns('date_animator_slider')),
                   fixedRow(
                     column(8,
-                           dateRangeInput(inputId = ns("date_choice_slider"), 
+                           dateRangeInput(inputId = ns("date_choice_slider"),
                                           label = "Date range",
-                                          start = date_menu_choice, 
-                                          end = date_menu_choice, 
-                                          min = "1982-01-01", 
+                                          start = date_menu_choice,
+                                          end = date_menu_choice,
+                                          min = "1982-01-01",
                                           max = date_menu_choice)),
                     column(4,
                            numericInput(inputId = ns("slider_time_step"),
@@ -250,8 +248,6 @@ map <- function(input, output, session) {
     MHW_raster$Z <- as.numeric(MHW_raster$Z)
     rasterNonProj <- raster::rasterFromXYZ(MHW_raster, res = c(0.25, 0.25),
                                            digits = 3, crs = inputProj)
-    # res_list <- list(MHW_raster = MHW_raster,
-    #                  rasterNonProj = rasterNonProj)
     return(rasterNonProj)
   })
   
@@ -444,7 +440,8 @@ map <- function(input, output, session) {
   ### The raster layer
   observe({
     leafletProxy("map") %>%
-      clearImages() %>% clearPopups() %>%
+      # clearImages() %>% 
+      clearPopups() %>%
       addRasterImage(rasterProj(), colors = pal_cat, layerId = "map_raster",
                      project = FALSE, opacity = 0.7)
   })
