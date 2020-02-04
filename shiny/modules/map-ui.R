@@ -46,12 +46,15 @@ mapUI <- function(id, label = 'map') {
                   # shinyWidgets::actionBttn(inputId = ns("check_animate"), label = "Animate",
                   #                          style = "jelly", color = "royal", size = "md"),
                   # shinyWidgets::awesomeCheckbox(inputId = ns("check_animate"), 
-                                                # label = "Animate", status = 'primary'),
+                  # label = "Animate", status = 'primary'),
                   shinyWidgets::materialSwitch(inputId = ns("check_animate"), 
                                                label = "Animate", status = "primary"),
                   # The time series button
                   h5(""),
                   # uiOutput(outputId = ns("button_ts")),
+                  # Popup options
+                    # Disable
+                    # Interactive
                   # The shiny server instance info
                   h5(paste0("Shiny server instance: ",Sys.getenv("R_SHNYSRVINST")))
     ),

@@ -22,19 +22,19 @@ map <- function(input, output, session) {
   output$uiStartupModal <- renderUI({
     shinyBS::bsModal(ns('startupModal'), title = strong("Welcome to the Marine Heatwave Tracker!"), trigger = "click2", size = "m",
                      HTML("This web application shows up to date information on where in the world marine heatwaves (MHWs) are occurring and what category they are.
-                           <hr>
-                           All of the necessary <b>Controls</b> for this app may be found on the right of the screen.
-                           <hr>
-                           Click in the <b>Date</b> box to choose a day to display on the map.
-                           <hr>
-                           Clicking on the different <b>Categories</b> will filter those pixels from the map.
-                           <hr>
-                           Click on the <b>Animate</b> switch to bring up the animation options.
-                           <hr>
-                           After clicking on a pixel of interest, click the <b>Plot pixel</b> button to see more.
-                           <hr>
-                           For more information please click on the <b>Summary</b> or <b>About</b> tabs."))
-    })
+                          <hr>
+                          All of the necessary <b>Controls</b> for this app may be found on the right of the screen.
+                          <hr>
+                          Click in the <b>Date</b> box to choose a day to display on the map.
+                          <hr>
+                          Clicking on the different <b>Categories</b> will filter those pixels from the map.
+                          <hr>
+                          Click on the <b>Animate</b> switch to bring up the animation options.
+                          <hr>
+                          After clicking on a pixel of interest, click the <b>Plot pixel</b> button to see more.
+                          <hr>
+                          For more information please click on the <b>Summary</b> or <b>About</b> tabs."))
+  })
   
   ### Reactive category filters
   categories <- reactiveValues(categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
@@ -147,8 +147,8 @@ map <- function(input, output, session) {
   output$button_ts <- renderUI({
     click <- input$map_click
     if(is.null(click)){
-      shinyWidgets::actionBttn(inputId = ns("does_nothing"), label = "Plot pixel", #icon = icon("map-marked"),
-             style = "pill", color = "danger", size = "md")
+      shinyWidgets::actionBttn(inputId = ns("does_nothing"), label = "Plot pixel", icon = icon("map-marked"),
+                               style = "pill", color = "danger", size = "md")
     } else {
       shinyWidgets::actionBttn(inputId = ns("open_modal"), label = "Plot pixel", #icon = icon("map-marked"),
                                style = "pill", color = "success", size = "md")
@@ -158,53 +158,53 @@ map <- function(input, output, session) {
   ### Date range animation menu
   output$date_animator <- renderUI({
     if(input$check_animate){
-    absolutePanel(id = ns("controls"), class = "panel panel-default", draggable = T, cursor = "move",
-                  top = menu_panel_top, right = menu_panel_right+10+150, width = "350px",
-                  h2("Animate"),
-                  uiOutput(ns('date_animator_slider')),
-                  fixedRow(
-                    column(8,
-                           dateRangeInput(inputId = ns("date_slider"),
-                                          label = "Date range",
-                                          start = date_menu_choice,
-                                          end = date_menu_choice,
-                                          min = "1982-01-01",
-                                          max = date_menu_choice)),
-                    column(4,
-                           numericInput(inputId = ns("slider_time_step"),
-                                        label = "Seconds", value = 3, min = 1, max = 30)
-                           )
+      # shinyWidgets::setSliderColor("BurlyWood", sliderId = 1)
+      absolutePanel(id = ns("controls"), class = "panel panel-default", draggable = T, cursor = "move",
+                    top = menu_panel_top, right = menu_panel_right+10+150, width = "350px",
+                    # shinyWidgets::setSliderColor("BurlyWood", sliderId = 1),
+                    h2("Animate"),
+                    uiOutput(ns('date_animator_slider')),
+                    fixedRow(
+                      column(8,
+                             dateRangeInput(inputId = ns("date_choice_slider"), 
+                                            # label = "Date range:",
+                                            label = "Date range",
+                                            start = date_menu_choice, 
+                                            end = date_menu_choice, 
+                                            min = "1982-01-01", 
+                                            max = date_menu_choice)),
+                      column(4,
+                             numericInput(inputId = ns("slider_time_step"),
+                                          label = "Seconds", value = 3, min = 1, max = 30)
+                      )
                     )
-                  )
-      }
-    })
+      )
+    }
+  })
   
   ### Animation date slider
-    # NB: This is rendered separately due to date generation order issues
+  # NB: This is rendered separately due to date generation order issues
   output$date_animator_slider <- renderUI({
     if(input$check_animate){
       shinyWidgets::sliderTextInput(
-        inputId = ns("date_animator_slider"),
+        inputId = ns("date_slider"),
         label = NULL,
         grid = TRUE,
         force_edges = TRUE,
-        choices = seq(input$date_slider[1],
-                      input$date_slider[2], by = "day"),
-        selected = input$date_slider[1],
+        choices = seq(input$date_choice_slider[1],
+                      input$date_choice_slider[2], by = "day"),
+        selected = input$date_choice_slider[1],
         animate = animationOptions(interval = input$slider_time_step*1000)
-        )
+      )
     }
   })
   
   ### Observe the changing of dates in the animation slider
   observe({
-    req(input$date_animator_slider)
-    date <- as.Date(input$date_animator_slider)
-    updateDateInput(session = session, 
-                    inputId = "date",
-                    value = date,
-                    min = "1982-01-01",
-                    max = date_menu_choice
+    req(input$date_slider)
+    date <- as.Date(input$date_slider)
+    updateDateInput(session = session, inputId = "date",
+                    value = date
     )
   })
   
@@ -229,19 +229,19 @@ map <- function(input, output, session) {
   
   
 # Map projection data -----------------------------------------------------
-
+  
   ### Base map data before screening categories
   baseDataPre <- reactive({
-    req(lubridate::is.Date(input$date) == TRUE)
+    req(lubridate::is.Date(input$date))
     date_filter <- input$date
     year_filter <- lubridate::year(date_filter)
     sub_dir <- paste0("cat_clim/",year_filter)
     sub_file <- paste0(sub_dir,"/cat.clim.",date_filter,".Rda")
     if(file.exists(sub_file)){
       baseDataPre <- readRDS(sub_file)
-      } else {
-        baseDataPre <- empty_date_map
-      }
+    } else {
+      baseDataPre <- empty_date_map
+    }
     return(baseDataPre)
   })
   
@@ -270,6 +270,8 @@ map <- function(input, output, session) {
     MHW_raster$Z <- as.numeric(MHW_raster$Z)
     rasterNonProj <- raster::rasterFromXYZ(MHW_raster, res = c(0.25, 0.25),
                                            digits = 3, crs = inputProj)
+    # res_list <- list(MHW_raster = MHW_raster,
+    #                  rasterNonProj = rasterNonProj)
     return(rasterNonProj)
   })
   
@@ -330,19 +332,19 @@ map <- function(input, output, session) {
   })
   
   ### Observer to begin downloading data
-  begin_dl_yes <- function(){
-    TRUE
-  }
-  begin_dl_no <- function(){
-    FALSE
-  }
-  observe({
-    begin_dl <- begin_dl
-    if(begin_dl == TRUE){
-      begin_dl <- begin_dl_no()
-      pixelData <- pixelData()
-    }
-  })
+  # begin_dl_yes <- function(){
+  #   TRUE
+  # }
+  # begin_dl_no <- function(){
+  #   FALSE
+  # }
+  # observe({
+  #   begin_dl <- begin_dl
+  #   if(begin_dl == TRUE){
+  #     begin_dl <- begin_dl_no()
+  #     pixelData <- pixelData()
+  #   }
+  # })
   
   
 # Pop-ups -----------------------------------------------------------------
@@ -360,7 +362,7 @@ map <- function(input, output, session) {
     click <- input$map_click
     if(!is.null(click)){
       showpos(x = click$lng, y = click$lat)
-      begin_dl <- begin_dl_yes()
+      # begin_dl <- begin_dl_yes()
     }
   })
   
@@ -412,15 +414,11 @@ map <- function(input, output, session) {
     updateNumericInput(session, "lon", value = round(xy_click[1], 2))
     updateNumericInput(session, "lat", value = round(xy_click[2], 2))
     
-    # Open time series popup window (non-interactive)
-    
-    
     ### Add Popup to leaflet
-    # leafletProxy("map") %>%
-      # clearPopups() %>%
-      # addPopups(lng = xy_click[1], lat = xy_click[2],
-                # popup = paste(content))
-                # popup = mapview::popupGraph(plotlyOutput(ns("tsPlot")), type = "html"))
+    # leafletProxy("map") %>% 
+    #   clearPopups() %>%
+    #   addPopups(lng = xy_click[1], lat = xy_click[2], 
+    #             popup = paste(content))
   }
   
   
@@ -434,8 +432,6 @@ map <- function(input, output, session) {
       # Different tile options
       addTiles(group = "OSM (default)", 
                options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.4, noWrap = F)) %>%
-      # addRasterImage(rasterProj(), colors = pal_cat, layerId = "map_raster",
-      #                project = FALSE, opacity = 0.8) %>% 
       # addProviderTiles(providers$OpenStreetMap.BlackAndWhite, group = "Black and white", 
       #                  options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
       # addProviderTiles(providers$Thunderforest.Landscape, group = "Thunder forest", 
@@ -464,12 +460,12 @@ map <- function(input, output, session) {
   observeEvent(c(input$lon, input$lat, input$zoom, input$date,
                  input$moderate_filter, input$strong_filter,
                  input$severe_filter, input$extreme_filter), {
-    leafletProxy("map") %>%
-      # clearImages() %>% 
-      # clearPopups() %>%
-      addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
-                     project = FALSE, opacity = 0.8)
-  })
+                   leafletProxy("map") %>%
+                     # clearImages() %>% 
+                     # clearPopups() %>%
+                     addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
+                                    project = FALSE, opacity = 0.8)
+                 })
   
   
 # Figures/tables ----------------------------------------------------------
@@ -752,7 +748,7 @@ map <- function(input, output, session) {
   })
   
   
-# Downloads ---------------------------------------------------------------
+  # Downloads ---------------------------------------------------------------
   
   ### Prep event data
   downloadEventData <- reactive({
@@ -803,6 +799,6 @@ map <- function(input, output, session) {
       readr::write_csv(downloadClimData(), file)
     }
   )
-}
+  }
 # cat("\nmap_server.R finished")
 
