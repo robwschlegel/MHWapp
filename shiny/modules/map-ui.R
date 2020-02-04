@@ -22,13 +22,13 @@ mapUI <- function(id, label = 'map') {
                             value = date_menu_choice,
                             min = "1982-01-01",
                             max = date_menu_choice),
-                  numericInput(inputId = ns("lon"), label = "lon", value = -60),
-                  numericInput(inputId = ns("lat"), label = "lat", value = 45),
-                  numericInput(inputId = ns("zoom"), label = "zoom", value = 4),
+                  numericInput(inputId = ns("lon"), label = "lon", value = initial_lon),
+                  numericInput(inputId = ns("lat"), label = "lat", value = initial_lat),
+                  numericInput(inputId = ns("zoom"), label = "zoom", value = initial_zoom),
                   ## NB: This date format would be ideal but it hangs on loading for some reason...
                   # shinyWidgets::airDatepickerInput(
                   #   inputId = ns("date"),
-                  #   label = NULL,
+                  #   label = "Date",
                   #   inline = TRUE,
                   #   value = date_menu_choice,
                   #   minDate = "1982-01-01",
@@ -51,7 +51,7 @@ mapUI <- function(id, label = 'map') {
                                                label = "Animate", status = "primary"),
                   # The time series button
                   h5(""),
-                  uiOutput(outputId = ns("button_ts")),
+                  # uiOutput(outputId = ns("button_ts")),
                   # The shiny server instance info
                   h5(paste0("Shiny server instance: ",Sys.getenv("R_SHNYSRVINST")))
     ),

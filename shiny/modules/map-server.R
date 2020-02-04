@@ -184,7 +184,7 @@ map <- function(input, output, session) {
   output$date_animator_slider <- renderUI({
     if(input$check_animate){
       shinyWidgets::sliderTextInput(
-        inputId = ns("date_slider"),
+        inputId = ns("date_animator_slider"),
         label = NULL,
         grid = TRUE,
         force_edges = TRUE,
@@ -195,25 +195,16 @@ map <- function(input, output, session) {
         )
     }
   })
-
-  ### Reactive lon/lat/zoom values
-  # lon <- reactive({
-    # numericInput(inputId = ns("lon"), label = "lon", value = initial_lon)
-  # })
-  # lat <- reactive({
-    # numericInput(inputId = ns("lat"), label = "lat", value = initial_lat)
-  # })
-  # zoom <- reactive({
-    # numericInput(inputId = ns("zoom"), label = "zoom", value = initial_zoom)
-  # })
   
   ### Observe the changing of dates in the animation slider
   observe({
-    req(input$date_slider)
-    date <- as.Date(input$date_slider)
+    req(input$date_animator_slider)
+    date <- as.Date(input$date_animator_slider)
     updateDateInput(session = session, 
                     inputId = "date",
-                    value = date
+                    value = date,
+                    min = "1982-01-01",
+                    max = date_menu_choice
     )
   })
   
@@ -227,8 +218,6 @@ map <- function(input, output, session) {
     }
     if (!is.null(query[['lat']])) {
       updateNumericInput(session, "lat", value = query[['lat']])
-    } else{
-      # Seet the default update value here to avoid flashing in and out at launch
     }
     if (!is.null(query[['lon']])) {
       updateNumericInput(session, "lon", value = query[['lon']])
@@ -238,11 +227,12 @@ map <- function(input, output, session) {
     }
   })
   
+  
 # Map projection data -----------------------------------------------------
 
   ### Base map data before screening categories
   baseDataPre <- reactive({
-    req(lubridate::is.Date(input$date))
+    req(lubridate::is.Date(input$date) == TRUE)
     date_filter <- input$date
     year_filter <- lubridate::year(date_filter)
     sub_dir <- paste0("cat_clim/",year_filter)
@@ -418,11 +408,19 @@ map <- function(input, output, session) {
       content <- ""
     }
     
+    # Update lon lat
+    updateNumericInput(session, "lon", value = round(xy_click[1], 2))
+    updateNumericInput(session, "lat", value = round(xy_click[2], 2))
+    
+    # Open time series popup window (non-interactive)
+    
+    
     ### Add Popup to leaflet
-    # leafletProxy("map") %>% 
-    #   clearPopups() %>%
-    #   addPopups(lng = xy_click[1], lat = xy_click[2], 
-    #             popup = paste(content))
+    # leafletProxy("map") %>%
+      # clearPopups() %>%
+      # addPopups(lng = xy_click[1], lat = xy_click[2],
+                # popup = paste(content))
+                # popup = mapview::popupGraph(plotlyOutput(ns("tsPlot")), type = "html"))
   }
   
   
@@ -430,7 +428,7 @@ map <- function(input, output, session) {
   
   ### The leaflet base
   output$map <- renderLeaflet({
-    leaflet(MHW_cat_clim_sub) %>%
+    leaflet(MHW_cat_clim_sub, options = leafletOptions(zoomControl = FALSE)) %>%
       setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) %>%
       # Different tile options
@@ -442,9 +440,6 @@ map <- function(input, output, session) {
       #                  options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
       # addProviderTiles(providers$Thunderforest.Landscape, group = "Thunder forest", 
       #                  options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-      # The map data
-      # addRasterImage(rasterProj(), colors = pal_cat, layerId = "map_raster",
-      #                project = FALSE, opacity = 0.7) %>% 
       # Leaflet UI features
       # addLayersControl(
       #   baseGroups = c("OSM (default)", "Black and white", "Thunder forest"),
@@ -466,7 +461,9 @@ map <- function(input, output, session) {
   })
   
   ### The raster layer
-  observeEvent(c(input$lon, input$lat, input$zoom, input$date), {
+  observeEvent(c(input$lon, input$lat, input$zoom, input$date,
+                 input$moderate_filter, input$strong_filter,
+                 input$severe_filter, input$extreme_filter), {
     leafletProxy("map") %>%
       # clearImages() %>% 
       # clearPopups() %>%
