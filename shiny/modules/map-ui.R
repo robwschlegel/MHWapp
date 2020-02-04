@@ -22,15 +22,18 @@ mapUI <- function(id, label = 'map') {
                             value = date_menu_choice,
                             min = "1982-01-01",
                             max = date_menu_choice),
+                  numericInput(inputId = ns("lon"), label = "lon", value = -60),
+                  numericInput(inputId = ns("lat"), label = "lat", value = 45),
+                  numericInput(inputId = ns("zoom"), label = "zoom", value = 4),
                   ## NB: This date format would be ideal but it hangs on loading for some reason...
                   # shinyWidgets::airDatepickerInput(
                   #   inputId = ns("date_choice"),
                   #   label = NULL,
                   #   inline = TRUE,
                   #   value = date_menu_choice,
-                  #   minDate = "1982-01-01", 
+                  #   minDate = "1982-01-01",
                   #   maxDate = date_menu_choice,
-                  #   update_on = 'change'
+                  #   update_on = 'close'
                   # ),
                   # The category filtering buttons
                   h5(paste0("Categories")),

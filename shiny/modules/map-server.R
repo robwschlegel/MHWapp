@@ -196,15 +196,45 @@ map <- function(input, output, session) {
     }
   })
 
+  ### Reactive lon/lat/zoom values
+  # lon <- reactive({
+    # numericInput(inputId = ns("lon"), label = "lon", value = initial_lon)
+  # })
+  # lat <- reactive({
+    # numericInput(inputId = ns("lat"), label = "lat", value = initial_lat)
+  # })
+  # zoom <- reactive({
+    # numericInput(inputId = ns("zoom"), label = "zoom", value = initial_zoom)
+  # })
+  
   ### Observe the changing of dates in the animation slider
   observe({
     req(input$date_slider)
     date <- as.Date(input$date_slider)
-    updateDateInput(session = session, inputId = "date_choice",
+    updateDateInput(session = session, 
+                    inputId = "date_choice",
                     value = date
     )
   })
   
+  ### Observe the changing of date, lon, lat, zoom, in the URL
+  observe({
+    query <- parseQueryString(session$clientData$url_search)
+    if (!is.null(query[['date_choice']])) {
+      updateDateInput(session = session, 
+                      inputId = "date_choice", 
+                      value = as.Date(as.character(query[['date_choice']])))
+    }
+    if (!is.null(query[['lat']])) {
+      updateNumericInput(session, "lat", value = query[['lat']])
+    }
+    if (!is.null(query[['lon']])) {
+      updateNumericInput(session, "lon", value = query[['lon']])
+    }
+    if (!is.null(query[['zoom']])) {
+      updateNumericInput(session, "zoom", value = query[['zoom']])
+    }
+  })
   
 # Map projection data -----------------------------------------------------
 
@@ -399,11 +429,13 @@ map <- function(input, output, session) {
   ### The leaflet base
   output$map <- renderLeaflet({
     leaflet(MHW_cat_clim_sub) %>%
-      setView(initial_lon, initial_lat, zoom = initial_zoom,
+      setView(lng = input$lon, lat = initial_lat, zoom = initial_zoom,
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) %>%
       # Different tile options
       addTiles(group = "OSM (default)", 
-               options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
+               options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.4, noWrap = F)) %>%
+      addRasterImage(rasterProj(), colors = pal_cat, layerId = "map_raster",
+                     project = FALSE, opacity = 0.8) %>% 
       # addProviderTiles(providers$OpenStreetMap.BlackAndWhite, group = "Black and white", 
       #                  options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
       # addProviderTiles(providers$Thunderforest.Landscape, group = "Thunder forest", 
@@ -443,7 +475,7 @@ map <- function(input, output, session) {
       # clearImages() %>% 
       clearPopups() %>%
       addRasterImage(rasterProj(), colors = pal_cat, layerId = "map_raster",
-                     project = FALSE, opacity = 0.7)
+                     project = FALSE, opacity = 0.8)
   })
   
   

@@ -8,5 +8,8 @@ function(input, output, session) {
   
   shinyjs::hide(id = "loading-content", anim = TRUE, animType = "fade", time = 2)
   # shinyjs::show(id = "app-content")
+  
+  # During testing...
+  session$onSessionEnded(stopApp)
 }
 
