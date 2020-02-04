@@ -10,6 +10,6 @@ function(input, output, session) {
   # shinyjs::show(id = "app-content")
   
   # During testing...
-  session$onSessionEnded(stopApp)
+  # session$onSessionEnded(stopApp)
 }
 

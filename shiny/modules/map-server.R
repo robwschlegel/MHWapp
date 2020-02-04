@@ -7,7 +7,7 @@ map <- function(input, output, session) {
   # y <- 39.875
   # input <- data.frame(from = as.Date("2018-01-01"),
   #                     to = as.Date("2018-12-31"),
-  #                     date_choice = as.Date("2018-02-14"),
+  #                     date = as.Date("2018-02-14"),
   #                     pixel = "Smooth")
   #                     #categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
   
@@ -164,7 +164,7 @@ map <- function(input, output, session) {
                   uiOutput(ns('date_animator_slider')),
                   fixedRow(
                     column(8,
-                           dateRangeInput(inputId = ns("date_choice_slider"),
+                           dateRangeInput(inputId = ns("date_slider"),
                                           label = "Date range",
                                           start = date_menu_choice,
                                           end = date_menu_choice,
@@ -188,9 +188,9 @@ map <- function(input, output, session) {
         label = NULL,
         grid = TRUE,
         force_edges = TRUE,
-        choices = seq(input$date_choice_slider[1],
-                      input$date_choice_slider[2], by = "day"),
-        selected = input$date_choice_slider[1],
+        choices = seq(input$date_slider[1],
+                      input$date_slider[2], by = "day"),
+        selected = input$date_slider[1],
         animate = animationOptions(interval = input$slider_time_step*1000)
         )
     }
@@ -212,7 +212,7 @@ map <- function(input, output, session) {
     req(input$date_slider)
     date <- as.Date(input$date_slider)
     updateDateInput(session = session, 
-                    inputId = "date_choice",
+                    inputId = "date",
                     value = date
     )
   })
@@ -220,13 +220,15 @@ map <- function(input, output, session) {
   ### Observe the changing of date, lon, lat, zoom, in the URL
   observe({
     query <- parseQueryString(session$clientData$url_search)
-    if (!is.null(query[['date_choice']])) {
+    if (!is.null(query[['date']])) {
       updateDateInput(session = session, 
-                      inputId = "date_choice", 
-                      value = as.Date(as.character(query[['date_choice']])))
+                      inputId = "date", 
+                      value = as.Date(as.character(query[['date']])))
     }
     if (!is.null(query[['lat']])) {
       updateNumericInput(session, "lat", value = query[['lat']])
+    } else{
+      # Seet the default update value here to avoid flashing in and out at launch
     }
     if (!is.null(query[['lon']])) {
       updateNumericInput(session, "lon", value = query[['lon']])
@@ -240,8 +242,8 @@ map <- function(input, output, session) {
 
   ### Base map data before screening categories
   baseDataPre <- reactive({
-    req(lubridate::is.Date(input$date_choice))
-    date_filter <- input$date_choice
+    req(lubridate::is.Date(input$date))
+    date_filter <- input$date
     year_filter <- lubridate::year(date_filter)
     sub_dir <- paste0("cat_clim/",year_filter)
     sub_file <- paste0(sub_dir,"/cat.clim.",date_filter,".Rda")
@@ -417,10 +419,10 @@ map <- function(input, output, session) {
     }
     
     ### Add Popup to leaflet
-    leafletProxy("map") %>% 
-      clearPopups() %>%
-      addPopups(lng = xy_click[1], lat = xy_click[2], 
-                popup = paste(content))
+    # leafletProxy("map") %>% 
+    #   clearPopups() %>%
+    #   addPopups(lng = xy_click[1], lat = xy_click[2], 
+    #             popup = paste(content))
   }
   
   
@@ -429,13 +431,13 @@ map <- function(input, output, session) {
   ### The leaflet base
   output$map <- renderLeaflet({
     leaflet(MHW_cat_clim_sub) %>%
-      setView(lng = input$lon, lat = initial_lat, zoom = initial_zoom,
+      setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) %>%
       # Different tile options
       addTiles(group = "OSM (default)", 
                options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.4, noWrap = F)) %>%
-      addRasterImage(rasterProj(), colors = pal_cat, layerId = "map_raster",
-                     project = FALSE, opacity = 0.8) %>% 
+      # addRasterImage(rasterProj(), colors = pal_cat, layerId = "map_raster",
+      #                project = FALSE, opacity = 0.8) %>% 
       # addProviderTiles(providers$OpenStreetMap.BlackAndWhite, group = "Black and white", 
       #                  options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
       # addProviderTiles(providers$Thunderforest.Landscape, group = "Thunder forest", 
@@ -447,12 +449,6 @@ map <- function(input, output, session) {
       # addLayersControl(
       #   baseGroups = c("OSM (default)", "Black and white", "Thunder forest"),
       #   options = layersControlOptions(collapsed = TRUE), position = "topleft") %>% 
-    # addMiniMap(
-    #   tiles = providers$Esri.WorldStreetMap, collapsedWidth = 32, collapsedHeight = 32,
-    #   toggleDisplay = TRUE, position = "topleft", minimized = T, width = 200) %>% 
-    #   addEasyButton(easyButton(
-    #     icon = "fa-globe", title = "Global view",
-    #     onClick = JS("function(btn, map){ map.setZoom(2); }"))) %>%
       addScaleBar(position = "bottomright")
     # addLayersControl(baseGroups = c("Default", "Black and white"), 
     #                  options = layersControlOptions(collapsed = TRUE), position = "topleft")
@@ -470,11 +466,11 @@ map <- function(input, output, session) {
   })
   
   ### The raster layer
-  observe({
+  observeEvent(c(input$lon, input$lat, input$zoom, input$date), {
     leafletProxy("map") %>%
       # clearImages() %>% 
-      clearPopups() %>%
-      addRasterImage(rasterProj(), colors = pal_cat, layerId = "map_raster",
+      # clearPopups() %>%
+      addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                      project = FALSE, opacity = 0.8)
   })
   
@@ -521,8 +517,8 @@ map <- function(input, output, session) {
     if(length(event_data_sub$date_start) == 0){
       suppressWarnings(
         p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
-          geom_segment(aes(x = input$date_choice, 
-                           xend = input$date_choice,
+          geom_segment(aes(x = input$date, 
+                           xend = input$date,
                            y = min(ts_data_sub$temp), 
                            yend = max(ts_data_sub$temp),
                            text = "Date shown"), colour = "limegreen") +
@@ -544,8 +540,8 @@ map <- function(input, output, session) {
     } else {
       suppressWarnings( # Supress warning about ggplot not understanding the text aesthetic fed to plotly
         p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
-          geom_segment(aes(x = input$date_choice, 
-                           xend = input$date_choice,
+          geom_segment(aes(x = input$date, 
+                           xend = input$date,
                            y = min(ts_data_sub$temp), 
                            yend = max(ts_data_sub$temp),
                            text = "Date shown"), colour = "limegreen") +
@@ -602,10 +598,10 @@ map <- function(input, output, session) {
     #             end = ts_data_sub$t[100])
     # rangeslider(pp, start = as.Date("2017-01-01"),
     #             end = as.Date("2017-12-31"))
-    # rangeslider(pp, start = as.numeric(as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"))),
-    #             end = as.numeric(as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-12-31"))))
-    # rangeslider(pp, start = as.integer(as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-01-01"))), 
-    #             end = as.integer(as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-12-31"))))
+    # rangeslider(pp, start = as.numeric(as.Date(paste0(lubridate::year(as.Date(input$date)),"-01-01"))),
+    #             end = as.numeric(as.Date(paste0(lubridate::year(as.Date(input$date)),"-12-31"))))
+    # rangeslider(pp, start = as.integer(as.Date(paste0(lubridate::year(as.Date(input$date)),"-01-01"))), 
+    #             end = as.integer(as.Date(paste0(lubridate::year(as.Date(input$date)),"-12-31"))))
   })
   
   ### Create lolliplot
@@ -707,12 +703,12 @@ map <- function(input, output, session) {
   ### UI panel
   output$uiModal <- renderUI({
     # To date
-    to_date <- ifelse(lubridate::year(input$date_choice) >= lubridate::year(max(current_dates)),
-                      input$date_choice, as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-12-31")))
+    to_date <- ifelse(lubridate::year(input$date) >= lubridate::year(max(current_dates)),
+                      input$date, as.Date(paste0(lubridate::year(as.Date(input$date)),"-12-31")))
     to_date <- as.Date(to_date, origin = "1970-01-01")
     # From date
-    from_date <- ifelse(lubridate::year(input$date_choice) >= lubridate::year(max(current_dates)),
-                        input$date_choice-365, as.Date(paste0(lubridate::year(as.Date(input$date_choice)),"-01-01")))
+    from_date <- ifelse(lubridate::year(input$date) >= lubridate::year(max(current_dates)),
+                        input$date-365, as.Date(paste0(lubridate::year(as.Date(input$date)),"-01-01")))
     from_date <- as.Date(from_date, origin = "1970-01-01")
     shinyBS::bsModal(ns('modal'), title = div(id = ns('modalTitle'), pixelLabel()), trigger = 'click2', size = "large",
                      # div(id = ns("top_row"),

@@ -17,7 +17,7 @@ mapUI <- function(id, label = 'map') {
                   top = menu_panel_top, right = menu_panel_right, draggable = T, width = "150px",
                   # The date input box
                   h2("Controls"),
-                  dateInput(inputId = ns("date_choice"),
+                  dateInput(inputId = ns("date"),
                             label = "Date",
                             value = date_menu_choice,
                             min = "1982-01-01",
@@ -27,7 +27,7 @@ mapUI <- function(id, label = 'map') {
                   numericInput(inputId = ns("zoom"), label = "zoom", value = 4),
                   ## NB: This date format would be ideal but it hangs on loading for some reason...
                   # shinyWidgets::airDatepickerInput(
-                  #   inputId = ns("date_choice"),
+                  #   inputId = ns("date"),
                   #   label = NULL,
                   #   inline = TRUE,
                   #   value = date_menu_choice,
