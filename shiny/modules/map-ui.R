@@ -2,6 +2,7 @@ mapUI <- function(id, label = 'map') {
   ns <- NS(id)
   
   fluidPage(
+    shinyWidgets::chooseSliderSkin(skin = 'Flat', color = "#ffc866"),
     # The plotly option
     # Could potentially replace leaflet with plot_mapbox() or something from plotly
     # Then draw a heatmap on top of the land polygons to show MHW categories
@@ -18,24 +19,38 @@ mapUI <- function(id, label = 'map') {
                   h2("Controls"),
                   dateInput(inputId = ns("date_choice"),
                             label = "Date",
-                            # value = NULL,
                             value = date_menu_choice,
                             min = "1982-01-01",
                             max = date_menu_choice),
+                  ## NB: This date format would be ideal but it hangs on loading for some reason...
+                  # shinyWidgets::airDatepickerInput(
+                  #   inputId = ns("date_choice"),
+                  #   label = NULL,
+                  #   inline = TRUE,
+                  #   value = date_menu_choice,
+                  #   minDate = "1982-01-01", 
+                  #   maxDate = date_menu_choice,
+                  #   update_on = 'change'
+                  # ),
                   # The category filtering buttons
                   h5(paste0("Categories")),
                   uiOutput(outputId = ns("moderate")),
                   uiOutput(outputId = ns("strong")),
                   uiOutput(outputId = ns("severe")),
                   uiOutput(outputId = ns("extreme")),
-                  # The shiny server instance info
-                  h5(paste0("Shiny server instance: ",Sys.getenv("R_SHNYSRVINST"))),
-                  # The time series button
-                  uiOutput(outputId = ns("button_ts")),
                   # Animation UI
-                  checkboxInput(inputId = ns("check_animate"), label = "Animate")#,
-                  # uiOutput(ns('date_animator'))
-
+                  h5(""),
+                  # shinyWidgets::actionBttn(inputId = ns("check_animate"), label = "Animate",
+                  #                          style = "jelly", color = "royal", size = "md"),
+                  # shinyWidgets::awesomeCheckbox(inputId = ns("check_animate"), 
+                                                # label = "Animate", status = 'primary'),
+                  shinyWidgets::materialSwitch(inputId = ns("check_animate"), 
+                                               label = "Animate", status = "primary"),
+                  # The time series button
+                  h5(""),
+                  uiOutput(outputId = ns("button_ts")),
+                  # The shiny server instance info
+                  h5(paste0("Shiny server instance: ",Sys.getenv("R_SHNYSRVINST")))
     ),
     # The separate animation menu
     uiOutput(ns('date_animator')),
