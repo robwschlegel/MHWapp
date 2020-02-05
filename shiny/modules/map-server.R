@@ -349,8 +349,6 @@ map <- function(input, output, session) {
     click <- input$map_click
     if(!is.null(click)){
       showpos(x = click$lng, y = click$lat)
-      # shinyBS::toggleModal(session, "modal", "open") # Double clicking causes crashing...
-      # begin_dl <- begin_dl_yes()
     }
   })
   
@@ -410,7 +408,7 @@ map <- function(input, output, session) {
   }
   
   
-  # Leaflet -----------------------------------------------------------------
+# Leaflet -----------------------------------------------------------------
   
   ### The leaflet base
   output$map <- renderLeaflet({
@@ -418,20 +416,19 @@ map <- function(input, output, session) {
       # setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
       setView(lng = initial_lon, lat = initial_lat, zoom = initial_zoom,
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) %>%
+      # addTiles(group = "OSM (default)", 
+      #          options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.4, noWrap = F)) %>%
       # Different tile options
-      addTiles(group = "OSM (default)", 
-               options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.4, noWrap = F)) %>%
-      # addProviderTiles(providers$OpenStreetMap.BlackAndWhite, group = "Black and white", 
-      #                  options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-      # addProviderTiles(providers$Thunderforest.Landscape, group = "Thunder forest", 
-      #                  options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-      # Leaflet UI features
+        # NB: For some odd reason this lays the base map over the MHW pixels
+      # addProviderTiles(providers$OpenStreetMap.BlackAndWhite, group = "Black and white",
+      #                  options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.4, noWrap = F)) %>%
+      # addProviderTiles(providers$Thunderforest.Landscape, group = "Thunder forest",
+      #                  options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) %>%
       # addLayersControl(
       #   baseGroups = c("OSM (default)", "Black and white", "Thunder forest"),
-      #   options = layersControlOptions(collapsed = TRUE), position = "topleft") %>% 
-      addScaleBar(position = "bottomright")
-    # addLayersControl(baseGroups = c("Default", "Black and white"), 
-    #                  options = layersControlOptions(collapsed = TRUE), position = "topleft")
+      #   options = layersControlOptions(collapsed = TRUE), position = "topleft") %>%
+      addScaleBar(position = "bottomleft")
+    # Extra stuff
     # addWMSTiles(
     #       "https://gis.ngdc.noaa.gov/arcgis/services/graticule/MapServer/WMSServer/",
     #       layers = c("1-degree grid", "5-degree grid"),
@@ -447,19 +444,21 @@ map <- function(input, output, session) {
   
   ### The raster layer
   output$map_pixels <- renderPlot(leafletProxy("map") %>%
+                                    # Change tiles
+                                      # NB: This always lays on top of the MHW pixels for some reason...
+                                    addTiles(group = "OSM (default)", 
+                                             options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.4, noWrap = F)) %>%
+                                    addProviderTiles(providers$OpenStreetMap.BlackAndWhite, group = "Black and white",
+                                                     options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.4, noWrap = F)) %>%
+                                    addProviderTiles(providers$Thunderforest, group = "Thunder forest",
+                                                     options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) %>%
+                                    addLayersControl(
+                                      baseGroups = c("OSM (default)", "Black and white", "Thunder forest"),
+                                      options = layersControlOptions(collapsed = TRUE), position = "topleft") %>%
                                     # clearImages() %>% 
-                                    # clearPopups() %>%
+                                    clearPopups() %>%
                                     addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                                                    project = FALSE, opacity = 0.8))
-  # observeEvent(c(input$date,
-  #                input$moderate_filter, input$strong_filter,
-  #                input$severe_filter, input$extreme_filter), {
-  #                  leafletProxy("map") %>%
-  #                    # clearImages() %>% 
-  #                    # clearPopups() %>%
-  #                    addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
-  #                                   project = FALSE, opacity = 0.8)
-  #                })
   
   ### Shift when new lon/lat/zoom are entered
   observeEvent(c(input$lon, input$lat, input$zoom), {
@@ -467,6 +466,14 @@ map <- function(input, output, session) {
       setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F))
                  })
+  
+  ### Re-render MHW pixels after provider tiles change
+  # observe({
+  #   leafletProxy("map") %>% 
+  #     clearPopups() %>%
+  #     addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
+  #                    project = FALSE, opacity = 0.8)
+  # })
   
   
 # Figures/tables ----------------------------------------------------------
@@ -749,7 +756,7 @@ map <- function(input, output, session) {
   })
   
   
-  # Downloads ---------------------------------------------------------------
+# Downloads ---------------------------------------------------------------
   
   ### Prep event data
   downloadEventData <- reactive({
@@ -783,7 +790,6 @@ map <- function(input, output, session) {
   output$download_event <- downloadHandler(
     filename = function() {
       paste0("event_lon_",downloadEventData()$lon[1],"_lat_",downloadEventData()$lat[1],".csv")
-      # paste0(pretty_label(), "_", gsub("-", "", as.character(input$from)), "_", gsub("-", "", as.character(input$to)), ".csv")
     },
     content <- function(file) {
       readr::write_csv(downloadEventData(), file)
@@ -794,12 +800,12 @@ map <- function(input, output, session) {
   output$download_clim <- downloadHandler(
     filename = function() {
       paste0("clim_lon_",downloadClimData()$lon[1],"_lat_",downloadClimData()$lat[1],".csv")
-      # paste0(pretty_label(), "_", gsub("-", "", as.character(input$from)), "_", gsub("-", "", as.character(input$to)), ".csv")
     },
     content <- function(file) {
       readr::write_csv(downloadClimData(), file)
     }
   )
-  }
+}
+
 # cat("\nmap_server.R finished")
 
