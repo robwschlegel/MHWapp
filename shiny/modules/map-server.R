@@ -17,7 +17,7 @@ map <- function(input, output, session) {
   ### The popup modal when starting the app
   ## Open on startup
   # shinyBS::toggleModal(session, modalId = ns("startupModal"), toggle = "open")
-  shinyBS::toggleModal(session, "startupModal", "open")
+  # shinyBS::toggleModal(session, "startupModal", "open")
   ## The content of the welcome window
   output$uiStartupModal <- renderUI({
     shinyBS::bsModal(ns('startupModal'), title = strong("Welcome to the Marine Heatwave Tracker!"), trigger = "click2", size = "m",
@@ -416,18 +416,9 @@ map <- function(input, output, session) {
       # setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
       setView(lng = initial_lon, lat = initial_lat, zoom = initial_zoom,
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) %>%
-      # addTiles(group = "OSM (default)", 
-      #          options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.4, noWrap = F)) %>%
-      # Different tile options
-        # NB: For some odd reason this lays the base map over the MHW pixels
-      # addProviderTiles(providers$OpenStreetMap.BlackAndWhite, group = "Black and white",
-      #                  options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.4, noWrap = F)) %>%
-      # addProviderTiles(providers$Thunderforest.Landscape, group = "Thunder forest",
-      #                  options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) %>%
-      # addLayersControl(
-      #   baseGroups = c("OSM (default)", "Black and white", "Thunder forest"),
-      #   options = layersControlOptions(collapsed = TRUE), position = "topleft") %>%
-      addScaleBar(position = "bottomleft")
+      addTiles(group = "OSM (default)",
+               options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.4, noWrap = F)) %>%
+      addScaleBar(position = "bottomright")
     # Extra stuff
     # addWMSTiles(
     #       "https://gis.ngdc.noaa.gov/arcgis/services/graticule/MapServer/WMSServer/",
@@ -443,22 +434,13 @@ map <- function(input, output, session) {
   })
   
   ### The raster layer
-  output$map_pixels <- renderPlot(leafletProxy("map") %>%
-                                    # Change tiles
-                                      # NB: This always lays on top of the MHW pixels for some reason...
-                                    addTiles(group = "OSM (default)", 
-                                             options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.4, noWrap = F)) %>%
-                                    addProviderTiles(providers$OpenStreetMap.BlackAndWhite, group = "Black and white",
-                                                     options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.4, noWrap = F)) %>%
-                                    addProviderTiles(providers$Thunderforest, group = "Thunder forest",
-                                                     options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) %>%
-                                    addLayersControl(
-                                      baseGroups = c("OSM (default)", "Black and white", "Thunder forest"),
-                                      options = layersControlOptions(collapsed = TRUE), position = "topleft") %>%
-                                    # clearImages() %>% 
-                                    clearPopups() %>%
-                                    addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
-                                                   project = FALSE, opacity = 0.8))
+  observe({
+    leafletProxy("map") %>%
+      # clearImages() %>% 
+      clearPopups() %>%
+      addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
+                     project = FALSE, opacity = 0.8)
+  })
   
   ### Shift when new lon/lat/zoom are entered
   observeEvent(c(input$lon, input$lat, input$zoom), {
@@ -467,19 +449,32 @@ map <- function(input, output, session) {
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F))
                  })
   
-  ### Re-render MHW pixels after provider tiles change
-  # observe({
-  #   leafletProxy("map") %>% 
-  #     clearPopups() %>%
-  #     addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
-  #                    project = FALSE, opacity = 0.8)
-  # })
+  ### Change map background
+  observe({
+    if(input$grey_map){
+      leafletProxy("map") %>%
+        addProviderTiles(providers$OpenStreetMap.BlackAndWhite, group = "Black and white",
+                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.4, noWrap = F)) %>%
+        clearPopups() %>%
+        addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
+                       project = FALSE, opacity = 0.8)
+    } else{
+      leafletProxy("map") %>%
+        addTiles(group = "OSM (default)",
+                 options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.4, noWrap = F)) %>%
+        clearPopups() %>%
+        addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
+                       project = FALSE, opacity = 0.8)
+    }
+  })
   
   
 # Figures/tables ----------------------------------------------------------
   
-  ### Create time series plot
+  ### Create static time series plot
   tsPlot <- reactive({
+    req(input$from)
+    req(input$to)
     # Get time series
     ts_data <- pixelData()$ts
     
@@ -505,14 +500,6 @@ map <- function(input, output, session) {
     event_data <- pixelData()$event
     event_data_sub <- event_data %>%
       filter(date_start >= input$from, date_end <= input$to)
-    
-    # Set category fill colours
-    # fillColCat <- c(
-    #   "I Moderate" = "#ffc866",
-    #   "II Strong" = "#ff6900",
-    #   "III Severe" = "#9e0000",
-    #   "IV Extreme" = "#2d0000"
-    # )
     
     # Create figure with no flames or rug because no events are present
     if(length(event_data_sub$date_start) == 0){
@@ -569,7 +556,7 @@ map <- function(input, output, session) {
                     aes(x = t, y = thresh, group = 1,
                         text = paste0("Date: ",t,
                                       "<br>Threshold: ",thresh,"°C"))) +
-          geom_rug(data = event_data_sub, sides = "b", colour = "red3", size = 2,
+          geom_rug(data = event_data_sub, sides = "b", colour = "salmon", size = 2,
                    aes(x = date_peak, y = min(ts_data_sub$temp),
                        text = paste0("Event: ",event_no,
                                      "<br>Duration: ",duration," days",
@@ -580,12 +567,17 @@ map <- function(input, output, session) {
                                      "<br>Max. Intensity: ",intensity_max,"°C",
                                      "<br>Cum. Intensity: ",intensity_cumulative,"°C"))) +
           labs(x = "", y = "Temperature (°C)") +
-          scale_x_date(expand = c(0, 0), limits = c(min(ts_data_sub$t), max(ts_data_sub$t))) #+
-        # scale_fill_manual(name = NULL, values = fillColCat,
-        #                   breaks = c("I Moderate", "II Strong",
-        #                              "III Severe", "IV Extreme"))
+          scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(min(ts_data_sub$t), max(ts_data_sub$t))) 
       )
     }
+    p
+  })
+    
+  ### Create interactive time series plot
+  tsPlotly <- reactive({
+    
+    # Grab static plot
+    p <- tsPlot()
     
     # Convert to plotly
     # NB: Setting dynamicTicks = T causes the flames to be rendered incorrectly
@@ -606,22 +598,37 @@ map <- function(input, output, session) {
   })
   
   ### Create lolliplot
-  # lolliPlot <- reactive({
-  #   event_data <- pixelData()$event
-  #   event_data_sub <- event_data %>%
-  #     filter(date_start >= input$from, date_start <= input$to)
-  #   # thresh_data_sub <- thresh_data %>%
-  #   # filter(t >= input$from, t <= input$to)
-  #   p <- ggplot(data = event_data_sub, aes(x = date_start, y = intensity_max)) +
-  #     geom_lolli() +
-  #     # geom_point() +
-  #     labs(x = "", y = "Max. Intensity (°C)")
-  #   ggplotly(p)
-  # })
+  lolliPlot <- reactive({
+    event_data <- pixelData()$event
+    event_data_sub <- event_data %>%
+      filter(date_start >= input$from, date_start <= input$to)
+    suppressWarnings( # Supress warning about ggplot not understanding the text aesthetic fed to plotly
+    p <- ggplot(data = event_data_sub, aes(x = date_peak, y = intensity_max)) +
+      # heatwaveR::geom_lolli() +
+      geom_segment(aes(xend = date_peak, yend = 0)) +
+      geom_point(fill = "salmon", shape = 21, size = 4,
+                 aes(text = paste0("Event: ",event_no,
+                            "<br>Duration: ",duration," days",
+                            "<br>Start Date: ", date_start,
+                            "<br>Peak Date: ", date_peak,
+                            "<br>End Date: ", date_end,
+                            "<br>Mean Intensity: ",intensity_mean,"°C",
+                            "<br>Max. Intensity: ",intensity_max,"°C",
+                            "<br>Cum. Intensity: ",intensity_cumulative,"°C"))) +
+      scale_x_date(date_labels = "%b %Y",
+                   limits = c(min(event_data_sub$date_peak)-1, max(event_data_sub$date_peak)+1)) +
+      scale_y_continuous(expand = c(0,0), limits = c(0, max(event_data_sub$intensity_max)*1.1)) +
+      labs(x = "", y = "Max. Intensity (°C)")
+    )
+    p
+    pp <- ggplotly(p, tooltip = "text", dynamicTicks = F)
+    pp
+  })
   
   ### Create data table
   tsTable <- reactive({
     event_data <- pixelData()$event %>% 
+      filter(date_start >= input$from, date_start <= input$to) %>% 
       dplyr::rename(Lon = lon,
                     Lat = lat,
                     Event = event_no,
@@ -632,8 +639,8 @@ map <- function(input, output, session) {
                     'Mean Intensity' = intensity_mean,
                     'Max. Intensity' = intensity_max,
                     'Cum. Intensity' = intensity_cumulative)
-    # event_data_sub <- event_data #%>% 
-    # filter(date_start >= input$from, date_start <= input$to)
+    # event_data_sub <- event_data %>%
+    #   filter(date_start >= input$from, date_start <= input$to)
     # event_data$date_start <- strftime(event_data$date_start, format = "%H:%M %p")
   })
   
@@ -685,20 +692,25 @@ map <- function(input, output, session) {
   #   toggleModal(session, "modal", "open")
   # })
   
-  ### Time series plot
-  output$tsPlot <- renderPlotly({
+  ### Static time series plot
+  output$tsPlot <- renderPlot({
     tsPlot()
   })
   
+  ### Interactive time series plot
+  output$tsPlotly <- renderPlotly({
+    tsPlotly()
+  })
+  
   ### Lolli plot
-  # output$lolliPlot <- renderPlotly({
-  #   lolliPlot()
-  # })
+  output$lolliPlot <- renderPlotly({
+    lolliPlot()
+  })
   
   ### Event metrics table
   output$table <- renderDataTable({
-    DT::datatable(tsTable(), 
-                  options = list(pageLength = 50))
+    DT::datatable(tsTable(),
+                  options = list(pageLength = 10))
   })
   
   ### UI panel
@@ -716,40 +728,48 @@ map <- function(input, output, session) {
                      fluidPage(
                        # title = "",
                        tabsetPanel(id = ns("tabs"),
-                                   tabPanel(title = "Plot",
+                                   tabPanel(title = "Static",
                                             br(),
-                                            shinycssloaders::withSpinner(plotlyOutput(ns("tsPlot")), type = 6, color = "#b0b7be"),
-                                            hr(),
-                                            fluidRow(
-                                              column(width = 2,
-                                                     h4("From"),
-                                                     dateInput(inputId = ns("from"), label = NULL, format = "M d, yyyy",
-                                                               value = from_date, 
-                                                               min = "1982-01-01", max = max(current_dates)-1)),
-                                              column(width = 2,
-                                                     h4("To"),
-                                                     dateInput(inputId = ns("to"), label = NULL, format = "M d, yyyy",
-                                                               value = to_date,
-                                                               min = "1982-01-02", max = max(current_dates))),
-                                              column(width = 2,
-                                                     h4("Download"),
-                                                     downloadButton(outputId = ns("download_clim"),
-                                                                    label = "Climatology & Threshold (csv)", class = 'small-dl')))
-                                   ),
-                                   # tabPanel(title = "Lolli",
-                                   #          br(),
-                                   #          plotlyOutput(ns("lolliPlot"))),
+                                            shinycssloaders::withSpinner(plotOutput(ns("tsPlot")), type = 6, color = "#b0b7be"),
+                                            hr()
+                                            ),
+                                   tabPanel(title = "Interactive",
+                                            br(),
+                                            shinycssloaders::withSpinner(plotlyOutput(ns("tsPlotly")), type = 6, color = "#b0b7be"),
+                                            hr()
+                                            ),
+                                   tabPanel(title = "Lolliplot",
+                                            br(),
+                                            shinycssloaders::withSpinner(plotlyOutput(ns("lolliPlot")), type = 6, color = "#b0b7be"),
+                                            hr()
+                                            ),
                                    tabPanel(title = "Table",
                                             br(),
-                                            wellPanel(class = 'wellpanel',
-                                                      DT::dataTableOutput(ns('table'))),
-                                            hr(),
-                                            fluidRow(
-                                              column(width = 2,
-                                                     h4("Download"),
-                                                     downloadButton(outputId = ns("download_event"),
-                                                                    label = "MHW data (csv)", class = 'small-dl')))
-                                   )
+                                            shinycssloaders::withSpinner(DT::dataTableOutput(ns('table')), type = 6, color = "#b0b7be"),
+                                            hr()
+                                            ),
+                                   fluidRow(
+                                     column(width = 2,
+                                            # h4("From"),
+                                            dateInput(inputId = ns("from"), label = NULL, format = "M d, yyyy",
+                                                      value = from_date, 
+                                                      min = "1982-01-01", max = max(current_dates)-1)),
+                                     column(width = 2,
+                                            # h4("To"),
+                                            dateInput(inputId = ns("to"), label = NULL, format = "M d, yyyy",
+                                                      value = to_date,
+                                                      min = "1982-01-02", max = max(current_dates))),
+                                     column(width = 2,
+                                            downloadButton(outputId = ns("download_clim"),
+                                                           label = "Climatology & Threshold (csv)", class = 'small-dl')),
+                                     column(width = 2,
+                                            downloadButton(outputId = ns("download_event"),
+                                                           label = "MHW data (csv)", class = 'small-dl')),
+                                     shinyWidgets::airDatepickerInput(
+                                       inputId = ns("from_to"), position = 'top right',
+                                       label = NULL, autoClose = TRUE, update_on = 'close',
+                                       range = TRUE, value = c(from_date, to_date)
+                                     ))
                        )
                      )
     )

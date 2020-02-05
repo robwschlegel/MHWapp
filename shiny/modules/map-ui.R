@@ -11,8 +11,8 @@ mapUI <- function(id, label = 'map') {
     # right = 0, bottom = 0, height = '100%'),
     # The leaflet option
     absolutePanel(top = 0, left = 0, right = 0, bottom = 0, height = 'auto',
-                  leafletOutput(ns('map')),
-                  plotOutput(ns('map_pixels'))),
+                  leafletOutput(ns('map'))),
+                  # plotOutput(ns('map_pixels'))),
     # The main menu panel
     absolutePanel(id = ns("controls"), class = "panel panel-default",
                   top = menu_panel_top, right = menu_panel_right, draggable = T, width = "150px",
@@ -50,12 +50,13 @@ mapUI <- function(id, label = 'map') {
                   # label = "Animate", status = 'primary'),
                   shinyWidgets::materialSwitch(inputId = ns("check_animate"), 
                                                label = "Animate", status = "primary"),
+                  # Change map background
+                  h5(""),
+                  shinyWidgets::materialSwitch(inputId = ns("grey_map"),
+                                               label = "Grey map", status = "primary"),
                   # The time series button
                   h5(""),
                   uiOutput(outputId = ns("button_ts")),
-                  # Popup options
-                    # Disable
-                    # Interactive
                   # The shiny server instance info
                   h5(paste0("Shiny server instance: ",Sys.getenv("R_SHNYSRVINST")))
     ),
@@ -63,8 +64,6 @@ mapUI <- function(id, label = 'map') {
     uiOutput(ns('date_animator')),
     # The welcome popup
     uiOutput(ns('uiStartupModal')),
-    # The static time series panel
-    # uiOutput(ns('uiModalBase')),
     # The interactive time series panel
     uiOutput(ns('uiModal'))
   )
