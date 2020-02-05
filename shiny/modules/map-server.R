@@ -428,7 +428,8 @@ map <- function(input, output, session) {
   ### The leaflet base
   output$map <- renderLeaflet({
     leaflet(MHW_cat_clim_sub, options = leafletOptions(zoomControl = FALSE)) %>%
-      setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
+      setView(lng = initial_lon, lat = initial_lat, zoom = initial_zoom,
+      # setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) %>%
       # Different tile options
       addTiles(group = "OSM (default)", 
@@ -458,14 +459,27 @@ map <- function(input, output, session) {
   })
   
   ### The raster layer
-  observeEvent(c(input$lon, input$lat, input$zoom, input$date,
+  observeEvent(c(input$date,
                  input$moderate_filter, input$strong_filter,
                  input$severe_filter, input$extreme_filter), {
                    leafletProxy("map") %>%
+                     # setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
+                     #         options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) %>% 
                      # clearImages() %>% 
                      # clearPopups() %>%
                      addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                                     project = FALSE, opacity = 0.8)
+                 })
+  
+  ### Shift when lon/lat/zoom are updated
+  observeEvent(c(input$lon, input$lat, input$zoom), {
+                   leafletProxy("map") %>%
+                     setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
+                             options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) #%>%
+                     # clearImages() %>% 
+                     # clearPopups() %>%
+                     # addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
+                                    # project = FALSE, opacity = 0.8)
                  })
   
   
@@ -665,18 +679,18 @@ map <- function(input, output, session) {
   })
   
   ### Open the static modal panel
-  observeEvent(input$map_click, {
-    click <- input$map_click
+  # observeEvent(input$map_click, {
+    # click <- input$map_click
     # if(!is.null(click)){
-      shinyBS::toggleModal(session, "modal_base", "open")
-      shinyBS::toggleModal(session, "uiModalBase", "open")
+      # shinyBS::toggleModal(session, "modal_base", "open")
+      # shinyBS::toggleModal(session, "uiModalBase", "open")
     # } else {
       # showModal(modalDialog(
         # title = "Pixel: Lon = NA, Lat = NA",
         # "Please first click on a pixel in order to view more information about it."
       # ))
     # }
-  })
+  # })
   
   ### Open the interactive modal panel
   observeEvent(input$open_modal, {
@@ -693,9 +707,9 @@ map <- function(input, output, session) {
   
   ### Open modal panel through direct leaflet clicking
   ### NB: This allows crashing if the user clicks twice quickly
-  # observeEvent(input$map_click, {
-  #   toggleModal(session, "modal", "open")
-  # })
+  observeEvent(input$map_click, {
+    toggleModal(session, "modal", "open")
+  })
   
   ### Time series plot
   ## ggplot
