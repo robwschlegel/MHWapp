@@ -106,7 +106,7 @@ leafletProj <- "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +to
 
 ### Placeholders before first click
 # xy <- data.frame(lng = 0, lat = 0)
-begin_dl <- FALSE
+# begin_dl <- FALSE
 # button_colour_ts <- "danger"
 
 ### The shiny server instance beng run

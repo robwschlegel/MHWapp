@@ -11,7 +11,8 @@ mapUI <- function(id, label = 'map') {
     # right = 0, bottom = 0, height = '100%'),
     # The leaflet option
     absolutePanel(top = 0, left = 0, right = 0, bottom = 0, height = 'auto',
-                  leafletOutput(ns('map'))),
+                  leafletOutput(ns('map')),
+                  plotOutput(ns('map_pixels'))),
     # The main menu panel
     absolutePanel(id = ns("controls"), class = "panel panel-default",
                   top = menu_panel_top, right = menu_panel_right, draggable = T, width = "150px",
@@ -51,7 +52,7 @@ mapUI <- function(id, label = 'map') {
                                                label = "Animate", status = "primary"),
                   # The time series button
                   h5(""),
-                  # uiOutput(outputId = ns("button_ts")),
+                  uiOutput(outputId = ns("button_ts")),
                   # Popup options
                     # Disable
                     # Interactive
@@ -63,7 +64,7 @@ mapUI <- function(id, label = 'map') {
     # The welcome popup
     uiOutput(ns('uiStartupModal')),
     # The static time series panel
-    uiOutput(ns('uiModalBase')),
+    # uiOutput(ns('uiModalBase')),
     # The interactive time series panel
     uiOutput(ns('uiModal'))
   )

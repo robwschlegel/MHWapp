@@ -147,7 +147,7 @@ map <- function(input, output, session) {
   output$button_ts <- renderUI({
     click <- input$map_click
     if(is.null(click)){
-      shinyWidgets::actionBttn(inputId = ns("does_nothing"), label = "Plot pixel", icon = icon("map-marked"),
+      shinyWidgets::actionBttn(inputId = ns("does_nothing"), label = "Plot pixel", #icon = icon("map-marked"),
                                style = "pill", color = "danger", size = "md")
     } else {
       shinyWidgets::actionBttn(inputId = ns("open_modal"), label = "Plot pixel", #icon = icon("map-marked"),
@@ -202,6 +202,8 @@ map <- function(input, output, session) {
   ### Observe the changing of dates in the animation slider
   observe({
     req(input$date_slider)
+    leafletProxy("map") %>% 
+      clearPopups()
     date <- as.Date(input$date_slider)
     updateDateInput(session = session, inputId = "date",
                     value = date
@@ -331,21 +333,6 @@ map <- function(input, output, session) {
     }
   })
   
-  ### Observer to begin downloading data
-  # begin_dl_yes <- function(){
-  #   TRUE
-  # }
-  # begin_dl_no <- function(){
-  #   FALSE
-  # }
-  # observe({
-  #   begin_dl <- begin_dl
-  #   if(begin_dl == TRUE){
-  #     begin_dl <- begin_dl_no()
-  #     pixelData <- pixelData()
-  #   }
-  # })
-  
   
 # Pop-ups -----------------------------------------------------------------
   
@@ -361,8 +348,8 @@ map <- function(input, output, session) {
   observe({
     click <- input$map_click
     if(!is.null(click)){
-      shinyBS::toggleModal(session, "uiModalBase", "open")
-      # showpos(x = click$lng, y = click$lat)
+      showpos(x = click$lng, y = click$lat)
+      # shinyBS::toggleModal(session, "modal", "open") # Double clicking causes crashing...
       # begin_dl <- begin_dl_yes()
     }
   })
@@ -416,20 +403,20 @@ map <- function(input, output, session) {
     updateNumericInput(session, "lat", value = round(xy_click[2], 2))
     
     ### Add Popup to leaflet
-    # leafletProxy("map") %>% 
-    #   clearPopups() %>%
-    #   addPopups(lng = xy_click[1], lat = xy_click[2], 
-    #             popup = paste(content))
+    leafletProxy("map") %>%
+      clearPopups() %>%
+      addPopups(lng = xy_click[1], lat = xy_click[2],
+                popup = paste(content))
   }
   
   
-# Leaflet -----------------------------------------------------------------
+  # Leaflet -----------------------------------------------------------------
   
   ### The leaflet base
   output$map <- renderLeaflet({
-    leaflet(MHW_cat_clim_sub, options = leafletOptions(zoomControl = FALSE)) %>%
-      setView(lng = initial_lon, lat = initial_lat, zoom = initial_zoom,
+    leaflet(data = MHW_cat_clim_sub, options = leafletOptions(zoomControl = FALSE)) %>%
       # setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
+      setView(lng = initial_lon, lat = initial_lat, zoom = initial_zoom,
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) %>%
       # Different tile options
       addTiles(group = "OSM (default)", 
@@ -459,27 +446,26 @@ map <- function(input, output, session) {
   })
   
   ### The raster layer
-  observeEvent(c(input$date,
-                 input$moderate_filter, input$strong_filter,
-                 input$severe_filter, input$extreme_filter), {
-                   leafletProxy("map") %>%
-                     # setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
-                     #         options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) %>% 
-                     # clearImages() %>% 
-                     # clearPopups() %>%
-                     addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
-                                    project = FALSE, opacity = 0.8)
-                 })
+  output$map_pixels <- renderPlot(leafletProxy("map") %>%
+                                    # clearImages() %>% 
+                                    # clearPopups() %>%
+                                    addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
+                                                   project = FALSE, opacity = 0.8))
+  # observeEvent(c(input$date,
+  #                input$moderate_filter, input$strong_filter,
+  #                input$severe_filter, input$extreme_filter), {
+  #                  leafletProxy("map") %>%
+  #                    # clearImages() %>% 
+  #                    # clearPopups() %>%
+  #                    addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
+  #                                   project = FALSE, opacity = 0.8)
+  #                })
   
-  ### Shift when lon/lat/zoom are updated
+  ### Shift when new lon/lat/zoom are entered
   observeEvent(c(input$lon, input$lat, input$zoom), {
-                   leafletProxy("map") %>%
-                     setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
-                             options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) #%>%
-                     # clearImages() %>% 
-                     # clearPopups() %>%
-                     # addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
-                                    # project = FALSE, opacity = 0.8)
+    leafletProxy("map") %>% 
+      setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
+              options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F))
                  })
   
   
@@ -593,11 +579,6 @@ map <- function(input, output, session) {
         #                              "III Severe", "IV Extreme"))
       )
     }
-  })
-  
-  tsPlotly <- reactive({
-    
-    p <- tsPlot()
     
     # Convert to plotly
     # NB: Setting dynamicTicks = T causes the flames to be rendered incorrectly
@@ -650,7 +631,7 @@ map <- function(input, output, session) {
   })
   
   
-# Modal panels ------------------------------------------------------------
+# Modal panel -------------------------------------------------------------
   
   ### Label/title for modal panel
   pixelLabel <- reactive({
@@ -678,21 +659,7 @@ map <- function(input, output, session) {
     }
   })
   
-  ### Open the static modal panel
-  # observeEvent(input$map_click, {
-    # click <- input$map_click
-    # if(!is.null(click)){
-      # shinyBS::toggleModal(session, "modal_base", "open")
-      # shinyBS::toggleModal(session, "uiModalBase", "open")
-    # } else {
-      # showModal(modalDialog(
-        # title = "Pixel: Lon = NA, Lat = NA",
-        # "Please first click on a pixel in order to view more information about it."
-      # ))
-    # }
-  # })
-  
-  ### Open the interactive modal panel
+  ### Open the modal panel
   observeEvent(input$open_modal, {
     click <- input$map_click
     if(!is.null(click)){
@@ -707,18 +674,13 @@ map <- function(input, output, session) {
   
   ### Open modal panel through direct leaflet clicking
   ### NB: This allows crashing if the user clicks twice quickly
-  observeEvent(input$map_click, {
-    toggleModal(session, "modal", "open")
-  })
+  # observeEvent(input$map_click, {
+  #   toggleModal(session, "modal", "open")
+  # })
   
   ### Time series plot
-  ## ggplot
   output$tsPlot <- renderPlotly({
     tsPlot()
-  })
-  ## plotly
-  output$tsPlotly <- renderPlotly({
-    tsPlotly()
   })
   
   ### Lolli plot
@@ -732,61 +694,7 @@ map <- function(input, output, session) {
                   options = list(pageLength = 50))
   })
   
-  ### UI interactive panel
-  output$uiModalBase <- renderUI({
-    # To date
-    to_date <- ifelse(lubridate::year(input$date) >= lubridate::year(max(current_dates)),
-                      input$date, as.Date(paste0(lubridate::year(as.Date(input$date)),"-12-31")))
-    to_date <- as.Date(to_date, origin = "1970-01-01")
-    # From date
-    from_date <- ifelse(lubridate::year(input$date) >= lubridate::year(max(current_dates)),
-                        input$date-365, as.Date(paste0(lubridate::year(as.Date(input$date)),"-01-01")))
-    from_date <- as.Date(from_date, origin = "1970-01-01")
-    shinyBS::bsModal(ns('modal_base'), title = div(id = ns('modalTitle'), pixelLabel()), trigger = 'click2', size = "large",
-                     # div(id = ns("top_row"),
-                     fluidPage(
-                       # title = "",
-                       tabsetPanel(id = ns("tabs"),
-                                   tabPanel(title = "Plot",
-                                            br(),
-                                            shinycssloaders::withSpinner(plotlyOutput(ns("tsPlotly")), type = 6, color = "#b0b7be"),
-                                            hr(),
-                                            fluidRow(
-                                              column(width = 2,
-                                                     h4("From"),
-                                                     dateInput(inputId = ns("from"), label = NULL, format = "M d, yyyy",
-                                                               value = from_date, 
-                                                               min = "1982-01-01", max = max(current_dates)-1)),
-                                              column(width = 2,
-                                                     h4("To"),
-                                                     dateInput(inputId = ns("to"), label = NULL, format = "M d, yyyy",
-                                                               value = to_date,
-                                                               min = "1982-01-02", max = max(current_dates))),
-                                              column(width = 2,
-                                                     h4("Download"),
-                                                     downloadButton(outputId = ns("download_clim"),
-                                                                    label = "Climatology & Threshold (csv)", class = 'small-dl')))
-                                   ),
-                                   # tabPanel(title = "Lolli",
-                                   #          br(),
-                                   #          plotlyOutput(ns("lolliPlot"))),
-                                   tabPanel(title = "Table",
-                                            br(),
-                                            wellPanel(class = 'wellpanel',
-                                                      DT::dataTableOutput(ns('table'))),
-                                            hr(),
-                                            fluidRow(
-                                              column(width = 2,
-                                                     h4("Download"),
-                                                     downloadButton(outputId = ns("download_event"),
-                                                                    label = "MHW data (csv)", class = 'small-dl')))
-                                   )
-                       )
-                     )
-    )
-  })
-  
-  ### UI interactive panel
+  ### UI panel
   output$uiModal <- renderUI({
     # To date
     to_date <- ifelse(lubridate::year(input$date) >= lubridate::year(max(current_dates)),
@@ -803,7 +711,7 @@ map <- function(input, output, session) {
                        tabsetPanel(id = ns("tabs"),
                                    tabPanel(title = "Plot",
                                             br(),
-                                            shinycssloaders::withSpinner(plotOutput(ns("tsPlot")), type = 6, color = "#b0b7be"),
+                                            shinycssloaders::withSpinner(plotlyOutput(ns("tsPlot")), type = 6, color = "#b0b7be"),
                                             hr(),
                                             fluidRow(
                                               column(width = 2,
@@ -819,10 +727,7 @@ map <- function(input, output, session) {
                                               column(width = 2,
                                                      h4("Download"),
                                                      downloadButton(outputId = ns("download_clim"),
-                                                                    label = "Climatology & Threshold (csv)", class = 'small-dl'))),
-                                            column(width = 2,
-                                                   h4("Interactive"),
-                                                   uiOutput(outputId = ns("button_ts")))
+                                                                    label = "Climatology & Threshold (csv)", class = 'small-dl')))
                                    ),
                                    # tabPanel(title = "Lolli",
                                    #          br(),
