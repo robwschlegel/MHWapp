@@ -453,18 +453,31 @@ map <- function(input, output, session) {
     leaflet(data = MHW_cat_clim_sub, options = leafletOptions(zoomControl = FALSE)) %>%
       setView(lng = map_lon, lat = map_lat, zoom = map_zoom,
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) %>%
+      # addTiles(options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>% 
+      # addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
+      #                group = paste0("map_",map_num$map_num), project = FALSE, opacity = 0.8) %>% 
       addScaleBar(position = "bottomright")
   })
+  
+  ### Count the number of times a new map has been generated
+  map_num <- reactiveValues(map_num = 0)
   
   ### The raster layer
   observeEvent(c(input$date,
                  input$moderate_filter, input$strong_filter,
                  input$severe_filter, input$extreme_filter), {
-    leafletProxy("map") %>%
-      clearImages() %>%
-      # clearPopups() %>%
-      addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
-                     project = FALSE, opacity = 0.8)
+                   
+                   # update the map number
+                   map_num$map_num <- map_num$map_num+1
+                   
+                   # Render new map
+                   leafletProxy("map") %>%
+                     # clearImages() %>%
+                     addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
+                                    group = paste0("map_",map_num$map_num-1), project = FALSE, opacity = 0.8) %>% 
+                     addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
+                                    group = paste0("map_",map_num$map_num), project = FALSE, opacity = 0.8) #%>% 
+                     # clearGroup(group = paste0("map_",map_num$map_num-1))
   })
   
   ### Shift when new lon/lat/zoom are entered
@@ -479,37 +492,25 @@ map <- function(input, output, session) {
   observeEvent(input$map_back, {
     if(input$map_back == "Grey"){
       leafletProxy("map") %>%
-        clearTiles() %>% 
-        clearImages() %>% 
         addProviderTiles(providers$OpenStreetMap.BlackAndWhite,
                          options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-        # clearPopups() %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
     } else if(input$map_back == "Countries"){
       leafletProxy("map") %>%
-        clearTiles() %>% 
-        clearImages() %>% 
         addProviderTiles(providers$Esri.WorldTopoMap,
                          options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-        # clearPopups() %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
     } else if(input$map_back == "Oceans"){
       leafletProxy("map") %>%
-        clearTiles() %>% 
-        clearImages() %>% 
         addProviderTiles(providers$Esri.OceanBasemap,
                          options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-        # clearPopups() %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
     } else{
       leafletProxy("map") %>%
-        clearTiles() %>% 
-        clearImages() %>% 
         addTiles(options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-        # clearPopups() %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
     }

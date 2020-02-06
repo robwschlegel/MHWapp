@@ -3,8 +3,10 @@ mapUI <- function(id, label = 'map') {
   
   fluidPage(
 
+    ### Actvivate underlying javascript to R functionality
     shinyjs::useShinyjs(),
   
+    ### Set the skin for the sliders used
     shinyWidgets::chooseSliderSkin(skin = 'Flat', color = "#ffc866"),
 
     ### The leaflet layer
@@ -14,9 +16,8 @@ mapUI <- function(id, label = 'map') {
     ### The map background changing button
     absolutePanel(id = ns("map_controls"), top = menu_panel_top, left = 10,
                   shinyWidgets::dropdownButton(
-                    # tags$h3("Map backgrounds"),
                     shinyWidgets::prettyRadioButtons(inputId = ns("map_back"),
-                                                     label = h3("Map backgrounds"),
+                                                     label = h3("Background"),
                                                      choiceNames = list("Default", "Grey", "Countries", "Oceans"),
                                                      choiceValues = list("Default", "Grey", "Countries", "Oceans"),
                                                      selected = "Default",
