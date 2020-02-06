@@ -17,7 +17,7 @@ map <- function(input, output, session) {
   ### The popup modal when starting the app
   ## Open on startup
   # shinyBS::toggleModal(session, modalId = ns("startupModal"), toggle = "open")
-  shinyBS::toggleModal(session, "startupModal", "open")
+  # shinyBS::toggleModal(session, "startupModal", "open")
   ## The content of the welcome window
   output$uiStartupModal <- renderUI({
     shinyBS::bsModal(ns('startupModal'), title = strong("Welcome to the Marine Heatwave Tracker!"), trigger = "click2", size = "m",
@@ -27,11 +27,13 @@ map <- function(input, output, session) {
                           <hr>
                           Click in the <b>Date</b> box to choose a day to display on the map.
                           <hr>
-                          Clicking on the different <b>Categories</b> will filter those pixels from the map.
-                          <hr>
                           Click on the <b>Animate</b> switch to bring up the animation options.
                           <hr>
+                          Clicking on the different <b>Categories</b> will filter those pixels from the map.
+                          <hr>
                           After clicking on a pixel of interest, click the <b>Plot pixel</b> button to see more.
+                          <hr>
+                          Use the <b>Download</b> interface to access the global MHW category data product.
                           <hr>
                           For more information please click on the <b>Summary</b> or <b>About</b> tabs."))
   })
@@ -163,6 +165,7 @@ map <- function(input, output, session) {
         date_anim_choice <- as.Date(as.character(query[['date']]))
       } else{
         date_anim_choice <- max(current_dates)
+        # date_anim_choice <- input$date
       }
       absolutePanel(id = ns("controls"), class = "panel panel-default", draggable = T, cursor = "move",
                     top = menu_panel_top, right = menu_panel_right+10+150, width = "350px",
@@ -201,8 +204,7 @@ map <- function(input, output, session) {
     }
   })
   
-  
-  ### Reactive start date to catch HTNL queries
+  ### Reactive start date to catch HTML queries
   output$date_reactive <- renderUI({
     query <- parseQueryString(session$clientData$url_search)
     if (!is.null(query[['date']])) {
@@ -210,63 +212,38 @@ map <- function(input, output, session) {
       } else{
         date_menu_choice <- max(current_dates)
       }
-    # dateInput(inputId = ns("date"),
-    #           label = "Date",
-    #           value = date_menu_choice,
-    #           min = "1982-01-01",
-    #           max = max(current_dates))
-    shinyWidgets::airDatepickerInput(
-      inputId = ns("date"),
-      label = "Date", autoClose = TRUE, position = "bottom right", 
-      update_on = 'close', addon = 'none', inline = FALSE, #width = "200px",
-      value = date_menu_choice, 
-      minDate = "1982-01-01", 
-      maxDate = max(current_dates)
-    )
+    dateInput(inputId = ns("date"),
+              label = "Date",
+              value = date_menu_choice,
+              min = "1982-01-01",
+              max = max(current_dates))
+    # NB: Unfortunately these date picker don't work with updates
+    # shinyWidgets::airDatepickerInput(
+    #   inputId = ns("date"),
+    #   label = "Date", autoClose = TRUE, position = "bottom right", 
+    #   update_on = 'close', addon = 'none', inline = FALSE, #width = "200px",
+    #   value = date_menu_choice, 
+    #   minDate = "1982-01-01", 
+    #   maxDate = max(current_dates)
+    # )
   })
   
   ### Observe the changing of dates in the animation slider
-  observe({
+  observeEvent(input$date_slider, {
     req(input$date_slider)
-    leafletProxy("map") %>% 
-      clearPopups()
     date <- as.Date(input$date_slider)
-    updateDateInput(session = session, inputId = "date",
-                    value = date
-    )
+    updateDateInput(session = session, 
+                    inputId = "date",
+                    value = date)
   })
   
   ### Query the HTML for possible startup values
-  date_menu_choice <- reactive({
-    query <- parseQueryString(session$clientData$url_search)
-    if (!is.null(query[['date']])) {
-      date_menu_choice <- as.Date(as.character(query[['date']]))
-    } else{
-      date_menu_choice <- max(current_dates)
-    }
-  })
-  
-  # observe({
+  # date_menu_choice <- reactive({
   #   query <- parseQueryString(session$clientData$url_search)
   #   if (!is.null(query[['date']])) {
   #     date_menu_choice <- as.Date(as.character(query[['date']]))
   #   } else{
   #     date_menu_choice <- max(current_dates)
-  #   }
-  #   if (!is.null(query[['lat']])) {
-  #     map_lat <- query[['lat']]
-  #   } else{
-  #     map_lat <- initial_lat
-  #   }
-  #   if (!is.null(query[['lon']])) {
-  #     map_lon <-  query[['lon']]
-  #   } else{
-  #     map_lon <- initial_lon
-  #   }
-  #   if (!is.null(query[['zoom']])) {
-  #     map_zoom <-  query[['zoom']]
-  #   } else{
-  #     map_zoom <- initial_zoom
   #   }
   # })
   
@@ -438,8 +415,9 @@ map <- function(input, output, session) {
     }
     
     # Update lon lat
-    updateNumericInput(session, "lon", value = round(xy_click[1], 2))
-    updateNumericInput(session, "lat", value = round(xy_click[2], 2))
+    # NB: This was used to re-centre the map on click, but has been removed as unecessary
+    # updateNumericInput(session, "lon", value = round(xy_click[1], 2))
+    # updateNumericInput(session, "lat", value = round(xy_click[2], 2))
     
     ### Add Popup to leaflet
     leafletProxy("map") %>%
@@ -454,49 +432,40 @@ map <- function(input, output, session) {
   ### The leaflet base
   output$map <- renderLeaflet({
     query <- parseQueryString(session$clientData$url_search)
-    if (!is.null(query[['lat']])) {
+    if(!is.null(query[['lat']])){
       map_lat <- query[['lat']]
-    } else{
+    } else {
       map_lat <- initial_lat
     }
-    if (!is.null(query[['lon']])) {
+    if(!is.null(query[['lon']])){
       map_lon <-  query[['lon']]
-    } else{
+    } else {
       map_lon <- initial_lon
     }
-    if (!is.null(query[['zoom']])) {
+    if(!is.null(query[['zoom']])){
       map_zoom <-  query[['zoom']]
-    } else{
+    } else {
       map_zoom <- initial_zoom
     }
     leaflet(data = MHW_cat_clim_sub, options = leafletOptions(zoomControl = FALSE)) %>%
       setView(lng = map_lon, lat = map_lat, zoom = map_zoom,
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) %>%
       addScaleBar(position = "bottomright")
-    # Extra stuff
-    # addWMSTiles(
-    #       "https://gis.ngdc.noaa.gov/arcgis/services/graticule/MapServer/WMSServer/",
-    #       layers = c("1-degree grid", "5-degree grid"),
-    #       options = WMSTileOptions(format = "image/png8", transparent = TRUE),
-    #       attribution = NULL) #%>%
-    # addEasyButton(easyButton(
-    #   icon="fa-crosshairs", title="Locate Me",
-    #   onClick=JS("function(btn, map){ map.locate({setView: true}); }"))) #%>% 
-    # addGraticule(group = "Graticule", interval = 1) %>%
-    # addLayersControl(overlayGroups = c("Graticule"),
-    #                  options = layersControlOptions(collapsed = FALSE, left = 20))
   })
   
   ### The raster layer
-  observe({
+  observeEvent(c(input$date,
+                 input$moderate_filter, input$strong_filter,
+                 input$severe_filter, input$extreme_filter), {
     leafletProxy("map") %>%
-      # clearImages() %>% 
-      clearPopups() %>%
+      clearImages() %>%
+      # clearPopups() %>%
       addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                      project = FALSE, opacity = 0.8)
   })
   
   ### Shift when new lon/lat/zoom are entered
+  # NB: No longer used
   # observeEvent(c(input$lon, input$lat, input$zoom), {
   #   leafletProxy("map") %>%
   #     setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
@@ -504,41 +473,50 @@ map <- function(input, output, session) {
   #   })
   
   ### Change map background
-  observe({
+  observeEvent(input$map_back, {
     if(input$map_back == "Grey"){
       leafletProxy("map") %>%
         clearTiles() %>% 
+        clearImages() %>% 
         addProviderTiles(providers$OpenStreetMap.BlackAndWhite,
                          options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-        clearPopups() %>%
+        # clearPopups() %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
     } else if(input$map_back == "Countries"){
       leafletProxy("map") %>%
         clearTiles() %>% 
+        clearImages() %>% 
         addProviderTiles(providers$Esri.WorldTopoMap,
                          options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-        clearPopups() %>%
+        # clearPopups() %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
     } else if(input$map_back == "Oceans"){
       leafletProxy("map") %>%
         clearTiles() %>% 
+        clearImages() %>% 
         addProviderTiles(providers$Esri.OceanBasemap,
                          options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-        clearPopups() %>%
+        # clearPopups() %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
     } else{
       leafletProxy("map") %>%
         clearTiles() %>% 
+        clearImages() %>% 
         addTiles(options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-        clearPopups() %>%
+        # clearPopups() %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
     }
   })
   
+  ### Observe when categories are filtered out
+  # observeEvent(c(input$moderate_filter, input$strong_filter,
+  #                input$severe_filter, input$extreme_filter) {
+  #   
+  # })
   
 # Figures/tables ----------------------------------------------------------
   
@@ -595,6 +573,7 @@ map <- function(input, output, session) {
           labs(x = "", y = "Temperature (°C)") +
           scale_x_date(expand = c(0, 0), limits = c(min(ts_data_sub$t), max(ts_data_sub$t)))
       )
+      
       # Create full figure
     } else {
       suppressWarnings( # Supress warning about ggplot not understanding the text aesthetic fed to plotly
@@ -675,7 +654,6 @@ map <- function(input, output, session) {
       filter(date_start >= input$from_to[1], date_start <= input$from_to[2])
     suppressWarnings( # Supress warning about ggplot not understanding the text aesthetic fed to plotly
     p <- ggplot(data = event_data_sub, aes(x = date_peak, y = intensity_max)) +
-      # heatwaveR::geom_lolli() +
       geom_segment(aes(xend = date_peak, yend = 0)) +
       geom_point(fill = "salmon", shape = 21, size = 4,
                  aes(text = paste0("Event: ",event_no,
@@ -691,7 +669,7 @@ map <- function(input, output, session) {
       scale_y_continuous(expand = c(0,0), limits = c(0, max(event_data_sub$intensity_max)*1.1)) +
       labs(x = "", y = "Max. Intensity (°C)")
     )
-    p
+    # p
     pp <- ggplotly(p, tooltip = "text", dynamicTicks = F)
     pp
   })
@@ -710,9 +688,6 @@ map <- function(input, output, session) {
                     'Mean Intensity' = intensity_mean,
                     'Max. Intensity' = intensity_max,
                     'Cum. Intensity' = intensity_cumulative)
-    # event_data_sub <- event_data %>%
-    #   filter(date_start >= input$from_to[1], date_start <= input$from_to[2])
-    # event_data$date_start <- strftime(event_data$date_start, format = "%H:%M %p")
   })
   
   
@@ -820,9 +795,10 @@ map <- function(input, output, session) {
                                      column(width = 4,
                                             dateRangeInput(
                                               inputId = ns("from_to"),
-                                              label = h3("Date range"), 
+                                              label = h3("Date range"),
                                               start = from_date, end = to_date,
                                               min = "1982-01-01", max = max(current_dates))),
+                                            # shinyWidgets::airDatepickerInput()),
                                      column(width = 8,
                                             h3("Downloads"),
                                             downloadButton(outputId = ns("download_clim"),
