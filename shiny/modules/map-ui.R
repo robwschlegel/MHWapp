@@ -40,13 +40,8 @@ mapUI <- function(id, label = 'map') {
                   # The date input box
                   h2("Controls"),
                   # hr(),
+                  # Date selector
                   uiOutput(outputId = ns("date_reactive")),
-                  ## NB: This date format would be ideal but it hangs on loading for some reason...
-                  # shinyWidgets::airDatepickerInput(
-                  #   inputId = "defaultValue",
-                  #   label = "With a default date:",
-                  #   value = Sys.Date()-7
-                  # ),
                   # Animation UI
                   shinyWidgets::materialSwitch(inputId = ns("check_animate"), 
                                                label = "Animate", status = "primary"),
@@ -61,7 +56,7 @@ mapUI <- function(id, label = 'map') {
                   ),
                   # numericInput(inputId = ns("zoom"), label = "Zoom", value = initial_zoom),
                   # The category filtering buttons
-                  h5("Categories"),
+                  # h5("Categories"),
                   uiOutput(outputId = ns("moderate")),
                   uiOutput(outputId = ns("strong")),
                   uiOutput(outputId = ns("severe")),

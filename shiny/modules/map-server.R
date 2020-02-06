@@ -16,8 +16,8 @@ map <- function(input, output, session) {
   
   ### The popup modal when starting the app
   ## Open on startup
-  shinyBS::toggleModal(session, modalId = ns("startupModal"), toggle = "open")
-  # shinyBS::toggleModal(session, "startupModal", "open")
+  # shinyBS::toggleModal(session, modalId = ns("startupModal"), toggle = "open")
+  shinyBS::toggleModal(session, "startupModal", "open")
   ## The content of the welcome window
   output$uiStartupModal <- renderUI({
     shinyBS::bsModal(ns('startupModal'), title = strong("Welcome to the Marine Heatwave Tracker!"), trigger = "click2", size = "m",
@@ -201,6 +201,8 @@ map <- function(input, output, session) {
     }
   })
   
+  
+  ### Reactive start date to catch HTNL queries
   output$date_reactive <- renderUI({
     query <- parseQueryString(session$clientData$url_search)
     if (!is.null(query[['date']])) {
@@ -208,11 +210,19 @@ map <- function(input, output, session) {
       } else{
         date_menu_choice <- max(current_dates)
       }
-    dateInput(inputId = ns("date"),
-              label = "Date",
-              value = date_menu_choice,
-              min = "1982-01-01",
-              max = max(current_dates))
+    # dateInput(inputId = ns("date"),
+    #           label = "Date",
+    #           value = date_menu_choice,
+    #           min = "1982-01-01",
+    #           max = max(current_dates))
+    shinyWidgets::airDatepickerInput(
+      inputId = ns("date"),
+      label = "Date", autoClose = TRUE, position = "bottom right", 
+      update_on = 'close', addon = 'none', inline = FALSE, #width = "200px",
+      value = date_menu_choice, 
+      minDate = "1982-01-01", 
+      maxDate = max(current_dates)
+    )
   })
   
   ### Observe the changing of dates in the animation slider
@@ -444,11 +454,6 @@ map <- function(input, output, session) {
   ### The leaflet base
   output$map <- renderLeaflet({
     query <- parseQueryString(session$clientData$url_search)
-    if (!is.null(query[['date']])) {
-      date_menu_choice <- as.Date(as.character(query[['date']]))
-    } else{
-      date_menu_choice <- max(current_dates)
-    }
     if (!is.null(query[['lat']])) {
       map_lat <- query[['lat']]
     } else{
@@ -504,7 +509,7 @@ map <- function(input, output, session) {
       leafletProxy("map") %>%
         clearTiles() %>% 
         addProviderTiles(providers$OpenStreetMap.BlackAndWhite,
-                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.4, noWrap = F)) %>%
+                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
         clearPopups() %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
@@ -512,7 +517,7 @@ map <- function(input, output, session) {
       leafletProxy("map") %>%
         clearTiles() %>% 
         addProviderTiles(providers$Esri.WorldTopoMap,
-                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.4, noWrap = F)) %>%
+                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
         clearPopups() %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
@@ -520,14 +525,14 @@ map <- function(input, output, session) {
       leafletProxy("map") %>%
         clearTiles() %>% 
         addProviderTiles(providers$Esri.OceanBasemap,
-                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.4, noWrap = F)) %>%
+                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
         clearPopups() %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
     } else{
       leafletProxy("map") %>%
         clearTiles() %>% 
-        addTiles(options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.4, noWrap = F)) %>%
+        addTiles(options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
         clearPopups() %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
