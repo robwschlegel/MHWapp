@@ -32,24 +32,16 @@ mapUI <- function(id, label = 'map') {
     absolutePanel(id = ns("controls"), class = "panel panel-default",
                   top = menu_panel_top, right = menu_panel_right, draggable = T, width = "150px",
                   
-                  # actionButton(ns("toggleText"), "Toggle text"),
-                  # textInput(ns('text'), 'Name', value = "Dean"),
-                  
                   # Controls header
                   # h2("Controls"),
-                  # actionButton("toggle", h2("Controls")),
-                  shinyWidgets::actionBttn(
-                    inputId = ns("toggle"),
-                    label = h3("Controls"), 
-                    style = "minimal",
-                    color = "royal"
-                  ),
+                  div(class = "controlsbutton",
+                      shinyWidgets::actionBttn(inputId = ns("toggle"), 
+                                               h3("Controls"),
+                                               style = "minimal", 
+                                               color = "primary", 
+                                               size = "sm", block = T)),
                   # Container that hides the controls
                   div(id = ns("control_menu"),
-                  # conditionalPanel(
-                    # condition = "input.toggle % 2 == 0",
-                    # "This text gets toggled on and off"
-                  # ),
                   # hr(),
                   # Date selector
                   h5(""),
@@ -57,8 +49,12 @@ mapUI <- function(id, label = 'map') {
                   # Animation UI
                   shinyWidgets::materialSwitch(inputId = ns("check_animate"), 
                                                label = "Animate", status = "primary"),
+                  # Map data download
+                  h5(""),
+                  uiOutput(outputId = ns("download_map_UI")),
                   # The category filtering buttons
                   # h5("Categories"),
+                  h5(""),
                   uiOutput(outputId = ns("moderate")),
                   uiOutput(outputId = ns("strong")),
                   uiOutput(outputId = ns("severe")),
@@ -67,11 +63,6 @@ mapUI <- function(id, label = 'map') {
                   # The time series button
                   h5(""),
                   uiOutput(outputId = ns("button_ts")),
-                  # hr(),
-                  # Map data download
-                  h5(""),
-                  downloadButton(outputId = ns("download_map"),
-                                 label = "Map data", class = 'small-dl'),
                   # hr(),
                   # The shiny server instance info
                   h5(paste0("Shiny server instance: ",Sys.getenv("R_SHNYSRVINST")))

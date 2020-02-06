@@ -81,6 +81,8 @@ label {
 
 .datepicker { z-index: 9999 !important; }
 
+.controlsbutton .bttn-primary{background-color: white; color: black;}
+
 /****************************************** leaflets **********************************/
 
 .leaflet {height: calc(100vh) !important;}

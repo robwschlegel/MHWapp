@@ -17,7 +17,7 @@ map <- function(input, output, session) {
   ### The popup modal when starting the app
   ## Open on startup
   # shinyBS::toggleModal(session, modalId = ns("startupModal"), toggle = "open")
-  # shinyBS::toggleModal(session, "startupModal", "open")
+  shinyBS::toggleModal(session, "startupModal", "open")
   ## The content of the welcome window
   output$uiStartupModal <- renderUI({
     shinyBS::bsModal(ns('startupModal'), title = strong("Welcome to the Marine Heatwave Tracker!"), trigger = "click2", size = "m",
@@ -39,7 +39,7 @@ map <- function(input, output, session) {
   })
   
   ### Switch the display of the controls on and off
-  observeEvent(input$toggle, shinyjs::toggle("control_menu", anim = TRUE, animType = "fade"))
+  observeEvent(input$toggle, shinyjs::toggle("control_menu", anim = TRUE))
   
   ### Reactive category filters
   categories <- reactiveValues(categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
@@ -216,7 +216,8 @@ map <- function(input, output, session) {
         date_menu_choice <- max(current_dates)
       }
     dateInput(inputId = ns("date"),
-              label = "Date",
+              # label = "Date",
+              label = NULL,
               value = date_menu_choice,
               min = "1982-01-01",
               max = max(current_dates))
@@ -240,16 +241,45 @@ map <- function(input, output, session) {
                     value = date)
   })
   
-  ### Query the HTML for possible startup values
-  # date_menu_choice <- reactive({
-  #   query <- parseQueryString(session$clientData$url_search)
-  #   if (!is.null(query[['date']])) {
-  #     date_menu_choice <- as.Date(as.character(query[['date']]))
-  #   } else{
-  #     date_menu_choice <- max(current_dates)
-  #   }
-  # })
+  ### Download map data interface
+  output$download_map_UI <- renderUI({
+    shinyWidgets::dropdownButton(
+      h3("Download"),
+      dateRangeInput(
+        inputId = ns("map_download_date"),
+        label = h5("Date range"),
+        start = input$date, end = input$date,
+        min = "1982-01-01", max = max(current_dates)),
+      fluidRow(
+        column(6,
+               # h5("Format"),
+               shinyWidgets::prettyRadioButtons(inputId = ns("map_download_type"),
+                                                label = h5("Format"),
+                                                # label = NULL,
+                                                inline = TRUE,
+                                                choiceNames = list(".csv", ".tif"),
+                                                choiceValues = list("csv", "geo_tiff"),
+                                                selected = "csv",
+                                                status = 'primary', shape = "curve", animation = "tada")
+               ),
+        column(6,
+               h5("Data"),
+               downloadButton(outputId = ns("download_map"),
+                              # label = h5("Data"),
+                              label = NULL,
+                              class = 'small-dl')
+               )
+        ),
+      circle = FALSE, status = "primary",
+      icon = icon("download"), width = "300px", right = TRUE, up = FALSE,
+      label = "Map data", tooltip = FALSE)
+  })
   
+  ### Disable map download button if dates are inccorect
+  observe({
+    shinyjs::toggleState(id = "download_map", 
+                         condition = input$map_download_date[1] <= input$map_download_date[2])
+  })
 
 # Map projection data -----------------------------------------------------
   
@@ -458,58 +488,44 @@ map <- function(input, output, session) {
       #                group = paste0("map_",map_num$map_num), project = FALSE, opacity = 0.8) %>% 
       addScaleBar(position = "bottomright")
   })
-  
-  ### Count the number of times a new map has been generated
-  map_num <- reactiveValues(map_num = 0)
-  
+
   ### The raster layer
   observeEvent(c(input$date,
                  input$moderate_filter, input$strong_filter,
                  input$severe_filter, input$extreme_filter), {
                    
-                   # update the map number
-                   map_num$map_num <- map_num$map_num+1
-                   
                    # Render new map
                    leafletProxy("map") %>%
-                     # clearImages() %>%
                      addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
-                                    group = paste0("map_",map_num$map_num-1), project = FALSE, opacity = 0.8) %>% 
-                     addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
-                                    group = paste0("map_",map_num$map_num), project = FALSE, opacity = 0.8) #%>% 
-                     # clearGroup(group = paste0("map_",map_num$map_num-1))
+                                    project = FALSE, opacity = 0.8)
   })
-  
-  ### Shift when new lon/lat/zoom are entered
-  # NB: No longer used
-  # observeEvent(c(input$lon, input$lat, input$zoom), {
-  #   leafletProxy("map") %>%
-  #     setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
-  #             options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F))
-  #   })
   
   ### Change map background
   observeEvent(input$map_back, {
     if(input$map_back == "Grey"){
       leafletProxy("map") %>%
+        clearTiles() %>% 
         addProviderTiles(providers$OpenStreetMap.BlackAndWhite,
                          options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
     } else if(input$map_back == "Countries"){
       leafletProxy("map") %>%
+        clearTiles() %>% 
         addProviderTiles(providers$Esri.WorldTopoMap,
                          options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
     } else if(input$map_back == "Oceans"){
       leafletProxy("map") %>%
+        clearTiles() %>% 
         addProviderTiles(providers$Esri.OceanBasemap,
                          options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
     } else{
       leafletProxy("map") %>%
+        clearTiles() %>% 
         addTiles(options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
@@ -523,6 +539,7 @@ map <- function(input, output, session) {
   tsPlot <- reactive({
     req(input$from_to[1])
     req(input$from_to[2])
+    
     # Get time series
     ts_data <- pixelData()$ts
     
@@ -797,7 +814,6 @@ map <- function(input, output, session) {
                                               label = h3("Date range"),
                                               start = from_date, end = to_date,
                                               min = "1982-01-01", max = max(current_dates))),
-                                            # shinyWidgets::airDatepickerInput()),
                                      column(width = 8,
                                             h3("Downloads"),
                                             downloadButton(outputId = ns("download_clim"),
@@ -861,13 +877,53 @@ map <- function(input, output, session) {
     }
   )
   
+  ### Prep map data
+  # Testing...
+  # date_filter_from <- as.Date("2019-06-01")
+  # date_filter_to <- as.Date("2019-06-07")
+  downloadMapData <- reactive({
+    req(lubridate::is.Date(input$map_download_date[1]))
+    req(lubridate::is.Date(input$map_download_date[2]))
+    if(lubridate::is.Date(input$map_download_date[1]) > lubridate::is.Date(input$map_download_date[2])){
+      map_data <- data.frame(t = NA, lon = NA, lat = NA,
+                             event_no = NA, intensity = NA, category = NA)
+      return(map_data)
+    }
+    # Check that date selection isn't wonky
+    date_filter_from <- as.Date(input$map_download_date[1])
+    date_filter_to <- as.Date(input$map_download_date[2])
+    date_seq <- seq(date_filter_from, date_filter_to, by = "day")
+    date_seq_years <- sapply(strsplit(as.character(date_seq), "-"), "[[", 1)
+    date_seq_files <- paste0("cat_clim/",date_seq_years,"/cat.clim.",date_seq,".Rda")
+    map_data <- plyr::ldply(date_seq_files, readRDS_date)
+    if(nrow(map_data) <= 1){
+      map_data <- data.frame(t = NA, lon = NA, lat = NA,
+                             event_no = NA, intensity = NA, category = NA)
+    }
+    if(input$map_download_type == "geo_tiff"){
+      suppressWarnings( # Missing pixels because not an even grid
+        map_data <- raster::stack(sp::SpatialPixelsDataFrame(points = map_data[c("lon", "lat")], 
+                                                             data = map_data, proj4string = raster::crs(inputProj)))
+      )
+    }
+    return(map_data)
+  })
+  
   ### Download map data
   output$download_map <- downloadHandler(
     filename = function() {
-      paste0("MHW_cat_",input$date,".csv")
+      if(input$map_download_type == "csv"){
+        paste0("MHW_map_data.csv")
+      } else if(input$map_download_type == "geo_tiff"){
+        paste0("MHW_map_data.tif")
+      }
     },
     content <- function(file) {
-      readr::write_csv(baseDataPre(), file)
+      if(input$map_download_type == "csv"){
+      readr::write_csv(downloadMapData(), file)
+      } else if(input$map_download_type == "geo_tiff"){
+        raster::writeRaster(downloadMapData(), file, overwrite = TRUE)
+      }
     }
   )
   
