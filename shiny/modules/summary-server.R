@@ -26,7 +26,6 @@ summary <- function(input, output, session) {
   output$annual_summary_dl <- downloadHandler(
     filename = function() {
       paste0("MHW_cat_summary_",input$summary_year,".png")
-      # paste0(pretty_label(), "_", gsub("-", "", as.character(input$from)), "_", gsub("-", "", as.character(input$to)), ".csv")
     },
     content <- function(file) {
       png::writePNG(png::readPNG(paste0("../figures/MHW_cat_summary_",input$summary_year,".png")), file, dpi = 300)

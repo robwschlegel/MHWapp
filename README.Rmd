@@ -5,6 +5,12 @@ This interactive map holds all of the MHWs detected in the NOAA OISST data from 
 
 # Updates
 
+* February 5th, 2020
+  * Users may now change the map background (provider tiles)
+  * Improved popups
+  * Added static plot and llolilot tabs to pixel plotting modal window
+  * Becoming increasingly mobile friendly
+
 * February 3rd, 2020
   * Added an animation menu and functionality
   * Added a summary tab that allows users to choose pre-rendered annual summaries and download the figures

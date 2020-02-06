@@ -1,5 +1,6 @@
 ui = tagList(shinyjs::useShinyjs(),  
              tags$head(includeCSS("style.css")),
+             # tags$style(".datepicker { z-index: 9999 !important; }"),
              # Loading message
              div(
                id = "loading-content",
