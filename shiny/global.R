@@ -71,6 +71,8 @@ menu_panel_right <- 10
 date_menu_choice <- max(current_dates)
 # sidepanel.width <- 400
 
+# input$date <- date_menu_choice
+
 ### The lon/lat steps
 # load("lon_OISST.RData")
 lon_OISST <- c(seq(0.125, 179.875, by = 0.25), seq(-179.875, -0.125, by = 0.25))
