@@ -38,6 +38,9 @@ map <- function(input, output, session) {
                           For more information please click on the <b>Summary</b> or <b>About</b> tabs."))
   })
   
+  ### Switch the display of the controls on and off
+  observeEvent(input$toggle, shinyjs::toggle("control_menu", anim = TRUE, animType = "fade"))
+  
   ### Reactive category filters
   categories <- reactiveValues(categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
   
@@ -512,11 +515,6 @@ map <- function(input, output, session) {
     }
   })
   
-  ### Observe when categories are filtered out
-  # observeEvent(c(input$moderate_filter, input$strong_filter,
-  #                input$severe_filter, input$extreme_filter) {
-  #   
-  # })
   
 # Figures/tables ----------------------------------------------------------
   

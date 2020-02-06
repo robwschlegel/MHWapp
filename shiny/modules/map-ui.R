@@ -7,11 +7,11 @@ mapUI <- function(id, label = 'map') {
   
     shinyWidgets::chooseSliderSkin(skin = 'Flat', color = "#ffc866"),
 
-    # The leaflet layer
+    ### The leaflet layer
     absolutePanel(top = 0, left = 0, right = 0, bottom = 0, height = 'auto',
                   leafletOutput(ns('map'))),
     
-    # The map background changing button
+    ### The map background changing button
     absolutePanel(id = ns("map_controls"), top = menu_panel_top, left = 10,
                   shinyWidgets::dropdownButton(
                     # tags$h3("Map backgrounds"),
@@ -27,22 +27,26 @@ mapUI <- function(id, label = 'map') {
                     label = "Click to choose map background", tooltip = TRUE)
                   ),
     
-    # The control panel
+    ### The control panel
     absolutePanel(id = ns("controls"), class = "panel panel-default",
                   top = menu_panel_top, right = menu_panel_right, draggable = T, width = "150px",
+                  
+                  # actionButton(ns("toggleText"), "Toggle text"),
+                  # textInput(ns('text'), 'Name', value = "Dean"),
                   
                   # Controls header
                   # h2("Controls"),
                   # actionButton("toggle", h2("Controls")),
                   shinyWidgets::actionBttn(
-                    inputId = "toggle",
+                    inputId = ns("toggle"),
                     label = h3("Controls"), 
                     style = "minimal",
-                    color = "primary"
+                    color = "royal"
                   ),
                   # Container that hides the controls
-                  conditionalPanel(
-                    condition = "input.toggle % 2 == 0",
+                  div(id = ns("control_menu"),
+                  # conditionalPanel(
+                    # condition = "input.toggle % 2 == 0",
                     # "This text gets toggled on and off"
                   # ),
                   # hr(),
@@ -72,13 +76,17 @@ mapUI <- function(id, label = 'map') {
                   h5(paste0("Shiny server instance: ",Sys.getenv("R_SHNYSRVINST")))
                   )
     ),
-    # The separate animation menu
+    
+    ### The separate animation menu
     uiOutput(ns('date_animator')),
-    # The welcome popup
+    
+    ### The welcome popup
     uiOutput(ns('uiStartupModal')),
-    # The interactive time series panel
+    
+    ### The interactive time series panel
     uiOutput(ns('uiModal'))
   )
 }
-# cat("\nmap_ui.R finished")
+
+#cat("\nmap_ui.R finished")
 
