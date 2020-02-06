@@ -68,10 +68,8 @@ initial_lon <- -60
 initial_zoom <- 4
 menu_panel_top <- 60
 menu_panel_right <- 10
-date_menu_choice <- max(current_dates)
+# date_menu_choice <- max(current_dates)
 # sidepanel.width <- 400
-
-# input$date <- date_menu_choice
 
 ### The lon/lat steps
 # load("lon_OISST.RData")

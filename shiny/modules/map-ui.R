@@ -2,7 +2,7 @@ mapUI <- function(id, label = 'map') {
   ns <- NS(id)
   
   fluidPage(
-  
+
     shinyjs::useShinyjs(),
   
     shinyWidgets::chooseSliderSkin(skin = 'Flat', color = "#ffc866"),
@@ -40,11 +40,7 @@ mapUI <- function(id, label = 'map') {
                   # The date input box
                   h2("Controls"),
                   # hr(),
-                  dateInput(inputId = ns("date"),
-                            label = "Date",
-                            value = date_menu_choice,
-                            min = "1982-01-01",
-                            max = date_menu_choice),
+                  uiOutput(outputId = ns("date_reactive")),
                   ## NB: This date format would be ideal but it hangs on loading for some reason...
                   # shinyWidgets::airDatepickerInput(
                   #   inputId = "defaultValue",

@@ -162,7 +162,7 @@ map <- function(input, output, session) {
       if (!is.null(query[['date']])) {
         date_anim_choice <- as.Date(as.character(query[['date']]))
       } else{
-        date_anim_choice <- date_menu_choice
+        date_anim_choice <- max(current_dates)
       }
       absolutePanel(id = ns("controls"), class = "panel panel-default", draggable = T, cursor = "move",
                     top = menu_panel_top, right = menu_panel_right+10+150, width = "350px",
@@ -175,7 +175,7 @@ map <- function(input, output, session) {
                                             start = date_anim_choice-7, 
                                             end = date_anim_choice, 
                                             min = "1982-01-01", 
-                                            max = date_menu_choice)),
+                                            max = max(current_dates))),
                       column(width = 4,
                              numericInput(inputId = ns("slider_time_step"),
                                           label = "Seconds", value = 3, min = 1, max = 30))
@@ -201,6 +201,20 @@ map <- function(input, output, session) {
     }
   })
   
+  output$date_reactive <- renderUI({
+    query <- parseQueryString(session$clientData$url_search)
+    if (!is.null(query[['date']])) {
+      date_menu_choice <- as.Date(as.character(query[['date']]))
+      } else{
+        date_menu_choice <- max(current_dates)
+      }
+    dateInput(inputId = ns("date"),
+              label = "Date",
+              value = date_menu_choice,
+              min = "1982-01-01",
+              max = max(current_dates))
+  })
+  
   ### Observe the changing of dates in the animation slider
   observe({
     req(input$date_slider)
@@ -212,24 +226,39 @@ map <- function(input, output, session) {
     )
   })
   
-  ### Observe the changing of date, lon, lat, zoom, in the URL
-  observe({
+  ### Query the HTML for possible startup values
+  date_menu_choice <- reactive({
     query <- parseQueryString(session$clientData$url_search)
     if (!is.null(query[['date']])) {
-      updateDateInput(session = session, 
-                      inputId = "date", 
-                      value = as.Date(as.character(query[['date']])))
-    }
-    if (!is.null(query[['lat']])) {
-      updateNumericInput(session, "lat", value = query[['lat']])
-    }
-    if (!is.null(query[['lon']])) {
-      updateNumericInput(session, "lon", value = query[['lon']])
-    }
-    if (!is.null(query[['zoom']])) {
-      updateNumericInput(session, "zoom", value = query[['zoom']])
+      date_menu_choice <- as.Date(as.character(query[['date']]))
+    } else{
+      date_menu_choice <- max(current_dates)
     }
   })
+  
+  # observe({
+  #   query <- parseQueryString(session$clientData$url_search)
+  #   if (!is.null(query[['date']])) {
+  #     date_menu_choice <- as.Date(as.character(query[['date']]))
+  #   } else{
+  #     date_menu_choice <- max(current_dates)
+  #   }
+  #   if (!is.null(query[['lat']])) {
+  #     map_lat <- query[['lat']]
+  #   } else{
+  #     map_lat <- initial_lat
+  #   }
+  #   if (!is.null(query[['lon']])) {
+  #     map_lon <-  query[['lon']]
+  #   } else{
+  #     map_lon <- initial_lon
+  #   }
+  #   if (!is.null(query[['zoom']])) {
+  #     map_zoom <-  query[['zoom']]
+  #   } else{
+  #     map_zoom <- initial_zoom
+  #   }
+  # })
   
 
 # Map projection data -----------------------------------------------------
@@ -415,6 +444,11 @@ map <- function(input, output, session) {
   ### The leaflet base
   output$map <- renderLeaflet({
     query <- parseQueryString(session$clientData$url_search)
+    if (!is.null(query[['date']])) {
+      date_menu_choice <- as.Date(as.character(query[['date']]))
+    } else{
+      date_menu_choice <- max(current_dates)
+    }
     if (!is.null(query[['lat']])) {
       map_lat <- query[['lat']]
     } else{
@@ -747,6 +781,7 @@ map <- function(input, output, session) {
   
   ### UI panel
   output$uiModal <- renderUI({
+    req(lubridate::is.Date(input$date))
     # To date
     to_date <- ifelse(lubridate::year(input$date) >= lubridate::year(max(current_dates)),
                       input$date, as.Date(paste0(lubridate::year(as.Date(input$date)),"-12-31")))
@@ -782,7 +817,7 @@ map <- function(input, output, session) {
                                               inputId = ns("from_to"),
                                               label = h3("Date range"), 
                                               start = from_date, end = to_date,
-                                              min = "1982-01-01", max = date_menu_choice)),
+                                              min = "1982-01-01", max = max(current_dates))),
                                      column(width = 8,
                                             h3("Downloads"),
                                             downloadButton(outputId = ns("download_clim"),
