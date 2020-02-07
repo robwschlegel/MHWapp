@@ -70,6 +70,14 @@ readRDS_date <- function(file_name){
 }
 
 
+
+# Shiny testing -----------------------------------------------------------
+
+# NB: This must be commented out unless being run explicitly
+# library(shinytest)
+# recordTest("shiny/")
+
+
 # Button testing ----------------------------------------------------------
 
 # NB: Currently this only works when run on a local machine without modules

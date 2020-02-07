@@ -144,11 +144,9 @@ aboutUI <- function(id, label = 'About') {
            br(),
            p("This app is visually heavy and so appears clumsy on a screen smaller than a laptop (e.g. cell phones or tablets).
              It has been optimised for use on mobile devices as much as is possible."),
-           p("Occasionally the marine heatwave polygons in the <b>Time series</b> view do not render correctly. 
+           p("Occasionally the marine heatwave polygons in the time series plots do not render correctly. 
              Changing the date selection will cause the figure to re-render correctly."),
            p("Very rarely when the app starts up no MHW pixels will be displayed. Refreshing the website will fix this."),
-           p("If one clicks on a pixel, and then filters out all four categories of MHWs, the app will crash.
-             Refreshing the website will fix this."),
            p("The map panel of the app may not render on a machine running on an Apple operating System. This is likely due to a 
              Javascript extension issue and is not caused by the MHW Tracker."),
            br(),
@@ -158,7 +156,7 @@ aboutUI <- function(id, label = 'About') {
            h2("How do I cite this app?"),
            br(),
            p("To cite the app itself please use:"),
-           p("Schlegel, R. W. (2018). Marine Heatwave Tracker: The app to see when and where marine heatwaves are happening around the world. 
+           p("Schlegel, R. W. (2018). Marine Heatwave Tracker: When and where marine heatwaves are happening around the world. 
              http://www.marineheatwaves.org/tracker"),
            br(),
            h2("Press release"),
@@ -170,8 +168,8 @@ aboutUI <- function(id, label = 'About') {
            br(),
            h2("References"),
            br(),
-           p("The marine heatwave data displayed in this app were calculated with the `heatwaveR` R package. To cite 
-             `heatwaveR` in publications use:"),
+           p("The marine heatwave data displayed in this app were calculated with the heatwaveR R package. To cite 
+             heatwaveR in publications please use:"),
            p("Schlegel, R. W., & Smit, A. J. (2018). heatwaveR: A central algorithm for the detection of heatwaves and cold-spells. 
              The Journal of Open Source Software, 3, 821."),
            br(),

@@ -5,9 +5,9 @@ map <- function(input, output, session) {
   # xy <- c(-42.125, 39.875)
   # x <- -42.125
   # y <- 39.875
-  # input <- data.frame(from_to = c(as.Date("2018-01-01"), 
+  # input <- data.frame(from_to = c(as.Date("2018-01-01"),
   #                                 as.Date("2018-12-31")),
-  #                     date = as.Date("2018-02-14"),
+  #                     date = as.Date("2018-02-14"))#,
   #                     # pixel = "Smooth")
   #                     #categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
   
@@ -23,17 +23,17 @@ map <- function(input, output, session) {
     shinyBS::bsModal(ns('startupModal'), title = strong("Welcome to the Marine Heatwave Tracker!"), trigger = "click2", size = "m",
                      HTML("This web application shows up to date information on where in the world marine heatwaves (MHWs) are occurring and what category they are.
                           <hr>
-                          All of the necessary <b>Controls</b> for this app may be found on the right of the screen.
+                          All of the <b>Controls</b> may be found to the right of the screen and can be minimised.
                           <hr>
                           Click in the <b>Date</b> box to choose a day to display on the map.
                           <hr>
                           Click on the <b>Animate</b> switch to bring up the animation options.
                           <hr>
-                          Clicking on the different <b>Categories</b> will filter those pixels from the map.
+                          Use the <b>Download</b> interface to get the global MHW category data. There is a 31 day size limit per download request.
+                          <hr>
+                          Clicking on the <b>Category</b> buttons will filter those pixels from the map.
                           <hr>
                           After clicking on a pixel of interest, click the <b>Plot pixel</b> button to see more.
-                          <hr>
-                          Use the <b>Download</b> interface to access the global MHW category data product.
                           <hr>
                           For more information please click on the <b>Summary</b> or <b>About</b> tabs."))
   })
@@ -248,7 +248,7 @@ map <- function(input, output, session) {
       dateRangeInput(
         inputId = ns("map_download_date"),
         label = h5("Date range"),
-        start = input$date, end = input$date,
+        start = max(current_dates), end = max(current_dates),
         min = "1982-01-01", max = max(current_dates)),
       fluidRow(
         column(6,
@@ -258,7 +258,7 @@ map <- function(input, output, session) {
                                                 # label = NULL,
                                                 inline = TRUE,
                                                 choiceNames = list(".csv", ".tif"),
-                                                choiceValues = list("csv", "geo_tiff"),
+                                                choiceValues = list("csv", "geotiff"),
                                                 selected = "csv",
                                                 status = 'primary', shape = "curve", animation = "tada")
                ),
@@ -276,11 +276,14 @@ map <- function(input, output, session) {
   })
   
   ### Disable map download button if dates are inccorect
+
   observe({
     shinyjs::toggleState(id = "download_map", 
-                         condition = input$map_download_date[1] <= input$map_download_date[2])
+                         condition = input$map_download_date[1] <= input$map_download_date[2] & (as.integer(input$map_download_date[2]) - as.integer(input$map_download_date[1])) <= 31) 
+
   })
 
+  
 # Map projection data -----------------------------------------------------
   
   ### Base map data before screening categories
@@ -303,7 +306,7 @@ map <- function(input, output, session) {
     baseDataPre <- baseDataPre()
     if(nrow(baseDataPre) > 1){
       baseData <- baseDataPre %>%
-        filter(category %in% categories$categories)
+        dplyr::filter(category %in% categories$categories)
     } else{
       baseData <- empty_date_map
     }
@@ -371,7 +374,7 @@ map <- function(input, output, session) {
       # Grab event data
       event_file <- dir("event", full.names = T)[which(lon_OISST == xy[1])]
       event_data <- readRDS(event_file) %>% 
-        filter(lat == xy[2]) %>%
+        dplyr::filter(lat == xy[2]) %>%
         mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
                date_peak = as.Date(date_peak, origin = "1970-01-01"),
                date_end = as.Date(date_end, origin = "1970-01-01"))
@@ -421,7 +424,7 @@ map <- function(input, output, session) {
       if(xy[2] >= 0) xy_lat <- paste0(abs(xy[2]),"°N")
       if(xy[2] < 0) xy_lat <- paste0(abs(xy[2]),"°S")
       val <- baseData %>% 
-        filter(lon == xy[1],
+        dplyr::filter(lon == xy[1],
                lat == xy[2]) %>% 
         select(category) %>% 
         as.numeric()
@@ -553,12 +556,12 @@ map <- function(input, output, session) {
     
     # Filter time series based on dates
     ts_data_sub <- ts_data %>%
-      filter(t >= input$from_to[1], t <= input$from_to[2])
+      dplyr::filter(t >= input$from_to[1], t <= input$from_to[2])
     
     # Event data prep
     event_data <- pixelData()$event
     event_data_sub <- event_data %>%
-      filter(date_start >= input$from_to[1], date_end <= input$from_to[2])
+      dplyr::filter(date_start >= input$from_to[1], date_end <= input$from_to[2])
     
     # The base
     suppressWarnings( # text aes for plotly
@@ -635,7 +638,7 @@ map <- function(input, output, session) {
     # Prep data
     event_data <- pixelData()$event
     event_data_sub <- event_data %>%
-      filter(date_start >= input$from_to[1], date_start <= input$from_to[2])
+      dplyr::filter(date_start >= input$from_to[1], date_start <= input$from_to[2])
     
     # Base figure
     if(length(event_data_sub$date_start) > 0){
@@ -666,7 +669,7 @@ map <- function(input, output, session) {
   ### Create data table
   tsTable <- reactive({
     event_data <- pixelData()$event %>% 
-      filter(date_start >= input$from_to[1], date_start <= input$from_to[2]) %>% 
+      dplyr::filter(date_start >= input$from_to[1], date_start <= input$from_to[2]) %>% 
       dplyr::rename(Lon = lon,
                     Lat = lat,
                     Event = event_no,
@@ -811,7 +814,7 @@ map <- function(input, output, session) {
       mutate(lon = lon,
              lat = lat) %>% 
       select(lon, lat, event_no, date_start, date_peak, date_end, everything()) #%>% 
-    # filter(date_start >= input$from_to[1], date_start <= input$from_to[2])
+    # dplyr::filter(date_start >= input$from_to[1], date_start <= input$from_to[2])
     return(data_sub)
   })
   
@@ -826,7 +829,7 @@ map <- function(input, output, session) {
       select(lon, lat, doy, seas, thresh) %>% 
       dplyr::distinct() %>% 
       arrange(doy)
-    # filter(date_start >= input$from_to[1], date_start <= input$from_to[2])
+    # dplyr::filter(date_start >= input$from_to[1], date_start <= input$from_to[2])
     return(data_sub)
   })
   
@@ -857,45 +860,86 @@ map <- function(input, output, session) {
   downloadMapData <- reactive({
     req(lubridate::is.Date(input$map_download_date[1]))
     req(lubridate::is.Date(input$map_download_date[2]))
-    if(lubridate::is.Date(input$map_download_date[1]) > lubridate::is.Date(input$map_download_date[2])){
-      map_data <- data.frame(t = NA, lon = NA, lat = NA,
-                             event_no = NA, intensity = NA, category = NA)
-      return(map_data)
-    }
-    # Check that date selection isn't wonky
     date_filter_from <- as.Date(input$map_download_date[1])
     date_filter_to <- as.Date(input$map_download_date[2])
     date_seq <- seq(date_filter_from, date_filter_to, by = "day")
     date_seq_years <- sapply(strsplit(as.character(date_seq), "-"), "[[", 1)
     date_seq_files <- paste0("cat_clim/",date_seq_years,"/cat.clim.",date_seq,".Rda")
-    map_data <- plyr::ldply(date_seq_files, readRDS_date)
-    if(nrow(map_data) <= 1){
-      map_data <- data.frame(t = NA, lon = NA, lat = NA,
-                             event_no = NA, intensity = NA, category = NA)
-    }
-    if(input$map_download_type == "geo_tiff"){
-      suppressWarnings( # Missing pixels because not an even grid
+    # if(input$map_download_type == "Rdata" | input$map_download_type == "csv"){
+      map_data <- plyr::ldply(date_seq_files, readRDS_date)
+    # } else if(input$map_download_type == "geotiff"){
+      if(input$map_download_type == "geotiff"){
+        
+        sp::coordinates(map_data) <- ~lon+lat
+        map_data <- split(map_data, map_data$t)
+        map_data <- raster::raster(map_data)
+        # sp::gridded(map_data) <- TRUE
+        # sp::CRS()
+      
+      # readRDS_raste <- function(file_name){
+        
+      }
+      
+      mydf <- structure(list(longitude = c(128.6979, 153.0046, 104.3261, 124.9019, 
+                                           126.7328, 153.2439, 142.8673, 152.689), 
+                             latitude = c(-7.4197, -4.7089, -6.7541, 4.7817, 2.1643, 
+                                          -5.65, 23.3882, -5.571)), 
+                        .Names = c("longitude", "latitude"), 
+                        class = "data.frame", row.names = c(NA, -8L))
+      
+      
+      ### Get long and lat from your data.frame. Make sure that the order is in lon/lat.
+      
+      xy <- mydf[,c(1,2)]
+      
+      spdf <- sp::SpatialPointsDataFrame(coords = xy, data = mydf,
+                                     proj4string = sp::CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+      
+      
+      
+      # Vector of dates
+      dates <- format(seq(as.Date('1999/1/11'), as.Date('2006/1/10'), by='month'), '%Y%m')
+      
+      # RasterStack with random data
+      s <- setNames(stack(replicate(length(dates), raster(matrix(runif(100), 10)))),
+                    paste0('rain', dates))
+      
+      # Create a SpatialPointsDataFrame with some random dates and coords
+      d <- data.frame(x=runif(10), y=runif(10), date=sample(dates, 10))
+      sp::coordinates(d) <- ~x+y
+      
+      # Split the spdf by date
+      d_by_date <- split(d, d$date)
+      
+      # suppressWarnings( # Missing pixels because not an even grid
         map_data <- raster::stack(sp::SpatialPixelsDataFrame(points = map_data[c("lon", "lat")], 
                                                              data = map_data, proj4string = raster::crs(inputProj)))
-      )
-    }
+      # )
+    # if(nrow(map_data) <= 1){
+    #   map_data <- data.frame(t = NA, lon = NA, lat = NA,
+    #                          event_no = NA, intensity = NA, category = NA)
+    # }
     return(map_data)
   })
   
   ### Download map data
   output$download_map <- downloadHandler(
     filename = function() {
-      if(input$map_download_type == "csv"){
+      if(input$map_download_type == "Rdata"){
+        paste0("MHW_map_data.Rdata")
+      } else if(input$map_download_type == "csv"){
         paste0("MHW_map_data.csv")
       } else if(input$map_download_type == "geo_tiff"){
         paste0("MHW_map_data.tif")
       }
     },
     content <- function(file) {
-      if(input$map_download_type == "csv"){
-      readr::write_csv(downloadMapData(), file)
+      if(input$map_download_type == "Rdata"){
+        save(downloadMapData(), file)
+      } else if(input$map_download_type == "csv"){
+        readr::write_csv(downloadMapData(), file)
       } else if(input$map_download_type == "geo_tiff"){
-        raster::writeRaster(downloadMapData(), file, overwrite = TRUE)
+        raster::writeRaster(downloadMapData(), file, overwrite = TRUE, bylayer = TRUE, format = 'GTiff')
       }
     }
   )
