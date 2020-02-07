@@ -22,7 +22,6 @@ mapUI <- function(id, label = 'map') {
                                                      choiceValues = list("Default", "Grey", "Land features", "Ocean features"),
                                                      selected = "Default",
                                                      status = 'primary', shape = "curve", animation = "tada"),
-
                     circle = TRUE, status = "primary",
                     icon = icon("map-marked"), width = "50px", right = FALSE, up = FALSE,
                     label = "Click to choose map background", tooltip = TRUE)
