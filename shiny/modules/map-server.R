@@ -5,10 +5,10 @@ map <- function(input, output, session) {
   # xy <- c(-42.125, 39.875)
   # x <- -42.125
   # y <- 39.875
-  # input <- data.frame(from = as.Date("2018-01-01"),
-  #                     to = as.Date("2018-12-31"),
+  # input <- data.frame(from_to = c(as.Date("2018-01-01"), 
+  #                                 as.Date("2018-12-31")),
   #                     date = as.Date("2018-02-14"),
-  #                     pixel = "Smooth")
+  #                     # pixel = "Smooth")
   #                     #categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
   
   
@@ -27,14 +27,19 @@ map <- function(input, output, session) {
                           <hr>
                           Click in the <b>Date</b> box to choose a day to display on the map.
                           <hr>
-                          Clicking on the different <b>Categories</b> will filter those pixels from the map.
-                          <hr>
                           Click on the <b>Animate</b> switch to bring up the animation options.
+                          <hr>
+                          Clicking on the different <b>Categories</b> will filter those pixels from the map.
                           <hr>
                           After clicking on a pixel of interest, click the <b>Plot pixel</b> button to see more.
                           <hr>
+                          Use the <b>Download</b> interface to access the global MHW category data product.
+                          <hr>
                           For more information please click on the <b>Summary</b> or <b>About</b> tabs."))
   })
+  
+  ### Switch the display of the controls on and off
+  observeEvent(input$toggle, shinyjs::toggle("control_menu", anim = TRUE))
   
   ### Reactive category filters
   categories <- reactiveValues(categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
@@ -163,6 +168,7 @@ map <- function(input, output, session) {
         date_anim_choice <- as.Date(as.character(query[['date']]))
       } else{
         date_anim_choice <- max(current_dates)
+        # date_anim_choice <- input$date
       }
       absolutePanel(id = ns("controls"), class = "panel panel-default", draggable = T, cursor = "move",
                     top = menu_panel_top, right = menu_panel_right+10+150, width = "350px",
@@ -201,8 +207,7 @@ map <- function(input, output, session) {
     }
   })
   
-  
-  ### Reactive start date to catch HTNL queries
+  ### Reactive start date to catch HTML queries
   output$date_reactive <- renderUI({
     query <- parseQueryString(session$clientData$url_search)
     if (!is.null(query[['date']])) {
@@ -210,66 +215,71 @@ map <- function(input, output, session) {
       } else{
         date_menu_choice <- max(current_dates)
       }
-    # dateInput(inputId = ns("date"),
-    #           label = "Date",
-    #           value = date_menu_choice,
-    #           min = "1982-01-01",
-    #           max = max(current_dates))
-    shinyWidgets::airDatepickerInput(
-      inputId = ns("date"),
-      label = "Date", autoClose = TRUE, position = "bottom right", 
-      update_on = 'close', addon = 'none', inline = FALSE, #width = "200px",
-      value = date_menu_choice, 
-      minDate = "1982-01-01", 
-      maxDate = max(current_dates)
-    )
+    dateInput(inputId = ns("date"),
+              # label = "Date",
+              label = NULL,
+              value = date_menu_choice,
+              min = "1982-01-01",
+              max = max(current_dates))
+    # NB: Unfortunately these date picker don't work with updates
+    # shinyWidgets::airDatepickerInput(
+    #   inputId = ns("date"),
+    #   label = "Date", autoClose = TRUE, position = "bottom right", 
+    #   update_on = 'close', addon = 'none', inline = FALSE, #width = "200px",
+    #   value = date_menu_choice, 
+    #   minDate = "1982-01-01", 
+    #   maxDate = max(current_dates)
+    # )
   })
   
   ### Observe the changing of dates in the animation slider
-  observe({
+  observeEvent(input$date_slider, {
     req(input$date_slider)
-    leafletProxy("map") %>% 
-      clearPopups()
     date <- as.Date(input$date_slider)
-    updateDateInput(session = session, inputId = "date",
-                    value = date
-    )
+    updateDateInput(session = session, 
+                    inputId = "date",
+                    value = date)
   })
   
-  ### Query the HTML for possible startup values
-  date_menu_choice <- reactive({
-    query <- parseQueryString(session$clientData$url_search)
-    if (!is.null(query[['date']])) {
-      date_menu_choice <- as.Date(as.character(query[['date']]))
-    } else{
-      date_menu_choice <- max(current_dates)
-    }
+  ### Download map data interface
+  output$download_map_UI <- renderUI({
+    shinyWidgets::dropdownButton(
+      h3("Download"),
+      dateRangeInput(
+        inputId = ns("map_download_date"),
+        label = h5("Date range"),
+        start = input$date, end = input$date,
+        min = "1982-01-01", max = max(current_dates)),
+      fluidRow(
+        column(6,
+               # h5("Format"),
+               shinyWidgets::prettyRadioButtons(inputId = ns("map_download_type"),
+                                                label = h5("Format"),
+                                                # label = NULL,
+                                                inline = TRUE,
+                                                choiceNames = list(".csv", ".tif"),
+                                                choiceValues = list("csv", "geo_tiff"),
+                                                selected = "csv",
+                                                status = 'primary', shape = "curve", animation = "tada")
+               ),
+        column(6,
+               h5("Data"),
+               downloadButton(outputId = ns("download_map"),
+                              # label = h5("Data"),
+                              label = NULL,
+                              class = 'small-dl')
+               )
+        ),
+      circle = FALSE, status = "primary",
+      icon = icon("download"), width = "300px", right = TRUE, up = FALSE,
+      label = "Map data", tooltip = FALSE)
   })
   
-  # observe({
-  #   query <- parseQueryString(session$clientData$url_search)
-  #   if (!is.null(query[['date']])) {
-  #     date_menu_choice <- as.Date(as.character(query[['date']]))
-  #   } else{
-  #     date_menu_choice <- max(current_dates)
-  #   }
-  #   if (!is.null(query[['lat']])) {
-  #     map_lat <- query[['lat']]
-  #   } else{
-  #     map_lat <- initial_lat
-  #   }
-  #   if (!is.null(query[['lon']])) {
-  #     map_lon <-  query[['lon']]
-  #   } else{
-  #     map_lon <- initial_lon
-  #   }
-  #   if (!is.null(query[['zoom']])) {
-  #     map_zoom <-  query[['zoom']]
-  #   } else{
-  #     map_zoom <- initial_zoom
-  #   }
-  # })
-  
+  ### Disable map download button if dates are inccorect
+  observe({
+    shinyjs::toggleState(id = "download_map", 
+                         condition = input$map_download_date[1] <= input$map_download_date[2])
+  })
 
 # Map projection data -----------------------------------------------------
   
@@ -386,7 +396,7 @@ map <- function(input, output, session) {
   # y <- 39.875
   
   ### Observer to show pop-ups on click
-  observeEvent(input$map_click, {
+  observeEvent(c(input$map_click, input$open_modal), {
     click <- input$map_click
     if(!is.null(click)){
       showpos(x = click$lng, y = click$lat)
@@ -403,7 +413,7 @@ map <- function(input, output, session) {
     # Translate Lon-Lat to cell number using the unprojected raster
     # This is because the projected raster is not in degrees
     cell <- raster::cellFromXY(rasterNonProj, c(xy_wrap))
-    #If the click is inside the raster...
+    # If the click is inside the raster...
     if(!is.na(cell)) {
       xy <- raster::xyFromCell(rasterNonProj, cell) # Get the center of the cell
       if(xy[1] >= 0) xy_lon <- paste0(abs(xy[1]),"°E")
@@ -437,10 +447,6 @@ map <- function(input, output, session) {
       content <- ""
     }
     
-    # Update lon lat
-    updateNumericInput(session, "lon", value = round(xy_click[1], 2))
-    updateNumericInput(session, "lat", value = round(xy_click[2], 2))
-    
     ### Add Popup to leaflet
     leafletProxy("map") %>%
       clearPopups() %>%
@@ -453,87 +459,68 @@ map <- function(input, output, session) {
   
   ### The leaflet base
   output$map <- renderLeaflet({
+    # Check HTML string for startup coords
     query <- parseQueryString(session$clientData$url_search)
-    if (!is.null(query[['lat']])) {
+    if(!is.null(query[['lat']])){
       map_lat <- query[['lat']]
-    } else{
+    } else {
       map_lat <- initial_lat
     }
-    if (!is.null(query[['lon']])) {
+    if(!is.null(query[['lon']])){
       map_lon <-  query[['lon']]
-    } else{
+    } else {
       map_lon <- initial_lon
     }
-    if (!is.null(query[['zoom']])) {
+    if(!is.null(query[['zoom']])){
       map_zoom <-  query[['zoom']]
-    } else{
+    } else {
       map_zoom <- initial_zoom
     }
+    # The base 
     leaflet(data = MHW_cat_clim_sub, options = leafletOptions(zoomControl = FALSE)) %>%
       setView(lng = map_lon, lat = map_lat, zoom = map_zoom,
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) %>%
       addScaleBar(position = "bottomright")
-    # Extra stuff
-    # addWMSTiles(
-    #       "https://gis.ngdc.noaa.gov/arcgis/services/graticule/MapServer/WMSServer/",
-    #       layers = c("1-degree grid", "5-degree grid"),
-    #       options = WMSTileOptions(format = "image/png8", transparent = TRUE),
-    #       attribution = NULL) #%>%
-    # addEasyButton(easyButton(
-    #   icon="fa-crosshairs", title="Locate Me",
-    #   onClick=JS("function(btn, map){ map.locate({setView: true}); }"))) #%>% 
-    # addGraticule(group = "Graticule", interval = 1) %>%
-    # addLayersControl(overlayGroups = c("Graticule"),
-    #                  options = layersControlOptions(collapsed = FALSE, left = 20))
   })
-  
+
   ### The raster layer
-  observe({
-    leafletProxy("map") %>%
-      # clearImages() %>% 
-      clearPopups() %>%
-      addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
-                     project = FALSE, opacity = 0.8)
+  observeEvent(c(input$date,
+                 input$moderate_filter, input$strong_filter,
+                 input$severe_filter, input$extreme_filter), {
+                   
+                   # Render new map
+                   leafletProxy("map") %>%
+                     addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
+                                    project = FALSE, opacity = 0.8)
   })
-  
-  ### Shift when new lon/lat/zoom are entered
-  # observeEvent(c(input$lon, input$lat, input$zoom), {
-  #   leafletProxy("map") %>%
-  #     setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
-  #             options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F))
-  #   })
   
   ### Change map background
-  observe({
+  observeEvent(input$map_back, {
     if(input$map_back == "Grey"){
       leafletProxy("map") %>%
         clearTiles() %>% 
         addProviderTiles(providers$OpenStreetMap.BlackAndWhite,
                          options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-        clearPopups() %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
-    } else if(input$map_back == "Countries"){
+    } else if(input$map_back == "Land features"){
       leafletProxy("map") %>%
         clearTiles() %>% 
         addProviderTiles(providers$Esri.WorldTopoMap,
                          options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-        clearPopups() %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
-    } else if(input$map_back == "Oceans"){
+    } else if(input$map_back == "Ocean features"){
       leafletProxy("map") %>%
         clearTiles() %>% 
         addProviderTiles(providers$Esri.OceanBasemap,
                          options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-        clearPopups() %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
     } else{
       leafletProxy("map") %>%
         clearTiles() %>% 
         addTiles(options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-        clearPopups() %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
     }
@@ -546,6 +533,7 @@ map <- function(input, output, session) {
   tsPlot <- reactive({
     req(input$from_to[1])
     req(input$from_to[2])
+    
     # Get time series
     ts_data <- pixelData()$ts
     
@@ -572,73 +560,57 @@ map <- function(input, output, session) {
     event_data_sub <- event_data %>%
       filter(date_start >= input$from_to[1], date_end <= input$from_to[2])
     
-    # Create figure with no flames or rug because no events are present
-    if(length(event_data_sub$date_start) == 0){
-      suppressWarnings(
-        p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
-          geom_segment(aes(x = input$date, 
-                           xend = input$date,
-                           y = min(ts_data_sub$temp), 
-                           yend = max(ts_data_sub$temp),
-                           text = "Date shown"), colour = "limegreen") +
-          geom_line(colour = "grey20",
-                    aes(group = 1, text = paste0("Date: ",t,
-                                                 "<br>Temperature: ",temp,"°C"))) +
-          geom_line(linetype = "dashed", colour = "steelblue3",
-                    aes(x = t, y = seas, group = 1,
-                        text = paste0("Date: ",t,
-                                      "<br>Climatology: ",seas,"°C"))) +
-          geom_line(linetype = "dotted", colour = "tomato3",
-                    aes(x = t, y = thresh, group = 1,
-                        text = paste0("Date: ",t,
-                                      "<br>Threshold: ",thresh,"°C"))) +
-          labs(x = "", y = "Temperature (°C)") +
-          scale_x_date(expand = c(0, 0), limits = c(min(ts_data_sub$t), max(ts_data_sub$t)))
+    # The base
+    suppressWarnings( # text aes for plotly
+      p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
+        geom_segment(aes(x = input$date[1], 
+                         xend = input$date[1],
+                         y = min(ts_data_sub$temp), 
+                         yend = max(ts_data_sub$temp),
+                         text = "Date shown"), colour = "limegreen") +
+        labs(x = "", y = "Temperature (°C)") +
+        scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(min(ts_data_sub$t), max(ts_data_sub$t))) 
       )
-      # Create full figure
-    } else {
-      suppressWarnings( # Supress warning about ggplot not understanding the text aesthetic fed to plotly
-        p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
-          geom_segment(aes(x = input$date, 
-                           xend = input$date,
-                           y = min(ts_data_sub$temp), 
-                           yend = max(ts_data_sub$temp),
-                           text = "Date shown"), colour = "limegreen") +
-          heatwaveR::geom_flame(aes(y2 = thresh), fill = "#ffc866", n = 5, n_gap = 2)
-      )
-      if(any(ts_data_sub$temp > ts_data_sub$thresh_2x)){
-        p <- p + heatwaveR::geom_flame(aes(y2 = thresh_2x), fill = "#ff6900")
+    # Add flame categories as needed
+    if(any(ts_data_sub$temp > ts_data_sub$thresh)){
+      p <- p + heatwaveR::geom_flame(aes(y2 = thresh), fill = "#ffc866", n = 5, n_gap = 2)
       }
-      if(any(ts_data_sub$temp > ts_data_sub$thresh_3x)){
-        p <- p + heatwaveR::geom_flame(aes(y2 = thresh_3x), fill = "#9e0000")
+    if(any(ts_data_sub$temp > ts_data_sub$thresh_2x)){
+      p <- p + heatwaveR::geom_flame(aes(y2 = thresh_2x), fill = "#ff6900")
       }
-      if(any(ts_data_sub$temp > ts_data_sub$thresh_4x)){
-        p <- p + heatwaveR::geom_flame(aes(y2 = thresh_4x), fill = "#2d0000")
+    if(any(ts_data_sub$temp > ts_data_sub$thresh_3x)){
+      p <- p + heatwaveR::geom_flame(aes(y2 = thresh_3x), fill = "#9e0000")
       }
-      suppressWarnings( # Supress warning about ggplot not understanding the text aesthetic fed to plotly
-        p <- p + geom_line(colour = "grey20",
-                           aes(group = 1, text = paste0("Date: ",t,
-                                                        "<br>Temperature: ",temp,"°C"))) +
-          geom_line(linetype = "dashed", colour = "steelblue3",
-                    aes(x = t, y = seas, group = 1,
-                        text = paste0("Date: ",t,
-                                      "<br>Climatology: ",seas,"°C"))) +
-          geom_line(linetype = "dotted", colour = "tomato3",
-                    aes(x = t, y = thresh, group = 1,
-                        text = paste0("Date: ",t,
-                                      "<br>Threshold: ",thresh,"°C"))) +
-          geom_rug(data = event_data_sub, sides = "b", colour = "salmon", size = 2,
-                   aes(x = date_peak, y = min(ts_data_sub$temp),
-                       text = paste0("Event: ",event_no,
-                                     "<br>Duration: ",duration," days",
-                                     "<br>Start Date: ", date_start,
-                                     "<br>Peak Date: ", date_peak,
-                                     "<br>End Date: ", date_end,
-                                     "<br>Mean Intensity: ",intensity_mean,"°C",
-                                     "<br>Max. Intensity: ",intensity_max,"°C",
-                                     "<br>Cum. Intensity: ",intensity_cumulative,"°C"))) +
-          labs(x = "", y = "Temperature (°C)") +
-          scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(min(ts_data_sub$t), max(ts_data_sub$t))) 
+    if(any(ts_data_sub$temp > ts_data_sub$thresh_4x)){
+      p <- p + heatwaveR::geom_flame(aes(y2 = thresh_4x), fill = "#2d0000")
+    }
+    # Add SST, seas, clim lines
+    suppressWarnings( # text aes pltoly
+      p <- p + geom_line(colour = "grey20",
+                         aes(group = 1, text = paste0("Date: ",t,
+                                                      "<br>Temperature: ",temp,"°C"))) +
+        geom_line(linetype = "dashed", colour = "steelblue3",
+                  aes(x = t, y = seas, group = 1,
+                      text = paste0("Date: ",t,
+                                    "<br>Climatology: ",seas,"°C"))) +
+        geom_line(linetype = "dotted", colour = "tomato3",
+                  aes(x = t, y = thresh, group = 1,
+                      text = paste0("Date: ",t,
+                                    "<br>Threshold: ",thresh,"°C")))
+    )
+    # Add rug as needed
+    if(length(event_data_sub$date_start) > 0){
+      suppressWarnings( # text aes pltoly
+      p <- p + geom_rug(data = event_data_sub, sides = "b", colour = "salmon", size = 2,
+                        aes(x = date_peak, y = min(ts_data_sub$temp),
+                            text = paste0("Event: ",event_no,
+                                          "<br>Duration: ",duration," days",
+                                          "<br>Start Date: ", date_start,
+                                          "<br>Peak Date: ", date_peak,
+                                          "<br>End Date: ", date_end,
+                                          "<br>Mean Intensity: ",intensity_mean,"°C",
+                                          "<br>Max. Intensity: ",intensity_max,"°C",
+                                          "<br>Cum. Intensity: ",intensity_cumulative,"°C")))
       )
     }
     p
@@ -653,45 +625,40 @@ map <- function(input, output, session) {
     # Convert to plotly
     # NB: Setting dynamicTicks = T causes the flames to be rendered incorrectly
     pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) %>% 
-      layout(hovermode = 'compare') #%>% 
-    # style(traces = 2, hoverlabel = list(bgcolor = "grey10"))# %>% 
-    # style(traces = 3, hoverlabel = list(bgcolor = "tomato2")) %>% 
-    # style(traces = 4, hoverlabel = list(bgcolor = "red2"))
+      layout(hovermode = 'compare') 
     pp
-    # rangeslider(pp, start = ts_data_sub$t[1],
-    #             end = ts_data_sub$t[100])
-    # rangeslider(pp, start = as.Date("2017-01-01"),
-    #             end = as.Date("2017-12-31"))
-    # rangeslider(pp, start = as.numeric(as.Date(paste0(lubridate::year(as.Date(input$date)),"-01-01"))),
-    #             end = as.numeric(as.Date(paste0(lubridate::year(as.Date(input$date)),"-12-31"))))
-    # rangeslider(pp, start = as.integer(as.Date(paste0(lubridate::year(as.Date(input$date)),"-01-01"))), 
-    #             end = as.integer(as.Date(paste0(lubridate::year(as.Date(input$date)),"-12-31"))))
   })
   
   ### Create lolliplot
   lolliPlot <- reactive({
+    
+    # Prep data
     event_data <- pixelData()$event
     event_data_sub <- event_data %>%
       filter(date_start >= input$from_to[1], date_start <= input$from_to[2])
-    suppressWarnings( # Supress warning about ggplot not understanding the text aesthetic fed to plotly
-    p <- ggplot(data = event_data_sub, aes(x = date_peak, y = intensity_max)) +
-      # heatwaveR::geom_lolli() +
-      geom_segment(aes(xend = date_peak, yend = 0)) +
-      geom_point(fill = "salmon", shape = 21, size = 4,
-                 aes(text = paste0("Event: ",event_no,
-                            "<br>Duration: ",duration," days",
-                            "<br>Start Date: ", date_start,
-                            "<br>Peak Date: ", date_peak,
-                            "<br>End Date: ", date_end,
-                            "<br>Mean Intensity: ",intensity_mean,"°C",
-                            "<br>Max. Intensity: ",intensity_max,"°C",
-                            "<br>Cum. Intensity: ",intensity_cumulative,"°C"))) +
-      scale_x_date(date_labels = "%b %Y",
-                   limits = c(min(event_data_sub$date_peak)-1, max(event_data_sub$date_peak)+1)) +
-      scale_y_continuous(expand = c(0,0), limits = c(0, max(event_data_sub$intensity_max)*1.1)) +
-      labs(x = "", y = "Max. Intensity (°C)")
-    )
-    p
+    
+    # Base figure
+    if(length(event_data_sub$date_start) > 0){
+      suppressWarnings(
+        p <- ggplot(data = event_data_sub, aes(x = date_peak, y = intensity_max)) +
+          geom_segment(aes(xend = date_peak, yend = 0)) +
+          geom_point(fill = "salmon", shape = 21, size = 4,
+                     aes(text = paste0("Event: ",event_no,
+                                       "<br>Duration: ",duration," days",
+                                       "<br>Start Date: ", date_start,
+                                       "<br>Peak Date: ", date_peak,
+                                       "<br>End Date: ", date_end,
+                                       "<br>Mean Intensity: ",intensity_mean,"°C",
+                                       "<br>Max. Intensity: ",intensity_max,"°C",
+                                       "<br>Cum. Intensity: ",intensity_cumulative,"°C"))) +
+          scale_x_date(date_labels = "%b %Y",
+                       limits = c(min(event_data_sub$date_peak)-1, max(event_data_sub$date_peak)+1)) +
+          scale_y_continuous(expand = c(0,0), limits = c(0, max(event_data_sub$intensity_max)*1.1)) +
+          labs(x = "", y = "Max. Intensity (°C)")
+      )
+    } else{
+      p <- ggplot() + labs(x = "", y = "Max. Intensity (°C)")
+    }
     pp <- ggplotly(p, tooltip = "text", dynamicTicks = F)
     pp
   })
@@ -710,9 +677,6 @@ map <- function(input, output, session) {
                     'Mean Intensity' = intensity_mean,
                     'Max. Intensity' = intensity_max,
                     'Cum. Intensity' = intensity_cumulative)
-    # event_data_sub <- event_data %>%
-    #   filter(date_start >= input$from_to[1], date_start <= input$from_to[2])
-    # event_data$date_start <- strftime(event_data$date_start, format = "%H:%M %p")
   })
   
   
@@ -820,7 +784,7 @@ map <- function(input, output, session) {
                                      column(width = 4,
                                             dateRangeInput(
                                               inputId = ns("from_to"),
-                                              label = h3("Date range"), 
+                                              label = h3("Date range"),
                                               start = from_date, end = to_date,
                                               min = "1982-01-01", max = max(current_dates))),
                                      column(width = 8,
@@ -886,13 +850,53 @@ map <- function(input, output, session) {
     }
   )
   
+  ### Prep map data
+  # Testing...
+  # date_filter_from <- as.Date("2019-06-01")
+  # date_filter_to <- as.Date("2019-06-07")
+  downloadMapData <- reactive({
+    req(lubridate::is.Date(input$map_download_date[1]))
+    req(lubridate::is.Date(input$map_download_date[2]))
+    if(lubridate::is.Date(input$map_download_date[1]) > lubridate::is.Date(input$map_download_date[2])){
+      map_data <- data.frame(t = NA, lon = NA, lat = NA,
+                             event_no = NA, intensity = NA, category = NA)
+      return(map_data)
+    }
+    # Check that date selection isn't wonky
+    date_filter_from <- as.Date(input$map_download_date[1])
+    date_filter_to <- as.Date(input$map_download_date[2])
+    date_seq <- seq(date_filter_from, date_filter_to, by = "day")
+    date_seq_years <- sapply(strsplit(as.character(date_seq), "-"), "[[", 1)
+    date_seq_files <- paste0("cat_clim/",date_seq_years,"/cat.clim.",date_seq,".Rda")
+    map_data <- plyr::ldply(date_seq_files, readRDS_date)
+    if(nrow(map_data) <= 1){
+      map_data <- data.frame(t = NA, lon = NA, lat = NA,
+                             event_no = NA, intensity = NA, category = NA)
+    }
+    if(input$map_download_type == "geo_tiff"){
+      suppressWarnings( # Missing pixels because not an even grid
+        map_data <- raster::stack(sp::SpatialPixelsDataFrame(points = map_data[c("lon", "lat")], 
+                                                             data = map_data, proj4string = raster::crs(inputProj)))
+      )
+    }
+    return(map_data)
+  })
+  
   ### Download map data
   output$download_map <- downloadHandler(
     filename = function() {
-      paste0("MHW_cat_",input$date,".csv")
+      if(input$map_download_type == "csv"){
+        paste0("MHW_map_data.csv")
+      } else if(input$map_download_type == "geo_tiff"){
+        paste0("MHW_map_data.tif")
+      }
     },
     content <- function(file) {
-      readr::write_csv(baseDataPre(), file)
+      if(input$map_download_type == "csv"){
+      readr::write_csv(downloadMapData(), file)
+      } else if(input$map_download_type == "geo_tiff"){
+        raster::writeRaster(downloadMapData(), file, overwrite = TRUE)
+      }
     }
   )
   

@@ -1,4 +1,9 @@
-# Function that loads and merges sst/seas/thresh for a given lon/lat
+# MHWapp/shiny/functions.R
+# This script houses non-reactive functions used in the shiny app
+
+
+# Merge sst/seas/thresh for a given lon/lat -------------------------------
+
 # testers...
 # lon_step <- lon_OISST[721]
 # lon_step <- lat_OISST[132]
@@ -53,6 +58,16 @@ lon_wrap <- function(xy){
   return(xy)
 }
 
+
+# Load MHW cat file and include the date ----------------------------------
+
+readRDS_date <- function(file_name){
+  file_date <- sapply(strsplit(file_name, "/"), "[[", 3)
+  file_date <- as.Date(sapply(strsplit(file_date, "[.]"), "[[", 3))
+  res <- readRDS(file_name) %>% 
+    mutate(t = file_date) %>% 
+    dplyr::select(t, lon, lat, everything())
+}
 
 
 # Button testing ----------------------------------------------------------
