@@ -62,10 +62,10 @@ mapUI <- function(id, label = 'map') {
                   # hr(),
                   # The time series button
                   h5(""),
-                  uiOutput(outputId = ns("button_ts")),
+                  uiOutput(outputId = ns("button_ts"))#,
                   # hr(),
                   # The shiny server instance info
-                  h5(paste0("Shiny server instance: ",Sys.getenv("R_SHNYSRVINST")))
+                  # h5(paste0("Instance: ",Sys.getenv("R_SHNYSRVINST")))
                   )
     ),
     
