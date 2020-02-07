@@ -16,7 +16,7 @@ map <- function(input, output, session) {
   
   ### The popup modal when starting the app
   # Open on startup
-  shinyBS::toggleModal(session, "startupModal", "open")
+  # shinyBS::toggleModal(session, "startupModal", "open")
   # The content of the welcome window
   output$uiStartupModal <- renderUI({
     shinyBS::bsModal(ns('startupModal'), title = strong("Welcome to the Marine Heatwave Tracker!"), trigger = "click2", size = "m",
@@ -178,7 +178,7 @@ map <- function(input, output, session) {
                                             start = date_anim_choice-7, 
                                             end = date_anim_choice, 
                                             min = "1982-01-01", 
-                                            max = max(current_dates))),
+                                            max = max(current_dates)))
                       # NB: Disabled the seconds choice as it was confusing
                       # column(width = 4,
                       #        numericInput(inputId = ns("slider_time_step"),
