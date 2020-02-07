@@ -18,8 +18,8 @@ mapUI <- function(id, label = 'map') {
                   shinyWidgets::dropdownButton(
                     shinyWidgets::prettyRadioButtons(inputId = ns("map_back"),
                                                      label = h3("Background"),
-                                                     choiceNames = list("Default", "Grey", "Countries", "Oceans"),
-                                                     choiceValues = list("Default", "Grey", "Countries", "Oceans"),
+                                                     choiceNames = list("Default", "Grey", "Land features", "Ocean features"),
+                                                     choiceValues = list("Default", "Grey", "Land features", "Oceans features"),
                                                      selected = "Default",
                                                      status = 'primary', shape = "curve", animation = "tada"),
 

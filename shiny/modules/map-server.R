@@ -5,10 +5,10 @@ map <- function(input, output, session) {
   # xy <- c(-42.125, 39.875)
   # x <- -42.125
   # y <- 39.875
-  # input <- data.frame(from = as.Date("2018-01-01"),
-  #                     to = as.Date("2018-12-31"),
+  # input <- data.frame(from_to = c(as.Date("2018-01-01"), 
+  #                                 as.Date("2018-12-31")),
   #                     date = as.Date("2018-02-14"),
-  #                     pixel = "Smooth")
+  #                     # pixel = "Smooth")
   #                     #categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
   
   
@@ -17,7 +17,7 @@ map <- function(input, output, session) {
   ### The popup modal when starting the app
   ## Open on startup
   # shinyBS::toggleModal(session, modalId = ns("startupModal"), toggle = "open")
-  shinyBS::toggleModal(session, "startupModal", "open")
+  # shinyBS::toggleModal(session, "startupModal", "open")
   ## The content of the welcome window
   output$uiStartupModal <- renderUI({
     shinyBS::bsModal(ns('startupModal'), title = strong("Welcome to the Marine Heatwave Tracker!"), trigger = "click2", size = "m",
@@ -396,7 +396,7 @@ map <- function(input, output, session) {
   # y <- 39.875
   
   ### Observer to show pop-ups on click
-  observeEvent(input$map_click, {
+  observeEvent(c(input$map_click, input$open_modal), {
     click <- input$map_click
     if(!is.null(click)){
       showpos(x = click$lng, y = click$lat)
@@ -413,7 +413,7 @@ map <- function(input, output, session) {
     # Translate Lon-Lat to cell number using the unprojected raster
     # This is because the projected raster is not in degrees
     cell <- raster::cellFromXY(rasterNonProj, c(xy_wrap))
-    #If the click is inside the raster...
+    # If the click is inside the raster...
     if(!is.na(cell)) {
       xy <- raster::xyFromCell(rasterNonProj, cell) # Get the center of the cell
       if(xy[1] >= 0) xy_lon <- paste0(abs(xy[1]),"°E")
@@ -447,11 +447,6 @@ map <- function(input, output, session) {
       content <- ""
     }
     
-    # Update lon lat
-    # NB: This was used to re-centre the map on click, but has been removed as unecessary
-    # updateNumericInput(session, "lon", value = round(xy_click[1], 2))
-    # updateNumericInput(session, "lat", value = round(xy_click[2], 2))
-    
     ### Add Popup to leaflet
     leafletProxy("map") %>%
       clearPopups() %>%
@@ -464,6 +459,7 @@ map <- function(input, output, session) {
   
   ### The leaflet base
   output$map <- renderLeaflet({
+    # Check HTML string for startup coords
     query <- parseQueryString(session$clientData$url_search)
     if(!is.null(query[['lat']])){
       map_lat <- query[['lat']]
@@ -480,12 +476,10 @@ map <- function(input, output, session) {
     } else {
       map_zoom <- initial_zoom
     }
+    # The base 
     leaflet(data = MHW_cat_clim_sub, options = leafletOptions(zoomControl = FALSE)) %>%
       setView(lng = map_lon, lat = map_lat, zoom = map_zoom,
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) %>%
-      # addTiles(options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>% 
-      # addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
-      #                group = paste0("map_",map_num$map_num), project = FALSE, opacity = 0.8) %>% 
       addScaleBar(position = "bottomright")
   })
 
@@ -509,14 +503,14 @@ map <- function(input, output, session) {
                          options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
-    } else if(input$map_back == "Countries"){
+    } else if(input$map_back == "Land features"){
       leafletProxy("map") %>%
         clearTiles() %>% 
         addProviderTiles(providers$Esri.WorldTopoMap,
                          options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
         addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
-    } else if(input$map_back == "Oceans"){
+    } else if(input$map_back == "Ocean features"){
       leafletProxy("map") %>%
         clearTiles() %>% 
         addProviderTiles(providers$Esri.OceanBasemap,
@@ -566,74 +560,57 @@ map <- function(input, output, session) {
     event_data_sub <- event_data %>%
       filter(date_start >= input$from_to[1], date_end <= input$from_to[2])
     
-    # Create figure with no flames or rug because no events are present
-    if(length(event_data_sub$date_start) == 0){
-      suppressWarnings(
-        p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
-          geom_segment(aes(x = input$date, 
-                           xend = input$date,
-                           y = min(ts_data_sub$temp), 
-                           yend = max(ts_data_sub$temp),
-                           text = "Date shown"), colour = "limegreen") +
-          geom_line(colour = "grey20",
-                    aes(group = 1, text = paste0("Date: ",t,
-                                                 "<br>Temperature: ",temp,"°C"))) +
-          geom_line(linetype = "dashed", colour = "steelblue3",
-                    aes(x = t, y = seas, group = 1,
-                        text = paste0("Date: ",t,
-                                      "<br>Climatology: ",seas,"°C"))) +
-          geom_line(linetype = "dotted", colour = "tomato3",
-                    aes(x = t, y = thresh, group = 1,
-                        text = paste0("Date: ",t,
-                                      "<br>Threshold: ",thresh,"°C"))) +
-          labs(x = "", y = "Temperature (°C)") +
-          scale_x_date(expand = c(0, 0), limits = c(min(ts_data_sub$t), max(ts_data_sub$t)))
+    # The base
+    suppressWarnings( # text aes for plotly
+      p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
+        geom_segment(aes(x = input$date[1], 
+                         xend = input$date[1],
+                         y = min(ts_data_sub$temp), 
+                         yend = max(ts_data_sub$temp),
+                         text = "Date shown"), colour = "limegreen") +
+        labs(x = "", y = "Temperature (°C)") +
+        scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(min(ts_data_sub$t), max(ts_data_sub$t))) 
       )
-      
-      # Create full figure
-    } else {
-      suppressWarnings( # Supress warning about ggplot not understanding the text aesthetic fed to plotly
-        p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
-          geom_segment(aes(x = input$date, 
-                           xend = input$date,
-                           y = min(ts_data_sub$temp), 
-                           yend = max(ts_data_sub$temp),
-                           text = "Date shown"), colour = "limegreen") +
-          heatwaveR::geom_flame(aes(y2 = thresh), fill = "#ffc866", n = 5, n_gap = 2)
-      )
-      if(any(ts_data_sub$temp > ts_data_sub$thresh_2x)){
-        p <- p + heatwaveR::geom_flame(aes(y2 = thresh_2x), fill = "#ff6900")
+    # Add flame categories as needed
+    if(any(ts_data_sub$temp > ts_data_sub$thresh)){
+      p <- p + heatwaveR::geom_flame(aes(y2 = thresh), fill = "#ffc866", n = 5, n_gap = 2)
       }
-      if(any(ts_data_sub$temp > ts_data_sub$thresh_3x)){
-        p <- p + heatwaveR::geom_flame(aes(y2 = thresh_3x), fill = "#9e0000")
+    if(any(ts_data_sub$temp > ts_data_sub$thresh_2x)){
+      p <- p + heatwaveR::geom_flame(aes(y2 = thresh_2x), fill = "#ff6900")
       }
-      if(any(ts_data_sub$temp > ts_data_sub$thresh_4x)){
-        p <- p + heatwaveR::geom_flame(aes(y2 = thresh_4x), fill = "#2d0000")
+    if(any(ts_data_sub$temp > ts_data_sub$thresh_3x)){
+      p <- p + heatwaveR::geom_flame(aes(y2 = thresh_3x), fill = "#9e0000")
       }
-      suppressWarnings( # Supress warning about ggplot not understanding the text aesthetic fed to plotly
-        p <- p + geom_line(colour = "grey20",
-                           aes(group = 1, text = paste0("Date: ",t,
-                                                        "<br>Temperature: ",temp,"°C"))) +
-          geom_line(linetype = "dashed", colour = "steelblue3",
-                    aes(x = t, y = seas, group = 1,
-                        text = paste0("Date: ",t,
-                                      "<br>Climatology: ",seas,"°C"))) +
-          geom_line(linetype = "dotted", colour = "tomato3",
-                    aes(x = t, y = thresh, group = 1,
-                        text = paste0("Date: ",t,
-                                      "<br>Threshold: ",thresh,"°C"))) +
-          geom_rug(data = event_data_sub, sides = "b", colour = "salmon", size = 2,
-                   aes(x = date_peak, y = min(ts_data_sub$temp),
-                       text = paste0("Event: ",event_no,
-                                     "<br>Duration: ",duration," days",
-                                     "<br>Start Date: ", date_start,
-                                     "<br>Peak Date: ", date_peak,
-                                     "<br>End Date: ", date_end,
-                                     "<br>Mean Intensity: ",intensity_mean,"°C",
-                                     "<br>Max. Intensity: ",intensity_max,"°C",
-                                     "<br>Cum. Intensity: ",intensity_cumulative,"°C"))) +
-          labs(x = "", y = "Temperature (°C)") +
-          scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(min(ts_data_sub$t), max(ts_data_sub$t))) 
+    if(any(ts_data_sub$temp > ts_data_sub$thresh_4x)){
+      p <- p + heatwaveR::geom_flame(aes(y2 = thresh_4x), fill = "#2d0000")
+    }
+    # Add SST, seas, clim lines
+    suppressWarnings( # text aes pltoly
+      p <- p + geom_line(colour = "grey20",
+                         aes(group = 1, text = paste0("Date: ",t,
+                                                      "<br>Temperature: ",temp,"°C"))) +
+        geom_line(linetype = "dashed", colour = "steelblue3",
+                  aes(x = t, y = seas, group = 1,
+                      text = paste0("Date: ",t,
+                                    "<br>Climatology: ",seas,"°C"))) +
+        geom_line(linetype = "dotted", colour = "tomato3",
+                  aes(x = t, y = thresh, group = 1,
+                      text = paste0("Date: ",t,
+                                    "<br>Threshold: ",thresh,"°C")))
+    )
+    # Add rug as needed
+    if(length(event_data_sub$date_start) > 0){
+      suppressWarnings( # text aes pltoly
+      p <- p + geom_rug(data = event_data_sub, sides = "b", colour = "salmon", size = 2,
+                        aes(x = date_peak, y = min(ts_data_sub$temp),
+                            text = paste0("Event: ",event_no,
+                                          "<br>Duration: ",duration," days",
+                                          "<br>Start Date: ", date_start,
+                                          "<br>Peak Date: ", date_peak,
+                                          "<br>End Date: ", date_end,
+                                          "<br>Mean Intensity: ",intensity_mean,"°C",
+                                          "<br>Max. Intensity: ",intensity_max,"°C",
+                                          "<br>Cum. Intensity: ",intensity_cumulative,"°C")))
       )
     }
     p
@@ -648,44 +625,40 @@ map <- function(input, output, session) {
     # Convert to plotly
     # NB: Setting dynamicTicks = T causes the flames to be rendered incorrectly
     pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) %>% 
-      layout(hovermode = 'compare') #%>% 
-    # style(traces = 2, hoverlabel = list(bgcolor = "grey10"))# %>% 
-    # style(traces = 3, hoverlabel = list(bgcolor = "tomato2")) %>% 
-    # style(traces = 4, hoverlabel = list(bgcolor = "red2"))
+      layout(hovermode = 'compare') 
     pp
-    # rangeslider(pp, start = ts_data_sub$t[1],
-    #             end = ts_data_sub$t[100])
-    # rangeslider(pp, start = as.Date("2017-01-01"),
-    #             end = as.Date("2017-12-31"))
-    # rangeslider(pp, start = as.numeric(as.Date(paste0(lubridate::year(as.Date(input$date)),"-01-01"))),
-    #             end = as.numeric(as.Date(paste0(lubridate::year(as.Date(input$date)),"-12-31"))))
-    # rangeslider(pp, start = as.integer(as.Date(paste0(lubridate::year(as.Date(input$date)),"-01-01"))), 
-    #             end = as.integer(as.Date(paste0(lubridate::year(as.Date(input$date)),"-12-31"))))
   })
   
   ### Create lolliplot
   lolliPlot <- reactive({
+    
+    # Prep data
     event_data <- pixelData()$event
     event_data_sub <- event_data %>%
       filter(date_start >= input$from_to[1], date_start <= input$from_to[2])
-    suppressWarnings( # Supress warning about ggplot not understanding the text aesthetic fed to plotly
-    p <- ggplot(data = event_data_sub, aes(x = date_peak, y = intensity_max)) +
-      geom_segment(aes(xend = date_peak, yend = 0)) +
-      geom_point(fill = "salmon", shape = 21, size = 4,
-                 aes(text = paste0("Event: ",event_no,
-                            "<br>Duration: ",duration," days",
-                            "<br>Start Date: ", date_start,
-                            "<br>Peak Date: ", date_peak,
-                            "<br>End Date: ", date_end,
-                            "<br>Mean Intensity: ",intensity_mean,"°C",
-                            "<br>Max. Intensity: ",intensity_max,"°C",
-                            "<br>Cum. Intensity: ",intensity_cumulative,"°C"))) +
-      scale_x_date(date_labels = "%b %Y",
-                   limits = c(min(event_data_sub$date_peak)-1, max(event_data_sub$date_peak)+1)) +
-      scale_y_continuous(expand = c(0,0), limits = c(0, max(event_data_sub$intensity_max)*1.1)) +
-      labs(x = "", y = "Max. Intensity (°C)")
-    )
-    # p
+    
+    # Base figure
+    if(length(event_data_sub$date_start) > 0){
+      suppressWarnings(
+        p <- ggplot(data = event_data_sub, aes(x = date_peak, y = intensity_max)) +
+          geom_segment(aes(xend = date_peak, yend = 0)) +
+          geom_point(fill = "salmon", shape = 21, size = 4,
+                     aes(text = paste0("Event: ",event_no,
+                                       "<br>Duration: ",duration," days",
+                                       "<br>Start Date: ", date_start,
+                                       "<br>Peak Date: ", date_peak,
+                                       "<br>End Date: ", date_end,
+                                       "<br>Mean Intensity: ",intensity_mean,"°C",
+                                       "<br>Max. Intensity: ",intensity_max,"°C",
+                                       "<br>Cum. Intensity: ",intensity_cumulative,"°C"))) +
+          scale_x_date(date_labels = "%b %Y",
+                       limits = c(min(event_data_sub$date_peak)-1, max(event_data_sub$date_peak)+1)) +
+          scale_y_continuous(expand = c(0,0), limits = c(0, max(event_data_sub$intensity_max)*1.1)) +
+          labs(x = "", y = "Max. Intensity (°C)")
+      )
+    } else{
+      p <- ggplot() + labs(x = "", y = "Max. Intensity (°C)")
+    }
     pp <- ggplotly(p, tooltip = "text", dynamicTicks = F)
     pp
   })

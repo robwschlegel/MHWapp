@@ -9,6 +9,6 @@ function(input, output, session) {
   shinyjs::hide(id = "loading-content", anim = TRUE, animType = "fade", time = 2)
   
   # During testing...
-  # session$onSessionEnded(stopApp)
+  session$onSessionEnded(stopApp)
 }
 
