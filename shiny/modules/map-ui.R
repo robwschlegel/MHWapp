@@ -19,7 +19,7 @@ mapUI <- function(id, label = 'map') {
                     shinyWidgets::prettyRadioButtons(inputId = ns("map_back"),
                                                      label = h3("Background"),
                                                      choiceNames = list("Default", "Grey", "Land features", "Ocean features"),
-                                                     choiceValues = list("Default", "Grey", "Land features", "Oceans features"),
+                                                     choiceValues = list("Default", "Grey", "Land features", "Ocean features"),
                                                      selected = "Default",
                                                      status = 'primary', shape = "curve", animation = "tada"),
 
@@ -31,7 +31,6 @@ mapUI <- function(id, label = 'map') {
     ### The control panel
     absolutePanel(id = ns("controls"), class = "panel panel-default",
                   top = menu_panel_top, right = menu_panel_right, draggable = T, width = "150px",
-                  
                   # Controls header
                   # h2("Controls"),
                   div(class = "controlsbutton",
@@ -42,29 +41,28 @@ mapUI <- function(id, label = 'map') {
                                                size = "sm", block = T)),
                   # Container that hides the controls
                   div(id = ns("control_menu"),
-                  # Date selector
-                  h5(""),
-                  uiOutput(outputId = ns("date_reactive")),
-                  # Animation UI
-                  shinyWidgets::materialSwitch(inputId = ns("check_animate"), 
-                                               label = "Animate", status = "primary"),
-                  # Map data download
-                  h5(""),
-                  uiOutput(outputId = ns("download_map_UI")),
-                  # The category filtering buttons
-                  # h5("Categories"),
-                  h5(""),
-                  uiOutput(outputId = ns("moderate")),
-                  uiOutput(outputId = ns("strong")),
-                  uiOutput(outputId = ns("severe")),
-                  uiOutput(outputId = ns("extreme")),
-                  # hr(),
-                  # The time series button
-                  h5(""),
-                  uiOutput(outputId = ns("button_ts"))#,
-                  # hr(),
-                  # The shiny server instance info
-                  # h5(paste0("Instance: ",Sys.getenv("R_SHNYSRVINST")))
+                      # Date selector
+                      h5(""),
+                      uiOutput(outputId = ns("date_reactive")),
+                      # Animation UI
+                      shinyWidgets::materialSwitch(inputId = ns("check_animate"), 
+                                                   label = "Animate", status = "primary"),
+                      # Map data download
+                      h5(""),
+                      uiOutput(outputId = ns("download_map_UI")),
+                      # The category filtering buttons
+                      # h5("Categories"),
+                      h5(""),
+                      uiOutput(outputId = ns("moderate")),
+                      uiOutput(outputId = ns("strong")),
+                      uiOutput(outputId = ns("severe")),
+                      uiOutput(outputId = ns("extreme")),
+                      # The time series button
+                      h5(""),
+                      uiOutput(outputId = ns("button_ts"))#,
+                      # The shiny server instance info
+                      # hr(),
+                      # h5(paste0("Instance: ",Sys.getenv("R_SHNYSRVINST")))
                   )
     ),
     

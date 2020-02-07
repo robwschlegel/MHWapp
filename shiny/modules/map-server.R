@@ -15,10 +15,9 @@ map <- function(input, output, session) {
 # Reactive UI features ----------------------------------------------------
   
   ### The popup modal when starting the app
-  ## Open on startup
-  # shinyBS::toggleModal(session, modalId = ns("startupModal"), toggle = "open")
+  # Open on startup
   shinyBS::toggleModal(session, "startupModal", "open")
-  ## The content of the welcome window
+  # The content of the welcome window
   output$uiStartupModal <- renderUI({
     shinyBS::bsModal(ns('startupModal'), title = strong("Welcome to the Marine Heatwave Tracker!"), trigger = "click2", size = "m",
                      HTML("This web application shows up to date information on where in the world marine heatwaves (MHWs) are occurring and what category they are.
@@ -29,7 +28,7 @@ map <- function(input, output, session) {
                           <hr>
                           Click on the <b>Animate</b> switch to bring up the animation options.
                           <hr>
-                          Use the <b>Download</b> interface to get the global MHW category data. There is a 31 day size limit per download request.
+                          Use the <b>Map data</b> interface to download the global MHW category data. There is a 31 day size limit per download request.
                           <hr>
                           Clicking on the <b>Category</b> buttons will filter those pixels from the map.
                           <hr>
@@ -38,16 +37,16 @@ map <- function(input, output, session) {
                           For more information please click on the <b>Summary</b> or <b>About</b> tabs."))
   })
   
-  ### Switch the display of the controls on and off
+  ### Switch the display of the Controls on and off
   observeEvent(input$toggle, shinyjs::toggle("control_menu", anim = TRUE))
   
   ### Reactive category filters
   categories <- reactiveValues(categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
   
   ### Moderate filtering button
-  ## The base reactive value for clicking
+  # The base reactive value for clicking
   button_I <- reactiveValues(clicked = FALSE)
-  ## Observe button click to filter category
+  # Observe button click to filter category
   observeEvent(input$moderate_filter, {
     if(!button_I$clicked){
       button_I$clicked <- TRUE
@@ -59,7 +58,7 @@ map <- function(input, output, session) {
       }
     }
   })
-  ## Change button icon upon click
+  # Change button icon upon click
   output$moderate <- renderUI({
     if(button_I$clicked){
       actionButton(inputId = ns("moderate_filter"), "I Moderate", icon = icon("remove", lib = "glyphicon"),
@@ -71,9 +70,9 @@ map <- function(input, output, session) {
   })
   
   ### Strong filtering button
-  ## The base reactive value for clicking
+  # The base reactive value for clicking
   button_II <- reactiveValues(clicked = FALSE)
-  ## Observe button click to filter category
+  # Observe button click to filter category
   observeEvent(input$strong_filter, {
     if(!button_II$clicked){
       button_II$clicked <- TRUE
@@ -85,7 +84,7 @@ map <- function(input, output, session) {
       }
     }
   })
-  ## Change button icon upon click
+  # Change button icon upon click
   output$strong <- renderUI({
     if(button_II$clicked){
       actionButton(inputId = ns("strong_filter"), "II Strong", icon = icon("remove", lib = "glyphicon"),
@@ -97,9 +96,9 @@ map <- function(input, output, session) {
   })
   
   ### Severe filtering button
-  ## The base reactive value for clicking
+  # The base reactive value for clicking
   button_III <- reactiveValues(clicked = FALSE)
-  ## Observe button click to filter category
+  # Observe button click to filter category
   observeEvent(input$severe_filter, {
     if(!button_III$clicked){
       button_III$clicked <- TRUE
@@ -111,7 +110,7 @@ map <- function(input, output, session) {
       }
     }
   })
-  ## Change button icon upon click
+  # Change button icon upon click
   output$severe <- renderUI({
     if(button_III$clicked){
       actionButton(inputId = ns("severe_filter"), "III Severe", icon = icon("remove", lib = "glyphicon"),
@@ -123,9 +122,9 @@ map <- function(input, output, session) {
   })
   
   ### Extreme filtering button
-  ## The base reactive value for clicking
+  # The base reactive value for clicking
   button_IV <- reactiveValues(clicked = FALSE)
-  ## Observe button click to filter category
+  # Observe button click to filter category
   observeEvent(input$extreme_filter, {
     if(!button_IV$clicked){
       button_IV$clicked <- TRUE
@@ -137,7 +136,7 @@ map <- function(input, output, session) {
       }
     }
   })
-  ## Change button icon upon click
+  # Change button icon upon click
   output$extreme <- renderUI({
     if(button_IV$clicked){
       actionButton(inputId = ns("extreme_filter"), "IV Extreme", icon = icon("remove", lib = "glyphicon"),
@@ -148,7 +147,7 @@ map <- function(input, output, session) {
     }
   })
   
-  ### Time series button
+  ### Button for opening main modal
   output$button_ts <- renderUI({
     click <- input$map_click
     if(is.null(click)){
@@ -168,12 +167,10 @@ map <- function(input, output, session) {
         date_anim_choice <- as.Date(as.character(query[['date']]))
       } else{
         date_anim_choice <- max(current_dates)
-        # date_anim_choice <- input$date
       }
       absolutePanel(id = ns("controls"), class = "panel panel-default", draggable = T, cursor = "move",
                     top = menu_panel_top, right = menu_panel_right+10+150, width = "350px",
                     h2("Animate"),
-                    uiOutput(ns('date_animator_slider')),
                     fixedRow(
                       column(width = 8,
                              dateRangeInput(inputId = ns("date_choice_slider"), 
@@ -182,10 +179,12 @@ map <- function(input, output, session) {
                                             end = date_anim_choice, 
                                             min = "1982-01-01", 
                                             max = max(current_dates))),
-                      column(width = 4,
-                             numericInput(inputId = ns("slider_time_step"),
-                                          label = "Seconds", value = 3, min = 1, max = 30))
-                    )
+                      # NB: Disabled the seconds choice as it was confusing
+                      # column(width = 4,
+                      #        numericInput(inputId = ns("slider_time_step"),
+                      #                     label = "Seconds", value = 3, min = 1, max = 30))
+                    ),
+                    uiOutput(ns('date_animator_slider'))
       )
     }
   })
@@ -202,7 +201,7 @@ map <- function(input, output, session) {
         choices = seq(input$date_choice_slider[1],
                       input$date_choice_slider[2], by = "day"),
         selected = input$date_choice_slider[1],
-        animate = animationOptions(interval = input$slider_time_step*1000)
+        animate = animationOptions(interval = 3*1000)
       )
     }
   })
@@ -216,20 +215,10 @@ map <- function(input, output, session) {
         date_menu_choice <- max(current_dates)
       }
     dateInput(inputId = ns("date"),
-              # label = "Date",
               label = NULL,
               value = date_menu_choice,
               min = "1982-01-01",
               max = max(current_dates))
-    # NB: Unfortunately these date picker don't work with updates
-    # shinyWidgets::airDatepickerInput(
-    #   inputId = ns("date"),
-    #   label = "Date", autoClose = TRUE, position = "bottom right", 
-    #   update_on = 'close', addon = 'none', inline = FALSE, #width = "200px",
-    #   value = date_menu_choice, 
-    #   minDate = "1982-01-01", 
-    #   maxDate = max(current_dates)
-    # )
   })
   
   ### Observe the changing of dates in the animation slider
@@ -255,17 +244,15 @@ map <- function(input, output, session) {
                # h5("Format"),
                shinyWidgets::prettyRadioButtons(inputId = ns("map_download_type"),
                                                 label = h5("Format"),
-                                                # label = NULL,
                                                 inline = TRUE,
-                                                choiceNames = list(".csv", ".tif"),
-                                                choiceValues = list("csv", "geotiff"),
+                                                choiceNames = list(".csv", ".Rds"),
+                                                choiceValues = list("csv", "Rds"),
                                                 selected = "csv",
                                                 status = 'primary', shape = "curve", animation = "tada")
                ),
         column(6,
                h5("Data"),
                downloadButton(outputId = ns("download_map"),
-                              # label = h5("Data"),
                               label = NULL,
                               class = 'small-dl')
                )
@@ -276,7 +263,6 @@ map <- function(input, output, session) {
   })
   
   ### Disable map download button if dates are inccorect
-
   observe({
     shinyjs::toggleState(id = "download_map", 
                          condition = input$map_download_date[1] <= input$map_download_date[2] & (as.integer(input$map_download_date[2]) - as.integer(input$map_download_date[1])) <= 31) 
@@ -326,14 +312,13 @@ map <- function(input, output, session) {
     MHW_raster$Z <- as.numeric(MHW_raster$Z)
     rasterNonProj <- raster::rasterFromXYZ(MHW_raster, res = c(0.25, 0.25),
                                            digits = 3, crs = inputProj)
-    # res_list <- list(MHW_raster = MHW_raster,
-    #                  rasterNonProj = rasterNonProj)
     return(rasterNonProj)
   })
   
   ### Shiny-projected raster data
   rasterProj <- reactive({
     rasterNonProj <- rasterNonProj()
+    # NB: Smoothing the pixels is easy, but causes massive artifacts
     # if(input$pixels == "Smooth"){
     # rasterProj <- projectRasterForLeaflet(rasterNonProj, method = "bilinear")
     # } else {
@@ -347,7 +332,6 @@ map <- function(input, output, session) {
   
   ### Pixel data
   pixelData <- reactive({
-    # Leaflet click
     xy <- input$map_click
     if(!is.null(xy)){
       while(xy$lng > 180){
@@ -359,8 +343,6 @@ map <- function(input, output, session) {
         xy$lng <- xy$lng + 360
       }
     }
-    # Plotly click
-    # xy <- input$plotly_click
     if(!is.null(xy)){
       rasterNonProj <- rasterNonProj()
       cell <- raster::cellFromXY(rasterNonProj, c(xy$lng, xy$lat))
@@ -413,8 +395,8 @@ map <- function(input, output, session) {
     rasterProj <- rasterProj()
     xy_click <- c(x,y)
     xy_wrap <- lon_wrap(xy_click)
-    # Translate Lon-Lat to cell number using the unprojected raster
-    # This is because the projected raster is not in degrees
+    # Translate lon/lat to cell number using the unprojected raster
+      # This is done because the projected raster is not in degrees
     cell <- raster::cellFromXY(rasterNonProj, c(xy_wrap))
     # If the click is inside the raster...
     if(!is.na(cell)) {
@@ -425,8 +407,8 @@ map <- function(input, output, session) {
       if(xy[2] < 0) xy_lat <- paste0(abs(xy[2]),"°S")
       val <- baseData %>% 
         dplyr::filter(lon == xy[1],
-               lat == xy[2]) %>% 
-        select(category) %>% 
+                      lat == xy[2]) %>% 
+        dplyr::select(category) %>% 
         as.numeric()
       if(xy[1] >= -160 & xy[1] <= -110 & xy[2] >= 25 & xy[2] <= 60){
         regional_link <- paste0("<hr>",
@@ -490,8 +472,6 @@ map <- function(input, output, session) {
   observeEvent(c(input$date,
                  input$moderate_filter, input$strong_filter,
                  input$severe_filter, input$extreme_filter), {
-                   
-                   # Render new map
                    leafletProxy("map") %>%
                      addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
                                     project = FALSE, opacity = 0.8)
@@ -572,7 +552,7 @@ map <- function(input, output, session) {
                          yend = max(ts_data_sub$temp),
                          text = "Date shown"), colour = "limegreen") +
         labs(x = "", y = "Temperature (°C)") +
-        scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(min(ts_data_sub$t), max(ts_data_sub$t))) 
+        scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(input$from_to[1], input$from_to[2])) 
       )
     # Add flame categories as needed
     if(any(ts_data_sub$temp > ts_data_sub$thresh)){
@@ -621,10 +601,8 @@ map <- function(input, output, session) {
     
   ### Create interactive time series plot
   tsPlotly <- reactive({
-    
     # Grab static plot
     p <- tsPlot()
-    
     # Convert to plotly
     # NB: Setting dynamicTicks = T causes the flames to be rendered incorrectly
     pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) %>% 
@@ -654,13 +632,18 @@ map <- function(input, output, session) {
                                        "<br>Mean Intensity: ",intensity_mean,"°C",
                                        "<br>Max. Intensity: ",intensity_max,"°C",
                                        "<br>Cum. Intensity: ",intensity_cumulative,"°C"))) +
-          scale_x_date(date_labels = "%b %Y",
-                       limits = c(min(event_data_sub$date_peak)-1, max(event_data_sub$date_peak)+1)) +
+          scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(input$from_to[1], input$from_to[2])) +
           scale_y_continuous(expand = c(0,0), limits = c(0, max(event_data_sub$intensity_max)*1.1)) +
           labs(x = "", y = "Max. Intensity (°C)")
       )
     } else{
-      p <- ggplot() + labs(x = "", y = "Max. Intensity (°C)")
+      suppressWarnings(
+        p <- ggplot() + geom_text(aes(x = input$from_to[1] + ((input$from_to[2] - input$from_to[1])/2),
+                                      y = 0.5, label = "?", text = "No marine heatwave peaks in date range.")) +
+          scale_y_continuous(limits = c(0, 1), expand = c(0, 0)) +
+          scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(input$from_to[1], input$from_to[2])) +
+          labs(x = "", y = "Max. Intensity (°C)")
+      )
     }
     pp <- ggplotly(p, tooltip = "text", dynamicTicks = F)
     pp
@@ -687,7 +670,6 @@ map <- function(input, output, session) {
   
   ### Label/title for modal panel
   pixelLabel <- reactive({
-    # Leaflet click
     xy <- input$map_click
     if(!is.null(xy)){
       while(xy$lng > 180){
@@ -762,10 +744,9 @@ map <- function(input, output, session) {
     from_date <- ifelse(lubridate::year(input$date) >= lubridate::year(max(current_dates)),
                         input$date-365, as.Date(paste0(lubridate::year(as.Date(input$date)),"-01-01")))
     from_date <- as.Date(from_date, origin = "1970-01-01")
+    # The main modal
     shinyBS::bsModal(ns('modal'), title = div(id = ns('modalTitle'), pixelLabel()), trigger = 'click2', size = "large",
-                     # div(id = ns("top_row"),
                      fluidPage(
-                       # title = "",
                        tabsetPanel(id = ns("tabs"),
                                    tabPanel(title = "Static",
                                             br(),
@@ -782,7 +763,8 @@ map <- function(input, output, session) {
                                    tabPanel(title = "Table",
                                             br(),
                                             shinycssloaders::withSpinner(DT::dataTableOutput(ns('table')), type = 6, color = "#b0b7be"),
-                                            hr()),
+                                            hr())
+                                   ),
                                    fluidRow(
                                      column(width = 4,
                                             dateRangeInput(
@@ -798,7 +780,6 @@ map <- function(input, output, session) {
                                                            label = "MHW data (csv)", class = 'small-dl'))
                                      )
                        )
-                     )
     )
   })
   
@@ -813,8 +794,7 @@ map <- function(input, output, session) {
     data_sub <- data %>% 
       mutate(lon = lon,
              lat = lat) %>% 
-      select(lon, lat, event_no, date_start, date_peak, date_end, everything()) #%>% 
-    # dplyr::filter(date_start >= input$from_to[1], date_start <= input$from_to[2])
+      dplyr::select(lon, lat, event_no, date_start, date_peak, date_end, everything())
     return(data_sub)
   })
   
@@ -826,10 +806,9 @@ map <- function(input, output, session) {
     data_sub <- data %>% 
       mutate(lon = lon,
              lat = lat) %>% 
-      select(lon, lat, doy, seas, thresh) %>% 
+      dplyr::select(lon, lat, doy, seas, thresh) %>% 
       dplyr::distinct() %>% 
       arrange(doy)
-    # dplyr::filter(date_start >= input$from_to[1], date_start <= input$from_to[2])
     return(data_sub)
   })
   
@@ -865,81 +844,24 @@ map <- function(input, output, session) {
     date_seq <- seq(date_filter_from, date_filter_to, by = "day")
     date_seq_years <- sapply(strsplit(as.character(date_seq), "-"), "[[", 1)
     date_seq_files <- paste0("cat_clim/",date_seq_years,"/cat.clim.",date_seq,".Rda")
-    # if(input$map_download_type == "Rdata" | input$map_download_type == "csv"){
-      map_data <- plyr::ldply(date_seq_files, readRDS_date)
-    # } else if(input$map_download_type == "geotiff"){
-      if(input$map_download_type == "geotiff"){
-        
-        sp::coordinates(map_data) <- ~lon+lat
-        map_data <- split(map_data, map_data$t)
-        map_data <- raster::raster(map_data)
-        # sp::gridded(map_data) <- TRUE
-        # sp::CRS()
-      
-      # readRDS_raste <- function(file_name){
-        
-      }
-      
-      mydf <- structure(list(longitude = c(128.6979, 153.0046, 104.3261, 124.9019, 
-                                           126.7328, 153.2439, 142.8673, 152.689), 
-                             latitude = c(-7.4197, -4.7089, -6.7541, 4.7817, 2.1643, 
-                                          -5.65, 23.3882, -5.571)), 
-                        .Names = c("longitude", "latitude"), 
-                        class = "data.frame", row.names = c(NA, -8L))
-      
-      
-      ### Get long and lat from your data.frame. Make sure that the order is in lon/lat.
-      
-      xy <- mydf[,c(1,2)]
-      
-      spdf <- sp::SpatialPointsDataFrame(coords = xy, data = mydf,
-                                     proj4string = sp::CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
-      
-      
-      
-      # Vector of dates
-      dates <- format(seq(as.Date('1999/1/11'), as.Date('2006/1/10'), by='month'), '%Y%m')
-      
-      # RasterStack with random data
-      s <- setNames(stack(replicate(length(dates), raster(matrix(runif(100), 10)))),
-                    paste0('rain', dates))
-      
-      # Create a SpatialPointsDataFrame with some random dates and coords
-      d <- data.frame(x=runif(10), y=runif(10), date=sample(dates, 10))
-      sp::coordinates(d) <- ~x+y
-      
-      # Split the spdf by date
-      d_by_date <- split(d, d$date)
-      
-      # suppressWarnings( # Missing pixels because not an even grid
-        map_data <- raster::stack(sp::SpatialPixelsDataFrame(points = map_data[c("lon", "lat")], 
-                                                             data = map_data, proj4string = raster::crs(inputProj)))
-      # )
-    # if(nrow(map_data) <= 1){
-    #   map_data <- data.frame(t = NA, lon = NA, lat = NA,
-    #                          event_no = NA, intensity = NA, category = NA)
-    # }
+    map_data <- plyr::ldply(date_seq_files, readRDS_date)
     return(map_data)
   })
   
   ### Download map data
   output$download_map <- downloadHandler(
     filename = function() {
-      if(input$map_download_type == "Rdata"){
-        paste0("MHW_map_data.Rdata")
+      if(input$map_download_type == "Rds"){
+        paste0("MHW_map_data.Rds")
       } else if(input$map_download_type == "csv"){
         paste0("MHW_map_data.csv")
-      } else if(input$map_download_type == "geo_tiff"){
-        paste0("MHW_map_data.tif")
       }
     },
     content <- function(file) {
-      if(input$map_download_type == "Rdata"){
-        save(downloadMapData(), file)
+      if(input$map_download_type == "Rds"){
+        saveRDS(downloadMapData(), file = file)
       } else if(input$map_download_type == "csv"){
         readr::write_csv(downloadMapData(), file)
-      } else if(input$map_download_type == "geo_tiff"){
-        raster::writeRaster(downloadMapData(), file, overwrite = TRUE, bylayer = TRUE, format = 'GTiff')
       }
     }
   )

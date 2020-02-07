@@ -184,3 +184,4 @@ aboutUI <- function(id, label = 'About') {
     column(1, HTML(""))
   )
 }
+

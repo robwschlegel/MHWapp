@@ -6,9 +6,6 @@ ui = tagList(shinyjs::useShinyjs(),
                id = "loading-content",
                h2("Loading...")
              ),
-             # hidden(
-               # div(
-                 # id = "app-content",
              navbarPage(title =  "Marine Heatwave Tracker",
                         selected = 'Map',
                         tabPanel(title = 'Map',
@@ -21,7 +18,5 @@ ui = tagList(shinyjs::useShinyjs(),
                                  # br(),
                                  aboutUI('about')),
                         collapsible = TRUE)
-               # )
-             # )
 )
-## NB: Consider shifting css file chosen based on app window width
+

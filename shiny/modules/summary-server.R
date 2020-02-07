@@ -17,12 +17,6 @@ summary <- function(input, output, session) {
   
 # Downloads ---------------------------------------------------------------
   
-  ### Summary figure
-  # downloadAnnualSummary <- reactive({
-  #   annual_fig <- png::readPNG(paste0("../figures/MHW_cat_summary_",input$summary_year,".png"))
-  #   return(annual_fig)
-  # })
-  
   output$annual_summary_dl <- downloadHandler(
     filename = function() {
       paste0("MHW_cat_summary_",input$summary_year,".png")
@@ -33,3 +27,4 @@ summary <- function(input, output, session) {
   )
   
 }
+

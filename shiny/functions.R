@@ -70,12 +70,12 @@ readRDS_date <- function(file_name){
 }
 
 
-
 # Shiny testing -----------------------------------------------------------
 
 # NB: This must be commented out unless being run explicitly
+# NB: Doesn't currently work as it can't figure out the shiny server port
 # library(shinytest)
-# recordTest("shiny/")
+# shinytest::recordTest("../shiny/", loadTimeout = 100000)
 
 
 # Button testing ----------------------------------------------------------
