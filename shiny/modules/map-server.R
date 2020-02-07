@@ -16,7 +16,7 @@ map <- function(input, output, session) {
   
   ### The popup modal when starting the app
   # Open on startup
-  # shinyBS::toggleModal(session, "startupModal", "open")
+  shinyBS::toggleModal(session, "startupModal", "open")
   # The content of the welcome window
   output$uiStartupModal <- renderUI({
     shinyBS::bsModal(ns('startupModal'), title = strong("Welcome to the Marine Heatwave Tracker!"), trigger = "click2", size = "m",
