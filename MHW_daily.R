@@ -12,7 +12,7 @@ source("MHW_daily_functions.R")
 # source("../MHWapp/MHW_daily_fixes.R")
 
 ## NB: Don't run any of this code manually
-## NB: only run it via source("MHW_daily.R") in an R terminal
+## NB: Only run it via source("MHW_daily.R") in an R terminal
 ## NB: The NetCDF files seem to stop cooperating if they are opened manually via RStudio Server
 ## NB: My thinking is this somehow confuses the write privileges for the files
 
@@ -20,14 +20,22 @@ source("MHW_daily_functions.R")
 # 1: Update OISST data ----------------------------------------------------
 
 # The most up-to-date data downloaded
-  # NB: There appears to be a transient error in the NOAA HTTPS server that
-  # can mess up the date indexing. This has only happened once (2020-02-01)
-  # and the fix was to manually recreate the following two objects and re-source
+  # NB: There appears to be a transient error in the NOAA HTTPS server that can mess up the date indexing
+  # The fix was to manually recreate the following two objects and re-source
   # the script from an R instance running in a terminal
+  # Occurred on: 2020-02-01, 2020-02-10
+  # UPDATE Feb 11 2020: It looks like this may actually be cause by an idexing issue on my end
+  # Line: 115, the creation of the prelim_dates depended on the final date
+  # So when no new final data were downloaded the prelim index was not created correctly
+  # This then caused the following steps to fall over as they depend on these indexes
+# final_dates <- seq(as.Date("1982-01-01"), as.Date("2020-01-23"), by = "day")
+# save(final_dates, file = "metadata/final_dates.Rdata")
+# prelim_dates <- seq(as.Date("2020-01-27"), as.Date("2020-02-08"), by = "day")
+# save(prelim_dates, file = "metadata/prelim_dates.Rdata")
 load("metadata/final_dates.Rdata")
 load("metadata/prelim_dates.Rdata")
-if(!is.Date(final_dates)) stop("Final date indexing has broken.")
-if(!is.Date(prelim_dates)) stop("Final date indexing has broken.")
+if(length(final_dates) == 0) stop("Final date indexing has broken.")
+if(length(prelim_dates) == 0) stop("Prelim date indexing has broken.")
 
 
 # Get the source index monthly file folders with new data
@@ -44,13 +52,23 @@ OISST_months <- data.frame(months = readHTMLTable(OISST_url_month_get, skip.rows
 OISST_filenames <- plyr::ldply(OISST_months$months, .fun = OISST_url_daily)
 final_index <- OISST_filenames %>% 
   filter(!grepl("prelim", files))
+if(nrow(final_index) == 0){
+  print("No new final data to download")
+  final_index <- data.frame(files = NA, t = NA, full_name = NA)
+}
 prelim_index <- OISST_filenames %>% 
   filter(grepl("prelim", files),
          t > max(prelim_dates))
-OISST_new <- rbind(final_index, prelim_index)
-if(nrow(OISST_new) > 10) stop("A suspicious amount of new files are attempting to be downloaded.")
+if(nrow(prelim_index) == 0){
+  print("No new prelim data to download")
+  prelim_index <- data.frame(files = NA, t = NA, full_name = NA)
+}
+OISST_new <- rbind(final_index, prelim_index) %>% 
+  na.omit()
+
 
 # Download the new data
+if(nrow(OISST_new) > 10) stop("A suspicious amount of new files are attempting to be downloaded.")
 if(nrow(OISST_new) > 0){
   print(paste0("Downloading new data at ", Sys.time()))
   OISST_dat <- plyr::ldply(OISST_new$full_name, .fun = OISST_url_daily_dl)
@@ -96,7 +114,7 @@ if(nrow(OISST_dat) > 2){
   save(final_dates, file = "metadata/final_dates.Rdata")
 
   # prelim_dates index
-  prelim_dates <- ncdf_dates[ncdf_dates > max(final_index$t)]
+  prelim_dates <- ncdf_dates[ncdf_dates >= min(OISST_filenames$t[grepl("prelim", OISST_filenames$files)])]
   # tester...
   # prelim_dates <- prelim_dates[1:length(prelim_dates-2)]
   # tail(prelim_dates)

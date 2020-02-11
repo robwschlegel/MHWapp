@@ -4,23 +4,20 @@
 # Libraries ---------------------------------------------------------------
 
 .libPaths(c("~/R-packages", .libPaths()))
-# devtools::install_github("robwschlegel/heatwaveR")
-# library(jsonlite, lib.loc = "../R-packages/")
+suppressPackageStartupMessages({
 library(tidyverse)
 library(rerddap)
 library(tidync)
 library(ncdf4)
 library(abind)
 library(padr)
-
 library(RCurl)
 library(XML)
 library(threadr)
-
-# library(qs, lib.loc = "../R-packages/")
 library(heatwaveR, lib.loc = "../R-packages/")
+})
+
 print(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))
-# doMC::registerDoMC(cores = 25)
 doParallel::registerDoParallel(cores = 25)
 
 

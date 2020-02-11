@@ -225,11 +225,16 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
     saveRDS(MHW_cat_daily, file = paste0("data/annual_summary/MHW_cat_daily_",chosen_year,".Rds"))
   }
   
+  # Add prop columns for more accurate plotting
+  MHW_cat_daily <- MHW_cat_daily %>% 
+    mutate(first_n_cum_prop = round(first_n_cum/nrow(OISST_ocean_coords), 4),
+           cat_prop = round(cat_n/nrow(OISST_ocean_coords), 4))
+  
   # Extract small data.frame for easier labelling
   MHW_cat_daily_labels <- MHW_cat_daily %>% 
     filter(t == max(t)) %>% 
     ungroup() %>% 
-    mutate(label_first_n_cum = cumsum(first_n_cum))
+    mutate(label_first_n_cum = cumsum(first_n_cum_prop))
   
   ## Create figures
   print("Creating figures")
@@ -237,7 +242,7 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
   # Global map of MHW occurrence
   fig_map <- ggplot(MHW_cat_pixel, aes(x = lon, y = lat)) +
     # geom_tile(data = OISST_ice_coords, fill = "powderblue", colour = NA, alpha = 0.5) +
-    geom_tile(aes(fill = category)) +
+    geom_tile(aes(fill = category), colour = NA) +
     geom_polygon(data = map_base, aes(x = lon, y = lat, group = group)) +
     scale_fill_manual("Category", values = MHW_colours) +
     coord_cartesian(expand = F, ylim = c(min(OISST_ocean_coords$lat),
@@ -251,36 +256,36 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
   # fig_map
    
   # Stacked barplot of global daily count of MHWs by category
-  fig_count <- ggplot(MHW_cat_daily, aes(x = t, y = cat_n)) +
+  fig_count <- ggplot(MHW_cat_daily, aes(x = t, y = cat_prop)) +
     geom_bar(aes(fill = category), stat = "identity", show.legend = F,
              position = position_stack(reverse = TRUE), width = 1) +
     scale_fill_manual("Category", values = MHW_colours) +
-    scale_y_continuous(limits = c(0, nrow(OISST_ocean_coords)),
-                       breaks = seq(0, nrow(OISST_ocean_coords), length.out = 11),
-                       labels = paste0(seq(0, 100, by = 10), "%")) +
+    scale_y_continuous(limits = c(0, 1),
+                       breaks = seq(0.2, 0.8, length.out = 4),
+                       labels = paste0(seq(20, 80, by = 20), "%")) +
     scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +
     labs(y = "Global MHW count\n(non-cumulative)", x = "Day of the year") +
     coord_cartesian(expand = F) +
-    theme(axis.title = element_text(size = 14),
-          axis.text = element_text(size = 12))
+    theme(axis.title = element_text(size = 15),
+          axis.text = element_text(size = 13))
   # fig_count
   
   # Stacked barplot of cumulative percent of ocean affected by MHWs
-  fig_cum <- ggplot(MHW_cat_daily, aes(x = t, y = first_n_cum)) +
+  fig_cum <- ggplot(MHW_cat_daily, aes(x = t, y = first_n_cum_prop)) +
     geom_bar(aes(fill = category), stat = "identity", show.legend = F,
              position = position_stack(reverse = TRUE), width = 1) +
     geom_hline(data = MHW_cat_daily_labels, show.legend = F,
                aes(yintercept = label_first_n_cum, colour = category)) +
     scale_fill_manual("Category", values = MHW_colours) +
     scale_colour_manual("Category", values = MHW_colours) +
-    scale_y_continuous(limits = c(0, nrow(OISST_ocean_coords)),
-                       breaks = seq(0, nrow(OISST_ocean_coords), length.out = 11),
-                       labels = paste0(seq(0, 100, by = 10), "%")) +
+    scale_y_continuous(limits = c(0, 1),
+                       breaks = seq(0.2, 0.8, length.out = 4),
+                       labels = paste0(seq(20, 80, by = 20), "%")) +
     scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +
     labs(y = "Top MHW category per pixel\n(cumulative)", x = "Day of first occurrence") +
     coord_cartesian(expand = F) +
-    theme(axis.title = element_text(size = 14),
-          axis.text = element_text(size = 12))
+    theme(axis.title = element_text(size = 15),
+          axis.text = element_text(size = 13))
   # fig_cum
   
   # Stacked barplot of average cumulative MHW days per pixel
@@ -288,11 +293,13 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
     geom_bar(aes(fill = category), stat = "identity", show.legend = F,
              position = position_stack(reverse = TRUE), width = 1) +
     scale_fill_manual("Category", values = MHW_colours) +
+    scale_y_continuous(breaks = round(seq(sum(MHW_cat_daily_labels$cat_n_prop)*0.25,
+                                      sum(MHW_cat_daily_labels$cat_n_prop)*0.75, length.out = 3), 0)) +
     scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +  
     labs(y = "Average MHW days per pixel\n(cumulative)", x = "Day of the year") +
     coord_cartesian(expand = F) +
-    theme(axis.title = element_text(size = 14),
-          axis.text = element_text(size = 12))
+    theme(axis.title = element_text(size = 15),
+          axis.text = element_text(size = 13))
   # fig_prop
   
   print("Combining figures")
@@ -308,20 +315,21 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
   
   print("Saving final figure")
   ggsave(fig_ALL_cap, filename = paste0("figures/MHW_cat_summary_",chosen_year,".png"), height = 12, width = 18)
+  # ggsave(fig_ALL_cap, filename = paste0("figures/MHW_cat_summary_",chosen_year,".pdf"), height = 12, width = 18) # looks bad...
   
   print(paste0("Finished run on ",chosen_year," at ",Sys.time()))
 }
 
-# Test one year
-# system.time(MHW_annual_state(1982, force_calc = T)) # 257 seconds
-# MHW_annual_state(2019, force_calc = T)
+# Run one year
+# system.time(MHW_annual_state(2019, force_calc = T)) # 257 seconds
+# MHW_annual_state(2019, force_calc = F)
 
 # Run ALL years
   # NB: Running this in parallel will cause a proper stack overflow
 # plyr::l_ply(1982:2019, MHW_annual_state, force_calc = T, .parallel = F) # ~1.5 hours
   # This is okay to run in parallel as it doesn't load/process any data
-# plyr::l_ply(1982:2019, MHW_annual_state, force_calc = F, .parallel = T) # ~ 1 minute
-MHW_annual_state(2020, force_calc = T)
+plyr::l_ply(1982:2019, MHW_annual_state, force_calc = F, .parallel = T) # ~ 1 minute
+
 
 
 # Animations --------------------------------------------------------------
