@@ -16,7 +16,12 @@ map <- function(input, output, session) {
   
   ### The popup modal when starting the app
   # Open on startup
-  shinyBS::toggleModal(session, "startupModal", "open")
+  observe({
+    query <- parseQueryString(session$clientData$url_search)
+    if(length(query) < 1){
+      shinyBS::toggleModal(session, "startupModal", "open")
+    }
+  })
   # The content of the welcome window
   output$uiStartupModal <- renderUI({
     shinyBS::bsModal(ns('startupModal'), title = strong("Welcome to the Marine Heatwave Tracker!"), trigger = "click2", size = "m",
@@ -38,7 +43,9 @@ map <- function(input, output, session) {
   })
   
   ### Switch the display of the Controls on and off
-  observeEvent(input$toggle, shinyjs::toggle("control_menu", anim = TRUE))
+  observeEvent(input$toggle, {
+    shinyjs::toggle("control_menu", anim = TRUE)
+    })
   
   ### Reactive category filters
   categories <- reactiveValues(categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
