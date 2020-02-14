@@ -169,10 +169,17 @@ if(nrow(OISST_dat) > 2){
 # This function can fix a specific file
 
 # Run one
-# MHW_event_cat_fix(lon_OISST[20])
+# MHW_event_cat_fix(lon_OISST[53])
 
 # Run many
-# plyr::l_ply(lon_OISST[1117:1182], .fun = MHW_event_cat_fix, .parallel = TRUE)
+# plyr::l_ply(lon_OISST[1300:1365], .fun = MHW_event_cat_fix, .parallel = TRUE)
+
+# Find files that haven't been run since a certain date
+# file_dates <- file.info(dir("../data/cat_lon", full.names = T)) %>% 
+#   mutate(file_name = sapply(strsplit(row.names(.), "/"), "[[", 4)) %>% 
+#   mutate(file_num = as.integer(sapply(strsplit(file_name, "[.]"), "[[", 3))) %>%
+#   filter(ctime < Sys.Date()-1)
+# plyr::l_ply(lon_OISST[file_dates$file_num], .fun = MHW_event_cat_fix, .parallel = TRUE)
 
 # Run ALL
 # plyr::l_ply(lon_OISST[1:1440], .fun = MHW_event_cat_fix, .parallel = TRUE) # ~1.5 hours on 50 cores
@@ -190,8 +197,8 @@ time_index <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transform
 # Get the range of dates that need to be run
 # The function `cat_clim_global_daily()` uses dplyr so a for loop is used here
   # Manually control dates as desired
-# update_dates <- seq(as.Date("2019-11-01"), as.Date("2020-01-07"), by = "day")
-update_dates <- time_index[which(time_index >= min(final_index$t))]
+# update_dates <- seq(as.Date("2020-02-10"), as.Date("2020-02-12"), by = "day")
+# update_dates <- time_index[which(time_index >= min(final_index$t))]
 if(length(update_dates) > 0) {
   print(paste0("Updating global MHW slices from ",min(update_dates)," to ",max(update_dates)))
   # system.time(
