@@ -197,8 +197,8 @@ time_index <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transform
 # Get the range of dates that need to be run
 # The function `cat_clim_global_daily()` uses dplyr so a for loop is used here
   # Manually control dates as desired
-# update_dates <- seq(as.Date("2020-02-10"), as.Date("2020-02-12"), by = "day")
-# update_dates <- time_index[which(time_index >= min(final_index$t))]
+# update_dates <- seq(as.Date("2020-02-07"), as.Date("2020-02-13"), by = "day")
+update_dates <- time_index[which(time_index >= min(final_index$t))]
 if(length(update_dates) > 0) {
   print(paste0("Updating global MHW slices from ",min(update_dates)," to ",max(update_dates)))
   # system.time(
