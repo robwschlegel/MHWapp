@@ -433,7 +433,7 @@ map <- function(input, output, session) {
                         "<br>Category = ", names(MHW_colours)[val],
                         regional_link,
                         "<hr>",
-                        "<i>Please click the<br><b>Time series</b><br>button in the<br><b>Controls</b> panel<br>for more info</i>")
+                        "<i>Please click the<br><b>Plot pixel</b><br>button in the<br><b>Controls</b> panel<br>for more info</i>")
       
     } else{
       content <- ""
