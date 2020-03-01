@@ -47,6 +47,18 @@ map <- function(input, output, session) {
     shinyjs::toggle("control_menu", anim = TRUE)
     })
   
+  ### Download map data interface
+  output$layer_UI <- renderUI({
+    shinyWidgets::dropdownButton(
+      h3("Select map layer"),
+      shinyWidgets::prettyRadioButtons(inputId = ns("layer"), label = NA,
+                                       choices = c("Category", "Anomaly"), selected = "Category", 
+                                       status = "primary", shape = "curve", inline = T),
+      circle = FALSE, status = "primary",
+      icon = icon("map"), width = "300px", right = TRUE, up = FALSE,
+      label = "Map layer", tooltip = FALSE)
+  })
+  
   ### Reactive category filters
   categories <- reactiveValues(categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
   
