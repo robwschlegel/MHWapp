@@ -8,12 +8,10 @@
 .libPaths(c("~/R-packages", .libPaths()))
 
 library(tidyverse)
-# library(purrr)
 library(heatwaveR)
 library(ncdf4)
-library(tidync)#, lib.loc = "../R-packages/")
-library(dtplyr)#, lib.loc = "../R-packages/")
-# library(ggrepel)
+library(tidync)
+library(dtplyr)
 library(doParallel); registerDoParallel(cores = 50)
 
 # Animation libraries
@@ -321,7 +319,7 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
 }
 
 # Run one year
-# system.time(MHW_annual_state(2019, force_calc = T)) # 257 seconds
+system.time(MHW_annual_state(2020, force_calc = T)) # 257 seconds
 # MHW_annual_state(2019, force_calc = F)
 
 # Run ALL years
