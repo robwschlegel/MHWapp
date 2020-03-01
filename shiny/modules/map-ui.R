@@ -40,6 +40,10 @@ mapUI <- function(id, label = 'map') {
                                                size = "sm", block = T)),
                   # Container that hides the controls
                   div(id = ns("control_menu"),
+                      # Layer selector
+                      h5(""),
+                      uiOutput(outputId = ns("layer_UI")),
+
                       # Date selector
                       h5(""),
                       uiOutput(outputId = ns("date_reactive")),
