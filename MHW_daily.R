@@ -7,6 +7,8 @@
 ## 2: Updates MHW event and category data
 ## 3: Creates daily global MHW category file(s)
 ## 4: Check the `current_dates` index to make sure no days are missing
+## 5: Run the annual summary update for 2020
+## 6: Push to GitHub
 
 source("MHW_daily_functions.R")
 # source("../MHWapp/MHW_daily_fixes.R")
@@ -20,14 +22,7 @@ source("MHW_daily_functions.R")
 # 1: Update OISST data ----------------------------------------------------
 
 # The most up-to-date data downloaded
-  # NB: There appears to be a transient error in the NOAA HTTPS server that can mess up the date indexing
-  # The fix was to manually recreate the following two objects and re-source
-  # the script from an R instance running in a terminal
-  # Occurred on: 2020-02-01, 2020-02-10
-  # UPDATE Feb 11 2020: It looks like this may actually be cause by an idexing issue on my end
-  # Line: 115, the creation of the prelim_dates depended on the final date
-  # So when no new final data were downloaded the prelim index was not created correctly
-  # This then caused the following steps to fall over as they depend on these indexes
+# For manually testing
 # final_dates <- seq(as.Date("1982-01-01"), as.Date("2020-01-23"), by = "day")
 # save(final_dates, file = "metadata/final_dates.Rdata")
 # prelim_dates <- seq(as.Date("2020-01-27"), as.Date("2020-02-08"), by = "day")
@@ -150,12 +145,11 @@ if(nrow(OISST_dat) > 2){
 # 2: Update MHW event and category data -----------------------------------
 
 # Prep guide info for this section
-# doMC::registerDoMC(cores = 25)
 doParallel::registerDoParallel(cores = 50)
 # load("metadata/final_dates.Rdata")
 # load("metadata/prelim_dates.Rdata")
 
-# This takes roughly 35 minutes and is by far the largest time requirement
+# This takes roughly 45 minutes and is by far the largest time requirement
 if(nrow(OISST_dat) > 2){
   print(paste0("Updating MHW results at ", Sys.time()))
   # system.time(
@@ -226,7 +220,12 @@ if(length(possible_dates) > length(current_dates)){
 }
 
 
-# 5: Push to GitHub -------------------------------------------------------
+# 5: Run 2020 annual summary ----------------------------------------------
+
+source("MHW_annual_summary.R")
+
+
+# 6: Push to GitHub -------------------------------------------------------
 
 system("git commit -a -m 'Daily run'")
 system("git pull")

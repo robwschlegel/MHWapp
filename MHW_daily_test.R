@@ -78,7 +78,7 @@ if(length(MHW_event_data$date_start) > 0){
 p
 
 
-# 3: Testing cat_clim files -----------------------------------------------
+# 3: Testing global files -------------------------------------------------
 
 # Load a single file
 MHW_cat_clim <- readRDS("shiny/cat_clim/2020/cat.clim.2020-02-02.Rda")
@@ -93,3 +93,4 @@ ggplot(data = MHW_cat_clim, aes(x = lon, y = lat)) +
   labs(x = NULL, y = NULL) +
   coord_cartesian(expand = F)
 
+MHW_anom <- readRDS("")

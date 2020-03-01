@@ -274,16 +274,19 @@ OISST_merge <- function(lon_step, df){
 
 # Function that loads and merges sst/seas/thresh for a given lon_step
 # lon_step <- lon_OISST[2]
-# start_date <- as.Date("2018-01-01")
-# end_date <- as.Date("2018-12-31")
-sst_seas_thresh_merge <- function(lon_step, start_date){
+# date_range <- as.Date("2018-01-01")
+# date_range <- c(as.Date("2018-01-01"), as.Date("2018-01-01"))
+sst_seas_thresh_merge <- function(lon_step, date_range){
   
   # Establish lon row number
   lon_row <- which(lon_OISST == lon_step)
   
+  # Establish date range
+  if(length(date_range) == 1) date_range <- c(date_range, Sys.Date())
+  
   # OISST data
   tidync_OISST <- tidync(OISST_files[lon_row]) %>% 
-    hyper_filter(time = between(time, as.integer(start_date), as.integer(Sys.Date()))) %>% 
+    hyper_filter(time = between(time, as.integer(date_range[1]), as.integer(date_range[2]))) %>% 
     hyper_tibble() %>% 
     mutate(time = as.Date(time, origin = "1970-01-01")) %>% 
     dplyr::rename(ts_x = time, ts_y = sst) %>%
@@ -296,7 +299,8 @@ sst_seas_thresh_merge <- function(lon_step, start_date){
   # Merge to seas/thresh and exit
   sst_seas_thresh <- tidync_OISST %>% 
     left_join(hyper_tibble(tidync(seas_thresh_files[lon_row])), 
-              by = c("lon", "lat", "doy" = "time"))
+              by = c("lon", "lat", "doy" = "time")) %>% 
+    mutate(anom = round(temp - seas, 2))
   return(sst_seas_thresh)
 }
 
@@ -421,8 +425,6 @@ event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon){
 # Function for loading a cat_lon slice and extracting a single day of values
 # testers...
 # cat_lon_file <- cat_lon_files[1118]
-# date_choice <- max(current_dates)+1
-# date_choice <- min(update_dates)
 # date_range <- c(as.Date("2019-11-01"), as.Date("2020-01-07"))
 load_sub_cat_clim <- function(cat_lon_file, date_range){
   # cat_clim <- qs::qread(cat_lon_file)
@@ -433,6 +435,9 @@ load_sub_cat_clim <- function(cat_lon_file, date_range){
   return(cat_clim_sub)
 }
 
+# FUnction for savinf daily global cat files
+# date_choice <- max(current_dates)+1
+# date_choice <- as.Date("2019-11-01")
 save_sub_cat_clim <- function(date_choice, df){
   # Establish flie name and save location
   cat_clim_year <- lubridate::year(date_choice)
@@ -448,8 +453,6 @@ save_sub_cat_clim <- function(date_choice, df){
 
 # Function for loading, prepping, and saving the daily global category slices
 # tester...
-# date_choice <- max(current_dates)+1
-# date_choice <- as.Date("2019-11-01")
 # date_range <- c(as.Date("1984-01-01"), as.Date("1986-01-31"))
 cat_clim_global_daily <- function(date_range){
   # print(paste0("Began creating ", date_choice," slice at ",Sys.time()))
@@ -462,9 +465,49 @@ cat_clim_global_daily <- function(date_range){
                                                   "III Severe", "IV Extreme"))) %>% 
     na.omit()
   
-  # NB: Running this in parallel causes serious RAM issues
+  # NB: Running this on too many cores may cause RAM issues
   doParallel::registerDoParallel(cores = 10)
   plyr::l_ply(seq(min(cat_clim_daily$t), max(cat_clim_daily$t), by = "day"), 
               save_sub_cat_clim, .parallel = T, df = cat_clim_daily)
 }
+
+# Function for saving daily global anom files
+# date_choice <- max(current_dates)+1
+# date_choice <- as.Date("1982-01-01")
+save_sub_anom <- function(date_choice, df){
+  # Establish flie name and save location
+  anom_year <- lubridate::year(date_choice)
+  anom_dir <- paste0("../data/OISST/daily/",anom_year)
+  dir.create(as.character(anom_dir), showWarnings = F)
+  anom_name <- paste0("daily.",date_choice,".Rda")
+  # Extract data and save
+  df_sub <- df %>% 
+    filter(t == date_choice)
+  rm(df); gc()
+  saveRDS(df_sub, file = paste0(anom_dir,"/",anom_name))
+}
+
+# Function for loading global clims and saving each daily file
+# date_range <- c(as.Date("1982-01-01"), as.Date("1982-12-31"))
+anom_global_daily <- function(date_range){
+  print(paste0("Began loading data at ",Sys.time()))
+  # system.time(
+  global_anom <- plyr::ldply(lon_OISST, sst_seas_thresh_merge, .parallel = T,
+                             date_range = date_range)
+  # ) # 215 seconds for 1 day, 263 seconds for 1 year
+  
+  # NB: Running this on too many cores may cause RAM issues
+  print(paste0("Began saving data at ",Sys.time()))
+  doParallel::registerDoParallel(cores = 10)
+  plyr::l_ply(seq(min(global_anom$t), max(global_anom$t), by = "day"), 
+              save_sub_anom, .parallel = T, df = global_anom)
+}
+
+# for(i in c(1985,1987:2020)){
+#   print(paste0("Processing ",i))
+#   doParallel::registerDoParallel(cores = 50)
+#   anom_global_daily(date_range = c(as.Date(paste0(i,"-01-01")), as.Date(paste0(i,"-12-31"))))
+#   gc()
+#   Sys.sleep(10)
+# }
 
