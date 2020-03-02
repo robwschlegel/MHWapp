@@ -18,7 +18,7 @@ map <- function(input, output, session) {
   observe({
     query <- parseQueryString(session$clientData$url_search)
     if(length(query) < 1){
-      # shinyBS::toggleModal(session, "startupModal", "open")
+      shinyBS::toggleModal(session, "startupModal", "open")
     }
   })
   # The content of the welcome window
@@ -53,7 +53,7 @@ map <- function(input, output, session) {
     shinyWidgets::dropdownButton(
       h3("Select map layer"),
       shinyWidgets::prettyRadioButtons(inputId = ns("layer"), label = NULL,
-                                       choices = c("Category", "Anomaly"), selected = "Anomaly", 
+                                       choices = c("Category", "Anomaly"), selected = "Category", 
                                        status = "primary", shape = "curve", inline = T),
       circle = FALSE, status = "primary",
       icon = icon("map"), width = "300px", right = TRUE, up = FALSE,
@@ -342,8 +342,10 @@ map <- function(input, output, session) {
     }
     colnames(MHW_raster) <- c("X", "Y", "Z")
     MHW_raster$Z <- as.numeric(MHW_raster$Z)
+    suppressWarnings(
     rasterNonProj <- raster::rasterFromXYZ(MHW_raster, res = c(0.25, 0.25),
                                            digits = 3, crs = inputProj)
+    )
     return(rasterNonProj)
   })
   
@@ -354,7 +356,9 @@ map <- function(input, output, session) {
     # if(input$pixels == "Smooth"){
     # rasterProj <- projectRasterForLeaflet(rasterNonProj, method = "bilinear")
     # } else {
+    suppressWarnings(
     rasterProj <- projectRasterForLeaflet(rasterNonProj, method = "ngb")
+    )
     # }
     return(rasterProj)
   })
@@ -422,6 +426,7 @@ map <- function(input, output, session) {
   
   ### Show popup on clicks
   showpos <- function(x = NULL, y = NULL) {
+    baseDataPre <- baseDataPre()
     baseData <- baseData()
     rasterNonProj <- rasterNonProj()
     rasterProj <- rasterProj()
@@ -437,11 +442,6 @@ map <- function(input, output, session) {
       if(xy[1] < 0) xy_lon <- paste0(abs(xy[1]),"°W")
       if(xy[2] >= 0) xy_lat <- paste0(abs(xy[2]),"°N")
       if(xy[2] < 0) xy_lat <- paste0(abs(xy[2]),"°S")
-      val <- baseData %>% 
-        dplyr::filter(lon == xy[1],
-                      lat == xy[2]) %>% 
-        dplyr::select(category) %>% 
-        as.numeric()
       if(xy[1] >= -160 & xy[1] <= -110 & xy[2] >= 25 & xy[2] <= 60){
         regional_link <- paste0("<hr>",
                                 "<a target='_blank' rel='noopener noreferrer' href=",
@@ -453,12 +453,32 @@ map <- function(input, output, session) {
       } else{
         regional_link <- ""
       }
-      content <- paste0("Lon = ", xy_lon,
-                        "<br>Lat = ", xy_lat,
-                        "<br>Category = ", names(MHW_colours)[val],
-                        regional_link,
-                        "<hr>",
-                        "<i>Please click the<br><b>Plot pixel</b><br>button in the<br><b>Controls</b> panel<br>for more info</i>")
+      if(input$layer == "Category"){
+        val <- baseData %>% 
+          dplyr::filter(lon == xy[1],
+                        lat == xy[2]) %>% 
+          dplyr::select(category) %>% 
+          as.numeric()
+        content <- paste0("Lon = ", xy_lon,
+                          "<br>Lat = ", xy_lat,
+                          "<br>Category = ", names(MHW_colours)[val],
+                          regional_link,
+                          "<hr>",
+                          "<i>Please click the<br><b>Plot pixel</b><br>button in the<br><b>Controls</b> panel<br>for more info</i>")
+      } else if(input$layer == "Anomaly"){
+        val <- baseData %>% 
+          dplyr::filter(lon == xy[1],
+                        lat == xy[2]) 
+        content <- paste0("Lon = ", xy_lon,
+                          "<br>Lat = ", xy_lat,
+                          "<br>Climatology = ", round(val$seas, 2),
+                          "<br>Threshold = ", round(val$thresh, 2),
+                          "<br>Anomaly = ", val$anom,
+                          regional_link,
+                          "<hr>",
+                          "<i>Please click the<br><b>Plot pixel</b><br>button in the<br><b>Controls</b> panel<br>for more info</i>")
+      }
+
       
     } else{
       content <- ""
