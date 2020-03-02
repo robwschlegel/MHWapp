@@ -2,21 +2,22 @@
 # all of the static information that is used by the app
 
 # Set directory manually for testing purposes
+# .libPaths(c("~/R-packages", .libPaths()))
+# library(shiny)
 # setwd("shiny")
 
 
 # Packages ----------------------------------------------------------------
 
 # Required up front
+.libPaths(c("~/R-packages", .libPaths()))
+library(dplyr)
 library(shinyBS)
 library(leaflet)
-library(dplyr)
 library(plotly)
-library(tidync)
 library(DT)
 
 # Dependencies that are called explicitly
-# .libPaths(c("~/R-packages", .libPaths()))
 # library(ncdf4)
 # library(shiny)
 # library(shinyjs)
@@ -32,6 +33,8 @@ library(DT)
 # library(rgdal)
 # library(heatwaveR)
 # library(ggpubr)
+# library(tidync)
+# library(plyr)
 # cat(packageDescription("heatwaveR")$Version)
 
 
@@ -67,7 +70,7 @@ initial_lat <- 45
 initial_lon <- -60
 initial_zoom <- 4
 menu_panel_top <- 60
-menu_panel_right <- 10
+menu_panel_left <- 10
 # date_menu_choice <- max(current_dates)
 # sidepanel.width <- 400
 
@@ -135,7 +138,7 @@ empty_date_map <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>%
 #   mutate(group = ifelse(lon > 180, group+9999, group),
 #          lon = ifelse(lon > 180, lon-360, lon))
 # save(map_base, file = "metadata/map_base.Rdata")
-load("../metadata/map_base.Rdata")
+# load("../metadata/map_base.Rdata")
 
 # cat("\nglobal.R finished")
 

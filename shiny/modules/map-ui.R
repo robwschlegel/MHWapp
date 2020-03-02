@@ -13,23 +13,9 @@ mapUI <- function(id, label = 'map') {
     absolutePanel(top = 0, left = 0, right = 0, bottom = 0, height = 'auto',
                   leafletOutput(ns('map'))),
     
-    ### The map background changing button
-    absolutePanel(id = ns("map_controls"), top = menu_panel_top, left = 10,
-                  shinyWidgets::dropdownButton(
-                    shinyWidgets::prettyRadioButtons(inputId = ns("map_back"),
-                                                     label = h3("Background"),
-                                                     choiceNames = list("Default", "Grey", "Land features", "Ocean features"),
-                                                     choiceValues = list("Default", "Grey", "Land features", "Ocean features"),
-                                                     selected = "Default",
-                                                     status = 'primary', shape = "curve", animation = "tada"),
-                    circle = TRUE, status = "primary",
-                    icon = icon("map-marked"), width = "50px", right = FALSE, up = FALSE,
-                    label = "Click to choose map background", tooltip = TRUE)
-                  ),
-    
     ### The control panel
     absolutePanel(id = ns("controls"), class = "panel panel-default",
-                  top = menu_panel_top, right = menu_panel_right, draggable = T, width = "150px",
+                  top = menu_panel_top, left = menu_panel_left, draggable = T, width = "150px",
                   # Controls header
                   # h2("Controls"),
                   div(class = "controlsbutton",
@@ -52,6 +38,19 @@ mapUI <- function(id, label = 'map') {
                       # Map data download
                       h5(""),
                       uiOutput(outputId = ns("download_map_UI")),
+                      # The background selector
+                      h5(""),
+                      shinyWidgets::dropdownButton(
+                        shinyWidgets::prettyRadioButtons(inputId = ns("map_back"),
+                                                         label = h3("Background"),
+                                                         choiceNames = list("Default", "Grey", "Land features", "Ocean features"),
+                                                         choiceValues = list("Default", "Grey", "Land features", "Ocean features"),
+                                                         selected = "Default",
+                                                         status = 'primary', shape = "curve", animation = "tada"),
+                        circle = FALSE, status = "primary",
+                        #icon = icon("map-marked"), width = "50px", 
+                        right = FALSE, up = FALSE,
+                        label = "Background", tooltip = FALSE),
                       # The category filtering buttons
                       # h5("Categories"),
                       h5(""),

@@ -56,7 +56,8 @@ map <- function(input, output, session) {
                                        choices = c("Category", "Anomaly"), selected = "Category", 
                                        status = "primary", shape = "curve", inline = T),
       circle = FALSE, status = "primary",
-      icon = icon("map"), width = "300px", right = TRUE, up = FALSE,
+      icon = icon("map"), width = "300px",
+      right = FALSE, up = FALSE,
       label = "Map layer", tooltip = FALSE)
   })
   
@@ -189,7 +190,7 @@ map <- function(input, output, session) {
         date_anim_choice <- max(current_dates)
       }
       absolutePanel(id = ns("controls"), class = "panel panel-default", draggable = T, cursor = "move",
-                    top = menu_panel_top, right = menu_panel_right+10+150, width = "350px",
+                    top = menu_panel_top, left = menu_panel_left+10+150, width = "350px",
                     h2("Animate"),
                     fixedRow(
                       column(width = 8,
@@ -235,7 +236,7 @@ map <- function(input, output, session) {
         date_menu_choice <- max(current_dates)
       }
     dateInput(inputId = ns("date"),
-              label = NULL,
+              label = NULL, width = '100%',
               value = date_menu_choice,
               min = "1982-01-01",
               max = max(current_dates))
@@ -276,7 +277,8 @@ map <- function(input, output, session) {
                               class = 'small-dl'))
         ),
       circle = FALSE, status = "primary",
-      icon = icon("download"), width = "300px", right = TRUE, up = FALSE,
+      icon = icon("download"), width = "300px",
+      right = FALSE, up = FALSE, 
       label = "Map data", tooltip = FALSE)
   })
   
@@ -899,8 +901,8 @@ map <- function(input, output, session) {
   
   ### Prep map data
   # Testing...
-  # date_filter_from <- as.Date("2019-06-01")
-  # date_filter_to <- as.Date("2019-06-07")
+  # date_filter_from <- as.Date("2020-02-27")
+  # date_filter_to <- as.Date("2020-02-29")
   downloadMapData <- reactive({
     req(lubridate::is.Date(input$map_download_date[1]))
     req(lubridate::is.Date(input$map_download_date[2]))
@@ -908,7 +910,11 @@ map <- function(input, output, session) {
     date_filter_to <- as.Date(input$map_download_date[2])
     date_seq <- seq(date_filter_from, date_filter_to, by = "day")
     date_seq_years <- sapply(strsplit(as.character(date_seq), "-"), "[[", 1)
-    date_seq_files <- paste0("cat_clim/",date_seq_years,"/cat.clim.",date_seq,".Rda")
+    if(input$layer == "Category"){
+      date_seq_files <- paste0("cat_clim/",date_seq_years,"/cat.clim.",date_seq,".Rda")
+    } else {
+      date_seq_files <- paste0("OISST/daily/",date_seq_years,"/daily.",date_seq,".Rda")
+    }
     map_data <- plyr::ldply(date_seq_files, readRDS_date)
     return(map_data)
   })

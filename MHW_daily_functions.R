@@ -14,7 +14,7 @@ library(padr)
 library(RCurl)
 library(XML)
 library(threadr)
-library(heatwaveR, lib.loc = "../R-packages/")
+library(heatwaveR)
 })
 
 print(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))

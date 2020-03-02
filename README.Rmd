@@ -5,6 +5,13 @@ This interactive map holds all of the MHWs detected in the NOAA OISST data from 
 
 # Updates
 
+* March 2nd, 2020
+  * Changed the control panel position to accommodate the Chrome web browser
+  * Added functionality to download the anomaly data
+  
+* March 1st, 2020
+  * Added anomaly layer to leaflet map
+
 * February 7th, 2020
   * Improvements to Summary tab UI
 
@@ -15,7 +22,7 @@ This interactive map holds all of the MHWs detected in the NOAA OISST data from 
 * February 5th, 2020
   * Users may now change the map background (provider tiles)
   * Improved popups
-  * Added static plot and llolilot tabs to pixel plotting modal window
+  * Added static plot and lolliplot tabs to pixel plotting modal window
   * Becoming increasingly mobile friendly
 
 * February 3rd, 2020

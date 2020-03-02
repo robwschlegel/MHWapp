@@ -11,7 +11,7 @@ library(tidyverse)
 library(heatwaveR)
 library(ncdf4)
 library(tidync)
-library(dtplyr)
+# library(dtplyr)
 library(doParallel); registerDoParallel(cores = 50)
 
 # Animation libraries

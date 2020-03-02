@@ -19,9 +19,9 @@ sst_seas_thresh_ts <- function(lon_step, lat_step){
   # lat_row <- which(lat_OISST == lat_step)
   
   # OISST data
-  tidync_OISST <- tidync(OISST_files[lon_row]) %>% 
-    hyper_filter(lat = lat == lat_step) %>%
-    hyper_tibble() %>% 
+  tidync_OISST <- tidync::tidync(OISST_files[lon_row]) %>% 
+    tidync::hyper_filter(lat = lat == lat_step) %>%
+    tidync::hyper_tibble() %>% 
     mutate(time = as.Date(time, origin = "1970-01-01")) %>% 
     dplyr::rename(ts_x = time, ts_y = sst) %>%
     group_by(lon, lat) %>% 
@@ -38,7 +38,7 @@ sst_seas_thresh_ts <- function(lon_step, lat_step){
   
   # Merge to seas/thresh and exit
   sst_seas_thresh <- tidync_OISST %>% 
-    left_join(hyper_tibble(tidync(seas_thresh_files[lon_row])), 
+    left_join(tidync::hyper_tibble(tidync::tidync(seas_thresh_files[lon_row])), 
               by = c("lon", "lat", "doy" = "time")) %>% 
     mutate(temp = round(temp, 2),
            seas = round(seas, 2),
@@ -62,8 +62,9 @@ lon_wrap <- function(xy){
 # Load MHW cat file and include the date ----------------------------------
 
 readRDS_date <- function(file_name){
-  file_date <- sapply(strsplit(file_name, "/"), "[[", 3)
-  file_date <- as.Date(sapply(strsplit(file_date, "[.]"), "[[", 3))
+  file_segments <- length(strsplit(file_name, "/")[[1]])
+  file_date <- sapply(strsplit(file_name, "/"), "[[", file_segments)
+  file_date <- as.Date(stringr::str_remove_all(file_date, "[daily.cat.clim.Rda]"))
   res <- readRDS(file_name) %>% 
     mutate(t = file_date) %>% 
     dplyr::select(t, lon, lat, everything())
