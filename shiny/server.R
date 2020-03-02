@@ -9,6 +9,6 @@ server <- function(input, output, session) {
   callModule(about, 'about')
   
   # During testing...
-  # session$onSessionEnded(stopApp)
+  session$onSessionEnded(stopApp)
 }
 

@@ -5,9 +5,8 @@ map <- function(input, output, session) {
   # xy <- c(-42.125, 39.875)
   # x <- -42.125
   # y <- 39.875
-  # input <- data.frame(from_to = c(as.Date("2018-01-01"),
-  #                                 as.Date("2018-12-31")),
-  #                     date = as.Date("2018-02-14"))#,
+  # input <- data.frame(date = as.Date("2019-07-19"),
+  #                     layer = "Anomaly")#,
   #                     # pixel = "Smooth")
   #                     #categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
   
@@ -19,7 +18,7 @@ map <- function(input, output, session) {
   observe({
     query <- parseQueryString(session$clientData$url_search)
     if(length(query) < 1){
-      shinyBS::toggleModal(session, "startupModal", "open")
+      # shinyBS::toggleModal(session, "startupModal", "open")
     }
   })
   # The content of the welcome window
@@ -47,12 +46,12 @@ map <- function(input, output, session) {
     shinyjs::toggle("control_menu", anim = TRUE)
     })
   
-  ### Download map data interface
+  ### Change map layer interface
   output$layer_UI <- renderUI({
     shinyWidgets::dropdownButton(
       h3("Select map layer"),
-      shinyWidgets::prettyRadioButtons(inputId = ns("layer"), label = NA,
-                                       choices = c("Category", "Anomaly"), selected = "Category", 
+      shinyWidgets::prettyRadioButtons(inputId = ns("layer"), label = NULL,
+                                       choices = c("Category", "Anomaly"), selected = "Anomaly", 
                                        status = "primary", shape = "curve", inline = T),
       circle = FALSE, status = "primary",
       icon = icon("map"), width = "300px", right = TRUE, up = FALSE,
@@ -267,14 +266,12 @@ map <- function(input, output, session) {
                                                 choiceNames = list(".csv", ".Rds"),
                                                 choiceValues = list("csv", "Rds"),
                                                 selected = "csv",
-                                                status = 'primary', shape = "curve", animation = "tada")
-               ),
+                                                status = 'primary', shape = "curve", animation = "tada")),
         column(6,
                h5("Data"),
                downloadButton(outputId = ns("download_map"),
                               label = NULL,
-                              class = 'small-dl')
-               )
+                              class = 'small-dl'))
         ),
       circle = FALSE, status = "primary",
       icon = icon("download"), width = "300px", right = TRUE, up = FALSE,
@@ -296,8 +293,13 @@ map <- function(input, output, session) {
     req(lubridate::is.Date(input$date))
     date_filter <- input$date
     year_filter <- lubridate::year(date_filter)
-    sub_dir <- paste0("cat_clim/",year_filter)
-    sub_file <- paste0(sub_dir,"/cat.clim.",date_filter,".Rda")
+    if(input$layer == "Category"){
+      sub_dir <- paste0("cat_clim/",year_filter)
+      sub_file <- paste0(sub_dir,"/cat.clim.",date_filter,".Rda")
+    } else {
+      sub_dir <- paste0("OISST/daily/",year_filter)
+      sub_file <- paste0(sub_dir,"/daily.",date_filter,".Rda")
+    }
     if(file.exists(sub_file)){
       baseDataPre <- readRDS(sub_file)
     } else {
@@ -309,14 +311,18 @@ map <- function(input, output, session) {
   ### Base map data after screening categories
   baseData <- reactive({
     baseDataPre <- baseDataPre()
-    if(nrow(baseDataPre) > 1){
+    if(input$layer == "Anomaly"){
+      baseData <- baseDataPre %>% 
+        mutate(anom = ifelse(anom > 10, 10, anom),
+               anom = ifelse(anom < -10, -10, anom))
+    } else if(nrow(baseDataPre) > 1){
       baseData <- baseDataPre %>%
         dplyr::filter(category %in% categories$categories)
     } else{
       baseData <- empty_date_map
     }
     # Fix for the issue caused by de-slecting all of the cateogries
-    if(length(baseData$category) == 0){
+    if(length(baseData$category) == 0 & input$layer == "Category"){
       baseData <- empty_date_map
     }
     return(baseData)
@@ -325,8 +331,13 @@ map <- function(input, output, session) {
   ### Non-shiny-projected raster data
   rasterNonProj <- reactive({
     baseData <- baseData()
-    MHW_raster <- baseData %>%
-      dplyr::select(lon, lat, category)
+    if(input$layer == "Category"){
+      MHW_raster <- baseData %>%
+        dplyr::select(lon, lat, category) 
+    } else {
+      MHW_raster <- baseData %>%
+        dplyr::select(lon, lat, anom) 
+    }
     colnames(MHW_raster) <- c("X", "Y", "Z")
     MHW_raster$Z <- as.numeric(MHW_raster$Z)
     rasterNonProj <- raster::rasterFromXYZ(MHW_raster, res = c(0.25, 0.25),
@@ -461,6 +472,15 @@ map <- function(input, output, session) {
   
 # Leaflet -----------------------------------------------------------------
   
+  ### Observer to change colour palette accordingly
+  pal_react <- reactive({
+    if(input$layer == "Category"){
+      colorNumeric(palette = MHW_colours, domain = c(1,2,3,4), na.color = NA)
+    } else {
+      colorNumeric(palette = c("blue", "white", "red"), domain = c(-10, 10), na.color = NA)
+    }
+  })
+  
   ### The leaflet base
   output$map <- renderLeaflet({
     # Check HTML string for startup coords
@@ -488,12 +508,22 @@ map <- function(input, output, session) {
   })
 
   ### The raster layer
-  observeEvent(c(input$date,
+  observeEvent(c(input$date, input$layer,
                  input$moderate_filter, input$strong_filter,
                  input$severe_filter, input$extreme_filter), {
-                   leafletProxy("map") %>%
-                     addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
-                                    project = FALSE, opacity = 0.8)
+                   # req(input$layer == "Category")
+                   if(input$layer == "Category"){
+                     leafletProxy("map") %>%
+                       addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
+                                      project = FALSE, opacity = 0.8)
+                   } else {
+                     leafletProxy("map") %>%
+                       addRasterImage(rasterProj(), colors = pal_react(), layerId = ns("map_raster"),
+                                      project = FALSE, opacity = 0.8) #%>% 
+                       # leaflet::addLegend(position = "bottomright", pal = pal_anom, 
+                                          # values = seq(-10, 10), title = "Anom. °C")
+                   }
+                   
   })
   
   ### Change map background
@@ -502,29 +532,29 @@ map <- function(input, output, session) {
       leafletProxy("map") %>%
         clearTiles() %>% 
         addProviderTiles(providers$OpenStreetMap.BlackAndWhite,
-                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-        addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
-                       project = FALSE, opacity = 0.8)
+                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) #%>%
+        # addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
+                       # project = FALSE, opacity = 0.8)
     } else if(input$map_back == "Land features"){
       leafletProxy("map") %>%
         clearTiles() %>% 
         addProviderTiles(providers$Esri.WorldTopoMap,
-                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-        addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
-                       project = FALSE, opacity = 0.8)
+                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) #%>%
+        # addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
+                       # project = FALSE, opacity = 0.8)
     } else if(input$map_back == "Ocean features"){
       leafletProxy("map") %>%
         clearTiles() %>% 
         addProviderTiles(providers$Esri.OceanBasemap,
-                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-        addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
-                       project = FALSE, opacity = 0.8)
+                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) #%>%
+        # addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
+                       # project = FALSE, opacity = 0.8)
     } else{
       leafletProxy("map") %>%
         clearTiles() %>% 
-        addTiles(options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-        addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
-                       project = FALSE, opacity = 0.8)
+        addTiles(options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) #%>%
+        # addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
+                       # project = FALSE, opacity = 0.8)
     }
   })
   
