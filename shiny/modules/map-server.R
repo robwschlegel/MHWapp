@@ -32,6 +32,8 @@ map <- function(input, output, session) {
                           <hr>
                           Click on the <b>Animate</b> switch to bring up the animation options.
                           <hr>
+                          Click on the <b>Map layer</b> button to choose between displaying categories or anomalies.
+                          <hr>
                           Use the <b>Map data</b> interface to download the global MHW category data. There is a 31 day size limit per download request.
                           <hr>
                           Clicking on the <b>Category</b> buttons will filter those pixels from the map.
@@ -512,17 +514,11 @@ map <- function(input, output, session) {
                  input$moderate_filter, input$strong_filter,
                  input$severe_filter, input$extreme_filter), {
                    # req(input$layer == "Category")
-                   if(input$layer == "Category"){
-                     leafletProxy("map") %>%
-                       addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
-                                      project = FALSE, opacity = 0.8)
-                   } else {
                      leafletProxy("map") %>%
                        addRasterImage(rasterProj(), colors = pal_react(), layerId = ns("map_raster"),
                                       project = FALSE, opacity = 0.8) #%>% 
                        # leaflet::addLegend(position = "bottomright", pal = pal_anom, 
                                           # values = seq(-10, 10), title = "Anom. °C")
-                   }
                    
   })
   
@@ -532,29 +528,29 @@ map <- function(input, output, session) {
       leafletProxy("map") %>%
         clearTiles() %>% 
         addProviderTiles(providers$OpenStreetMap.BlackAndWhite,
-                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) #%>%
-        # addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
-                       # project = FALSE, opacity = 0.8)
+                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
+        addRasterImage(rasterProj(), colors = pal_react(), layerId = ns("map_raster"),
+        project = FALSE, opacity = 0.8)
     } else if(input$map_back == "Land features"){
       leafletProxy("map") %>%
         clearTiles() %>% 
         addProviderTiles(providers$Esri.WorldTopoMap,
-                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) #%>%
-        # addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
-                       # project = FALSE, opacity = 0.8)
+                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
+        addRasterImage(rasterProj(), colors = pal_react(), layerId = ns("map_raster"),
+        project = FALSE, opacity = 0.8)
     } else if(input$map_back == "Ocean features"){
       leafletProxy("map") %>%
         clearTiles() %>% 
         addProviderTiles(providers$Esri.OceanBasemap,
-                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) #%>%
-        # addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
-                       # project = FALSE, opacity = 0.8)
+                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
+        addRasterImage(rasterProj(), colors = pal_react(), layerId = ns("map_raster"),
+                       project = FALSE, opacity = 0.8)
     } else{
       leafletProxy("map") %>%
         clearTiles() %>% 
-        addTiles(options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) #%>%
-        # addRasterImage(rasterProj(), colors = pal_cat, layerId = ns("map_raster"),
-                       # project = FALSE, opacity = 0.8)
+        addTiles(options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
+        addRasterImage(rasterProj(), colors = pal_react(), layerId = ns("map_raster"),
+                       project = FALSE, opacity = 0.8)
     }
   })
   
