@@ -339,9 +339,9 @@ MHW_event_cat_update <- function(lon_step){
   
   # Extract each pixel time series based on how far back the oldest event occurred for the entire longitude slice
   sst_seas_thresh <- sst_seas_thresh_merge(lon_step, 
-                                           start_date = min(previous_event_index$date_start))
+                                           date_range = min(previous_event_index$date_start))
                                            # Use to recalculate everything
-                                           # start_date = as.Date("1982-01-01"))
+                                           # date_range = as.Date("1982-01-01"))
   
   # Calculate new event metrics with new data as necessary
   # system.time(

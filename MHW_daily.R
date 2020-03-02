@@ -155,7 +155,7 @@ if(nrow(OISST_dat) > 2){
   # system.time(
     plyr::l_ply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE)
   # ) # ~ 40 seconds per cycle
-  print(paste0("Updated MHW results at ", Sys.time()))
+  print(paste0("Finished MHW results at ", Sys.time()))
 }
 
 # Occasionaly the cat_lon files don't come right
@@ -181,7 +181,6 @@ if(nrow(OISST_dat) > 2){
 
 # 3: Create daily global files --------------------------------------------
 
-# doMC::registerDoMC(cores = 25)
 doParallel::registerDoParallel(cores = 50)
 
 # Get most current processed OISST dates
@@ -191,14 +190,19 @@ time_index <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transform
 # Get the range of dates that need to be run
 # The function `cat_clim_global_daily()` uses dplyr so a for loop is used here
   # Manually control dates as desired
-# update_dates <- seq(as.Date("2020-02-07"), as.Date("2020-02-13"), by = "day")
+# update_dates <- seq(as.Date("2020-02-27"), as.Date("2020-02-28"), by = "day")
 update_dates <- time_index[which(time_index >= min(final_index$t))]
 if(length(update_dates) > 0) {
-  print(paste0("Updating global MHW slices from ",min(update_dates)," to ",max(update_dates)))
+  print(paste0("Updating global MHW files from ",min(update_dates)," to ",max(update_dates)))
+  print(paste0("Updating daily cat files at ", Sys.time()))
   # system.time(
   cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)))
   # ) # ~28 seconds
-  print(paste0("Updated global MHW slices at ", Sys.time()))
+  print(paste0("Updating daily anom files at ", Sys.time()))
+  # system.time(
+  anom_global_daily(date_range = c(min(update_dates), max(update_dates)))
+  # ) # 455 seconds
+  print(paste0("Finished global daily MHW files at ", Sys.time()))
 }
 
 
