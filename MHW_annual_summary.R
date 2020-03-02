@@ -5,14 +5,10 @@
 
 # Setup -------------------------------------------------------------------
 
-.libPaths(c("~/R-packages", .libPaths()))
+source("MHW_daily_functions.R")
+library(dtplyr)
 
-library(tidyverse)
-library(heatwaveR)
-library(ncdf4)
-library(tidync)
-# library(dtplyr)
-library(doParallel); registerDoParallel(cores = 50)
+registerDoParallel(cores = 50)
 
 # Animation libraries
 # library(animation)
@@ -137,7 +133,7 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
   
   ## Find file location
   MHW_cat_files <- dir(paste0("../data/cat_clim/", chosen_year), full.names = T)
-  print(paste0("There are currently ",length(MHW_cat_files)," days of data for ",chosen_year))
+  # print(paste0("There are currently ",length(MHW_cat_files)," days of data for ",chosen_year))
   
   ## Create figure title
   if(length(MHW_cat_files) < 365){
@@ -150,7 +146,7 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
   
   ## Load data
   if(force_calc){
-    print(paste0("Loading ",chosen_year," MHW category data; ~12 seconds"))
+    # print(paste0("Loading ",chosen_year," MHW category data; ~12 seconds"))
     # system.time(
     MHW_cat <- plyr::ldply(MHW_cat_files, readRDS_date, .parallel = T) #%>% 
     #right_join(OISST_no_ice_coords, by = c("lon", "lat")) %>%  # Filter out ice if desired
@@ -163,7 +159,7 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
   if(file.exists(paste0("data/annual_summary/MHW_cat_pixel_",chosen_year,".Rds")) & !force_calc){
     MHW_cat_pixel <- readRDS(paste0("data/annual_summary/MHW_cat_pixel_",chosen_year,".Rds"))
   } else{
-    print(paste0("Filtering out the max category at each pixel and counting sum of intensity; ~220 seconds"))
+    # print(paste0("Filtering out the max category at each pixel and counting sum of intensity; ~220 seconds"))
     
     MHW_intensity <- MHW_cat %>% 
       group_by(lon, lat) %>% 
@@ -187,7 +183,7 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
   if(file.exists(paste0("data/annual_summary/MHW_cat_daily_",chosen_year,".Rds")) & !force_calc){
     MHW_cat_daily <- readRDS(paste0("data/annual_summary/MHW_cat_daily_",chosen_year,".Rds"))
   } else{
-    print(paste0("Counting the daily + cumulative categories per day; ~3 seconds"))
+    # print(paste0("Counting the daily + cumulative categories per day; ~3 seconds"))
     
     # Complete dates by categories data.frame
     full_grid <- expand_grid(t = seq(as.Date(paste0(chosen_year,"-01-01")), max(MHW_cat$t), by = "day"), 
@@ -235,7 +231,7 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
     mutate(label_first_n_cum = cumsum(first_n_cum_prop))
   
   ## Create figures
-  print("Creating figures")
+  # print("Creating figures")
   
   # Global map of MHW occurrence
   fig_map <- ggplot(MHW_cat_pixel, aes(x = lon, y = lat)) +
@@ -300,7 +296,7 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
           axis.text = element_text(size = 13))
   # fig_prop
   
-  print("Combining figures")
+  # print("Combining figures")
   fig_ALL_sub <- ggpubr::ggarrange(fig_count, fig_cum, fig_prop, ncol = 3, align = "hv",
                                    labels = c("B)", "C)", "D)"), font.label = list(size = 16))
   fig_ALL <- ggpubr::ggarrange(fig_map, fig_ALL_sub, ncol = 1, heights = c(1, 0.6),
@@ -311,7 +307,7 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
   fig_ALL_cap <- grid::textGrob(fig_title, x = 0.01, just = "left", gp = grid::gpar(fontsize = 20))
   fig_ALL_cap <- ggpubr::ggarrange(fig_ALL_cap, fig_ALL, heights = c(0.07, 1), nrow = 2)
   
-  print("Saving final figure")
+  # print("Saving final figure")
   ggsave(fig_ALL_cap, filename = paste0("figures/MHW_cat_summary_",chosen_year,".png"), height = 12, width = 18)
   # ggsave(fig_ALL_cap, filename = paste0("figures/MHW_cat_summary_",chosen_year,".pdf"), height = 12, width = 18) # looks bad...
   
@@ -319,7 +315,7 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
 }
 
 # Run one year
-system.time(MHW_annual_state(2020, force_calc = T)) # 257 seconds
+system.time(MHW_annual_state(2020, force_calc = T)) # 133 seconds
 # MHW_annual_state(2019, force_calc = F)
 
 # Run ALL years

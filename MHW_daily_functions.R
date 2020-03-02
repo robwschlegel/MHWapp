@@ -15,10 +15,11 @@ library(RCurl)
 library(XML)
 library(threadr)
 library(heatwaveR)
+library(doParallel)
 })
 
 print(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))
-doParallel::registerDoParallel(cores = 25)
+registerDoParallel(cores = 25)
 
 
 # Prep functions ----------------------------------------------------------

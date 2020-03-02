@@ -7,7 +7,7 @@
 ## 2: Updates MHW event and category data
 ## 3: Creates daily global MHW category file(s)
 ## 4: Check the `current_dates` index to make sure no days are missing
-## 5: Run the annual summary update for 2020
+## 5: Run the annual summary update
 ## 6: Push to GitHub
 
 source("MHW_daily_functions.R")
@@ -224,7 +224,7 @@ if(length(possible_dates) > length(current_dates)){
 }
 
 
-# 5: Run 2020 annual summary ----------------------------------------------
+# 5: Run annual summary ---------------------------------------------------
 
 source("MHW_annual_summary.R")
 
