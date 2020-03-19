@@ -289,6 +289,31 @@ map <- function(input, output, session) {
 
   })
 
+  ### Observe the changing of date, lon, lat, zoom, in the URL
+  observe({
+    query <- parseQueryString(session$clientData$url_search)
+    if (!is.null(query[['date']])) {
+      updateDateInput(session = session, 
+                      inputId = "date", 
+                      value = as.Date(as.character(query[['date']])))
+    }
+    if (!is.null(query[['lat']])) {
+      updateNumericInput(session, "lat", value = query[['lat']])
+    }
+    if (!is.null(query[['lon']])) {
+      updateNumericInput(session, "lon", value = query[['lon']])
+    }
+    if (!is.null(query[['zoom']])) {
+      updateNumericInput(session, "zoom", value = query[['zoom']])
+    }
+  })
+  
+  ### Update zoom level when user zooms
+  observe({
+      if(!is.null(input$map_zoom)) updateNumericInput(session, "zoom", value = input$map_zoom)
+      # leafletProxy('map') %>%
+        # setView(lng = sel_site$lng, lat = sel_site$lat, zoom = new_zoom)
+  })
   
 # Map projection data -----------------------------------------------------
   
@@ -486,7 +511,11 @@ map <- function(input, output, session) {
       content <- ""
     }
     
-    ### Add Popup to leaflet
+    # Update lon lat
+    updateNumericInput(session, "lon", value = round(xy_click[1], 2))
+    updateNumericInput(session, "lat", value = round(xy_click[2], 2))
+    
+    # Add Popup to leaflet
     leafletProxy("map") %>%
       clearPopups() %>%
       addPopups(lng = xy_click[1], lat = xy_click[2],
@@ -513,16 +542,19 @@ map <- function(input, output, session) {
       map_lat <- query[['lat']]
     } else {
       map_lat <- initial_lat
+      # map_lat <- input$lat
     }
     if(!is.null(query[['lon']])){
       map_lon <-  query[['lon']]
     } else {
       map_lon <- initial_lon
+      # map_lon <- input$lon
     }
     if(!is.null(query[['zoom']])){
       map_zoom <-  query[['zoom']]
     } else {
       map_zoom <- initial_zoom
+      # map_zoom <- input$zoom
     }
     # The base 
     leaflet(data = MHW_cat_clim_sub, options = leafletOptions(zoomControl = FALSE)) %>%
@@ -541,8 +573,22 @@ map <- function(input, output, session) {
                                       project = FALSE, opacity = 0.8) #%>% 
                        # leaflet::addLegend(position = "bottomright", pal = pal_anom, 
                                           # values = seq(-10, 10), title = "Anom. °C")
-                   
   })
+  
+  ### Shift when new lon/lat are entered
+  observeEvent(c(input$lon, input$lat), {
+    leafletProxy("map") %>%
+      setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
+              options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F))
+    })
+  
+  ### Shift when new zoom is entered
+    # NB: This is kept separate as it is annoying when clicking a pixel shifts the zoom level
+  # observeEvent(input$zoom, {
+  #   leafletProxy("map") %>%
+  #     setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
+  #             options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F))
+  # })
   
   ### Change map background
   observeEvent(input$map_back, {

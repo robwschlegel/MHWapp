@@ -51,6 +51,18 @@ mapUI <- function(id, label = 'map') {
                         #icon = icon("map-marked"), width = "50px", 
                         right = FALSE, up = FALSE,
                         label = "Background", tooltip = FALSE),
+                      # The lon/lat/zoom controls
+                      h5(""),
+                      shinyWidgets::dropdownButton(
+                        # div(id = ns("coords"),
+                            numericInput(inputId = ns("lon"), label = "Lon", value = initial_lon, step = 10),
+                            numericInput(inputId = ns("lat"), label = "Lat", value = initial_lat, step = 10),
+                            numericInput(inputId = ns("zoom"), label = "Zoom", value = initial_zoom),
+                            circle = FALSE, status = "primary",
+                            #icon = icon("map-marked"), width = "50px", 
+                            right = FALSE, up = FALSE,
+                            label = "Coordinates", tooltip = FALSE),
+                        # )
                       # The category filtering buttons
                       # h5("Categories"),
                       h5(""),
