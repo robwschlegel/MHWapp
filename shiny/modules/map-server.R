@@ -72,7 +72,7 @@ map <- function(input, output, session) {
     if(!button_I$clicked){
       button_I$clicked <- TRUE
       categories$categories <- categories$categories[!grepl("I Moderate", categories$categories)]
-    } else{
+    } else {
       button_I$clicked <- FALSE
       if(!"I Moderate" %in% categories$categories){
         categories$categories <- c(categories$categories, "I Moderate")
@@ -81,7 +81,10 @@ map <- function(input, output, session) {
   })
   # Change button icon upon click
   output$moderate <- renderUI({
-    if(button_I$clicked){
+    req(input$layer)
+    if(input$layer == "Anomaly"){
+      # No button when anomaly layer is chosen
+    } else if(button_I$clicked){
       actionButton(inputId = ns("moderate_filter"), "I Moderate", icon = icon("remove", lib = "glyphicon"),
                    style = "color: black; background-color: #ffc866; border-color: black; width: 110px")     
     } else {
@@ -107,7 +110,10 @@ map <- function(input, output, session) {
   })
   # Change button icon upon click
   output$strong <- renderUI({
-    if(button_II$clicked){
+    req(input$layer)
+    if(input$layer == "Anomaly"){
+      # No button when anomaly layer is chosen
+    } else if(button_II$clicked){
       actionButton(inputId = ns("strong_filter"), "II Strong", icon = icon("remove", lib = "glyphicon"),
                    style = "color: black; background-color: #ff6900; border-color: black; width: 110px")     
     } else {
@@ -133,7 +139,10 @@ map <- function(input, output, session) {
   })
   # Change button icon upon click
   output$severe <- renderUI({
-    if(button_III$clicked){
+    req(input$layer)
+    if(input$layer == "Anomaly"){
+      # No button when anomaly layer is chosen
+    } else if(button_III$clicked){
       actionButton(inputId = ns("severe_filter"), "III Severe", icon = icon("remove", lib = "glyphicon"),
                    style = "color: white; background-color: #9e0000; border-color: black; width: 110px")     
     } else {
@@ -159,7 +168,10 @@ map <- function(input, output, session) {
   })
   # Change button icon upon click
   output$extreme <- renderUI({
-    if(button_IV$clicked){
+    req(input$layer)
+    if(input$layer == "Anomaly"){
+      # No button when anomaly layer is chosen
+    } else if(button_IV$clicked){
       actionButton(inputId = ns("extreme_filter"), "IV Extreme", icon = icon("remove", lib = "glyphicon"),
                    style = "color: white; background-color: #2d0000; border-color: black; width: 110px")     
     } else {
@@ -581,14 +593,6 @@ map <- function(input, output, session) {
       setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F))
     })
-  
-  ### Shift when new zoom is entered
-    # NB: This is kept separate as it is annoying when clicking a pixel shifts the zoom level
-  # observeEvent(input$zoom, {
-  #   leafletProxy("map") %>%
-  #     setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
-  #             options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F))
-  # })
   
   ### Change map background
   observeEvent(input$map_back, {
