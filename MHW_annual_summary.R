@@ -314,8 +314,8 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
   print(paste0("Finished run on ",chosen_year," at ",Sys.time()))
 }
 
-# Run one year
-system.time(MHW_annual_state(2020, force_calc = T)) # 133 seconds
+# Run the current year
+system.time(MHW_annual_state(as.numeric(lubridate::year(Sys.Date())), force_calc = T)) # 161 seconds
 # MHW_annual_state(2019, force_calc = F)
 
 # Run ALL years
@@ -334,23 +334,22 @@ system.time(MHW_annual_state(2020, force_calc = T)) # 133 seconds
 
 # Historic annual comparisons ---------------------------------------------
 
-# NB: The following code has been commented out so this script can be sourced during 
-# the nightly cron job
+print(paste0("Began calculating historic results at ",Sys.time()))
 
 # Load all date based annual summaries
-# MHW_cat_daily <- map_dfr(dir("data/annual_summary", pattern = "MHW_cat_daily", full.names = T), readRDS) %>%
-#   filter(lubridate::month(t) == 12, lubridate::day(t) == 31) %>%
-#   mutate(t = lubridate::year(t),
-#          first_n_cum_prop = round(first_n_cum/nrow(OISST_ocean_coords), 4))
+MHW_cat_daily <- map_dfr(dir("data/annual_summary", pattern = "MHW_cat_daily", full.names = T), readRDS) %>%
+  filter(lubridate::month(t) == 12, lubridate::day(t) == 31) %>%
+  mutate(t = lubridate::year(t),
+         first_n_cum_prop = round(first_n_cum/nrow(OISST_ocean_coords), 4))
 
 # Create mean values
-# MHW_cat_daily_mean <- map_dfr(dir("data/annual_summary", pattern = "MHW_cat_daily", full.names = T), readRDS) %>%
-#   mutate(t = lubridate::year(t)) %>%
-#   filter(t != 2020) %>%
-#   group_by(t, category) %>%
-#   summarise_all(mean, na.rm = T) %>%
-#   ungroup() %>%
-#   mutate(cat_prop = round(cat_n/nrow(OISST_ocean_coords), 4))
+MHW_cat_daily_mean <- map_dfr(dir("data/annual_summary", pattern = "MHW_cat_daily", full.names = T), readRDS) %>%
+  mutate(t = lubridate::year(t)) %>%
+  filter(t != 2020) %>%
+  group_by(t, category) %>%
+  summarise_all(mean, na.rm = T) %>%
+  ungroup() %>%
+  mutate(cat_prop = round(cat_n/nrow(OISST_ocean_coords), 4))
 
 # Stacked barplot of global daily count of MHWs by category
 fig_count_historic <- ggplot(MHW_cat_daily_mean, aes(x = t, y = cat_prop)) +
@@ -367,7 +366,7 @@ fig_count_historic <- ggplot(MHW_cat_daily_mean, aes(x = t, y = cat_prop)) +
         axis.text = element_text(size = 12),
         legend.title = element_text(size = 18),
         legend.text = element_text(size = 16))
-fig_count_historic
+# fig_count_historic
 
 # Stacked barplot of cumulative percent of ocean affected by MHWs
 fig_cum_historic <- ggplot(MHW_cat_daily, aes(x = t, y = first_n_cum_prop)) +
@@ -384,7 +383,7 @@ fig_cum_historic <- ggplot(MHW_cat_daily, aes(x = t, y = first_n_cum_prop)) +
         axis.text = element_text(size = 12),
         legend.title = element_text(size = 18),
         legend.text = element_text(size = 16))
-fig_cum_historic
+# fig_cum_historic
 
 # Stacked barplot of average cumulative MHW days per pixel
 fig_prop_historic <- ggplot(MHW_cat_daily, aes(x = t, y = cat_n_prop)) +
@@ -400,7 +399,7 @@ fig_prop_historic <- ggplot(MHW_cat_daily, aes(x = t, y = cat_n_prop)) +
         axis.text = element_text(size = 12),
         legend.title = element_text(size = 18),
         legend.text = element_text(size = 16))
-fig_prop_historic
+# fig_prop_historic
 
 # Stick them together and save
 fig_ALL_historic <- ggpubr::ggarrange(fig_count_historic, fig_cum_historic, fig_prop_historic,
@@ -411,4 +410,7 @@ fig_ALL_cap <- grid::textGrob(paste0("MHW category summaries: 1982 - 2019",
                               x = 0.01, just = "left", gp = grid::gpar(fontsize = 20))
 fig_ALL_full <- ggpubr::ggarrange(fig_ALL_cap, fig_ALL_historic, heights = c(0.25, 1), nrow = 2)
 ggsave(fig_ALL_full, filename = paste0("figures/MHW_cat_historic.png"), height = 4.25, width = 12)
-ggsave(fig_ALL_full, filename = paste0("figures/MHW_cat_historic.eps"), height = 4.25, width = 12)
+# ggsave(fig_ALL_full, filename = paste0("figures/MHW_cat_historic.eps"), height = 4.25, width = 12)
+
+print(paste0("Finished calculating historic results at ",Sys.time()))
+
