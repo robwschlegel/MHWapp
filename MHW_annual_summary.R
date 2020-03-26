@@ -18,7 +18,7 @@ registerDoParallel(cores = 50)
 # Metadata ----------------------------------------------------------------
 
 # The OISST data location
-OISST_files <- dir("../data/OISST", full.names = T, pattern = "avhrr")
+# OISST_files <- dir("../data/OISST", full.names = T, pattern = "avhrr")
 
 # Function for extracting one day of data
 # testers...

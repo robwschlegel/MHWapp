@@ -11,7 +11,7 @@
 ## 6: Push to GitHub
 
 source("MHW_daily_functions.R")
-# source("../MHWapp/MHW_daily_fixes.R")
+# source("MHW_daily_fixes.R")
 
 ## NB: Don't run any of this code manually
 ## NB: Only run it via source("MHW_daily.R") in an R terminal
@@ -163,7 +163,7 @@ if(nrow(OISST_dat) > 2){
 # This function can fix a specific file
 
 # Run one
-# MHW_event_cat_fix(lon_OISST[53])
+# MHW_event_cat_fix(lon_OISST[88])
 
 # Run many
 # plyr::l_ply(lon_OISST[1300:1365], .fun = MHW_event_cat_fix, .parallel = TRUE)
@@ -190,7 +190,7 @@ time_index <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transform
 # Get the range of dates that need to be run
 # The function `cat_clim_global_daily()` uses dplyr so a for loop is used here
   # Manually control dates as desired
-# update_dates <- seq(as.Date("2020-02-27"), as.Date("2020-02-28"), by = "day")
+# update_dates <- seq(as.Date("2020-03-20"), as.Date("2020-03-25"), by = "day")
 update_dates <- time_index[which(time_index >= min(final_index$t))]
 if(length(update_dates) > 0) {
   print(paste0("Updating global MHW files from ",min(update_dates)," to ",max(update_dates)))
