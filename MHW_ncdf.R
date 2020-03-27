@@ -1,3 +1,4 @@
+# MHW_ncdf.R
 # The purpose of this script is to house the functions written to create NetCDF files
 # from the MHW data, as well as to then run the functions and create the NetCDF files
 
