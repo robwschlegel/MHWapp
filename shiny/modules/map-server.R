@@ -6,7 +6,7 @@ map <- function(input, output, session) {
   # x <- -42.125
   # y <- 39.875
   # input <- data.frame(date = as.Date("2019-07-19"),
-  #                     layer = "Anomaly")#,
+  #                     layer = "Trend")#,
   #                     # pixel = "Smooth")
   #                     #categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
   
@@ -53,8 +53,7 @@ map <- function(input, output, session) {
     shinyWidgets::dropdownButton(
       h3("Select map layer"),
       shinyWidgets::prettyRadioButtons(inputId = ns("layer"), label = NULL,
-                                       choices = c("Category", "Annual", "Total",
-                                                   "Trend", "Anomaly"), 
+                                       choices = c("Category", "Summary", "Trend", "Anomaly"), 
                                        selected = "Category", 
                                        status = "primary", 
                                        shape = "curve", 
@@ -184,6 +183,28 @@ map <- function(input, output, session) {
     }
   })
   
+  ### Option to select different trend layers
+  output$trend_layer_UI <- renderUI({
+    req(input$layer == "Trend")
+    # if(input$layer == "Trend"){
+      shinyWidgets::dropdownButton(
+        h3("Select MHW trend"),
+        shinyWidgets::prettyRadioButtons(inputId = ns("trend_layer"), label = NULL,
+                                         choices = c("MHW_dur_tr", "MHW_tc_tr", "MHW_td_tr",
+                                                     "MHW_var_tr", "MHW_mean_tr", "MHW_max_tr",
+                                                     "MHW_cnt_tr", "MHW_cum_tr", "SST_tr"), 
+                                         # choiceNames = c(colnames(baseDataPre())),
+                                         status = "primary", 
+                                         selected = "MHW_dur_tr",
+                                         shape = "curve", 
+                                         inline = T),
+        circle = FALSE, status = "primary",
+        width = "300px",
+        right = FALSE, up = FALSE,
+        label = "Trend layer", tooltip = FALSE)
+    # }
+  })
+  
   ### Button for opening main modal
   output$button_ts <- renderUI({
     click <- input$map_click
@@ -251,11 +272,20 @@ map <- function(input, output, session) {
       } else{
         date_menu_choice <- max(current_dates)
       }
-    dateInput(inputId = ns("date"),
-              label = NULL, width = '100%',
-              value = date_menu_choice,
-              min = "1982-01-01",
-              max = max(current_dates))
+    if(input$layer == "Summary"){
+      format_choice <- "yyyy"
+      startview_choice = "decade"
+    } else{
+      format_choice <- "yyyy-mm-dd"
+      startview_choice = "month"
+      dateInput(inputId = ns("date"),
+                label = NULL, width = '100%',
+                value = date_menu_choice,
+                min = "1982-01-01",
+                max = max(current_dates), 
+                format = format_choice, 
+                startview = startview_choice)
+    }
   })
   
   ### Observe the changing of dates in the animation slider
@@ -345,12 +375,14 @@ map <- function(input, output, session) {
       sub_dir <- paste0("OISST/daily/",year_filter)
       sub_file <- paste0(sub_dir,"/daily.",date_filter,".Rda")
     } else if(input$layer == "Trend"){
-      
+      sub_dir <- "../data/published"
+      sub_file <- paste0(sub_dir,"/Oliver_2018.Rds")
     } else if(input$layer == "Summary"){
+      sub_dir <- "../data/annual_summary"
+      sub_file <- paste0(sub_dir,"/MHW_cat_pixel_",year_filter,".Rds")
+    } #else if(input$layer == "Historic"){
       
-    } else if(input$layer == "Historic"){
-      
-    }
+    # }
     if(file.exists(sub_file)){
       baseDataPre <- readRDS(sub_file)
     } else {
@@ -366,15 +398,22 @@ map <- function(input, output, session) {
       baseData <- baseDataPre %>% 
         mutate(anom = ifelse(anom > 10, 10, anom),
                anom = ifelse(anom < -10, -10, anom))
-    } else if(nrow(baseDataPre) > 1){
+    } 
+    if(input$layer == "Trend"){      
+      # req(input$trend_layer)
+      if(is.nullinput$trend_layer){
+        baseData <- filter(baseDataPre, var == "MHW_dur_tr")
+      } else{
+        baseData <- filter(baseDataPre, var == input$trend_layer)
+      }
+    }
+    if(input$layer %in% c("Category", "Summary")){
       baseData <- baseDataPre %>%
         dplyr::filter(category %in% categories$categories)
-    } else{
-      baseData <- empty_date_map
-    }
-    # Fix for the issue caused by de-slecting all of the cateogries
-    if(length(baseData$category) == 0 & input$layer == "Category"){
-      baseData <- empty_date_map
+      # Fix for the issue caused by de-slecting all of the cateogries
+      if(length(baseData$category) == 0){
+        baseData <- empty_date_map
+      }
     }
     return(baseData)
   })
@@ -382,12 +421,14 @@ map <- function(input, output, session) {
   ### Non-shiny-projected raster data
   rasterNonProj <- reactive({
     baseData <- baseData()
-    if(input$layer == "Category"){
+    if(input$layer %in% c("Category", "Summary")){
       MHW_raster <- baseData %>%
         dplyr::select(lon, lat, category) 
-    } else {
+    } else if(input$layer == "Anomaly"){
       MHW_raster <- baseData %>%
         dplyr::select(lon, lat, anom) 
+    } else{
+      MHW_raster <- baseData
     }
     colnames(MHW_raster) <- c("X", "Y", "Z")
     MHW_raster$Z <- as.numeric(MHW_raster$Z)
@@ -456,14 +497,6 @@ map <- function(input, output, session) {
   
   
 # Pop-ups -----------------------------------------------------------------
-  
-  # testers...
-  # xy <- c(-48.375, 46.875)
-  # xy <- c(-42.125, 39.875)
-  # xy <- c(-402.125, 39.875)
-  # x <- -402.125
-  # x <- -42.125
-  # y <- 39.875
   
   ### Observer to show pop-ups on click
   observeEvent(c(input$map_click, input$open_modal), {
@@ -549,7 +582,7 @@ map <- function(input, output, session) {
   
   ### Observer to change colour palette accordingly
   pal_react <- reactive({
-    if(input$layer == "Category"){
+    if(input$layer %in% c("Category", "Summary")){
       colorNumeric(palette = MHW_colours, domain = c(1,2,3,4), na.color = NA)
     } else {
       colorNumeric(palette = c("blue", "white", "red"), domain = c(-10, 10), na.color = NA)

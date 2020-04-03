@@ -42,8 +42,8 @@ layer_prep <- function(data_layer){
 npz1_layers <- npz1$files[grepl(pattern = "_tr", npz1$files)]
 
 # Extract all layers
-Oliver_2018 <- plyr::ldply(.data = npz1_layers, .fun = layer_prep) %>% 
-  pivot_wider(id_cols = c(lon, lat), names_from = var, values_from = val)
+Oliver_2018 <- plyr::ldply(.data = npz1_layers, .fun = layer_prep) #%>% 
+  # pivot_wider(id_cols = c(lon, lat), names_from = var, values_from = val)
 saveRDS(Oliver_2018, "data/published/Oliver_2018.Rds")
 
 # Extract single layers

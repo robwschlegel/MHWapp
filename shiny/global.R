@@ -86,6 +86,9 @@ seas_thresh_files <- dir("thresh", pattern = "MHW.seas.thresh.", full.names = T)
 # cat_clim_files <- as.character(dir(path = "cat_clim", pattern = "cat.clim",
 #                                    full.names = TRUE, recursive = TRUE))
 
+### Oliver et al. 2018 data
+Oliver_2018 <- readRDS("../data/published/Oliver_2018.Rds")
+
 ### The empty dataframe for the legend
 MHW_cat_clim_sub <- data.frame(category = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
 
