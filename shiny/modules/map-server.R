@@ -18,7 +18,7 @@ map <- function(input, output, session) {
   observe({
     query <- parseQueryString(session$clientData$url_search)
     if(length(query) < 1){
-      shinyBS::toggleModal(session, "startupModal", "open")
+      # shinyBS::toggleModal(session, "startupModal", "open")
     }
   })
   # The content of the welcome window
@@ -53,8 +53,12 @@ map <- function(input, output, session) {
     shinyWidgets::dropdownButton(
       h3("Select map layer"),
       shinyWidgets::prettyRadioButtons(inputId = ns("layer"), label = NULL,
-                                       choices = c("Category", "Anomaly"), selected = "Category", 
-                                       status = "primary", shape = "curve", inline = T),
+                                       choices = c("Category", "Annual", "Total",
+                                                   "Trend", "Anomaly"), 
+                                       selected = "Category", 
+                                       status = "primary", 
+                                       shape = "curve", 
+                                       inline = T),
       circle = FALSE, status = "primary",
       icon = icon("map"), width = "300px",
       right = FALSE, up = FALSE,
@@ -82,7 +86,7 @@ map <- function(input, output, session) {
   # Change button icon upon click
   output$moderate <- renderUI({
     req(input$layer)
-    if(input$layer == "Anomaly"){
+    if(input$layer %in% c("Anomaly", "Trend")){
       # No button when anomaly layer is chosen
     } else if(button_I$clicked){
       actionButton(inputId = ns("moderate_filter"), "I Moderate", icon = icon("remove", lib = "glyphicon"),
@@ -111,7 +115,7 @@ map <- function(input, output, session) {
   # Change button icon upon click
   output$strong <- renderUI({
     req(input$layer)
-    if(input$layer == "Anomaly"){
+    if(input$layer %in% c("Anomaly", "Trend")){
       # No button when anomaly layer is chosen
     } else if(button_II$clicked){
       actionButton(inputId = ns("strong_filter"), "II Strong", icon = icon("remove", lib = "glyphicon"),
@@ -140,7 +144,7 @@ map <- function(input, output, session) {
   # Change button icon upon click
   output$severe <- renderUI({
     req(input$layer)
-    if(input$layer == "Anomaly"){
+    if(input$layer %in% c("Anomaly", "Trend")){
       # No button when anomaly layer is chosen
     } else if(button_III$clicked){
       actionButton(inputId = ns("severe_filter"), "III Severe", icon = icon("remove", lib = "glyphicon"),
@@ -169,7 +173,7 @@ map <- function(input, output, session) {
   # Change button icon upon click
   output$extreme <- renderUI({
     req(input$layer)
-    if(input$layer == "Anomaly"){
+    if(input$layer %in% c("Anomaly", "Trend")){
       # No button when anomaly layer is chosen
     } else if(button_IV$clicked){
       actionButton(inputId = ns("extreme_filter"), "IV Extreme", icon = icon("remove", lib = "glyphicon"),
@@ -337,9 +341,15 @@ map <- function(input, output, session) {
     if(input$layer == "Category"){
       sub_dir <- paste0("cat_clim/",year_filter)
       sub_file <- paste0(sub_dir,"/cat.clim.",date_filter,".Rda")
-    } else {
+    } else if(input$layer == "Anomaly"){
       sub_dir <- paste0("OISST/daily/",year_filter)
       sub_file <- paste0(sub_dir,"/daily.",date_filter,".Rda")
+    } else if(input$layer == "Trend"){
+      
+    } else if(input$layer == "Summary"){
+      
+    } else if(input$layer == "Historic"){
+      
     }
     if(file.exists(sub_file)){
       baseDataPre <- readRDS(sub_file)

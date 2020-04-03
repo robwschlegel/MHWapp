@@ -33,9 +33,23 @@ layer_prep <- function(data_layer){
     mutate(lon = as.numeric(as.character(lon)),
            val = replace_na(val, NA),
            var = {{data_layer}}) %>% 
-    dplyr::select(lon, lat, var, val)
+    dplyr::select(lon, lat, var, val) %>% 
+    na.omit()
   return(res)
 }
+
+# View data layers
+npz1_layers <- npz1$files[grepl(pattern = "_tr", npz1$files)]
+
+# Extract all layers
+Oliver_2018 <- plyr::ldply(.data = npz1_layers, .fun = layer_prep) %>% 
+  pivot_wider(id_cols = c(lon, lat), names_from = var, values_from = val)
+saveRDS(Oliver_2018, "data/published/Oliver_2018.Rds")
+
+# Extract single layers
+max_trend <- layer_prep("MHW_max_tr")
+dur_trend <- layer_prep("MHW_dur_tr")
+mean_trend <- layer_prep("MHW_mean_tr")
 
 # Function for plotting a layer
 layer_plot <- function(df){
@@ -45,18 +59,6 @@ layer_plot <- function(df){
     coord_cartesian(expand = F) +
     labs(x = NULL, y = NULL, fill = df$var[1])
 }
-
-# View data layers
-npz1_layers <- npz1$files
-
-# Extract all layers
-Oliver_2018 <- plyr::ldply(.data = npz1_layers, .fun = layer_prep)
-
-# Extract single layers
-test <- layer_prep(npz1_layers[1])
-max_trend <- layer_prep("MHW_max_tr")
-dur_trend <- layer_prep("MHW_dur_tr")
-mean_trend <- layer_prep("MHW_mean_tr")
 
 # Visualise layers
 layer_plot(max_trend)
