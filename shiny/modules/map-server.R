@@ -53,7 +53,7 @@ map <- function(input, output, session) {
     shinyWidgets::dropdownButton(
       h3("Select map layer"),
       shinyWidgets::prettyRadioButtons(inputId = ns("layer"), label = NULL,
-                                       choices = c("Category", "Summary", "Trend", "Anomaly"), 
+                                       choices = c("Category", "Anomaly", "Trend"), 
                                        selected = "Category", 
                                        status = "primary", 
                                        shape = "curve", 
@@ -185,7 +185,7 @@ map <- function(input, output, session) {
   
   ### Option to select different trend layers
   output$trend_layer_UI <- renderUI({
-    req(input$layer == "Trend")
+    # req(input$layer == "Trend")
     # if(input$layer == "Trend"){
       shinyWidgets::dropdownButton(
         h3("Select MHW trend"),
@@ -195,7 +195,7 @@ map <- function(input, output, session) {
                                                      "MHW_cnt_tr", "MHW_cum_tr", "SST_tr"), 
                                          # choiceNames = c(colnames(baseDataPre())),
                                          status = "primary", 
-                                         selected = "MHW_dur_tr",
+                                         selected = "SST_tr",
                                          shape = "curve", 
                                          inline = T),
         circle = FALSE, status = "primary",
@@ -272,13 +272,10 @@ map <- function(input, output, session) {
       } else{
         date_menu_choice <- max(current_dates)
       }
-    if(input$layer == "Summary"){
-      format_choice <- "yyyy"
-      startview_choice = "decade"
-      numericInput(inputId = ns("date"), label = NULL, value = 2020, min = 1982, max = 2020)
-    } else{
+
       format_choice <- "yyyy-mm-dd"
       startview_choice = "month"
+      
       dateInput(inputId = ns("date"),
                 label = NULL, width = '100%',
                 value = date_menu_choice,
@@ -286,7 +283,6 @@ map <- function(input, output, session) {
                 max = max(current_dates), 
                 format = format_choice, 
                 startview = startview_choice)
-    }
   })
   
   ### Observe the changing of dates in the animation slider
@@ -362,18 +358,14 @@ map <- function(input, output, session) {
         # setView(lng = sel_site$lng, lat = sel_site$lat, zoom = new_zoom)
   })
   
+  
 # Map projection data -----------------------------------------------------
   
   ### Base map data before screening categories
   baseDataPre <- reactive({
-    if(lubridate::is.Date(input$date)){
-      date_filter <- input$date
-      year_filter <- lubridate::year(date_filter)
-    } 
-    if(is.numeric(input$date)){
-      req(input$date >= 1982 & input$date <= 2020)
-      year_filter <- input$date
-    }
+    req(lubridate::is.Date(input$date))
+    date_filter <- input$date
+    year_filter <- lubridate::year(date_filter)
     if(input$layer == "Category"){
       sub_dir <- paste0("cat_clim/",year_filter)
       sub_file <- paste0(sub_dir,"/cat.clim.",date_filter,".Rda")
@@ -383,15 +375,18 @@ map <- function(input, output, session) {
     } else if(input$layer == "Trend"){
       sub_dir <- "../data/published"
       sub_file <- paste0(sub_dir,"/Oliver_2018.Rds")
-    } else if(input$layer == "Summary"){
-      sub_dir <- "../data/annual_summary"
-      sub_file <- paste0(sub_dir,"/MHW_cat_pixel_",year_filter,".Rds")
-    } #else if(input$layer == "Historic"){
+    } #else if(input$layer == "Summary"){
+      # sub_dir <- "../data/annual_summary"
+      # sub_file <- paste0(sub_dir,"/MHW_cat_pixel_",year_filter,".Rds")
+    # } #else if(input$layer == "Historic"){
       
     # }
-    if(file.exists(sub_file)){
+    if(file.exists(sub_file) & input$layer != "Trend"){
       baseDataPre <- readRDS(sub_file)
-    } else {
+    } else if(input$layer == "Trend"){
+      # req(input$trend_layer)
+      baseDataPre <- Oliver_2018
+    } else{
       baseDataPre <- empty_date_map
     }
     return(baseDataPre)
@@ -405,13 +400,9 @@ map <- function(input, output, session) {
         mutate(anom = ifelse(anom > 10, 10, anom),
                anom = ifelse(anom < -10, -10, anom))
     } 
-    if(input$layer == "Trend"){      
-      # req(input$trend_layer)
-      if(is.nullinput$trend_layer){
-        baseData <- filter(baseDataPre, var == "MHW_dur_tr")
-      } else{
-        baseData <- filter(baseDataPre, var == input$trend_layer)
-      }
+    if(input$layer == "Trend"){ 
+      baseData <- baseDataPre %>% 
+        filter(var == input$trend_layer)
     }
     if(input$layer %in% c("Category", "Summary")){
       baseData <- baseDataPre %>%
@@ -433,7 +424,10 @@ map <- function(input, output, session) {
     } else if(input$layer == "Anomaly"){
       MHW_raster <- baseData %>%
         dplyr::select(lon, lat, anom) 
-    } else{
+    } else if(input$layer == "Trend"){
+      MHW_raster <- baseData %>%
+        dplyr::select(lon, lat, val)
+    } else {
       MHW_raster <- baseData
     }
     colnames(MHW_raster) <- c("X", "Y", "Z")
