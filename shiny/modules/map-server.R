@@ -275,6 +275,7 @@ map <- function(input, output, session) {
     if(input$layer == "Summary"){
       format_choice <- "yyyy"
       startview_choice = "decade"
+      numericInput(inputId = ns("date"), label = NULL, value = 2020, min = 1982, max = 2020)
     } else{
       format_choice <- "yyyy-mm-dd"
       startview_choice = "month"
@@ -365,9 +366,14 @@ map <- function(input, output, session) {
   
   ### Base map data before screening categories
   baseDataPre <- reactive({
-    req(lubridate::is.Date(input$date))
-    date_filter <- input$date
-    year_filter <- lubridate::year(date_filter)
+    if(lubridate::is.Date(input$date)){
+      date_filter <- input$date
+      year_filter <- lubridate::year(date_filter)
+    } 
+    if(is.numeric(input$date)){
+      req(input$date >= 1982 & input$date <= 2020)
+      year_filter <- input$date
+    }
     if(input$layer == "Category"){
       sub_dir <- paste0("cat_clim/",year_filter)
       sub_file <- paste0(sub_dir,"/cat.clim.",date_filter,".Rda")
