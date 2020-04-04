@@ -195,7 +195,7 @@ map <- function(input, output, session) {
                                                      "MHW_cnt_tr", "MHW_cum_tr", "SST_tr"), 
                                          # choiceNames = c(colnames(baseDataPre())),
                                          status = "primary", 
-                                         selected = "SST_tr",
+                                         selected = "MHW_cum_tr",
                                          shape = "curve", 
                                          inline = T),
         circle = FALSE, status = "primary",
