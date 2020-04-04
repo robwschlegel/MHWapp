@@ -76,9 +76,9 @@ menu_panel_left <- 10
 
 ### The different layer groupings
 cat_layers <- c("Category", "Summary")
-rb_layers <- c("Anomaly", "Trend: Duration", "Trend: Count", 
+rb_layers <- c("Anomaly", "Trend: Count", "Trend: Duration", 
                "Trend: Intensity (mean)", "Trend: Intensity (max)")
-trend_layers <- c("Trend: Duration", "Trend: Count", 
+trend_layers <- c("Trend: Count", "Trend: Duration", 
                   "Trend: Intensity (mean)", "Trend: Intensity (max)")
 
 ### The lon/lat steps

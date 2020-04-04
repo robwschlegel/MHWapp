@@ -1,4 +1,4 @@
-server <- function(input, output, session) {
+server <- function(input, output, session){
   
   shinyjs::hide(id = "loading-content", anim = TRUE, animType = "fade", time = 2)
   

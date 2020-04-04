@@ -35,9 +35,6 @@ mapUI <- function(id, label = 'map') {
                       # Layer selector
                       h5(""),
                       uiOutput(outputId = ns("layer_UI")),
-                      # Trend layer selector
-                      # h5(""),
-                      # uiOutput(outputId = ns("trend_layer_UI")),
                       # Map data download
                       h5(""),
                       uiOutput(outputId = ns("download_map_UI")),
@@ -51,7 +48,6 @@ mapUI <- function(id, label = 'map') {
                                                          selected = "Default",
                                                          status = 'primary', shape = "curve", animation = "tada"),
                         circle = FALSE, status = "primary",
-                        #icon = icon("map-marked"), width = "50px", 
                         right = FALSE, up = FALSE,
                         label = "Background", tooltip = FALSE),
                       # The lon/lat/zoom controls
@@ -62,7 +58,6 @@ mapUI <- function(id, label = 'map') {
                             numericInput(inputId = ns("lat"), label = "Lat", value = initial_lat, step = 10),
                             numericInput(inputId = ns("zoom"), label = "Zoom", value = initial_zoom),
                             circle = FALSE, status = "primary",
-                            #icon = icon("map-marked"), width = "50px", 
                             right = FALSE, up = FALSE,
                             label = "Coordinates", tooltip = FALSE),
                         # )

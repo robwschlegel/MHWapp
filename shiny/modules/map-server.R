@@ -53,9 +53,7 @@ map <- function(input, output, session) {
     shinyWidgets::dropdownButton(
       h3("Select map layer"),
       shinyWidgets::prettyRadioButtons(inputId = ns("layer"), label = NULL,
-                                       choices = c("Category", "Anomaly", "Summary",
-                                                   "Trend: Duration", "Trend: Count", 
-                                                   "Trend: Intensity (mean)", "Trend: Intensity (max)"), 
+                                       choices = c(cat_layers, rb_layers), 
                                        selected = "Category", 
                                        status = "primary", 
                                        shape = "curve", 
@@ -184,28 +182,6 @@ map <- function(input, output, session) {
                    style = "color: white; background-color: #2d0000; border-color: black; width: 110px")
     }
   })
-  
-  ### Option to select different trend layers
-  # output$trend_layer_UI <- renderUI({
-  #   # req(input$layer == "Trend")
-  #   # if(input$layer == "Trend"){
-  #     shinyWidgets::dropdownButton(
-  #       h3("Select MHW trend"),
-  #       shinyWidgets::prettyRadioButtons(inputId = ns("trend_layer"), label = NULL,
-  #                                        choices = c("MHW_dur_tr", "MHW_tc_tr", "MHW_td_tr",
-  #                                                    "MHW_var_tr", "MHW_mean_tr", "MHW_max_tr",
-  #                                                    "MHW_cnt_tr", "MHW_cum_tr", "SST_tr"), 
-  #                                        # choiceNames = c(colnames(baseDataPre())),
-  #                                        status = "primary", 
-  #                                        selected = "MHW_cum_tr",
-  #                                        shape = "curve", 
-  #                                        inline = T),
-  #       circle = FALSE, status = "primary",
-  #       width = "300px",
-  #       right = FALSE, up = FALSE,
-  #       label = "Trend layer", tooltip = FALSE)
-  #   # }
-  # })
   
   ### Button for opening main modal
   output$button_ts <- renderUI({
@@ -371,20 +347,31 @@ map <- function(input, output, session) {
     if(input$layer == "Category"){
       sub_dir <- paste0("cat_clim/",year_filter)
       sub_file <- paste0(sub_dir,"/cat.clim.",date_filter,".Rda")
-    } else if(input$layer == "Anomaly"){
-      sub_dir <- paste0("OISST/daily/",year_filter)
-      sub_file <- paste0(sub_dir,"/daily.",date_filter,".Rda")
     } else if(input$layer == "Summary"){
       sub_dir <- "../data/annual_summary"
       sub_file <- paste0(sub_dir,"/MHW_cat_pixel_",year_filter,".Rds")
+    } else if(input$layer == "Anomaly"){
+      sub_dir <- paste0("OISST/daily/",year_filter)
+      sub_file <- paste0(sub_dir,"/daily.",date_filter,".Rda")
+    } else if(input$layer == "Trend: Count"){
+      baseDataPre <- Oliver_2018 %>% 
+        filter(var == "MHW_cnt_tr")
+    } else if(input$layer == "Trend: Duration"){
+      baseDataPre <- Oliver_2018 %>% 
+        filter(var == "MHW_dur_tr")
+    } else if(input$layer == "Trend: Intensity (mean)"){
+      baseDataPre <- Oliver_2018 %>% 
+        filter(var == "MHW_mean_tr")
+    } else if(input$layer == "Trend: Intensity (max)"){
+      baseDataPre <- Oliver_2018 %>% 
+        filter(var == "MHW_max_tr")
     }
-    if(file.exists(sub_file) & input$layer ){
-      baseDataPre <- readRDS(sub_file)
-    } else if(input$layer %in% trend_layers){
-      # req(input$trend_layer)
-      baseDataPre <- Oliver_2018
-    } else{
-      baseDataPre <- empty_date_map
+    if(input$layer %in% c("Category", "Anomaly", "Summary")){
+      if(file.exists(sub_file)){
+        baseDataPre <- readRDS(sub_file)
+      } else {
+        baseDataPre <- empty_date_map
+      }
     }
     return(baseDataPre)
   })
@@ -392,16 +379,7 @@ map <- function(input, output, session) {
   ### Base map data after screening categories
   baseData <- reactive({
     baseDataPre <- baseDataPre()
-    if(input$layer == "Anomaly"){
-      baseData <- baseDataPre %>% 
-        mutate(anom = ifelse(anom > 10, 10, anom),
-               anom = ifelse(anom < -10, -10, anom))
-    } 
-    if(input$layer == "Trend"){ 
-      baseData <- baseDataPre %>% 
-        filter(var == input$trend_layer)
-    }
-    if(input$layer %in% c("Category", "Summary")){
+    if(input$layer %in% cat_layers){
       baseData <- baseDataPre %>%
         dplyr::filter(category %in% categories$categories)
       # Fix for the issue caused by de-slecting all of the cateogries
@@ -409,6 +387,23 @@ map <- function(input, output, session) {
         baseData <- empty_date_map
       }
     }
+    if(input$layer == "Anomaly"){
+      baseData <- baseDataPre #%>% 
+        # mutate(anom = ifelse(anom > quantile(anom, 0.9), quantile(anom, 0.9), anom),
+               # anom = ifelse(anom < quantile(anom, 0.1), quantile(anom, 0.1), anom))
+    } 
+    if(input$layer %in% trend_layers){ 
+      # if(input$layer == "Trend: Duration"){ 
+        baseData <- baseDataPre #%>% 
+          # mutate(val = ifelse(val > quantile(val, 0.9), quantile(val, 0.9), val),
+                 # val = ifelse(val < quantile(val, 0.1), quantile(val, 0.1), val))
+      # } else {
+      #   baseData <- baseDataPre %>% 
+      #     mutate(val = ifelse(val > 0.1, 0.1, val),
+      #            val = ifelse(val < -0.1, -0.1, val))
+      # }
+    }
+
     return(baseData)
   })
   
@@ -421,7 +416,7 @@ map <- function(input, output, session) {
     } else if(input$layer == "Anomaly"){
       MHW_raster <- baseData %>%
         dplyr::select(lon, lat, anom) 
-    } else if(input$layer == "Trend"){
+    } else if(input$layer %in% trend_layers){
       MHW_raster <- baseData %>%
         dplyr::select(lon, lat, val)
     } else {
@@ -455,41 +450,35 @@ map <- function(input, output, session) {
   
   ### Pixel data
   pixelData <- reactive({
+    req(input$map_click)
     xy <- input$map_click
-    if(!is.null(xy)){
-      while(xy$lng > 180){
-        xy$lng <- xy$lng - 360
+    while(xy$lng > 180){
+      xy$lng <- xy$lng - 360
       }
-    }
-    if(!is.null(xy)){
-      while(xy$lng < -180){
-        xy$lng <- xy$lng + 360
+    while(xy$lng < -180){
+      xy$lng <- xy$lng + 360
       }
-    }
-    if(!is.null(xy)){
-      rasterNonProj <- rasterNonProj()
-      cell <- raster::cellFromXY(rasterNonProj, c(xy$lng, xy$lat))
-      xy <- raster::xyFromCell(rasterNonProj, cell)
-      # Grab time series data
-      ts_data <- sst_seas_thresh_ts(lon_step = xy[1], lat_step = xy[2]) %>% 
-        dplyr::mutate(diff = thresh - seas,
-                      thresh_2x = thresh + diff,
-                      thresh_3x = thresh_2x + diff,
-                      thresh_4x = thresh_3x + diff)
-      # Grab event data
-      event_file <- dir("event", full.names = T)[which(lon_OISST == xy[1])]
-      event_data <- readRDS(event_file) %>% 
-        dplyr::filter(lat == xy[2]) %>%
-        mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
-               date_peak = as.Date(date_peak, origin = "1970-01-01"),
-               date_end = as.Date(date_end, origin = "1970-01-01"))
-      pixelData <- list(ts = ts_data,
-                        event = event_data,
-                        lon = xy[1],
-                        lat = xy[2])
-      return(pixelData)
-    } else {
-    }
+    rasterNonProj <- rasterNonProj()
+    cell <- raster::cellFromXY(rasterNonProj, c(xy$lng, xy$lat))
+    xy <- raster::xyFromCell(rasterNonProj, cell)
+    # Grab time series data
+    ts_data <- sst_seas_thresh_ts(lon_step = xy[1], lat_step = xy[2]) %>% 
+      dplyr::mutate(diff = thresh - seas,
+                    thresh_2x = thresh + diff,
+                    thresh_3x = thresh_2x + diff,
+                    thresh_4x = thresh_3x + diff)
+    # Grab event data
+    event_file <- dir("event", full.names = T)[which(lon_OISST == xy[1])]
+    event_data <- readRDS(event_file) %>% 
+      dplyr::filter(lat == xy[2]) %>%
+      mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
+             date_peak = as.Date(date_peak, origin = "1970-01-01"),
+             date_end = as.Date(date_end, origin = "1970-01-01"))
+    pixelData <- list(ts = ts_data,
+                      event = event_data,
+                      lon = xy[1],
+                      lat = xy[2])
+    return(pixelData)
   })
   
   
@@ -514,62 +503,49 @@ map <- function(input, output, session) {
       # This is done because the projected raster is not in degrees
     cell <- raster::cellFromXY(rasterNonProj, c(xy_wrap))
     # If the click is inside the raster...
-    if(!is.na(cell)) {
-      xy <- raster::xyFromCell(rasterNonProj, cell) # Get the center of the cell
-      if(xy[1] >= 0) xy_lon <- paste0(abs(xy[1]),"°E")
-      if(xy[1] < 0) xy_lon <- paste0(abs(xy[1]),"°W")
-      if(xy[2] >= 0) xy_lat <- paste0(abs(xy[2]),"°N")
-      if(xy[2] < 0) xy_lat <- paste0(abs(xy[2]),"°S")
-      if(xy[1] >= -160 & xy[1] <= -110 & xy[2] >= 25 & xy[2] <= 60){
-        regional_link <- paste0("<hr>",
-                                "<a target='_blank' rel='noopener noreferrer' href=",
-                                regional_NOAA,">Regional website (NOAA)</a>")
-      } else if(xy[1] >= -7 & xy[1] <= 37 & xy[2] >= 27 & xy[2] <= 47){
-        regional_link <- paste0("<hr>",
-                                "<a target='_blank' rel='noopener noreferrer' href=",
-                                regional_TMEDNET,">Regional website (T-MEDNet)</a>")
-      } else {
-        regional_link <- ""
-      }
-      if(input$layer == "Category"){
-        val <- baseData %>% 
-          dplyr::filter(lon == xy[1],
-                        lat == xy[2]) %>% 
-          dplyr::select(category) %>% 
-          as.numeric()
-        content <- paste0("Lon = ", xy_lon,
-                          "<br>Lat = ", xy_lat,
-                          "<br>Category = ", names(MHW_colours)[val],
-                          regional_link,
-                          "<hr>",
-                          "<i>Please click the<br><b>Plot pixel</b><br>button in the<br><b>Controls</b> panel<br>for more info</i>")
-      } else if(input$layer == "Anomaly"){
-        val <- baseData %>% 
-          dplyr::filter(lon == xy[1],
-                        lat == xy[2]) 
-        content <- paste0("Lon = ", xy_lon,
-                          "<br>Lat = ", xy_lat,
-                          "<br>Climatology = ", round(val$seas, 2),
-                          "<br>Threshold = ", round(val$thresh, 2),
-                          "<br>Anomaly = ", val$anom,
-                          regional_link,
-                          "<hr>",
-                          "<i>Please click the<br><b>Plot pixel</b><br>button in the<br><b>Controls</b> panel<br>for more info</i>")
-      } else {
-        val <- baseData %>% 
-          dplyr::filter(lon == xy[1],
-                        lat == xy[2]) 
-        content <- paste0("Lon = ", xy_lon,
-                          "<br>Lat = ", xy_lat,
-                          "<br>Value = ", round(val$val, 2),
-                          regional_link,
-                          "<hr>",
-                          "<i>Please click the<br><b>Plot pixel</b><br>button in the<br><b>Controls</b> panel<br>for more info</i>")
-        
-      }
+    xy <- raster::xyFromCell(rasterNonProj, cell) # Get the center of the cell
+    if(xy[1] >= 0) xy_lon <- paste0(abs(xy[1]),"°E")
+    if(xy[1] < 0) xy_lon <- paste0(abs(xy[1]),"°W")
+    if(xy[2] >= 0) xy_lat <- paste0(abs(xy[2]),"°N")
+    if(xy[2] < 0) xy_lat <- paste0(abs(xy[2]),"°S")
+    if(xy[1] >= -160 & xy[1] <= -110 & xy[2] >= 25 & xy[2] <= 60){
+      regional_link <- paste0("<hr>",
+                              "<a target='_blank' rel='noopener noreferrer' href=",
+                              regional_NOAA,">Regional website (NOAA)</a>")
+    } else if(xy[1] >= -7 & xy[1] <= 37 & xy[2] >= 27 & xy[2] <= 47){
+      regional_link <- paste0("<hr>",
+                              "<a target='_blank' rel='noopener noreferrer' href=",
+                              regional_TMEDNET,">Regional website (T-MEDNet)</a>")
     } else {
-      content <- ""
+      regional_link <- ""
     }
+    if(input$layer %in% cat_layers){
+      val <- baseDataPre %>% 
+        dplyr::filter(lon == xy[1],
+                      lat == xy[2]) %>% 
+        dplyr::select(category) %>% 
+        as.numeric()
+      content_sub <- paste0("<br>Category = ", names(MHW_colours)[val])
+    } else if(input$layer == "Anomaly"){
+      val <- baseDataPre %>% 
+        dplyr::filter(lon == xy[1],
+                      lat == xy[2]) 
+      content_sub <- paste0("<br>Climatology = ", round(val$seas, 2),
+                            "<br>Threshold = ", round(val$thresh, 2),
+                            "<br>Anomaly = ", val$anom)
+    } else if(input$layer %in% trend_layers){
+      val <- baseDataPre %>% 
+        dplyr::filter(lon == xy[1],
+                      lat == xy[2]) 
+      content_sub <- paste0("<br>",input$layer," = ", round(val$val, 2))
+      
+    } 
+    content <- paste0("Lon = ", xy_lon,
+                      "<br>Lat = ", xy_lat,
+                      content_sub,
+                      regional_link,
+                      "<hr>",
+                      "<i>Please click the<br><b>Plot pixel</b><br>button in the<br><b>Controls</b> panel<br>for more info</i>")
     
     # Update lon lat
     updateNumericInput(session, "lon", value = round(xy_click[1], 2))
@@ -587,10 +563,35 @@ map <- function(input, output, session) {
   
   ### Observer to change colour palette accordingly
   pal_react <- reactive({
-    if(input$layer %in% c("Category", "Summary")){
+    baseDataPre <- baseDataPre()
+    if(input$layer == "Anomaly"){
+      # domain_low <- quantile(baseDataPre$anom, 0.05)
+      # domain_high <- quantile(baseDataPre$anom, 0.95)
+      domain_low <- min(baseDataPre$anom, na.rm = T)
+      domain_high <- max(baseDataPre$anom, na.rm = T)
+    }
+    if(input$layer %in% trend_layers){
+      # domain_low <- quantile(baseDataPre$val, 0.05)
+      # domain_high <- quantile(baseDataPre$val, 0.95)
+      domain_low <- min(baseDataPre$val, na.rm = T)
+      domain_high <- max(baseDataPre$val, na.rm = T)
+    }
+    if(input$layer %in% cat_layers){
+      domain_low <- 1; domain_high <- 1
+    }
+    if(abs(domain_high) > abs(domain_low)){
+      domain_low <- -domain_high
+    } else{
+      domain_high <- -domain_low
+    }
+    if(input$layer %in% cat_layers){
       colorNumeric(palette = MHW_colours, domain = c(1,2,3,4), na.color = NA)
+    # } else if(input$layer == "Trend: Duration") {
+      # colorNumeric(palette = c("blue", "white", "red"), domain = c(-10, 10), na.color = NA)
     } else {
-      colorNumeric(palette = c("blue", "white", "red"), domain = c(-10, 10), na.color = NA)
+      # colorNumeric(palette = c("blue", "white", "red"), domain = c(-0.1, 0.1), na.color = NA)
+      colorNumeric(palette = c("blue", "white", "red"), na.color = NA, 
+                   domain = c(domain_low, domain_high))
     }
   })
   
@@ -602,19 +603,16 @@ map <- function(input, output, session) {
       map_lat <- query[['lat']]
     } else {
       map_lat <- initial_lat
-      # map_lat <- input$lat
     }
     if(!is.null(query[['lon']])){
       map_lon <-  query[['lon']]
     } else {
       map_lon <- initial_lon
-      # map_lon <- input$lon
     }
     if(!is.null(query[['zoom']])){
       map_zoom <-  query[['zoom']]
     } else {
       map_zoom <- initial_zoom
-      # map_zoom <- input$zoom
     }
     # The base 
     leaflet(data = MHW_cat_clim_sub, options = leafletOptions(zoomControl = FALSE)) %>%
@@ -1010,10 +1008,13 @@ map <- function(input, output, session) {
     date_seq_years <- sapply(strsplit(as.character(date_seq), "-"), "[[", 1)
     if(input$layer == "Category"){
       date_seq_files <- paste0("cat_clim/",date_seq_years,"/cat.clim.",date_seq,".Rda")
-    } else {
+      map_data <- plyr::ldply(date_seq_files, readRDS_date)
+    } else if(input$layer == "Anomaly") {
       date_seq_files <- paste0("OISST/daily/",date_seq_years,"/daily.",date_seq,".Rda")
+      map_data <- plyr::ldply(date_seq_files, readRDS_date)
+    } else if(input$layer %in% trend_layers){
+      map_data <- baseDataPre()
     }
-    map_data <- plyr::ldply(date_seq_files, readRDS_date)
     return(map_data)
   })
   
