@@ -53,7 +53,9 @@ map <- function(input, output, session) {
     shinyWidgets::dropdownButton(
       h3("Select map layer"),
       shinyWidgets::prettyRadioButtons(inputId = ns("layer"), label = NULL,
-                                       choices = c("Category", "Anomaly", "Trend"), 
+                                       choices = c("Category", "Anomaly", "Summary",
+                                                   "Trend: Duration", "Trend: Count", 
+                                                   "Trend: Intensity (mean)", "Trend: Intensity (max)"), 
                                        selected = "Category", 
                                        status = "primary", 
                                        shape = "curve", 
@@ -85,7 +87,7 @@ map <- function(input, output, session) {
   # Change button icon upon click
   output$moderate <- renderUI({
     req(input$layer)
-    if(input$layer %in% c("Anomaly", "Trend")){
+    if(input$layer %in% rb_layers){
       # No button when anomaly layer is chosen
     } else if(button_I$clicked){
       actionButton(inputId = ns("moderate_filter"), "I Moderate", icon = icon("remove", lib = "glyphicon"),
@@ -114,7 +116,7 @@ map <- function(input, output, session) {
   # Change button icon upon click
   output$strong <- renderUI({
     req(input$layer)
-    if(input$layer %in% c("Anomaly", "Trend")){
+    if(input$layer %in% rb_layers){
       # No button when anomaly layer is chosen
     } else if(button_II$clicked){
       actionButton(inputId = ns("strong_filter"), "II Strong", icon = icon("remove", lib = "glyphicon"),
@@ -143,7 +145,7 @@ map <- function(input, output, session) {
   # Change button icon upon click
   output$severe <- renderUI({
     req(input$layer)
-    if(input$layer %in% c("Anomaly", "Trend")){
+    if(input$layer %in% rb_layers){
       # No button when anomaly layer is chosen
     } else if(button_III$clicked){
       actionButton(inputId = ns("severe_filter"), "III Severe", icon = icon("remove", lib = "glyphicon"),
@@ -172,7 +174,7 @@ map <- function(input, output, session) {
   # Change button icon upon click
   output$extreme <- renderUI({
     req(input$layer)
-    if(input$layer %in% c("Anomaly", "Trend")){
+    if(input$layer %in% rb_layers){
       # No button when anomaly layer is chosen
     } else if(button_IV$clicked){
       actionButton(inputId = ns("extreme_filter"), "IV Extreme", icon = icon("remove", lib = "glyphicon"),
@@ -184,26 +186,26 @@ map <- function(input, output, session) {
   })
   
   ### Option to select different trend layers
-  output$trend_layer_UI <- renderUI({
-    # req(input$layer == "Trend")
-    # if(input$layer == "Trend"){
-      shinyWidgets::dropdownButton(
-        h3("Select MHW trend"),
-        shinyWidgets::prettyRadioButtons(inputId = ns("trend_layer"), label = NULL,
-                                         choices = c("MHW_dur_tr", "MHW_tc_tr", "MHW_td_tr",
-                                                     "MHW_var_tr", "MHW_mean_tr", "MHW_max_tr",
-                                                     "MHW_cnt_tr", "MHW_cum_tr", "SST_tr"), 
-                                         # choiceNames = c(colnames(baseDataPre())),
-                                         status = "primary", 
-                                         selected = "MHW_cum_tr",
-                                         shape = "curve", 
-                                         inline = T),
-        circle = FALSE, status = "primary",
-        width = "300px",
-        right = FALSE, up = FALSE,
-        label = "Trend layer", tooltip = FALSE)
-    # }
-  })
+  # output$trend_layer_UI <- renderUI({
+  #   # req(input$layer == "Trend")
+  #   # if(input$layer == "Trend"){
+  #     shinyWidgets::dropdownButton(
+  #       h3("Select MHW trend"),
+  #       shinyWidgets::prettyRadioButtons(inputId = ns("trend_layer"), label = NULL,
+  #                                        choices = c("MHW_dur_tr", "MHW_tc_tr", "MHW_td_tr",
+  #                                                    "MHW_var_tr", "MHW_mean_tr", "MHW_max_tr",
+  #                                                    "MHW_cnt_tr", "MHW_cum_tr", "SST_tr"), 
+  #                                        # choiceNames = c(colnames(baseDataPre())),
+  #                                        status = "primary", 
+  #                                        selected = "MHW_cum_tr",
+  #                                        shape = "curve", 
+  #                                        inline = T),
+  #       circle = FALSE, status = "primary",
+  #       width = "300px",
+  #       right = FALSE, up = FALSE,
+  #       label = "Trend layer", tooltip = FALSE)
+  #   # }
+  # })
   
   ### Button for opening main modal
   output$button_ts <- renderUI({
@@ -372,18 +374,13 @@ map <- function(input, output, session) {
     } else if(input$layer == "Anomaly"){
       sub_dir <- paste0("OISST/daily/",year_filter)
       sub_file <- paste0(sub_dir,"/daily.",date_filter,".Rda")
-    } else if(input$layer == "Trend"){
-      sub_dir <- "../data/published"
-      sub_file <- paste0(sub_dir,"/Oliver_2018.Rds")
-    } #else if(input$layer == "Summary"){
-      # sub_dir <- "../data/annual_summary"
-      # sub_file <- paste0(sub_dir,"/MHW_cat_pixel_",year_filter,".Rds")
-    # } #else if(input$layer == "Historic"){
-      
-    # }
-    if(file.exists(sub_file) & input$layer != "Trend"){
+    } else if(input$layer == "Summary"){
+      sub_dir <- "../data/annual_summary"
+      sub_file <- paste0(sub_dir,"/MHW_cat_pixel_",year_filter,".Rds")
+    }
+    if(file.exists(sub_file) & input$layer ){
       baseDataPre <- readRDS(sub_file)
-    } else if(input$layer == "Trend"){
+    } else if(input$layer %in% trend_layers){
       # req(input$trend_layer)
       baseDataPre <- Oliver_2018
     } else{
@@ -500,10 +497,9 @@ map <- function(input, output, session) {
   
   ### Observer to show pop-ups on click
   observeEvent(c(input$map_click, input$open_modal), {
+    req(input$map_click)
     click <- input$map_click
-    if(!is.null(click)){
-      showpos(x = click$lng, y = click$lat)
-    }
+    showpos(x = click$lng, y = click$lat)
   })
   
   ### Show popup on clicks
@@ -532,7 +528,7 @@ map <- function(input, output, session) {
         regional_link <- paste0("<hr>",
                                 "<a target='_blank' rel='noopener noreferrer' href=",
                                 regional_TMEDNET,">Regional website (T-MEDNet)</a>")
-      } else{
+      } else {
         regional_link <- ""
       }
       if(input$layer == "Category"){
@@ -559,10 +555,19 @@ map <- function(input, output, session) {
                           regional_link,
                           "<hr>",
                           "<i>Please click the<br><b>Plot pixel</b><br>button in the<br><b>Controls</b> panel<br>for more info</i>")
+      } else {
+        val <- baseData %>% 
+          dplyr::filter(lon == xy[1],
+                        lat == xy[2]) 
+        content <- paste0("Lon = ", xy_lon,
+                          "<br>Lat = ", xy_lat,
+                          "<br>Value = ", round(val$val, 2),
+                          regional_link,
+                          "<hr>",
+                          "<i>Please click the<br><b>Plot pixel</b><br>button in the<br><b>Controls</b> panel<br>for more info</i>")
+        
       }
-
-      
-    } else{
+    } else {
       content <- ""
     }
     

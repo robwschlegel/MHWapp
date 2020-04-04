@@ -36,8 +36,8 @@ mapUI <- function(id, label = 'map') {
                       h5(""),
                       uiOutput(outputId = ns("layer_UI")),
                       # Trend layer selector
-                      h5(""),
-                      uiOutput(outputId = ns("trend_layer_UI")),
+                      # h5(""),
+                      # uiOutput(outputId = ns("trend_layer_UI")),
                       # Map data download
                       h5(""),
                       uiOutput(outputId = ns("download_map_UI")),

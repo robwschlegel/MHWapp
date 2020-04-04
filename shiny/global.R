@@ -74,6 +74,13 @@ menu_panel_left <- 10
 # date_menu_choice <- max(current_dates)
 # sidepanel.width <- 400
 
+### The different layer groupings
+cat_layers <- c("Category", "Summary")
+rb_layers <- c("Anomaly", "Trend: Duration", "Trend: Count", 
+               "Trend: Intensity (mean)", "Trend: Intensity (max)")
+trend_layers <- c("Trend: Duration", "Trend: Count", 
+                  "Trend: Intensity (mean)", "Trend: Intensity (max)")
+
 ### The lon/lat steps
 # load("lon_OISST.RData")
 lon_OISST <- c(seq(0.125, 179.875, by = 0.25), seq(-179.875, -0.125, by = 0.25))
@@ -110,11 +117,6 @@ pal_anom <- colorNumeric(palette = c("blue", "white", "red"), domain = c(-10, 10
 ### The two map projections
 inputProj <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
 leafletProj <- "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +towgs84=0,0,0,0,0,0,0 +units=m +nadgrids=@null +wktext +no_defs"
-
-### Placeholders before first click
-# xy <- data.frame(lng = 0, lat = 0)
-# begin_dl <- FALSE
-# button_colour_ts <- "danger"
 
 ### The shiny server instance beng run
 server_instance <- Sys.getenv("R_SHNYSRVINST")
