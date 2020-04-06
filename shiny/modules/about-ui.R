@@ -111,9 +111,9 @@ aboutUI <- function(id, label = 'About') {
              one additional MHW occurring in that pixel per year. For another example let’s look at the 'Trend: Duration' layer. 
              If we see a pixel here with a value of one, this means that, on average, MHWs in this pixel are becoming one day longer each year. 
              Conversely, a value of negative one, as seen throughout the eastern Pacific, would mean that MHWs are shortening by one day each year. 
-             The data for these trends were created by",
+             The data for these trends are the underlying data for Figure 1 in ",
              a(target = '_blank', rel = 'noopener noreferrer', href = "https://www.nature.com/articles/s41467-018-03732-9/", "Oliver et al., 2018"),
-             "and a more detailed description for them may be found there."),
+             " and a more detailed description for them may be found in that publication."),
            br(),
            h2("Who made this?"),
            br(),
