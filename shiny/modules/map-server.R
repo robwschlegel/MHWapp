@@ -18,7 +18,7 @@ map <- function(input, output, session) {
   observe({
     query <- parseQueryString(session$clientData$url_search)
     if(length(query) < 1){
-      # shinyBS::toggleModal(session, "startupModal", "open")
+      shinyBS::toggleModal(session, "startupModal", "open")
     }
   })
   # The content of the welcome window
@@ -26,13 +26,13 @@ map <- function(input, output, session) {
     shinyBS::bsModal(ns('startupModal'), title = strong("Welcome to the Marine Heatwave Tracker!"), trigger = "click2", size = "m",
                      HTML("This web application shows up to date information on where in the world marine heatwaves (MHWs) are occurring and what category they are.
                           <hr>
-                          All of the <b>Controls</b> may be found to the right of the screen and can be minimised.
+                          All of the <b>Controls</b> may be found on the left of the screen and can be minimised.
                           <hr>
                           Click in the <b>Date</b> box to choose a day to display on the map.
                           <hr>
                           Click on the <b>Animate</b> switch to bring up the animation options.
                           <hr>
-                          Click on the <b>Map layer</b> button to choose between displaying categories or anomalies.
+                          Click on the <b>Map layer</b> button to choose between the different data options.
                           <hr>
                           Use the <b>Map data</b> interface to download the global MHW category data. There is a 31 day size limit per download request.
                           <hr>
@@ -48,16 +48,14 @@ map <- function(input, output, session) {
     shinyjs::toggle("control_menu", anim = TRUE)
     })
   
-  ### Switch the display of the legend control on and off
-    # NB: This really doesn't want to work...
-  # output$legend_UI <- renderUI({
-  #   req(input$layer)
-  #   if(input$layer %in% cat_layers){
-  #     # No button when category layers are chosen 
-  #   } else {
-  #     shinyWidgets::awesomeCheckbox(inputId = ns("legend"), label = "Legend",status = "primary", value = T)
-  #   }
-  # })
+  ### Toggle animation switch on and off
+  output$check_animate_UI <- renderUI({
+    req(input$layer)
+    if(input$layer %in% c("Category", "Anomaly")){
+      shinyWidgets::materialSwitch(inputId = ns("check_animate"), 
+                                   label = "Animate", status = "primary")
+    }
+  })
   
   ### Change map layer interface
   output$layer_UI <- renderUI({
@@ -196,23 +194,28 @@ map <- function(input, output, session) {
   
   ### Button for opening main modal
   output$button_ts <- renderUI({
-    click <- input$map_click
-    if(is.null(click)){
-      shinyWidgets::actionBttn(inputId = ns("does_nothing"), label = "Plot pixel", #icon = icon("map-marked"),
-                               style = "pill", color = "danger", size = "md")
+    req(input$layer)
+    # req(input$map_click)
+    if(input$layer %in% c("Category", "Anomaly")){
+      if(is.null(input$map_click)){
+        shinyWidgets::actionBttn(inputId = ns("does_nothing"), label = "Plot pixel", #icon = icon("map-marked"),
+                                 style = "pill", color = "danger", size = "md")
+      } else {
+        shinyWidgets::actionBttn(inputId = ns("open_modal"), label = "Plot pixel", #icon = icon("map-marked"),
+                                 style = "pill", color = "success", size = "md")
+      }
     } else {
-      shinyWidgets::actionBttn(inputId = ns("open_modal"), label = "Plot pixel", #icon = icon("map-marked"),
-                               style = "pill", color = "success", size = "md")
     }
   })
   
   ### Date range animation menu
   output$date_animator <- renderUI({
+    req(input$check_animate)
     if(input$check_animate){
       query <- parseQueryString(session$clientData$url_search)
-      if (!is.null(query[['date']])) {
+      if(!is.null(query[['date']])){
         date_anim_choice <- as.Date(as.character(query[['date']]))
-      } else{
+      } else {
         date_anim_choice <- max(current_dates)
       }
       absolutePanel(id = ns("controls"), class = "panel panel-default", draggable = T, cursor = "move",
@@ -255,23 +258,29 @@ map <- function(input, output, session) {
   
   ### Reactive start date to catch HTML queries
   output$date_reactive <- renderUI({
+    req(input$layer)
     query <- parseQueryString(session$clientData$url_search)
     if (!is.null(query[['date']])) {
       date_menu_choice <- as.Date(as.character(query[['date']]))
       } else{
         date_menu_choice <- max(current_dates)
       }
+      if(input$layer %in% c("Category", "Anomaly")){
+        dateInput(inputId = ns("date"),
+                  label = NULL, width = '100%',
+                  value = date_menu_choice,
+                  min = "1982-01-01",
+                  max = max(current_dates))
+      } else if(input$layer == "Summary"){
+        selectInput(inputId = ns("date"), label = NULL,
+                    choices = seq(1982, lubridate::year(Sys.time())), 
+                    selected = lubridate::year(Sys.time()), multiple = F)
+      } else{
+        selectInput(inputId = ns("date"), 
+                    label = NULL, choices = "NA", 
+                    selected = "NA", multiple = F)
+      }
 
-      format_choice <- "yyyy-mm-dd"
-      startview_choice = "month"
-      
-      dateInput(inputId = ns("date"),
-                label = NULL, width = '100%',
-                value = date_menu_choice,
-                min = "1982-01-01",
-                max = max(current_dates), 
-                format = format_choice, 
-                startview = startview_choice)
   })
   
   ### Observe the changing of dates in the animation slider
@@ -294,7 +303,6 @@ map <- function(input, output, session) {
         min = "1982-01-01", max = max(current_dates)),
       fluidRow(
         column(6,
-               # h5("Format"),
                shinyWidgets::prettyRadioButtons(inputId = ns("map_download_type"),
                                                 label = h5("Format"),
                                                 inline = TRUE,
@@ -343,8 +351,6 @@ map <- function(input, output, session) {
   ### Update zoom level when user zooms
   observe({
       if(!is.null(input$map_zoom)) updateNumericInput(session, "zoom", value = input$map_zoom)
-      # leafletProxy('map') %>%
-        # setView(lng = sel_site$lng, lat = sel_site$lat, zoom = new_zoom)
   })
   
   
@@ -352,18 +358,22 @@ map <- function(input, output, session) {
   
   ### Base map data before screening categories
   baseDataPre <- reactive({
-    req(lubridate::is.Date(input$date))
-    date_filter <- input$date
-    year_filter <- lubridate::year(date_filter)
+    req(input$date)
+    # if(input$layer %in% c("Category", "Anomaly")){
+    #   date_filter <- input$date
+    #   year_filter <- lubridate::year(date_filter)
+    # }
     if(input$layer == "Category"){
-      sub_dir <- paste0("cat_clim/",year_filter)
-      sub_file <- paste0(sub_dir,"/cat.clim.",date_filter,".Rda")
+      req(lubridate::is.Date(input$date))
+      sub_dir <- paste0("cat_clim/",lubridate::year(input$date))
+      sub_file <- paste0(sub_dir,"/cat.clim.",input$date,".Rda")
     } else if(input$layer == "Summary"){
       sub_dir <- "../data/annual_summary"
-      sub_file <- paste0(sub_dir,"/MHW_cat_pixel_",year_filter,".Rds")
+      sub_file <- paste0(sub_dir,"/MHW_cat_pixel_",input$date,".Rds")
     } else if(input$layer == "Anomaly"){
-      sub_dir <- paste0("OISST/daily/",year_filter)
-      sub_file <- paste0(sub_dir,"/daily.",date_filter,".Rda")
+      req(lubridate::is.Date(input$date))
+      sub_dir <- paste0("OISST/daily/",lubridate::year(input$date))
+      sub_file <- paste0(sub_dir,"/daily.",input$date,".Rda")
     } else if(input$layer == "Trend: Count"){
       baseDataPre <- Oliver_2018 %>% 
         filter(var == "MHW_cnt_tr")
@@ -617,8 +627,7 @@ map <- function(input, output, session) {
                  input$severe_filter, input$extreme_filter), {
                    leafletProxy("map") %>%
                      addRasterImage(rasterProj(), colors = pal_react(), layerId = ns("map_raster"),
-                                    project = FALSE, opacity = 0.8) #%>% 
-                     # clearControls()
+                                    project = FALSE, opacity = 0.8)
   })
   
   ### Shift when new lon/lat are entered
@@ -661,45 +670,43 @@ map <- function(input, output, session) {
   })
   
   ### Recreate the legend as needed
-  observeEvent(c(input$legend, input$layer), {
-    # req(input$legend)
+  observe({
     baseDataPre <- baseDataPre()
-    if(input$layer == "Anomaly"){
-      domain_low <- min(baseDataPre$anom, na.rm = T)
-      domain_high <- max(baseDataPre$anom, na.rm = T)
-      domain_label <- "Anomaly"
-    }
-    if(input$layer %in% trend_layers){
-      domain_low <- min(baseDataPre$val, na.rm = T)
-      domain_high <- max(baseDataPre$val, na.rm = T)
-      domain_label <- "Annual\nTrend"
-    }
     if(input$layer %in% cat_layers){
-      domain_low <- 1; domain_high <- 1
-    }
-    if(abs(domain_high) > abs(domain_low)){
-      domain_low <- -domain_high
-    } else {
-      domain_high <- -domain_low
-    }
-    domain_low_high <- data.frame(domain = seq(domain_low, domain_high, length.out = 10))
-    pal_rev <- colorNumeric(palette = c("red", "white", "blue"), na.color = NA, 
-                            domain = domain_low_high)
-    proxy <- leafletProxy("map", data = domain_low_high)
-    # proxy %>% clearControls()
-    # if(input$layer %in% rb_layers)
-    if(input$layer %in% rb_layers){
-      proxy %>% 
-        clearControls() %>% 
-        addLegend(position = "bottomright",
-                  pal = pal_rev,
-                  bins = 5,
-                  values = ~domain,
+      leafletProxy("map", data = MHW_cat_clim_sub) %>% 
+        clearControls()
+    } else if(input$layer %in% c(rb_layers)){
+      if(input$layer == "Anomaly"){
+        domain_low <- min(baseDataPre$anom, na.rm = T)
+        domain_high <- max(baseDataPre$anom, na.rm = T)
+        domain_label <- "Anomaly"
+      } else if(input$layer %in% trend_layers){
+        domain_low <- min(baseDataPre$val, na.rm = T)
+        domain_high <- max(baseDataPre$val, na.rm = T)
+        domain_label <- "Annual\nTrend"
+      }
+      if(abs(domain_high) > abs(domain_low)){
+        domain_low <- -domain_high
+      } else {
+        domain_high <- -domain_low
+      }
+      domain_low_high <- data.frame(domain = seq(domain_low, domain_high, length.out = 10))
+      pal_rev <- colorNumeric(palette = c("red", "white", "blue"), na.color = NA,
+                              domain = domain_low_high)
+      leafletProxy("map", data = domain_low_high) %>%
+        clearControls() %>%
+        addLegend(position = "bottomright",  pal = pal_rev,
+                  bins = 5, values = ~domain,
                   title = domain_label,
                   labFormat = labelFormat(transform = function(x) sort(x, decreasing = TRUE)))
-      } else if(input$layer %in% cat_layers) {
-        proxy %>% clearControls()
-      }
+    } 
+    # proxy %>% clearControls()
+    # if(input$layer %in% rb_layers)
+    # if(input$layer %in% rb_layers){
+    # 
+    #   } else if(input$layer %in% cat_layers){
+    #     proxy %>% clearControls()
+    #   }
     # if(input$layer %in% cat_layers){
       # proxy %>% clearControls()
     # }
@@ -737,7 +744,7 @@ map <- function(input, output, session) {
     # Event data prep
     event_data <- pixelData()$event
     event_data_sub <- event_data %>%
-      dplyr::filter(date_start >= input$from_to[1], date_end <= input$from_to[2])
+      dplyr::filter(date_peak >= input$from_to[1], date_peak <= input$from_to[2])
     
     # The base
     suppressWarnings( # text aes for plotly
@@ -818,7 +825,7 @@ map <- function(input, output, session) {
     # Prep data
     event_data <- pixelData()$event
     event_data_sub <- event_data %>%
-      dplyr::filter(date_start >= input$from_to[1], date_start <= input$from_to[2])
+      dplyr::filter(date_peak >= input$from_to[1], date_peak <= input$from_to[2])
     
     # Base figure
     if(length(event_data_sub$date_start) > 0){
@@ -956,10 +963,6 @@ map <- function(input, output, session) {
     shinyBS::bsModal(ns('modal'), title = div(id = ns('modalTitle'), pixelLabel()), trigger = 'click2', size = "large",
                      fluidPage(
                        tabsetPanel(id = ns("tabs"),
-                                   # tabPanel(title = "Static",
-                                   #          br(),
-                                   #          shinycssloaders::withSpinner(plotOutput(ns("tsPlot")), type = 6, color = "#b0b7be"),
-                                   #          hr()),
                                    tabPanel(title = "Time series",
                                             br(),
                                             shinycssloaders::withSpinner(plotlyOutput(ns("tsPlotly")), type = 6, color = "#b0b7be"),
@@ -1078,6 +1081,8 @@ map <- function(input, output, session) {
     if(input$layer == "Category"){
       date_seq_files <- paste0("cat_clim/",date_seq_years,"/cat.clim.",date_seq,".Rda")
       map_data <- plyr::ldply(date_seq_files, readRDS_date)
+    } else if(input$layer == "Summary"){
+      map_data <- baseDataPre()
     } else if(input$layer == "Anomaly") {
       date_seq_files <- paste0("OISST/daily/",date_seq_years,"/daily.",date_seq,".Rda")
       map_data <- plyr::ldply(date_seq_files, readRDS_date)

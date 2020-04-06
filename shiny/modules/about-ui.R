@@ -102,13 +102,13 @@ aboutUI <- function(id, label = 'About') {
            br(),
            h2("What are these different map layers?"),
            br(),
-           p("The default map layer, <b>Category</b>, shows the categories of the MHW occurring at each pixel on the chosen day. 
-             The <b>Summary</b> layer shows the highest category MHW that occurred at each pixel over the course of the chosen year. 
-             The <b>Anomaly</b> layer shows the temperature anomalies for the chosen day against the daily climatology from 
-             1982-01-01 to 2011-12-31. The various <b>Trend</b> layers show the annual trend in the change of the MHW metric referred to. 
-             For example, a value of 0.2 at a pixel when looking at the <b>Trend: Count</b> layer would mean that for the last 30+ years 
+           p("The default map layer, 'Category', shows the categories of the MHW occurring at each pixel on the chosen day. 
+             The 'Summary' layer shows the highest category MHW that occurred at each pixel over the course of the chosen year. 
+             The 'Anomaly' layer shows the temperature anomalies for the chosen day against the daily climatology from 
+             1982-01-01 to 2011-12-31. The various 'Trend' layers show the annual trend in the change of the MHW metric referred to. 
+             For example, a value of 0.2 at a pixel when looking at the 'Trend: Count' layer would mean that for the last 30+ years 
              MHWs at that pixel have been increasing by a count of 0.2 every year. Or in other words, every five years (1/0.2) there is 
-             one additional MHW occurring in that pixel per year. For another example let’s look at the <b>Trend: Duration</b> layer. 
+             one additional MHW occurring in that pixel per year. For another example let’s look at the 'Trend: Duration' layer. 
              If we see a pixel here with a value of one, this means that, on average, MHWs in this pixel are becoming one day longer each year. 
              Conversely, a value of negative one, as seen throughout the eastern Pacific, would mean that MHWs are shortening by one day each year. 
              The data for these trends were created by",

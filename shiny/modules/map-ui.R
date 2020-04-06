@@ -30,8 +30,7 @@ mapUI <- function(id, label = 'map') {
                       h5(""),
                       uiOutput(outputId = ns("date_reactive")),
                       # Animation UI
-                      shinyWidgets::materialSwitch(inputId = ns("check_animate"), 
-                                                   label = "Animate", status = "primary"),
+                      uiOutput(outputId = ns("check_animate_UI")),
                       # Layer selector
                       h5(""),
                       uiOutput(outputId = ns("layer_UI")),
@@ -71,9 +70,6 @@ mapUI <- function(id, label = 'map') {
                       # The time series button
                       h5(""),
                       uiOutput(outputId = ns("button_ts")),
-                      # The map legend
-                      # h5(""),
-                      # uiOutput(outputId = ns("legend_UI")),
                       # The shiny server instance info
                       # hr(),
                       # h5(paste0("Instance: ",Sys.getenv("R_SHNYSRVINST")))

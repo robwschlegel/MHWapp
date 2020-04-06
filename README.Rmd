@@ -7,8 +7,10 @@ This interactive map holds all of the MHWs detected in the NOAA OISST data from 
 
 * April 6th, 2020
   * Added colourbar for red-blue layers
+  * Upated 'About' section with info for map layers
   * Removed static time series modal tab
   * Added download for time series and lolliplot figures
+  * Minor bug fix to event filtering for modal panel figures
 
 * April 4th, 2020
   * Added Oliver et al. 2018 MHW trend layers
