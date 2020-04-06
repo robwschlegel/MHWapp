@@ -110,9 +110,9 @@ MHW_colours <- c(
 #                           label = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
 
 ### Colour palettes for leaflet
-pal_factor <- colorFactor(palette = MHW_colours, levels = levels(MHW_cat_clim_sub$category))
-pal_cat <- colorNumeric(palette = MHW_colours, domain = c(1,2,3,4), na.color = NA)
-pal_anom <- colorNumeric(palette = c("blue", "white", "red"), domain = c(-10, 10), na.color = NA)
+# pal_factor <- colorFactor(palette = MHW_colours, levels = levels(MHW_cat_clim_sub$category))
+# pal_cat <- colorNumeric(palette = MHW_colours, domain = c(1,2,3,4), na.color = NA)
+# pal_anom <- colorNumeric(palette = c("blue", "white", "red"), domain = c(-10, 10), na.color = NA)
 
 ### The two map projections
 inputProj <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"

@@ -18,7 +18,7 @@ map <- function(input, output, session) {
   observe({
     query <- parseQueryString(session$clientData$url_search)
     if(length(query) < 1){
-      shinyBS::toggleModal(session, "startupModal", "open")
+      # shinyBS::toggleModal(session, "startupModal", "open")
     }
   })
   # The content of the welcome window
@@ -47,6 +47,17 @@ map <- function(input, output, session) {
   observeEvent(input$toggle, {
     shinyjs::toggle("control_menu", anim = TRUE)
     })
+  
+  ### Switch the display of the legend control on and off
+    # NB: This really doesn't want to work...
+  # output$legend_UI <- renderUI({
+  #   req(input$layer)
+  #   if(input$layer %in% cat_layers){
+  #     # No button when category layers are chosen 
+  #   } else {
+  #     shinyWidgets::awesomeCheckbox(inputId = ns("legend"), label = "Legend",status = "primary", value = T)
+  #   }
+  # })
   
   ### Change map layer interface
   output$layer_UI <- renderUI({
@@ -387,23 +398,9 @@ map <- function(input, output, session) {
         baseData <- empty_date_map
       }
     }
-    if(input$layer == "Anomaly"){
-      baseData <- baseDataPre #%>% 
-        # mutate(anom = ifelse(anom > quantile(anom, 0.9), quantile(anom, 0.9), anom),
-               # anom = ifelse(anom < quantile(anom, 0.1), quantile(anom, 0.1), anom))
-    } 
-    if(input$layer %in% trend_layers){ 
-      # if(input$layer == "Trend: Duration"){ 
-        baseData <- baseDataPre #%>% 
-          # mutate(val = ifelse(val > quantile(val, 0.9), quantile(val, 0.9), val),
-                 # val = ifelse(val < quantile(val, 0.1), quantile(val, 0.1), val))
-      # } else {
-      #   baseData <- baseDataPre %>% 
-      #     mutate(val = ifelse(val > 0.1, 0.1, val),
-      #            val = ifelse(val < -0.1, -0.1, val))
-      # }
+    if(input$layer %in% rb_layers){
+      baseData <- baseDataPre
     }
-
     return(baseData)
   })
   
@@ -565,14 +562,10 @@ map <- function(input, output, session) {
   pal_react <- reactive({
     baseDataPre <- baseDataPre()
     if(input$layer == "Anomaly"){
-      # domain_low <- quantile(baseDataPre$anom, 0.05)
-      # domain_high <- quantile(baseDataPre$anom, 0.95)
       domain_low <- min(baseDataPre$anom, na.rm = T)
       domain_high <- max(baseDataPre$anom, na.rm = T)
     }
     if(input$layer %in% trend_layers){
-      # domain_low <- quantile(baseDataPre$val, 0.05)
-      # domain_high <- quantile(baseDataPre$val, 0.95)
       domain_low <- min(baseDataPre$val, na.rm = T)
       domain_high <- max(baseDataPre$val, na.rm = T)
     }
@@ -586,11 +579,8 @@ map <- function(input, output, session) {
     }
     if(input$layer %in% cat_layers){
       colorNumeric(palette = MHW_colours, domain = c(1,2,3,4), na.color = NA)
-    # } else if(input$layer == "Trend: Duration") {
-      # colorNumeric(palette = c("blue", "white", "red"), domain = c(-10, 10), na.color = NA)
     } else {
-      # colorNumeric(palette = c("blue", "white", "red"), domain = c(-0.1, 0.1), na.color = NA)
-      colorNumeric(palette = c("blue", "white", "red"), na.color = NA, 
+      colorNumeric(palette = c( "blue", "white", "red"), na.color = NA, 
                    domain = c(domain_low, domain_high))
     }
   })
@@ -625,12 +615,10 @@ map <- function(input, output, session) {
   observeEvent(c(input$date, input$layer,
                  input$moderate_filter, input$strong_filter,
                  input$severe_filter, input$extreme_filter), {
-                   # req(input$layer == "Category")
-                     leafletProxy("map") %>%
-                       addRasterImage(rasterProj(), colors = pal_react(), layerId = ns("map_raster"),
-                                      project = FALSE, opacity = 0.8) #%>% 
-                       # leaflet::addLegend(position = "bottomright", pal = pal_anom, 
-                                          # values = seq(-10, 10), title = "Anom. °C")
+                   leafletProxy("map") %>%
+                     addRasterImage(rasterProj(), colors = pal_react(), layerId = ns("map_raster"),
+                                    project = FALSE, opacity = 0.8) #%>% 
+                     # clearControls()
   })
   
   ### Shift when new lon/lat are entered
@@ -648,14 +636,14 @@ map <- function(input, output, session) {
         addProviderTiles(providers$OpenStreetMap.BlackAndWhite,
                          options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
         addRasterImage(rasterProj(), colors = pal_react(), layerId = ns("map_raster"),
-        project = FALSE, opacity = 0.8)
+                       project = FALSE, opacity = 0.8)
     } else if(input$map_back == "Land features"){
       leafletProxy("map") %>%
         clearTiles() %>% 
         addProviderTiles(providers$Esri.WorldTopoMap,
                          options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
         addRasterImage(rasterProj(), colors = pal_react(), layerId = ns("map_raster"),
-        project = FALSE, opacity = 0.8)
+                       project = FALSE, opacity = 0.8)
     } else if(input$map_back == "Ocean features"){
       leafletProxy("map") %>%
         clearTiles() %>% 
@@ -673,16 +661,48 @@ map <- function(input, output, session) {
   })
   
   ### Recreate the legend as needed
-  observe({
-    proxy <- leafletProxy("map", data = MHW_cat_clim_sub)
-    proxy %>% clearControls()
-    if (input$legend) {
-      proxy %>% addLegend(position = "bottomright",
-                          pal = pal_factor,
-                          values = ~category,
-                          title = "Category"
-      )
+  observeEvent(c(input$legend, input$layer), {
+    # req(input$legend)
+    baseDataPre <- baseDataPre()
+    if(input$layer == "Anomaly"){
+      domain_low <- min(baseDataPre$anom, na.rm = T)
+      domain_high <- max(baseDataPre$anom, na.rm = T)
+      domain_label <- "Anomaly"
     }
+    if(input$layer %in% trend_layers){
+      domain_low <- min(baseDataPre$val, na.rm = T)
+      domain_high <- max(baseDataPre$val, na.rm = T)
+      domain_label <- "Annual\nTrend"
+    }
+    if(input$layer %in% cat_layers){
+      domain_low <- 1; domain_high <- 1
+    }
+    if(abs(domain_high) > abs(domain_low)){
+      domain_low <- -domain_high
+    } else {
+      domain_high <- -domain_low
+    }
+    domain_low_high <- data.frame(domain = seq(domain_low, domain_high, length.out = 10))
+    pal_rev <- colorNumeric(palette = c("red", "white", "blue"), na.color = NA, 
+                            domain = domain_low_high)
+    proxy <- leafletProxy("map", data = domain_low_high)
+    # proxy %>% clearControls()
+    # if(input$layer %in% rb_layers)
+    if(input$layer %in% rb_layers){
+      proxy %>% 
+        clearControls() %>% 
+        addLegend(position = "bottomright",
+                  pal = pal_rev,
+                  bins = 5,
+                  values = ~domain,
+                  title = domain_label,
+                  labFormat = labelFormat(transform = function(x) sort(x, decreasing = TRUE)))
+      } else if(input$layer %in% cat_layers) {
+        proxy %>% clearControls()
+      }
+    # if(input$layer %in% cat_layers){
+      # proxy %>% clearControls()
+    # }
   })
   
   
@@ -722,11 +742,11 @@ map <- function(input, output, session) {
     # The base
     suppressWarnings( # text aes for plotly
       p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
-        geom_segment(aes(x = input$date[1], 
-                         xend = input$date[1],
-                         y = min(ts_data_sub$temp), 
-                         yend = max(ts_data_sub$temp),
-                         text = "Date shown"), colour = "limegreen") +
+        # geom_segment(aes(x = input$date[1], 
+        #                  xend = input$date[1],
+        #                  y = min(ts_data_sub$temp), 
+        #                  yend = max(ts_data_sub$temp),
+        #                  text = "Date shown"), colour = "limegreen") +
         labs(x = "", y = "Temperature (°C)") +
         scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(input$from_to[1], input$from_to[2])) 
       )
@@ -779,6 +799,12 @@ map <- function(input, output, session) {
   tsPlotly <- reactive({
     # Grab static plot
     p <- tsPlot()
+    p <- p +
+      geom_segment(aes(x = input$date[1], 
+                       xend = input$date[1],
+                       y = min(temp), 
+                       yend = max(temp),
+                       text = "Date shown"), colour = "limegreen")
     # Convert to plotly
     # NB: Setting dynamicTicks = T causes the flames to be rendered incorrectly
     pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) %>% 
@@ -821,6 +847,12 @@ map <- function(input, output, session) {
           labs(x = "", y = "Max. Intensity (°C)")
       )
     }
+    p
+  })
+  
+  ### Interactive lolliplot
+  lolliPlotly <- reactive({
+    p <- lollilot()
     pp <- ggplotly(p, tooltip = "text", dynamicTicks = F)
     pp
   })
@@ -924,11 +956,11 @@ map <- function(input, output, session) {
     shinyBS::bsModal(ns('modal'), title = div(id = ns('modalTitle'), pixelLabel()), trigger = 'click2', size = "large",
                      fluidPage(
                        tabsetPanel(id = ns("tabs"),
-                                   tabPanel(title = "Static",
-                                            br(),
-                                            shinycssloaders::withSpinner(plotOutput(ns("tsPlot")), type = 6, color = "#b0b7be"),
-                                            hr()),
-                                   tabPanel(title = "Interactive",
+                                   # tabPanel(title = "Static",
+                                   #          br(),
+                                   #          shinycssloaders::withSpinner(plotOutput(ns("tsPlot")), type = 6, color = "#b0b7be"),
+                                   #          hr()),
+                                   tabPanel(title = "Time series",
                                             br(),
                                             shinycssloaders::withSpinner(plotlyOutput(ns("tsPlotly")), type = 6, color = "#b0b7be"),
                                             hr()),
@@ -950,6 +982,10 @@ map <- function(input, output, session) {
                                               min = "1982-01-01", max = max(current_dates))),
                                      column(width = 8,
                                             h3("Downloads"),
+                                            downloadButton(outputId = ns("download_TS"),
+                                                           label = "Time series (png)", class = 'small-dl'),
+                                            downloadButton(outputId = ns("download_lolli"),
+                                                           label = "Lolliplot (png)", class = 'small-dl'),
                                             downloadButton(outputId = ns("download_clim"),
                                                            label = "Climatology & Threshold (csv)", class = 'small-dl'),
                                             downloadButton(outputId = ns("download_event"),
@@ -962,6 +998,26 @@ map <- function(input, output, session) {
   
 # Downloads ---------------------------------------------------------------
   
+  ### Download time series figure
+  output$download_TS <- downloadHandler(
+    filename = function() {
+      paste0("MHW_TS.png")
+    },
+    content <- function(file) {
+      ggsave(plot = tsPlot(), filename =  file, width = 8, height = 4)
+    }
+  )
+  
+  ### Download lolliplot
+  output$download_lolli <- downloadHandler(
+    filename = function() {
+      paste0("MHW_lolli.png")
+    },
+    content <- function(file) {
+      ggsave(plot = lolliPlot(), filename =  file, width = 8, height = 4)
+    }
+  )
+  
   ### Prep event data
   downloadEventData <- reactive({
     data <- pixelData()$event
@@ -973,6 +1029,16 @@ map <- function(input, output, session) {
       dplyr::select(lon, lat, event_no, date_start, date_peak, date_end, everything())
     return(data_sub)
   })
+  
+  ### Download event data
+  output$download_event <- downloadHandler(
+    filename = function() {
+      paste0("event_lon_",downloadEventData()$lon[1],"_lat_",downloadEventData()$lat[1],".csv")
+    },
+    content <- function(file) {
+      readr::write_csv(downloadEventData(), file)
+    }
+  )
   
   ### Prep clim/thresh data
   downloadClimData <- reactive({
@@ -987,16 +1053,6 @@ map <- function(input, output, session) {
       arrange(doy)
     return(data_sub)
   })
-  
-  ### Download event data
-  output$download_event <- downloadHandler(
-    filename = function() {
-      paste0("event_lon_",downloadEventData()$lon[1],"_lat_",downloadEventData()$lat[1],".csv")
-    },
-    content <- function(file) {
-      readr::write_csv(downloadEventData(), file)
-    }
-  )
   
   ### Download clim/thresh data
   output$download_clim <- downloadHandler(
