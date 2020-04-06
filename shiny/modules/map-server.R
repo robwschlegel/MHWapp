@@ -18,7 +18,7 @@ map <- function(input, output, session) {
   observe({
     query <- parseQueryString(session$clientData$url_search)
     if(length(query) < 1){
-      # shinyBS::toggleModal(session, "startupModal", "open")
+      shinyBS::toggleModal(session, "startupModal", "open")
     }
   })
   # The content of the welcome window
@@ -669,6 +669,19 @@ map <- function(input, output, session) {
         addTiles(options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
         addRasterImage(rasterProj(), colors = pal_react(), layerId = ns("map_raster"),
                        project = FALSE, opacity = 0.8)
+    }
+  })
+  
+  ### Recreate the legend as needed
+  observe({
+    proxy <- leafletProxy("map", data = MHW_cat_clim_sub)
+    proxy %>% clearControls()
+    if (input$legend) {
+      proxy %>% addLegend(position = "bottomright",
+                          pal = pal_factor,
+                          values = ~category,
+                          title = "Category"
+      )
     }
   })
   
