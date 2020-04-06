@@ -41,23 +41,23 @@ aboutUI <- function(id, label = 'About') {
            h2("How do I use this?"),
            br(),
            p("This site works similarly to the Google maps we use in day-to-day life. Click and drag to move 
-             around the world. Use the mouse scroll wheel or click the plus/minus buttons in the left corner of the screen 
-             to zoom in or out. The 'Date' box in the 'Controls' panel tells us which day is being shown on the map. Clicking 
-             in this box we can choose any date from the near present back to January 1st, 1982. We can also choose to filter out the 
-             different categories of MHWs (see below) by clicking on the corresponding category buttons underneath the 
-             'Date' box. If one of the pixels on the map catches your eye, click on it to popup a little window that shows the 
-             longitude, latitude, and category of the MHW there. To get more information click on the 'Time series' button that will
-             appear underneath the 'Category' buttons. This will bring up a new window with more detailed information. 
-             This window currently contains two tabs: 'Plot' and 'Table'. We can download the climatology and
-             threshold data for the chosen pixel when in the 'Plot' tab by clicking the download button at the bottom of the window. 
-             To download the temperature data please go to the", 
-             a(target = '_blank', rel = 'noopener noreferrer', href = "https://www.ncdc.noaa.gov/oisst", "NOAA website"),".
-             We can hover over the figure in the 'Plot' tab to get immediate feedback on what the temperature, climatology, and 
+             around the world. Use the mouse scroll wheel to zoom in or out. The 'Date' box in the 'Controls' panel tells us which 
+             day is being shown on the map. Clicking in this box we can choose any date from the near present back to January 1st, 1982. 
+             We can also choose to filter out the different categories of MHWs (see below) by clicking on the corresponding category 
+             buttons underneath the 'Date' box. If one of the pixels on the map catches your eye, clicking on it creates a popup that shows the 
+             longitude, latitude, and category of the MHW there. To get more information click on the 'Plot pixel' button
+             underneath the 'Category' buttons. This will bring up a new window with more detailed information. 
+             This window contains three tabs: 'Time series', 'Lolliplot', and 'Table'."),
+           p("We can hover over the figure in the 'Time series' tab to get immediate feedback on what the temperature, climatology, and 
              threshold were on any given day. At the peak date of every MHW is a small red tick mark on the bottom of the figure. If we 
-             hover over this tick mark it will show us some summary values for that MHW. We can also select any range of 
-             dates we want to look at from the date selection boxes in the bottom left of the panel. The 'Table' tab shows a spreadsheet
+             hover over this tick mark it will show us summary values for that MHW. We can also select any range of 
+             dates we want to look at from the date selection boxes in the bottom left of the panel. The 'Lolliplot' tab shows the MHWs
+             with no adtional information, allowing us to focus on the events themselves. The 'Table' tab shows a spreadsheet
              of all of the MHWs that have ever occurred at the chosen longitude/latitude. We can sort the events by clicking on the 
-             different columns. This event information may be downloaded by clicking the button in the bottom left corner."),
+             different columns. This event information may be downloaded by clicking the button in the bottom left corner.
+             We can download the figures, climatology & threshold data, and the MHW data for the chosen pixel with the 
+             download buttons at the bottom of the window. To download the temperature data please go to the", 
+             a(target = '_blank', rel = 'noopener noreferrer', href = "https://www.ncdc.noaa.gov/oisst", "NOAA website"),"."),
            br(),
            h2("What do these colours mean?"),
            br(),
@@ -99,6 +99,21 @@ aboutUI <- function(id, label = 'About') {
              a(target = '_blank', rel = 'noopener noreferrer',
                href = "https://github.com/ZijieZhaoMMHW/m_mhw1.0", "MATLAB"),
              ". The climatology period used in calculating the MHWs was 1982-01-01 to 2011-12-31."),
+           br(),
+           h2("What are these different map layers?"),
+           br(),
+           p("The default map layer, <b>Category</b>, shows the categories of the MHW occurring at each pixel on the chosen day. 
+             The <b>Summary</b> layer shows the highest category MHW that occurred at each pixel over the course of the chosen year. 
+             The <b>Anomaly</b> layer shows the temperature anomalies for the chosen day against the daily climatology from 
+             1982-01-01 to 2011-12-31. The various <b>Trend</b> layers show the annual trend in the change of the MHW metric referred to. 
+             For example, a value of 0.2 at a pixel when looking at the <b>Trend: Count</b> layer would mean that for the last 30+ years 
+             MHWs at that pixel have been increasing by a count of 0.2 every year. Or in other words, every five years (1/0.2) there is 
+             one additional MHW occurring in that pixel per year. For another example let’s look at the <b>Trend: Duration</b> layer. 
+             If we see a pixel here with a value of one, this means that, on average, MHWs in this pixel are becoming one day longer each year. 
+             Conversely, a value of negative one, as seen throughout the eastern Pacific, would mean that MHWs are shortening by one day each year. 
+             The data for these trends were created by",
+             a(target = '_blank', rel = 'noopener noreferrer', href = "https://www.nature.com/articles/s41467-018-03732-9/", "Oliver et al., 2018"),
+             "and a more detailed description for them may be found there."),
            br(),
            h2("Who made this?"),
            br(),
@@ -178,6 +193,10 @@ aboutUI <- function(id, label = 'About') {
              A hierarchical approach to defining marine heatwaves. Progress in Oceanography, 141, 227-238."),
            p("Hobday, A. J., Oliver, E. C., Gupta, A. S., Benthuysen, J. A., Burrows, M. T., Donat, M. G., ... & Smale, D. A. (2018). 
              Categorizing and naming marine heatwaves. Oceanography, 31(2), 162-173."),
+           br(),
+           p("The various trend map layers are visualisations of the base results from:"),
+           p("Oliver, E. C., Donat, M. G., Burrows, M. T., Moore, P. J., Smale, D. A., Alexander, L. V., ... & Holbrook, N. J. (2018). 
+             Longer and more frequent marine heatwaves over the past century. Nature communications, 9(1), 1-12."),
            br(),
            br()
     ),
