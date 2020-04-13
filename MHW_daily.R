@@ -190,7 +190,7 @@ time_index <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transform
 # Get the range of dates that need to be run
 # The function `cat_clim_global_daily()` uses dplyr so a for loop is used here
   # Manually control dates as desired
-# update_dates <- seq(as.Date("2020-03-25"), as.Date("2020-04-01"), by = "day")
+# update_dates <- seq(as.Date("2020-04-09"), as.Date("2020-04-12"), by = "day")
 update_dates <- time_index[which(time_index >= min(final_index$t))]
 if(length(update_dates) > 0) {
   print(paste0("Updating global MHW files from ",min(update_dates)," to ",max(update_dates)))
