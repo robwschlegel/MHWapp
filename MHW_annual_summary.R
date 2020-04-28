@@ -419,3 +419,48 @@ system.time(MHW_annual_state(as.numeric(lubridate::year(Sys.Date())), force_calc
 
 # Create a load option for southern hemisphere, July - June
 # and one for Northern Hemisphere, January - December
+
+# chosen_year <- 2013
+# hemisphere <- "S"
+MHW_annual_count <- function(chosen_year, hemisphere){
+  
+  print(paste0("Started run on ",chosen_year," at ",Sys.time()))
+  
+  ## Decide on files based on hemisphere
+  if(hemisphere == "N"){
+    MHW_cat_files <- dir(paste0("../data/cat_clim/", chosen_year), full.names = T)
+  } else if(hemisphere == "S"){
+    MHW_cat_files <- c(dir(paste0("../data/cat_clim/", chosen_year), full.names = T),
+                       dir(paste0("../data/cat_clim/", chosen_year+1), full.names = T))
+    MHW_cat_files <- MHW_cat_files[grep("07-01", MHW_cat_files)[1]:grep("06-30", MHW_cat_files)[2]]
+  }
+  
+  ## Load data
+  MHW_cat <- plyr::ldply(MHW_cat_files, readRDS_date, .parallel = T) 
+  
+  ## Summarise
+  # system.time(
+  MHW_cat_count <- lazy_dt(MHW_cat) %>% 
+    group_by(lon, lat, event_no) %>% 
+    summarise(max_cat = max(as.integer(category))) %>% 
+    data.frame() %>% 
+    dplyr::select(-event_no) %>% 
+    mutate(max_cat = factor(max_cat, levels = c(1:4),  labels = levels(MHW_cat$category))) %>% 
+    group_by(lon, lat) %>% 
+    table() %>% 
+    as.data.frame() %>% 
+    pivot_wider(values_from = Freq, names_from = max_cat) %>% 
+    mutate(lon = as.numeric(as.character(lon)),
+           lat = as.numeric(as.character(lat)))
+  # ) # 16 seconds
+  saveRDS(MHW_cat_count, paste0("data/annual_summary/MHW_cat_sum_",hemisphere,"_", chosen_year,".Rds"))
+  # write_csv(MHW_cat_count, paste0("data/annual_summary/MHW_cat_sum_",hemisphere,"_", chosen_year,".csv"))
+}
+
+# Run them all
+# plyr::l_ply(2013:2018, MHW_annual_count, .parallel = F, hemisphere = "S")
+
+# test visuals
+# MHW_cat_count <- readRDS("data/annual_summary/MHW_cat_count_S_2014.Rds")
+# ggplot(data = MHW_cat_count, aes(x = lon, y = lat, fill = `I Moderate`)) +
+#   geom_tile()
