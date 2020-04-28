@@ -414,3 +414,8 @@ system.time(MHW_annual_state(as.numeric(lubridate::year(Sys.Date())), force_calc
 # 
 # print(paste0("Finished calculating historic results at ",Sys.time()))
 
+
+# Annual sum of MHW categories per pixel ----------------------------------
+
+# Create a load option for southern hemisphere, July - June
+# and one for Northern Hemisphere, January - December
