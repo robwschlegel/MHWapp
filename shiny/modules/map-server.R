@@ -18,7 +18,7 @@ map <- function(input, output, session) {
   observe({
     query <- parseQueryString(session$clientData$url_search)
     if(length(query) < 1){
-      # shinyBS::toggleModal(session, "startupModal", "open")
+      shinyBS::toggleModal(session, "startupModal", "open")
     }
   })
   # The content of the welcome window

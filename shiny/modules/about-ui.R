@@ -7,15 +7,16 @@ aboutUI <- function(id, label = 'About') {
     column(10,
            h2("Welcome!"),
            br(),
-           p("You have arrived at the Marine Heatwave (MHW) Tracker. This web application has been designed to show 
-             the occurrence of MHWs around the world in near-real-time (roughly a one week delay). The Marine Heatwave 
-             Tracker also hosts all of the historic MHW records for the entire planet going back to January 1st, 1982."),
+           p("You have arrived at the Marine Heatwave (MHW) Tracker. This web application shows the occurrence of MHWs 
+             around the world in near-real-time (roughly a one-two day delay). The Tracker also shows daily the 
+             historic records for the whole planet going back to January 1st, 1982. There are several other data layers
+             offered in the Tracker. Please see the 'How do I use this?' section below for details."),
            br(),
            h2("What is a Marine Heatwave (MHW)?"),
            br(),
            p("A MHW is generally defined as when the temperature in a given location is in the top 10% of temperatures 
              ever recorded during that time of year for at least 5 straight days. For example, if the coastal waters off
-             Durban in South Africa are roughly 22°C on any given April 1st, then if temperatures in excess of perhaps 28°C 
+             Durban in South Africa are roughly 22°C on any given April 1st, if temperatures in excess of perhaps 28°C 
              are recorded there in 2019 over March 28th to April 10th, this could be flagged as a MHW. This is a definition
              for MHWs first put forward by ", 
              a(target = '_blank', rel = 'noopener noreferrer', 
@@ -23,6 +24,19 @@ aboutUI <- function(id, label = 'About') {
              ". For a more detailed explanation with visuals please follow this ", 
              a(target = '_blank', rel = 'noopener noreferrer',
                href = "http://www.marineheatwaves.org/all-about-mhws.html", "link"), "."),
+           br(),
+           h2("What do these colours mean?"),
+           br(),
+           p("In the map panel of the Marine Heatwave Tracker we can see that there is a particular colour palette being used. Each of 
+             these four colours corresponds to increasing categories of MHWs as first proposed in ", 
+             a(target = '_blank', rel = 'noopener noreferrer', href = "https://www.jstor.org/stable/26542662", "Hobday et al. 2018"), 
+             ". The first category, 'I Moderate', is somewhat common
+             and no category one MHWs have yet been recorded as causing lasting ecological or financial damage. The second
+             category of MHWs, 'II Strong', are increasing in occurrence the most rapidly of the four categories and are on course 
+             to become as common as category one MHWs were when record keeping began in the 80's. Fortunately, category two MHWs 
+             have rarely been documented to cause lasting damage. The third category, 'III Severe', are less common but can be 
+             devastating when they persist for more than a month. The last category, 'IV Extreme', is thankfully a rare occurrence.
+             It is now known that less than three months of a persistent category four MHW can wipe out entire coastal ecosystems."),
            br(),
            h2("Why should I care?"),
            br(),
@@ -41,10 +55,10 @@ aboutUI <- function(id, label = 'About') {
            h2("How do I use this?"),
            br(),
            p("This site works similarly to the Google maps we use in day-to-day life. Click and drag to move 
-             around the world. Use the mouse scroll wheel to zoom in or out. The 'Date' box in the 'Controls' panel tells us which 
-             day is being shown on the map. Clicking in this box we can choose any date from the near present back to January 1st, 1982. 
-             We can also choose to filter out the different categories of MHWs (see below) by clicking on the corresponding category 
-             buttons underneath the 'Date' box. If one of the pixels on the map catches your eye, clicking on it creates a popup that shows the 
+             around the world. Use the mouse scroll to zoom in or out. The 'Date' box in the 'Controls' panel tells us which 
+             date is being shown on the map. Clicking in this box we can choose any date from the near present back to January 1st, 1982. 
+             We can also choose to filter out the different categories of MHWs by clicking on the corresponding category 
+             buttons near the bottom of the vontrol panel. If one of the pixels on the map catches your eye, clicking on it creates a popup that shows the 
              longitude, latitude, and category of the MHW there. To get more information click on the 'Plot pixel' button
              underneath the 'Category' buttons. This will bring up a new window with more detailed information. 
              This window contains three tabs: 'Time series', 'Lolliplot', and 'Table'."),
@@ -54,23 +68,19 @@ aboutUI <- function(id, label = 'About') {
              dates we want to look at from the date selection boxes in the bottom left of the panel. The 'Lolliplot' tab shows the MHWs
              with no adtional information, allowing us to focus on the events themselves. The 'Table' tab shows a spreadsheet
              of all of the MHWs that have ever occurred at the chosen longitude/latitude. We can sort the events by clicking on the 
-             different columns. This event information may be downloaded by clicking the button in the bottom left corner.
+             different columns. This event information may be downloaded by clicking the button in the bottom left corner of the panel.
              We can download the figures, climatology & threshold data, and the MHW data for the chosen pixel with the 
              download buttons at the bottom of the window. To download the temperature data please go to the", 
              a(target = '_blank', rel = 'noopener noreferrer', href = "https://www.ncdc.noaa.gov/oisst", "NOAA website"),"."),
-           br(),
-           h2("What do these colours mean?"),
-           br(),
-           p("In the map panel of the Marine Heatwave Tracker we can see that there is a particular colour palette being used. Each of 
-             these four colours corresponds to increasing categories of MHWs as first proposed in ", 
-             a(target = '_blank', rel = 'noopener noreferrer', href = "https://www.jstor.org/stable/26542662", "Hobday et al. 2018"), 
-             ". The first category, 'I Moderate', is somewhat common
-             and no category one MHWs have yet been recorded as causing lasting ecological or financial damage. The second
-             category of MHWs, 'II Strong', are increasing in occurrence the most rapidly of the four categories and are on course 
-             to become as common as category one MHWs were when record keeping began in the 80's. Fortunately, category two MHWs 
-             have rarely been documented to cause lasting damage. The third category, 'III Severe', are less common but can be 
-             devastating when they persist for more than a month. The last category, 'IV Extreme', is thankfully a rare occurrence.
-             It is now known that less than three months of a persistent category four MHW can wipe out entire coastal ecosystems."),
+           p("Going back to the main map we see that there are also 'Map layer', 'Map data', 'Background', and 'Coordinates' buttons.
+             Clicking on the 'Map layer' button will bring up several options for which type of data to visualise. Please see the 
+             'What are these different map layers?' section below for more detail. If one clicks on the
+             'Map data' button it will bring up a small interface with which to download data for the chosen map layer. One may chose a
+             range of dates to download simultaneously. The 'Summary' data may be downloaded as either the max event recorded at each pixel for
+             the chosen year, or as the count of each category of MHWs at each pixel for the year. The count data may also be downloaded for the
+             boreal (January - December) or austral (July - June) portions of the year. The 'Background' button provides one with a few different
+             backgrounds to chose from for the map. The 'Coordinates' button opens up a menu that allows the user to input the exact 
+             longitude/latitude values desire to jump to a specific point on the map."),
            br(),
            h2("Where do these data come from?"),
            br(),
@@ -81,7 +91,7 @@ aboutUI <- function(id, label = 'About') {
              More information about these data may be found ", 
              a(target = '_blank', rel = 'noopener noreferrer', href = "https://www.ncdc.noaa.gov/oisst", "here"),"."),
            p("Please note that the data are released in near-real-time, and then go through a second layer of quality control that
-             takes roughly two weeks. Therefore any MHW results shown in this app within two weeks of the current date are possibly
+             takes roughly two weeks. Therefore any MHW results shown in this app within two weeks of the current date may be 
              subject to minor changes. All MHW results older than two weeks may be taken as final. In practice the difference between
              the preliminary results and the final results are negligible."),
            p("A tutorial for how to download these data in R may be found ", 
@@ -98,7 +108,7 @@ aboutUI <- function(id, label = 'About') {
                href = "https://github.com/ecjoliver/marineHeatWaves", "python ")," and ",
              a(target = '_blank', rel = 'noopener noreferrer',
                href = "https://github.com/ZijieZhaoMMHW/m_mhw1.0", "MATLAB"),
-             ". The climatology period used in calculating the MHWs was 1982-01-01 to 2011-12-31."),
+             ". The climatology period used for calculating the MHWs is 1982-01-01 to 2011-12-31."),
            br(),
            h2("What are these different map layers?"),
            br(),
@@ -164,6 +174,9 @@ aboutUI <- function(id, label = 'About') {
            p("Very rarely when the app starts up no MHW pixels will be displayed. Refreshing the website will fix this."),
            p("The map panel of the app may not render on a machine running on an Apple operating System. This is likely due to a 
              Javascript extension issue and is not caused by the MHW Tracker."),
+           p("It has also been noted that the map panel may not show up on Windows operating systems either. This is usually remedied
+             by accessing the Tracker in either Internet Explorer or Microsoft Edge."),
+           p("If problems with viewing the map panel persist, one is encouraged to update the javascript plugins on one's browser of choice."),
            br(),
            p("To report any bugs or to provide any other feedback on the app please contact the developer at:
              robert.schlegel@dal.ca"),
@@ -183,16 +196,23 @@ aboutUI <- function(id, label = 'About') {
            br(),
            h2("References"),
            br(),
+           p("Any use of the NOAA OISST data should be accompanied by the following two references:"),
+           p("Banzon, V., Smith, T. M., Chin, T. M., Liu, C., and Hankins, W. (2016). 
+             A long-term record of blended satellite and in situ sea-surface temperature for climate monitoring, 
+             modeling and environmental studies. Earth Syst. Sci. Data 8, 165–176. doi: 10.5194/essd-8-165-2016"),
+           p("Reynolds, R. W., Smith, T. M., Liu, C., Chelton, D. B., Casey, K. S., and Schlax, M. G. (2007). 
+             Daily high-resolution-blended analyses for sea surface temperature. J. Clim. 20, 5473–5496. doi: 10.1175/2007JCLI1824.1"),
+           br(),
            p("The marine heatwave data displayed in this app were calculated with the heatwaveR R package. To cite 
              heatwaveR in publications please use:"),
-           p("Schlegel, R. W., & Smit, A. J. (2018). heatwaveR: A central algorithm for the detection of heatwaves and cold-spells. 
-             The Journal of Open Source Software, 3, 821."),
+           p("Schlegel, R. W., and Smit, A. J. (2018). heatwaveR: a central algorithm for the detection of heatwaves 
+             and cold-spells. J. Open Sour. Softw. 3:821. doi: 10.21105/joss.00821"),
            br(),
            p("The definition and categorisation of marine heatwaves may be found in the following two papers:"),
-           p("Hobday, A. J., Alexander, L. V., Perkins, S. E., Smale, D. A., Straub, S. C., Oliver, E. C., ... & Holbrook, N. J. (2016). 
-             A hierarchical approach to defining marine heatwaves. Progress in Oceanography, 141, 227-238."),
-           p("Hobday, A. J., Oliver, E. C., Gupta, A. S., Benthuysen, J. A., Burrows, M. T., Donat, M. G., ... & Smale, D. A. (2018). 
-             Categorizing and naming marine heatwaves. Oceanography, 31(2), 162-173."),
+           p("Hobday, A. J., Alexander, L. V., Perkins, S. E., Smale, D. A., Straub, S. C., Oliver, E. C. J., et al. (2016). 
+             A hierarchical approach to defining marine heatwaves. Progr. Oceanogr. 141, 227–238. doi: 10.1016/j.pocean.2015.12.014"),
+           p("Hobday, A. J., Oliver, E. C. J., Gupta, A. S., Benthuysen, J. A., Burrows, M. T., Donat, M. G., et al. (2018). 
+             Categorizing and naming marine heatwaves. Oceanography 31, 162–173. doi: 10.5670/oceanog.2018.5205"),
            br(),
            p("The various trend map layers are visualisations of the base results from:"),
            p("Oliver, E. C., Donat, M. G., Burrows, M. T., Moore, P. J., Smale, D. A., Alexander, L. V., ... & Holbrook, N. J. (2018). 
