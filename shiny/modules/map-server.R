@@ -315,9 +315,9 @@ map <- function(input, output, session) {
                                      selected = "Max", inline = TRUE,
                                      status = 'primary', shape = "curve", animation = "tada")
       hem_choice <- prettyRadioButtons(inputId = ns("hemisphere_choice"),
-                                       label = h5("Hemisphere"),
-                                       choices = list("North", "South"),
-                                       selected = "North", inline = TRUE,
+                                       label = h5("Year"),
+                                       choices = list("Boreal", "Austral"),
+                                       selected = "Boreal", inline = TRUE,
                                        status = 'primary', shape = "curve", animation = "tada")
     } else{
       date_input <- NULL
@@ -1116,7 +1116,7 @@ map <- function(input, output, session) {
       map_data <- plyr::ldply(date_seq_files, readRDS_date)
     } else if(input$layer == "Summary"){
       if(input$summary_type == "Count"){
-        if(input$hemisphere_choice == "North"){
+        if(input$hemisphere_choice == "Boreal"){
           date_seq_files <- paste0("../data/annual_summary/MHW_cat_count_N_",date_seq_years,".Rds")
           map_data <- plyr::ldply(date_seq_files, readRDS_year)
         } else{
