@@ -61,12 +61,25 @@ lon_wrap <- function(xy){
 
 # Load MHW cat file and include the date ----------------------------------
 
+# Daily files
 readRDS_date <- function(file_name){
   file_segments <- length(strsplit(file_name, "/")[[1]])
   file_date <- sapply(strsplit(file_name, "/"), "[[", file_segments)
   file_date <- as.Date(stringr::str_remove_all(file_date, "[daily.cat.clim.Rda]"))
   res <- readRDS(file_name) %>% 
     mutate(t = file_date) %>% 
+    dplyr::select(t, lon, lat, everything())
+}
+
+# Annual files
+readRDS_year <- function(file_name){
+  file_segments <- length(strsplit(file_name, "/")[[1]])
+  file_only <- sapply(strsplit(file_name, "/"), "[[", file_segments)
+  file_only <- stringr::str_remove_all(file_only, "[.Rds]")
+  file_only_segments <- length(strsplit(file_only, "_")[[1]])
+  file_year <- as.integer(sapply(strsplit(file_only, "_"), "[[", file_only_segments))
+  res <- readRDS(file_name) %>% 
+    mutate(t = file_year) %>% 
     dplyr::select(t, lon, lat, everything())
 }
 

@@ -315,7 +315,7 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
 }
 
 # Run the current year
-system.time(MHW_annual_state(as.numeric(lubridate::year(Sys.Date())), force_calc = T)) # 161 seconds
+# system.time(MHW_annual_state(as.numeric(lubridate::year(Sys.Date())), force_calc = T)) # 161 seconds
 # MHW_annual_state(2019, force_calc = F)
 
 # Run ALL years
@@ -432,7 +432,11 @@ MHW_annual_count <- function(chosen_year, hemisphere){
   } else if(hemisphere == "S"){
     MHW_cat_files <- c(dir(paste0("../data/cat_clim/", chosen_year), full.names = T),
                        dir(paste0("../data/cat_clim/", chosen_year+1), full.names = T))
-    MHW_cat_files <- MHW_cat_files[grep("07-01", MHW_cat_files)[1]:grep("06-30", MHW_cat_files)[2]]
+    if(chosen_year == 2019){ # This will need to be updated once July 1st, 2020 data are available
+      MHW_cat_files <- MHW_cat_files[grep("07-01", MHW_cat_files)[1]:length(MHW_cat_files)]
+    } else {
+      MHW_cat_files <- MHW_cat_files[grep("07-01", MHW_cat_files)[1]:grep("06-30", MHW_cat_files)[2]]
+    }
   }
   
   ## Load data
@@ -453,14 +457,16 @@ MHW_annual_count <- function(chosen_year, hemisphere){
     mutate(lon = as.numeric(as.character(lon)),
            lat = as.numeric(as.character(lat)))
   # ) # 16 seconds
-  saveRDS(MHW_cat_count, paste0("data/annual_summary/MHW_cat_sum_",hemisphere,"_", chosen_year,".Rds"))
+  saveRDS(MHW_cat_count, paste0("data/annual_summary/MHW_cat_count_",hemisphere,"_", chosen_year,".Rds"))
   # write_csv(MHW_cat_count, paste0("data/annual_summary/MHW_cat_sum_",hemisphere,"_", chosen_year,".csv"))
 }
 
 # Run them all
-# plyr::l_ply(2013:2018, MHW_annual_count, .parallel = F, hemisphere = "S")
+plyr::l_ply(1982:2019, MHW_annual_count, .parallel = F, hemisphere = "S")
+plyr::l_ply(1982:2020, MHW_annual_count, .parallel = F, hemisphere = "N")
 
 # test visuals
 # MHW_cat_count <- readRDS("data/annual_summary/MHW_cat_count_S_2014.Rds")
 # ggplot(data = MHW_cat_count, aes(x = lon, y = lat, fill = `I Moderate`)) +
 #   geom_tile()
+

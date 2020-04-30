@@ -18,7 +18,7 @@ map <- function(input, output, session) {
   observe({
     query <- parseQueryString(session$clientData$url_search)
     if(length(query) < 1){
-      shinyBS::toggleModal(session, "startupModal", "open")
+      # shinyBS::toggleModal(session, "startupModal", "open")
     }
   })
   # The content of the welcome window
@@ -52,21 +52,21 @@ map <- function(input, output, session) {
   output$check_animate_UI <- renderUI({
     req(input$layer)
     if(input$layer %in% c("Category", "Anomaly")){
-      shinyWidgets::materialSwitch(inputId = ns("check_animate"), 
-                                   label = "Animate", status = "primary")
+      materialSwitch(inputId = ns("check_animate"), 
+                     label = "Animate", status = "primary")
     }
   })
   
   ### Change map layer interface
   output$layer_UI <- renderUI({
-    shinyWidgets::dropdownButton(
+    dropdownButton(
       h3("Select map layer"),
-      shinyWidgets::prettyRadioButtons(inputId = ns("layer"), label = NULL,
-                                       choices = c(cat_layers, rb_layers), 
-                                       selected = "Category", 
-                                       status = "primary", 
-                                       shape = "curve", 
-                                       inline = T),
+      prettyRadioButtons(inputId = ns("layer"), label = NULL,
+                         choices = c(cat_layers, rb_layers), 
+                         selected = "Category", 
+                         status = "primary", 
+                         shape = "curve", 
+                         inline = T),
       circle = FALSE, status = "primary",
       icon = icon("map"), width = "300px",
       right = FALSE, up = FALSE,
@@ -198,11 +198,11 @@ map <- function(input, output, session) {
     # req(input$map_click)
     if(input$layer %in% c("Category", "Anomaly")){
       if(is.null(input$map_click)){
-        shinyWidgets::actionBttn(inputId = ns("does_nothing"), label = "Plot pixel", #icon = icon("map-marked"),
-                                 style = "pill", color = "danger", size = "md")
+        actionBttn(inputId = ns("does_nothing"), label = "Plot pixel", #icon = icon("map-marked"),
+                   style = "pill", color = "danger", size = "md")
       } else {
-        shinyWidgets::actionBttn(inputId = ns("open_modal"), label = "Plot pixel", #icon = icon("map-marked"),
-                                 style = "pill", color = "success", size = "md")
+        actionBttn(inputId = ns("open_modal"), label = "Plot pixel", #icon = icon("map-marked"),
+                   style = "pill", color = "success", size = "md")
       }
     } else {
     }
@@ -243,7 +243,7 @@ map <- function(input, output, session) {
   # NB: This is rendered separately due to date generation order issues
   output$date_animator_slider <- renderUI({
     if(input$check_animate){
-      shinyWidgets::sliderTextInput(
+      sliderTextInput(
         inputId = ns("date_slider"),
         label = NULL,
         grid = TRUE,
@@ -294,27 +294,55 @@ map <- function(input, output, session) {
   
   ### Download map data interface
   output$download_map_UI <- renderUI({
-    shinyWidgets::dropdownButton(
-      h3("Download"),
-      dateRangeInput(
+    req(input$layer)
+    
+    # Reactive bits based on the map layer chosen
+    if(input$layer %in% c("Category", "Anomaly")){
+      date_input <- dateRangeInput(
         inputId = ns("map_download_date"),
         label = h5("Date range"),
         start = max(current_dates), end = max(current_dates),
-        min = "1982-01-01", max = max(current_dates)),
+        min = "1982-01-01", max = max(current_dates))
+      sum_type <- NULL
+      hem_choice <- NULL
+    } else if(input$layer == "Summary"){
+      date_input <- sliderInput(inputId = ns("map_download_date"), sep = "",
+                                label = h5("Date range"), value = c(2020, 2020),
+                                min = 1982, max = lubridate::year(Sys.time()))
+      sum_type <- prettyRadioButtons(inputId = ns("summary_type"),
+                                     label = h5("Summary"),
+                                     choices = list("Max", "Count"),
+                                     selected = "Max", inline = TRUE,
+                                     status = 'primary', shape = "curve", animation = "tada")
+      hem_choice <- prettyRadioButtons(inputId = ns("hemisphere_choice"),
+                                       label = h5("Hemisphere"),
+                                       choices = list("North", "South"),
+                                       selected = "North", inline = TRUE,
+                                       status = 'primary', shape = "curve", animation = "tada")
+    } else{
+      date_input <- NULL
+      sum_type <- NULL
+      hem_choice <- NULL
+    }
+    
+    dropdownButton(
+      h3("Download"),
+      date_input,
       fluidRow(
-        column(6,
-               shinyWidgets::prettyRadioButtons(inputId = ns("map_download_type"),
-                                                label = h5("Format"),
-                                                inline = TRUE,
-                                                choiceNames = list(".csv", ".Rds"),
-                                                choiceValues = list("csv", "Rds"),
-                                                selected = "csv",
-                                                status = 'primary', shape = "curve", animation = "tada")),
-        column(6,
-               h5("Data"),
+        column(width = 6, sum_type),
+        column(width = 6, hem_choice)),
+      fluidRow(
+        column(width = 6,
+               prettyRadioButtons(inputId = ns("map_download_type"),
+                                  label = h5("Format"),
+                                  choiceNames = list(".csv", ".Rds"),
+                                  choiceValues = list("csv", "Rds"),
+                                  selected = "csv", inline = TRUE,
+                                  status = 'primary', shape = "curve", animation = "tada")),
+        column(width = 6,
+               h5("Data"), # Putting the label in the button looks bad
                downloadButton(outputId = ns("download_map"),
-                              label = NULL,
-                              class = 'small-dl'))
+                              label = NULL, class = 'small-dl'))
         ),
       circle = FALSE, status = "primary",
       icon = icon("download"), width = "300px",
@@ -359,10 +387,6 @@ map <- function(input, output, session) {
   ### Base map data before screening categories
   baseDataPre <- reactive({
     req(input$date)
-    # if(input$layer %in% c("Category", "Anomaly")){
-    #   date_filter <- input$date
-    #   year_filter <- lubridate::year(date_filter)
-    # }
     if(input$layer == "Category"){
       req(lubridate::is.Date(input$date))
       sub_dir <- paste0("cat_clim/",lubridate::year(input$date))
@@ -1072,20 +1096,41 @@ map <- function(input, output, session) {
   # date_filter_from <- as.Date("2020-02-27")
   # date_filter_to <- as.Date("2020-02-29")
   downloadMapData <- reactive({
-    req(lubridate::is.Date(input$map_download_date[1]))
-    req(lubridate::is.Date(input$map_download_date[2]))
-    date_filter_from <- as.Date(input$map_download_date[1])
-    date_filter_to <- as.Date(input$map_download_date[2])
-    date_seq <- seq(date_filter_from, date_filter_to, by = "day")
-    date_seq_years <- sapply(strsplit(as.character(date_seq), "-"), "[[", 1)
+    # req(lubridate::is.Date(input$map_download_date[1]))
+    # req(lubridate::is.Date(input$map_download_date[2]))
+    if(input$layer %in% c("Category", "Anomaly")){
+      date_filter_from <- as.Date(input$map_download_date[1])
+      date_filter_to <- as.Date(input$map_download_date[2])
+      date_seq <- seq(date_filter_from, date_filter_to, by = "day")
+      date_seq_years <- sapply(strsplit(as.character(date_seq), "-"), "[[", 1)
+    } else if(input$layer == "Summary"){
+      date_seq_years <- input$map_download_date[1]:input$map_download_date[2]
+    } else{
+     # Blank 
+    }
     if(input$layer == "Category"){
       date_seq_files <- paste0("cat_clim/",date_seq_years,"/cat.clim.",date_seq,".Rda")
       map_data <- plyr::ldply(date_seq_files, readRDS_date)
-    } else if(input$layer == "Summary"){
-      map_data <- baseDataPre()
     } else if(input$layer == "Anomaly") {
       date_seq_files <- paste0("OISST/daily/",date_seq_years,"/daily.",date_seq,".Rda")
       map_data <- plyr::ldply(date_seq_files, readRDS_date)
+    } else if(input$layer == "Summary"){
+      if(input$summary_type == "Count"){
+        if(input$hemisphere_choice == "North"){
+          date_seq_files <- paste0("../data/annual_summary/MHW_cat_count_N_",date_seq_years,".Rds")
+          map_data <- plyr::ldply(date_seq_files, readRDS_year)
+        } else{
+          # This wil need to be updated in July 2020
+          # date_seq_years <- 2018:2018
+          if(2020 %in% date_seq_years) date_seq_years <- date_seq_years[-which(date_seq_years == 2020)]
+          if(length(date_seq_years) < 1) date_seq_years <- 2019
+          date_seq_files <- paste0("../data/annual_summary/MHW_cat_count_S_",date_seq_years,".Rds")
+          map_data <- plyr::ldply(date_seq_files, readRDS_year)
+        }
+      } else{
+        date_seq_files <- paste0("../data/annual_summary/MHW_cat_pixel_",date_seq_years,".Rds")
+        map_data <- plyr::ldply(date_seq_files, readRDS_year)
+      }
     } else if(input$layer %in% trend_layers){
       map_data <- baseDataPre()
     }
