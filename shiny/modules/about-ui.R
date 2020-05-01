@@ -187,6 +187,15 @@ aboutUI <- function(id, label = 'About') {
            p("Schlegel, R. W. (2018). Marine Heatwave Tracker: When and where marine heatwaves are happening around the world. 
              http://www.marineheatwaves.org/tracker"),
            br(),
+           h2("Is the code for the Tracker open source?"),
+           br(),
+           p("Yes. The source code for the MHW Tracker is freely available in a ",
+             a(target = '_blank', rel = 'noopener noreferrer', href = "https://github.com/robwschlegel/MHWapp", "GitHub repo"), 
+             "and is protected under the terms of the",
+             a(target = '_blank', rel = 'noopener noreferrer', 
+               href = "https://github.com/robwschlegel/MHWapp/blob/master/LICENSE.md","MIT License"), ". For questions about the 
+             use or adaptation of the source code please contact the developer at: robert.schlegel@dal.ca"),
+           br(),
            h2("Press release"),
            br(),
            p("A press release was issued for the Marine Heatwave Tracker on May 27th, 2019. A link to the initial release on 

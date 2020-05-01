@@ -1,9 +1,17 @@
 # MHWapp
 
-This interactive map holds all of the MHWs detected in the NOAA OISST data from 1982 to near real time. One may click on a pixel to then bring up a time series at that location. Data on climatologies, thresholds, and event metrics may be downloaded for any ocean pixel.
+The code found in this GitHub repo contains everything required to download, process, and visualise the global occurrence of MHWs. The MHWs are visualised through an interactive leaflet map that uses a Shiny interface. All of this is done exclusively through the R programming language.
+This interactive map holds all of the MHWs detected in the NOAA OISST data from 1982 to near-real-time. One may click on a pixel to then bring up a time series at that location. Data on climatologies, thresholds, and event metrics may be downloaded for any ocean pixel.
 
 
 # Updates
+
+* May 1st, 2020
+  * The MHW Tracker is now covered under the MIT License for open source software 
+
+* April 30th, 2020
+  * Added summaries for the count of MHWs/pixel/year
+  * Updated the UI so these files can be downloaded
 
 * April 6th, 2020
   * Added colourbar for red-blue layers
