@@ -1,6 +1,7 @@
-# This script combines all previous work towards the MHWapp into one location
+# MHW_daily.R
+# This script runs the full daily analysis that produces the results fed to the MHW Tracker
   # The functions that this script draws on are found in "MHW_daily_functions.R"
-# This script is designed to be run autonomously once per day by a chron job
+# This script is designed to be run autonomously once per day via a chron job
 # It performs the following tasks:
 ## 1: Downloads the most recent final and prelim NOAA OISST 
 ##    data available and updates the local NetCDF files
@@ -87,32 +88,22 @@ if(nrow(OISST_dat) > 2){
 # Add new prelim and final data to the files
 ## NB: -NEVER- run this in RStudio Server!
   ## It breaks the NetCDF write privileges
-# doMC::registerDoMC(cores = 50)
-# doParallel::registerDoParallel(cores = 50)
 if(nrow(OISST_dat) > 2){
   print(paste0("Adding new data to NetCDF files at ", Sys.time()))
   ## NB: 50 cores uses too much RAM if more than a few days are being added
-  # doMC::registerDoMC(cores = 50)
   doParallel::registerDoParallel(cores = 50)
   plyr::l_ply(lon_OISST, .fun = OISST_merge, .parallel = TRUE, df = OISST_dat)
   print(paste0("Finished at ", Sys.time()))
   
   # Create date indexes
-  # Get range of complete dates from the above `OISST_merge()` runs
   ncdf_dates <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transforms$time$time, origin = "1970-01-01")
 
   # final_dates index
   final_dates <- ncdf_dates[ncdf_dates <= max(final_index$t)]
-  # tester...
-  # final_dates <- final_dates[1:length(final_dates-2)]
-  # tail(final_dates)
   save(final_dates, file = "metadata/final_dates.Rdata")
 
   # prelim_dates index
   prelim_dates <- ncdf_dates[ncdf_dates >= min(OISST_filenames$t[grepl("prelim", OISST_filenames$files)])]
-  # tester...
-  # prelim_dates <- prelim_dates[1:length(prelim_dates-2)]
-  # tail(prelim_dates)
   save(prelim_dates, file = "metadata/prelim_dates.Rdata")
 }
 
@@ -121,10 +112,8 @@ if(nrow(OISST_dat) > 2){
 # This happens every few months, usaually due to a core slipping
   # NB: These fixes have not been updated since the tidync framework was implemented on 2019-10-29
 
-# The easiest way to fix this is actually to load the 
-# `final_dates` and `prelim_dates` objects,
-# alter them to require re-downloading the affected data,
-# and then save the files.
+# The easiest way to fix this is actually to load the `final_dates` and `prelim_dates` objects,
+# alter them to require re-downloading the affected data, and then save the files.
 # One then runs source() on this script IN A TERMINAL AND NOT RSTUDIO
 # Check the MHW Tracker in a few minutes after this finishes running again
 # to see if the correction propogated through successfully
@@ -136,10 +125,6 @@ if(nrow(OISST_dat) > 2){
 # Fix many
 # fix_lon_steps <- which(lon_OISST %in% seq(-173.875, -11.375, by = 12.5))
 # plyr::ldply(fix_lon_steps, .fun = OISST_ncdf_fix, .parallel = TRUE, end_date = "2019-08-21")
-
-# Dates/reasons this needed to be run:
-# August 29th, 2019: Core 45 slipped, affecting every 12.5th longitude value
-# from -173.875 to -11.375 and 136.125 to 173.625 for 08-09 to 08-11
 
 
 # 2: Update MHW event and category data -----------------------------------
@@ -213,8 +198,6 @@ current_dates <- as.character(dir(path = "../data/cat_clim", pattern = "cat.clim
                                   full.names = TRUE, recursive = TRUE))
 current_dates <- sapply(strsplit(current_dates, "cat.clim."), "[[", 3)
 current_dates <- as.Date(as.vector(sapply(strsplit(current_dates, ".Rda"), "[[", 1)))
-# tail(current_dates)
-# save(current_dates, file = "shiny/current_dates.RData")
 
 # Check that no days are missing
 possible_dates <- seq(as.Date("1982-01-01"), max(current_dates), by = "day")

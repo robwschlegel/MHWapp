@@ -1,10 +1,10 @@
+# MHW_daily_fixes.R
 # This script houses all of the functions that may be used when,
 # for whatever reason, something goes sideways with "MHW_daily.R"
 # These functions are not meant to be run in mutiples,
 # rather they should be run one at a time as spot fixes
 
 source("MHW_daily_functions.R")
-# source("../tikoraluk/MHW_prep.R")
 
 
 # Meta-data ---------------------------------------------------------------

@@ -1,6 +1,5 @@
-# MHW_annual_summary
-# The purpose of this script is to perform an annual summary
-# of the global state of MHWs
+# MHW_annual_summary.R
+# The purpose of this script is to perform an annual summary of the global state of MHWs
 
 
 # Setup -------------------------------------------------------------------
@@ -315,7 +314,7 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
 }
 
 # Run the current year
-# system.time(MHW_annual_state(as.numeric(lubridate::year(Sys.Date())), force_calc = T)) # 161 seconds
+system.time(MHW_annual_state(as.numeric(lubridate::year(Sys.Date())), force_calc = T)) # 161 seconds
 # MHW_annual_state(2019, force_calc = F)
 
 # Run ALL years
@@ -462,8 +461,8 @@ MHW_annual_count <- function(chosen_year, hemisphere){
 }
 
 # Run them all
-plyr::l_ply(1982:2019, MHW_annual_count, .parallel = F, hemisphere = "S")
-plyr::l_ply(1982:2020, MHW_annual_count, .parallel = F, hemisphere = "N")
+# plyr::l_ply(1982:2019, MHW_annual_count, .parallel = F, hemisphere = "S")
+# plyr::l_ply(1982:2020, MHW_annual_count, .parallel = F, hemisphere = "N")
 
 # test visuals
 # MHW_cat_count <- readRDS("data/annual_summary/MHW_cat_count_S_2014.Rds")

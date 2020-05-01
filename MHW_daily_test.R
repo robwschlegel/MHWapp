@@ -1,7 +1,7 @@
+# MHW_daily_test.R
 # This script houses a bunch of code used to poke and prod 
 # at the MHW_daily.R and MHW_daily_functions.R scripts
 
-# source("../tikoraluk/MHW_2018.R")
 source("MHW_daily_functions.R")
 
 

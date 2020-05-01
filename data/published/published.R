@@ -1,4 +1,4 @@
-# MHW_published.R
+# data/published/published.R
 # The purpose of this script is to house the code used to load results from published work
 # It also houses code that emulates results from published work when the results themselves
 # do not mesh well into the format of the MHW Tracker
