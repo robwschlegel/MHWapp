@@ -10,10 +10,10 @@ The code found in this GitHub repo contains everything required to download, pro
   * /MHW_daily_fixes.R - Occassionally the daily processing hits a bump. This script contains functions used to smooth out those issues as they arise. This occurrs less than once a month.  
   * /MHW_daily_test.R - This script houses code used to poke and prod at the MHW_daily.R and MHW_daily_functions.R scripts.  
   * /MHW_annual_summary.R - This script contains code used to calculate annual summaries for MHWs. The figures created in this script are saved in /figures/ and the data files are saved in /data/annual_summary/.  
-  * /LICENSE.md - The MIT License for the MHW Tracker open source software.  
-This applies to all files found within this GitHub repository.  
+  * /LICENSE.md - The MIT License for the MHW Tracker open source software. This applies to all files found within this GitHub repository.  
   * /README.md - That's this file, the one you are reading now.  
   * /data/ - This folder contains data files and scripts used in addition to the primary purpose of the Tracker.  
+    * /extract_spatial.R - This script houses code used to extract bespoke bits of results and convert them to spatial type files. 
     * /annual_summary/ - This folder contains different types of annual summaries of MHW results.  
       * /MHW_cat_pixel_X.Rds - These files contain annual summaries of MHW statistics per pixel of the ocean.  
       * /MHW_cat_daily_X.Rds - These files contain annual summaries of MHW statistics per day of that year.  
@@ -21,7 +21,6 @@ This applies to all files found within this GitHub repository.
     * /published/ - This folder contains the script used to process data from MHW related publications for use/display with the Tracker.  
       * /published.R - This is the script used to do the procesing.  
       * /Oliver_2018.Rds - Results from Oliver et al. 2018 (Nature; https://www.nature.com/articles/s41467-018-03732-9/)  
-    * /extract_spatial.R - This script houses code used to extract bespoke bits of results and convert them to spatial type files.  
   * /figures/ - This folder contains pre-rendered annual summaries of MHWs.  
     * /MHW_cat_historic.png - This is a summary of the annual results of MHWs from 1982 to the present.  
     * /MHW_cat_summary_*.png - These figures contain the visual summary og each year.  
