@@ -10,10 +10,7 @@ source("MHW_daily_functions.R")
 # Load every pixel for a chosen day
 registerDoParallel(cores = 50)
 OISST_test <- plyr::ldply(lon_OISST, sst_seas_thresh_merge, .parallel = T,
-                          date_range = c(as.Date("2016-01-01"), as.Date("2016-01-01")))
-max(OISST_test$t)
-OISST_test <- sst_seas_thresh_merge(lon_step = lon_OISST[1], 
-                                    date_range = c(as.Date("2016-01-01"), as.Date("2016-01-01")))
+                          date_range = c(as.Date("2016-12-01"), as.Date("2016-12-01")))
 
 # test visual
 ggplot(data = OISST_test, aes(x = lon, y = lat)) +
