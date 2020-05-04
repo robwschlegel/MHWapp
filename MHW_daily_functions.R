@@ -25,16 +25,12 @@ registerDoParallel(cores = 25)
 
 # Prep functions ----------------------------------------------------------
 
-# Tester...
-# load("../data/MHW/MHW.calc.0001.RData")
-
 # Pull out climatologies
 MHW_clim <- function(df){
   clim <- df %>% 
     unnest(event) %>% 
     filter(row_number() %% 2 == 1) %>% 
-    unnest(event)# %>% 
-  # select(-(threshCriterion:event))
+    unnest(event)
 }
 # test <- MHW_clim(MHW_res)
 
@@ -124,43 +120,32 @@ OISST_url_daily <- function(target_month){
 
 # Download all of the outstanding data from the links created above
 OISST_url_daily_dl <- function(target_URL){
-  download.file(url = target_URL, method = "libcurl", destfile = "data/temp.nc")
-  temp_dat <- tidync("data/temp.nc") %>% 
+  temp_dest <- paste0("data/",sapply(strsplit(target_URL, split = "/"), "[[", 10))
+  download.file(url = target_URL, method = "libcurl", destfile = temp_dest)
+  temp_dat <- tidync(temp_dest) %>% 
     hyper_tibble() %>% 
     select(lon, lat, time, sst) %>% 
     dplyr::rename(t = time, temp = sst) %>% 
     mutate(t = as.Date(t, origin = "1978-01-01"))
+  file.remove(temp_dest)
   return(temp_dat)
-}
-
-# This downloads the data from the ERDDAP server
-OISST_dl <- function(times, product){
-  oisst_res <- griddap(x = product, 
-                       url = "https://www.ncei.noaa.gov/erddap/", 
-                       time = times, 
-                       depth = c(0, 0),
-                       latitude = c(-89.875, 89.875),
-                       longitude = c(0.125, 359.875),
-                       fields = "sst")$data %>% 
-    dplyr::rename(temp = sst, t = time) %>% 
-    mutate(temp = round(temp, 2),
-           lon = ifelse(lon > 180, lon-360, lon),
-           t = as.Date(str_remove(t, "T00:00:00Z"))) %>%
-    select(lon, lat, t, temp) %>% 
-    na.omit()
 }
 
 # Function for creating arrays from data.frames
 # df <- OISST_step_2
 OISST_acast <- function(df){
-  # Ensurecorrect grid size
+  
+  # Ensure correct grid size
   lon_lat_OISST_sub <- lon_lat_OISST %>% 
     filter(lon == df$lon[1])
+  
   # Round data for massive file size reduction
   df$temp <- round(df$temp, 2)
+  
   # Force grid
   res <- df %>%
     right_join(lon_lat_OISST_sub, by = c("lon", "lat"))
+  
   # Create array
   res_array <- base::array(res$temp, dim = c(720,1,1))
   dimnames(res_array) <- list(lat = lon_lat_OISST_sub$lat,
@@ -169,10 +154,10 @@ OISST_acast <- function(df){
   return(res_array)
 }
 
-# Wrapper function that serves as the last step before
-# data are entered into the NetCDF files
+# Wrapper function for last step before data are entered into NetCDF files
 # df <- OISST_prelim_sub
 OISST_temp <- function(df){
+  
   # Filter NA and convert dates to integer
   OISST_step <- df %>% 
     mutate(temp = ifelse(is.na(temp), NA, temp),
@@ -203,18 +188,13 @@ OISST_merge <- function(lon_step, df){
   # Determine lon slice
   lon_row <- which(lon_OISST == lon_step)
   lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
-  
-  # print(paste0("Began run on avhrr-only-v2.ts.",lon_row_pad,".nc at ",Sys.time()))
-  
   # Determine file name
   ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
   # tester...
   # ncdf_file_name <- paste0("proc/test/test-only-v2.ts.",lon_row_pad,".nc")
-  #
   
   ### Open NetCDF and determine dates present
   nc <- nc_open(ncdf_file_name, write = T)
-  
   time_vals <- as.Date(nc$dim$time$vals, origin = "1970-01-01")
   # tail(time_vals)
   
@@ -268,7 +248,6 @@ OISST_merge <- function(lon_step, df){
   
   ### Close file and exit
   nc_close(nc)
-  # print(paste0("Finished run on avhrr-only-v2.ts.",lon_row_pad,".nc at ",Sys.time()))
 }
 
 
@@ -292,16 +271,16 @@ sst_seas_thresh_merge <- function(lon_step, date_range){
     hyper_tibble() %>% 
     mutate(time = as.Date(time, origin = "1970-01-01")) %>% 
     dplyr::rename(ts_x = time, ts_y = sst) %>%
-    group_by(lon, lat) %>% 
+    group_by(lon, lat) %>%
     group_modify(~heatwaveR:::make_whole_fast(.x)) %>% # This is necessary for the doy column
-    ungroup() %>% 
+    ungroup() %>%
     dplyr::rename(t = ts_x, temp = ts_y) %>%
     select(lon, lat, t, doy, temp)
   
   # Merge to seas/thresh and exit
-  sst_seas_thresh <- tidync_OISST %>% 
-    left_join(hyper_tibble(tidync(seas_thresh_files[lon_row])), 
-              by = c("lon", "lat", "doy" = "time")) %>% 
+  sst_seas_thresh <- tidync_OISST %>%
+    left_join(hyper_tibble(tidync(seas_thresh_files[lon_row])),
+              by = c("lon", "lat", "doy" = "time")) %>%
     mutate(anom = round(temp - seas, 2))
   return(sst_seas_thresh)
 }
@@ -334,7 +313,8 @@ MHW_event_cat_update <- function(lon_step){
   # We then go back one event before the final data end date to ensure we are not missing anything
   previous_event_index <- MHW_event_data %>% 
     group_by(lon, lat) %>% 
-    filter(date_start < max(final_dates)) %>% 
+    # filter(date_start < "2016-01-01") %>% # For going back to 2016 for the v2.1 data
+    filter(date_start < max(final_dates)) %>%
     filter(event_no == max(event_no)-2)
   # test_index <- MHW_event_data %>% 
   #   filter(lat == -51.875)
@@ -378,8 +358,6 @@ MHW_event_cat_update <- function(lon_step){
   # MHW_cat_new_test <- MHW_cat_new %>% 
   #   filter(lat == df$lat)
   # saveRDS(MHW_cat_new, dir("../data/test", pattern = "MHW.cat", full.names = T)[lon_row])
-  
-  # print(paste0("Finished run on MHW.event.",lon_row_pad,".Rda at ",Sys.time()))
 }
 
 # Function for extracting correct sst data based on pre-determined subsets
@@ -477,11 +455,13 @@ cat_clim_global_daily <- function(date_range){
 # date_choice <- max(current_dates)+1
 # date_choice <- as.Date("1982-01-01")
 save_sub_anom <- function(date_choice, df){
-  # Establish flie name and save location
+  
+  # Establish file name and save location
   anom_year <- lubridate::year(date_choice)
   anom_dir <- paste0("../data/OISST/daily/",anom_year)
   dir.create(as.character(anom_dir), showWarnings = F)
   anom_name <- paste0("daily.",date_choice,".Rda")
+  
   # Extract data and save
   df_sub <- df %>% 
     filter(t == date_choice)
@@ -504,12 +484,4 @@ anom_global_daily <- function(date_range){
   plyr::l_ply(seq(min(global_anom$t), max(global_anom$t), by = "day"), 
               save_sub_anom, .parallel = T, df = global_anom)
 }
-
-# for(i in c(1985,1987:2020)){
-#   print(paste0("Processing ",i))
-#   doParallel::registerDoParallel(cores = 50)
-#   anom_global_daily(date_range = c(as.Date(paste0(i,"-01-01")), as.Date(paste0(i,"-12-31"))))
-#   gc()
-#   Sys.sleep(10)
-# }
 

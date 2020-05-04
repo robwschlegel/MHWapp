@@ -43,6 +43,7 @@ OISST_url_month_get <- getURL(OISST_url_month)
 OISST_months <- data.frame(months = readHTMLTable(OISST_url_month_get, skip.rows = 1:2)[[1]]$Name) %>% 
   mutate(months = lubridate::as_date(str_replace(as.character(months), "/", "01"))) %>% 
   filter(months >= max(lubridate::floor_date(final_dates, unit = "month"))) %>% 
+  # filter(months <= "2019-12-01") %>% # For staged uploads of v2.1 data
   mutate(months = gsub("-", "", substr(months, 1, 7)))
 
 
@@ -66,10 +67,10 @@ OISST_new <- rbind(final_index, prelim_index) %>%
 
 
 # Download the new data
-# if(nrow(OISST_new) > 10) stop("A suspicious amount of new files are attempting to be downloaded.")
+if(nrow(OISST_new) > 10) stop("A suspicious amount of new files are attempting to be downloaded.")
 if(nrow(OISST_new) > 0){
   print(paste0("Downloading new data at ", Sys.time()))
-  OISST_dat <- plyr::ldply(OISST_new$full_name, .fun = OISST_url_daily_dl)
+  OISST_dat <- plyr::ldply(OISST_new$full_name, .fun = OISST_url_daily_dl, .parallel = T)
   OISST_dat$lon <- ifelse(OISST_dat$lon > 180, OISST_dat$lon-360, OISST_dat$lon)
 } else {
   print("No new data to download")
@@ -109,6 +110,7 @@ if(nrow(OISST_dat) > 2){
   save(prelim_dates, file = "metadata/prelim_dates.Rdata")
 }
 
+# stop("Finish getting all new v2.1 data before continuing.")
 
 # Fix files that didn't run correctly
 # This happens every few months, usaually due to a core slipping
@@ -140,7 +142,7 @@ doParallel::registerDoParallel(cores = 25)
 if(nrow(OISST_dat) > 2){
   print(paste0("Updating MHW results at ", Sys.time()))
   # system.time(
-    plyr::l_ply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE)
+  plyr::l_ply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE)
   # ) # ~ 40 seconds per cycle
   print(paste0("Finished MHW results at ", Sys.time()))
 }
@@ -175,9 +177,8 @@ time_index <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transform
 # max(time_index)
 
 # Get the range of dates that need to be run
-# The function `cat_clim_global_daily()` uses dplyr so a for loop is used here
   # Manually control dates as desired
-# update_dates <- seq(as.Date("2020-03-28"), as.Date("2020-04-12"), by = "day")
+# update_dates <- seq(as.Date("2016-01-01"), as.Date("2020-05-03"), by = "day")
 update_dates <- time_index[which(time_index >= min(final_index$t))]
 if(length(update_dates) > 0) {
   print(paste0("Updating global MHW files from ",min(update_dates)," to ",max(update_dates)))
