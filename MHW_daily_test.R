@@ -7,9 +7,18 @@ source("MHW_daily_functions.R")
 
 # 1: Testing the downloaded NOAA data -------------------------------------
 
-# NB: This code is for the previous pipeline
-# OISST_update_1 <- OISST_dl(c("2019-02-17T00:00:00Z", "2019-02-17T00:00:00Z"))
-# OISST_update_2 <- OISST_prep(OISST_update_1)
+# Load every pixel for a chosen day
+registerDoParallel(cores = 50)
+OISST_test <- plyr::ldply(lon_OISST, sst_seas_thresh_merge, .parallel = T,
+                          date_range = c(as.Date("2016-01-01"), as.Date("2016-01-01")))
+max(OISST_test$t)
+OISST_test <- sst_seas_thresh_merge(lon_step = lon_OISST[1], 
+                                    date_range = c(as.Date("2016-01-01"), as.Date("2016-01-01")))
+
+# test visual
+ggplot(data = OISST_test, aes(x = lon, y = lat)) +
+  borders(fill = "grey70", colour = "black") +
+  geom_tile(aes(fill = ts_y))
 
 
 # 2: Testing the MHW event and cat production -----------------------------
@@ -81,7 +90,7 @@ p
 # 3: Testing global files -------------------------------------------------
 
 # Load a single file
-MHW_cat_clim <- readRDS("shiny/cat_clim/2020/cat.clim.2020-02-02.Rda")
+MHW_cat_clim <- readRDS("shiny/cat_clim/2016/cat.clim.2016-01-01.Rda")
 
 # Crude global plot
 ggplot(data = MHW_cat_clim, aes(x = lon, y = lat)) +
@@ -94,3 +103,4 @@ ggplot(data = MHW_cat_clim, aes(x = lon, y = lat)) +
   coord_cartesian(expand = F)
 
 MHW_anom <- readRDS("")
+
