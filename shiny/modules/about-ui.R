@@ -85,7 +85,8 @@ aboutUI <- function(id, label = 'About') {
            h2("Where do these data come from?"),
            br(),
            p("The global satellite product used in the Marine Heatwave Tracker is the daily Optimally Interpolated Sea Surface Temperature 
-             (OISST) data that may be downloaded from the National Oceanic and Atmospheric Administration (NOAA). These data are 
+             (OISST) data that may be downloaded from the National Oceanic and Atmospheric Administration (NOAA). Specifically these are 
+             the AVHRR-ony v2.0 data from 1982 to 2015 and the AVHRR-only v2.1 data from 2016 to present day. These data are 
              on an even 1/4 degree grid over the surface of the planet. The daily values go back as far as September 1st, 1981,
              but the MHW Tracker only hosts results starting on January 1st, 1982 as this is the first full year of data.
              More information about these data may be found ", 

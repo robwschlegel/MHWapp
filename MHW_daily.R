@@ -24,9 +24,9 @@ source("MHW_daily_functions.R")
 
 # The most up-to-date data downloaded
 # For manually testing
-# final_dates <- seq(as.Date("1982-01-01"), as.Date("2020-01-23"), by = "day")
+# final_dates <- seq(as.Date("1982-01-01"), as.Date("2015-12-31"), by = "day")
 # save(final_dates, file = "metadata/final_dates.Rdata")
-# prelim_dates <- seq(as.Date("2020-01-27"), as.Date("2020-02-08"), by = "day")
+# prelim_dates <- seq(as.Date("2016-01-01"), as.Date("2020-04-19"), by = "day")
 # save(prelim_dates, file = "metadata/prelim_dates.Rdata")
 load("metadata/final_dates.Rdata")
 load("metadata/prelim_dates.Rdata")
@@ -36,7 +36,9 @@ if(length(prelim_dates) == 0) stop("Prelim date indexing has broken.")
 
 # Get the source index monthly file folders with new data
 print(paste0("Fetching OISST folder names at ",Sys.time()))
-OISST_url_month <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/access/avhrr-only/"
+# This is he address for the v2.0 data, which are used from 1982-01-01 to 2015-12-31
+# OISST_url_month <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/access/avhrr-only/"
+OISST_url_month <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/"
 OISST_url_month_get <- getURL(OISST_url_month)
 OISST_months <- data.frame(months = readHTMLTable(OISST_url_month_get, skip.rows = 1:2)[[1]]$Name) %>% 
   mutate(months = lubridate::as_date(str_replace(as.character(months), "/", "01"))) %>% 
@@ -64,7 +66,7 @@ OISST_new <- rbind(final_index, prelim_index) %>%
 
 
 # Download the new data
-if(nrow(OISST_new) > 10) stop("A suspicious amount of new files are attempting to be downloaded.")
+# if(nrow(OISST_new) > 10) stop("A suspicious amount of new files are attempting to be downloaded.")
 if(nrow(OISST_new) > 0){
   print(paste0("Downloading new data at ", Sys.time()))
   OISST_dat <- plyr::ldply(OISST_new$full_name, .fun = OISST_url_daily_dl)
@@ -91,7 +93,7 @@ if(nrow(OISST_dat) > 2){
 if(nrow(OISST_dat) > 2){
   print(paste0("Adding new data to NetCDF files at ", Sys.time()))
   ## NB: 50 cores uses too much RAM if more than a few days are being added
-  doParallel::registerDoParallel(cores = 50)
+  doParallel::registerDoParallel(cores = 25)
   plyr::l_ply(lon_OISST, .fun = OISST_merge, .parallel = TRUE, df = OISST_dat)
   print(paste0("Finished at ", Sys.time()))
   
@@ -130,7 +132,7 @@ if(nrow(OISST_dat) > 2){
 # 2: Update MHW event and category data -----------------------------------
 
 # Prep guide info for this section
-doParallel::registerDoParallel(cores = 50)
+doParallel::registerDoParallel(cores = 25)
 # load("metadata/final_dates.Rdata")
 # load("metadata/prelim_dates.Rdata")
 
@@ -166,7 +168,7 @@ if(nrow(OISST_dat) > 2){
 
 # 3: Create daily global files --------------------------------------------
 
-doParallel::registerDoParallel(cores = 50)
+doParallel::registerDoParallel(cores = 25)
 
 # Get most current processed OISST dates
 time_index <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transforms$time$time, origin = "1970-01-01")

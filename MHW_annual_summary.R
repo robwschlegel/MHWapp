@@ -314,7 +314,7 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
 }
 
 # Run the current year
-system.time(MHW_annual_state(as.numeric(lubridate::year(Sys.Date())), force_calc = T)) # 161 seconds
+# system.time(MHW_annual_state(as.numeric(lubridate::year(Sys.Date())), force_calc = T)) # 161 seconds
 # MHW_annual_state(2019, force_calc = F)
 
 # Run ALL years
