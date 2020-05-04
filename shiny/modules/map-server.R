@@ -319,7 +319,7 @@ map <- function(input, output, session) {
                                        choices = list("Boreal", "Austral"),
                                        selected = "Boreal", inline = TRUE,
                                        status = 'primary', shape = "curve", animation = "tada")
-    } else{
+    } else {
       date_input <- NULL
       sum_type <- NULL
       hem_choice <- NULL
@@ -350,7 +350,7 @@ map <- function(input, output, session) {
       label = "Map data", tooltip = FALSE)
   })
   
-  ### Disable map download button if dates are inccorect
+  ### Disable map download button if dates are incorrect
   observe({
     shinyjs::toggleState(id = "download_map", 
                          condition = input$map_download_date[1] <= input$map_download_date[2] & (as.integer(input$map_download_date[2]) - as.integer(input$map_download_date[1])) <= 31) 
@@ -360,18 +360,18 @@ map <- function(input, output, session) {
   ### Observe the changing of date, lon, lat, zoom, in the URL
   observe({
     query <- parseQueryString(session$clientData$url_search)
-    if (!is.null(query[['date']])) {
+    if(!is.null(query[['date']])){
       updateDateInput(session = session, 
                       inputId = "date", 
                       value = as.Date(as.character(query[['date']])))
     }
-    if (!is.null(query[['lat']])) {
+    if(!is.null(query[['lat']])){
       updateNumericInput(session, "lat", value = query[['lat']])
     }
-    if (!is.null(query[['lon']])) {
+    if(!is.null(query[['lon']])){
       updateNumericInput(session, "lon", value = query[['lon']])
     }
-    if (!is.null(query[['zoom']])) {
+    if(!is.null(query[['zoom']])){
       updateNumericInput(session, "zoom", value = query[['zoom']])
     }
   })
@@ -492,12 +492,14 @@ map <- function(input, output, session) {
     rasterNonProj <- rasterNonProj()
     cell <- raster::cellFromXY(rasterNonProj, c(xy$lng, xy$lat))
     xy <- raster::xyFromCell(rasterNonProj, cell)
+    
     # Grab time series data
     ts_data <- sst_seas_thresh_ts(lon_step = xy[1], lat_step = xy[2]) %>% 
       dplyr::mutate(diff = thresh - seas,
                     thresh_2x = thresh + diff,
                     thresh_3x = thresh_2x + diff,
                     thresh_4x = thresh_3x + diff)
+    
     # Grab event data
     event_file <- dir("event", full.names = T)[which(lon_OISST == xy[1])]
     event_data <- readRDS(event_file) %>% 
@@ -505,6 +507,8 @@ map <- function(input, output, session) {
       mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
              date_peak = as.Date(date_peak, origin = "1970-01-01"),
              date_end = as.Date(date_end, origin = "1970-01-01"))
+    
+    # Return the pixel data
     pixelData <- list(ts = ts_data,
                       event = event_data,
                       lon = xy[1],
@@ -621,6 +625,7 @@ map <- function(input, output, session) {
   
   ### The leaflet base
   output$map <- renderLeaflet({
+    
     # Check HTML string for startup coords
     query <- parseQueryString(session$clientData$url_search)
     if(!is.null(query[['lat']])){
@@ -638,6 +643,7 @@ map <- function(input, output, session) {
     } else {
       map_zoom <- initial_zoom
     }
+    
     # The base 
     leaflet(data = MHW_cat_clim_sub, options = leafletOptions(zoomControl = FALSE)) %>%
       setView(lng = map_lon, lat = map_lat, zoom = map_zoom,
@@ -663,34 +669,30 @@ map <- function(input, output, session) {
   
   ### Change map background
   observeEvent(input$map_back, {
+    req(input$map_back)
     if(input$map_back == "Grey"){
       leafletProxy("map") %>%
         clearTiles() %>% 
         addProviderTiles(providers$OpenStreetMap.BlackAndWhite,
-                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-        addRasterImage(rasterProj(), colors = pal_react(), layerId = ns("map_raster"),
-                       project = FALSE, opacity = 0.8)
+                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F))
     } else if(input$map_back == "Land features"){
       leafletProxy("map") %>%
         clearTiles() %>% 
         addProviderTiles(providers$Esri.WorldTopoMap,
-                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-        addRasterImage(rasterProj(), colors = pal_react(), layerId = ns("map_raster"),
-                       project = FALSE, opacity = 0.8)
+                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F))
     } else if(input$map_back == "Ocean features"){
       leafletProxy("map") %>%
         clearTiles() %>% 
         addProviderTiles(providers$Esri.OceanBasemap,
-                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-        addRasterImage(rasterProj(), colors = pal_react(), layerId = ns("map_raster"),
-                       project = FALSE, opacity = 0.8)
+                         options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F))
     } else{
       leafletProxy("map") %>%
         clearTiles() %>% 
-        addTiles(options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F)) %>%
-        addRasterImage(rasterProj(), colors = pal_react(), layerId = ns("map_raster"),
-                       project = FALSE, opacity = 0.8)
+        addTiles(options = tileOptions(minZoom = 0, maxZoom = 8, opacity = 0.5, noWrap = F))
     }
+    leafletProxy("map") %>%
+      addRasterImage(rasterProj(), colors = pal_react(), layerId = ns("map_raster"),
+                     project = FALSE, opacity = 0.8)
   })
   
   ### Recreate the legend as needed
@@ -723,17 +725,7 @@ map <- function(input, output, session) {
                   bins = 5, values = ~domain,
                   title = domain_label,
                   labFormat = labelFormat(transform = function(x) sort(x, decreasing = TRUE)))
-    } 
-    # proxy %>% clearControls()
-    # if(input$layer %in% rb_layers)
-    # if(input$layer %in% rb_layers){
-    # 
-    #   } else if(input$layer %in% cat_layers){
-    #     proxy %>% clearControls()
-    #   }
-    # if(input$layer %in% cat_layers){
-      # proxy %>% clearControls()
-    # }
+    }
   })
   
   
@@ -773,11 +765,6 @@ map <- function(input, output, session) {
     # The base
     suppressWarnings( # text aes for plotly
       p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
-        # geom_segment(aes(x = input$date[1], 
-        #                  xend = input$date[1],
-        #                  y = min(ts_data_sub$temp), 
-        #                  yend = max(ts_data_sub$temp),
-        #                  text = "Date shown"), colour = "limegreen") +
         labs(x = "", y = "Temperature (°C)") +
         scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(input$from_to[1], input$from_to[2])) 
       )
@@ -828,14 +815,18 @@ map <- function(input, output, session) {
     
   ### Create interactive time series plot
   tsPlotly <- reactive({
+    
     # Grab static plot
     p <- tsPlot()
+    suppressWarnings( # text aes pltoly
     p <- p +
       geom_segment(aes(x = input$date[1], 
                        xend = input$date[1],
                        y = min(temp), 
                        yend = max(temp),
                        text = "Date shown"), colour = "limegreen")
+    )
+    
     # Convert to plotly
     # NB: Setting dynamicTicks = T causes the flames to be rendered incorrectly
     pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) %>% 
@@ -975,29 +966,35 @@ map <- function(input, output, session) {
   ### UI panel
   output$uiModal <- renderUI({
     req(lubridate::is.Date(input$date))
+    
     # To date
     to_date <- ifelse(lubridate::year(input$date) >= lubridate::year(max(current_dates)),
                       input$date, as.Date(paste0(lubridate::year(as.Date(input$date)),"-12-31")))
     to_date <- as.Date(to_date, origin = "1970-01-01")
+    
     # From date
     from_date <- ifelse(lubridate::year(input$date) >= lubridate::year(max(current_dates)),
                         input$date-365, as.Date(paste0(lubridate::year(as.Date(input$date)),"-01-01")))
     from_date <- as.Date(from_date, origin = "1970-01-01")
+    
     # The main modal
     shinyBS::bsModal(ns('modal'), title = div(id = ns('modalTitle'), pixelLabel()), trigger = 'click2', size = "large",
                      fluidPage(
                        tabsetPanel(id = ns("tabs"),
                                    tabPanel(title = "Time series",
                                             br(),
-                                            shinycssloaders::withSpinner(plotlyOutput(ns("tsPlotly")), type = 6, color = "#b0b7be"),
+                                            shinycssloaders::withSpinner(plotlyOutput(ns("tsPlotly")), 
+                                                                         type = 6, color = "#b0b7be"),
                                             hr()),
                                    tabPanel(title = "Lolliplot",
                                             br(),
-                                            shinycssloaders::withSpinner(plotlyOutput(ns("lolliPlot")), type = 6, color = "#b0b7be"),
+                                            shinycssloaders::withSpinner(plotlyOutput(ns("lolliPlot")), 
+                                                                         type = 6, color = "#b0b7be"),
                                             hr()),
                                    tabPanel(title = "Table",
                                             br(),
-                                            shinycssloaders::withSpinner(DT::dataTableOutput(ns('table')), type = 6, color = "#b0b7be"),
+                                            shinycssloaders::withSpinner(DT::dataTableOutput(ns('table')), 
+                                                                         type = 6, color = "#b0b7be"),
                                             hr())
                                    ),
                                    fluidRow(
