@@ -546,11 +546,33 @@ map <- function(input, output, session) {
     if(xy[1] >= -160 & xy[1] <= -110 & xy[2] >= 25 & xy[2] <= 60){
       regional_link <- paste0("<hr>",
                               "<a target='_blank' rel='noopener noreferrer' href=",
-                              regional_NOAA,">Regional website (NOAA)</a>")
-    } else if(xy[1] >= -7 & xy[1] <= 37 & xy[2] >= 27 & xy[2] <= 47){
+                              regional_NOAA,
+                              ">Regional website (NOAA)</a>")
+    } else if(xy[1] >= -3 & xy[1] <= 37 & xy[2] >= 27 & xy[2] <= 47){
       regional_link <- paste0("<hr>",
                               "<a target='_blank' rel='noopener noreferrer' href=",
-                              regional_TMEDNET,">Regional website (T-MEDNet)</a>")
+                              regional_TMEDNET,
+                              ">Regional website (T-MEDNet)</a>")
+    } else if(xy[1] >= 7 & xy[1] <= 16 & xy[2] >= 53 & xy[2] <= 59){
+      regional_link <- paste0("<hr>",
+                              "<a target='_blank' rel='noopener noreferrer' href=",
+                              regional_Danish_Archepelago,
+                              ">Regional website (Fishforecasts)</a>")
+    } else if(xy[1] >= 13 & xy[1] <= 30 & xy[2] >= 53 & xy[2] <= 66){
+      regional_link <- paste0("<hr>",
+                              "<a target='_blank' rel='noopener noreferrer' href=",
+                              regional_Baltic_Sea,
+                              ">Regional website (Fishforecasts)</a>")
+    } else if(xy[1] >= -4 & xy[1] <= 10 & xy[2] >= 50 & xy[2] <= 61){
+      regional_link <- paste0("<hr>",
+                              "<a target='_blank' rel='noopener noreferrer' href=",
+                              regional_North_Sea,
+                              ">Regional website (Fishforecasts)</a>")
+    } else if(xy[1] >= -15 & xy[1] <= 2 & xy[2] >= 43 & xy[2] <= 61){
+      regional_link <- paste0("<hr>",
+                              "<a target='_blank' rel='noopener noreferrer' href=",
+                              regional_European_Northwest_Shelf,
+                              ">Regional website (Fishforecasts)</a>")
     } else {
       regional_link <- ""
     }
@@ -573,7 +595,6 @@ map <- function(input, output, session) {
         dplyr::filter(lon == xy[1],
                       lat == xy[2]) 
       content_sub <- paste0("<br>",input$layer," = ", round(val$val, 2))
-      
     } 
     content <- paste0("Lon = ", xy_lon,
                       "<br>Lat = ", xy_lat,

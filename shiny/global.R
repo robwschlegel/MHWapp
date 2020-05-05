@@ -125,6 +125,10 @@ server_instance <- Sys.getenv("R_SHNYSRVINST")
 ### Regional website URLs
 regional_NOAA <- "https://www.integratedecosystemassessment.noaa.gov/regions/california-current/cc-projects-blobtracker"
 regional_TMEDNET <- "http://t-mednet.org/t-resources/marine-heatwaves"
+regional_Danish_Archepelago <- "https://fishforecasts.dtu.dk/heatwaves/denmark"
+regional_Baltic_Sea <- "https://fishforecasts.dtu.dk/heatwaves/baltic"
+regional_North_Sea <- "https://fishforecasts.dtu.dk/heatwaves/north_sea"
+regional_European_Northwest_Shelf <- "https://fishforecasts.dtu.dk/heatwaves/nw_shelf"
 
 ### Placeholders when invalid dates are typed into date selectors
 empty_date_map <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>% 

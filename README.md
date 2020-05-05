@@ -45,6 +45,7 @@ The code found in this GitHub repo contains everything required to download, pro
   * The Tracker now uses OISST v2.1 from 2016 onwards
   * The annual summaries from 2016 forwards have been updated accordingly
   * The v2.0 annual summaries are stored in /annual_summaries/v2.0/
+  * Added regional analysis links for several Fishforecast pages around Northern Europe
 
 * May 1st, 2020
   * The MHW Tracker is now covered under the MIT License for open source software 
