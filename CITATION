@@ -1,0 +1,9 @@
+bibentry(bibtype = "Misc",
+         title   = "Marine Heatwave Tracker",
+    	   author  = person(given = c("Robert", "W."),
+                          family = "Schlegel",
+                          email = "robert.schlegel@dal.ca"),
+      	 year    = "2020",
+      	 url     = "http://www.marineheatwaves.org/tracker.html",
+     	   doi     = ""
+)

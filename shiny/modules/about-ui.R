@@ -184,9 +184,10 @@ aboutUI <- function(id, label = 'About') {
            br(),
            h2("How do I cite this app?"),
            br(),
-           p("To cite the app itself please use:"),
-           p("Schlegel, R. W. (2018). Marine Heatwave Tracker: When and where marine heatwaves are happening around the world. 
-             http://www.marineheatwaves.org/tracker"),
+           p("To ",
+             a(target = '_blank', rel = 'noopener noreferrer', href = "https://github.com/robwschlegel/MHWapp/CITATION", "cite"),
+             " the app itself please use:"),
+           p("Schlegel, R. W. (2020). Marine Heatwave Tracker. http://www.marineheatwaves.org/tracker. doi: "),
            br(),
            h2("Is the code for the Tracker open source?"),
            br(),
