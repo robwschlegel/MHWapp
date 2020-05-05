@@ -188,7 +188,7 @@ aboutUI <- function(id, label = 'About') {
              a(target = '_blank', rel = 'noopener noreferrer', 
                href = "https://github.com/robwschlegel/MHWapp/blob/master/CITATION", "cite"),
              " the app itself please use:"),
-           p("Schlegel, R. W. (2020). Marine Heatwave Tracker. http://www.marineheatwaves.org/tracker. doi: "),
+           p("Schlegel, R. W. (2020). Marine Heatwave Tracker. http://www.marineheatwaves.org/tracker. doi: 10.5281/zenodo.3787873"),
            br(),
            h2("Is the code for the Tracker open source?"),
            br(),

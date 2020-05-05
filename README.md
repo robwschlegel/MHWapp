@@ -46,6 +46,8 @@ The code found in this GitHub repo contains everything required to download, pro
   * The annual summaries from 2016 forwards have been updated accordingly
   * The v2.0 annual summaries are stored in /annual_summaries/v2.0/
   * Added regional analysis links for several Fishforecast pages around Northern Europe
+  * Released v1.0.0 of the Marine Heatwave Tracker on GitHub
+  * DOI created through Zenodo: 10.5281/zenodo.3787873
 
 * May 1st, 2020
   * The MHW Tracker is now covered under the MIT License for open source software 
