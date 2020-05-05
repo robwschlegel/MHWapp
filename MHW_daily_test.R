@@ -99,5 +99,5 @@ ggplot(data = MHW_cat_clim, aes(x = lon, y = lat)) +
   labs(x = NULL, y = NULL) +
   coord_cartesian(expand = F)
 
-MHW_anom <- readRDS("")
+# MHW_anom <- readRDS("")
 

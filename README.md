@@ -15,6 +15,7 @@ The code found in this GitHub repo contains everything required to download, pro
   * /data/ - This folder contains data files and scripts used in addition to the primary purpose of the Tracker.  
     * /extract_spatial.R - This script houses code used to extract bespoke bits of results and convert them to spatial type files. 
     * /annual_summary/ - This folder contains different types of annual summaries of MHW results.  
+      * /v2.0/ - This folder contains the annual summaries from the older OISST v2.0 data. The file naming conventions are the same as the following explanations. 
       * /MHW_cat_pixel_X.Rds - These files contain annual summaries of MHW statistics per pixel of the ocean.  
       * /MHW_cat_daily_X.Rds - These files contain annual summaries of MHW statistics per day of that year.  
       * /MHW_cat_count_X_X.Rds - These files contain the count of MHWs per pixel based on the max category reached by each event. The files marked with an 'N' are annual summaries over the boreal calendar season (Northern Hemisphere, January - December). The files marked with an 'S' are for the autral calendar year (Southern Hemishpere, July - June).  
@@ -39,6 +40,11 @@ The code found in this GitHub repo contains everything required to download, pro
     * /style.css - The CSS for the Shiny app.  
   
 ## Updates
+
+* May 5th, 2020
+  * The Tracker now uses OISST v2.1 from 2016 onwards
+  * The annual summaries from 2016 forwards have been updated accordingly
+  * The v2.0 annual summaries are stored in /annual_summaries/v2.0/
 
 * May 1st, 2020
   * The MHW Tracker is now covered under the MIT License for open source software 

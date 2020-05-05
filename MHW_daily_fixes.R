@@ -46,29 +46,8 @@ OISST_lon_dl <- function(times, lon_step, product){
 
 # Fix a NetCDF file -------------------------------------------------------
 
-# Prep a single lon download
-# nc_file <- sst_new
-# OISST_lon_prep <- function(nc_file){
-#   
-#   # Open the NetCDF connection
-#   nc <- nc_open(nc_file$summary$filename)
-#   
-#   # Extract the SST values and add the lon/lat/time dimension names
-#   res <- ncvar_get(nc, varid = "sst")
-#   dimnames(res) <- list(lat = nc$dim$latitude$vals,
-#                         t = nc$dim$time$vals)
-#   
-#   # Convert the data into a 'long' dataframe for use in the 'tidyverse' ecosystem
-#   res <- as.data.frame(reshape2::melt(res, value.name = "temp"), row.names = NULL) %>% 
-#     mutate(t = as.Date(as.POSIXct(t, origin = "1970-01-01 00:00:00")),
-#            temp = round(temp, 2))
-#   
-#   # Close the NetCDF connection and finish
-#   nc_close(nc)
-#   return(res)
-# }
-
 # Function for creating NetCDF files from OISST data
+# NB: This only works for the older OISST v2.0
 OISST_ncdf <- function(df){
   
   # Determine lon slice
@@ -130,9 +109,10 @@ OISST_ncdf <- function(df){
   nc_close(ncout)
 }
 
-# Currently it does not seem reliable to "fix" a NetCDF file in place
+# It is not reliable to "fix" a NetCDF file in place
 # Rather the 1982 - 2017 data are fetched from the old MHW results,
 # and the most up-to-date data are fetched and merged into a brand new file
+# NB: This only works for the older OISST v2.0
 # lon_step <- 745
 # end_date <- "2019-08-21"
 OISST_ncdf_fix <- function(lon_step, end_date){
@@ -144,7 +124,8 @@ OISST_ncdf_fix <- function(lon_step, end_date){
   rm(MHW_res)
   
   # Download all available final data from 2018 onwards
-  final_info <- rerddap::info(datasetid = "ncdc_oisst_v2_avhrr_by_time_zlev_lat_lon", url = "https://www.ncei.noaa.gov/erddap/")
+  final_info <- rerddap::info(datasetid = "ncdc_oisst_v2_avhrr_by_time_zlev_lat_lon", 
+                              url = "https://www.ncei.noaa.gov/erddap/")
   final_time_range <- final_info$alldata$time$value[3]
   final_time_start <- NOAA_date(final_time_range, 1)
   final_time_end <- NOAA_date(final_time_range, 2)
@@ -155,7 +136,8 @@ OISST_ncdf_fix <- function(lon_step, end_date){
   # sst_final_prep <- sst_final
     
   # Download all available prelim data up to the given date
-  prelim_info <- rerddap::info(datasetid = "ncdc_oisst_v2_avhrr_prelim_by_time_zlev_lat_lon", url = "https://www.ncei.noaa.gov/erddap/")
+  prelim_info <- rerddap::info(datasetid = "ncdc_oisst_v2_avhrr_prelim_by_time_zlev_lat_lon", 
+                               url = "https://www.ncei.noaa.gov/erddap/")
   prelim_time_range <- prelim_info$alldata$time$value[3]
   prelim_time_start <- NOAA_date(prelim_time_range, 1)
   prelim_time_end <- NOAA_date(prelim_time_range, 2)
@@ -167,22 +149,12 @@ OISST_ncdf_fix <- function(lon_step, end_date){
     group_by(t) %>% 
     filter(temp > 100) %>% 
     ungroup()
-
-  # Prep prelim data
-  # sst_prelim_prep <- sst_prelim %>% 
-  #   # mutate(lon = lon_OISST[lon_step]) %>% 
-  #   # select(lon, lat, t, temp) %>% 
-  #   filter(!t %in% sst_final_prep$t) %>% 
-  #   na.omit() %>% 
-  #   group_by(t) %>% 
-  #   filter(temp > 100) %>% 
-  #   ungroup()
   
   # Combine and prep
   sst_all <- rbind(sst_old, sst_final) %>%
     rbind(., sst_prelim) %>% 
-  mutate(temp = ifelse(is.na(temp), NA, temp),
-         t = as.integer(t)) %>% 
+    mutate(temp = ifelse(is.na(temp), NA, temp),
+           t = as.integer(t)) %>% 
     na.omit()
   
   # Re-create the NetCDF file and finish
@@ -194,7 +166,7 @@ OISST_ncdf_fix <- function(lon_step, end_date){
 # Fix data at the event/cat lon level -------------------------------------
 
 # tester...
-# lon_step <- lon_OISST[1]
+# lon_step <- lon_OISST[736]
 MHW_event_cat_fix <- function(lon_step){
   
   # Determine correct lon/row/slice
@@ -216,8 +188,8 @@ MHW_event_cat_fix <- function(lon_step){
     nest() %>% 
     mutate(event_cat_res = map(data, event_calc_all)) %>% 
     ungroup() %>% 
-    select(-data, -lat2) %>% 
-    unnest(cols = c(event_cat_res))
+    dplyr::select(-data, -lat2) %>% 
+    unnest(cols = event_cat_res)
   # ) # ~65 seconds to redo everything
   
   # Save results and exit
@@ -225,21 +197,20 @@ MHW_event_cat_fix <- function(lon_step){
     filter(row_number() %% 2 == 1) %>% 
     unnest(cols = c(event_cat_res)) %>% 
     na.omit()
-  if(length(MHW_event_new$lon) != 0) saveRDS(MHW_event_new, file = MHW_event_files[lon_row])
+  saveRDS(MHW_event_new, file = MHW_event_files[lon_row])
   
   MHW_cat_new <- MHW_event_cat %>% 
     filter(row_number() %% 2 == 0) %>% 
     unnest(cols = c(event_cat_res)) %>% 
     na.omit()
-  if(length(MHW_cat_new$lon) != 0) saveRDS(MHW_cat_new, file = cat_lon_files[lon_row])
+  saveRDS(MHW_cat_new, file = cat_lon_files[lon_row])
   
   print(paste0("Finished run on MHW.event.",lon_row_pad,".Rda at ",Sys.time()))
 }
 
 # Function for extracting correct sst data based on pre-determined subsets
 # It also calculates and returns corrected MHW metric results
-# df <- slice(MHW_event_cat, 1) %>%
-# unnest()
+# df <- dplyr::slice(MHW_event_cat, 1) %>% unnest()
 event_calc_all <- function(df){
   
   # Calculate events
@@ -267,9 +238,4 @@ event_calc_all <- function(df){
                     cat = cat_step_1)
   return(event_cat)
 }
-
-
-# First run to create the OISST_pixel files -------------------------------
-# NB: After this has been run once it won't need to be run again
-# NB: Rather this code should replace the NetCDF creation step in the daily workflow
 

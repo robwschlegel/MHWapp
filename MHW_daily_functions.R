@@ -407,7 +407,6 @@ event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon){
 # cat_lon_file <- cat_lon_files[1118]
 # date_range <- c(as.Date("2019-11-01"), as.Date("2020-01-07"))
 load_sub_cat_clim <- function(cat_lon_file, date_range){
-  # cat_clim <- qs::qread(cat_lon_file)
   cat_clim <- readRDS(cat_lon_file)
   cat_clim_sub <- cat_clim %>%
     filter(t >= date_range[1], t <= date_range[2])
@@ -415,27 +414,27 @@ load_sub_cat_clim <- function(cat_lon_file, date_range){
   return(cat_clim_sub)
 }
 
-# FUnction for savinf daily global cat files
+# Function for saving daily global cat files
 # date_choice <- max(current_dates)+1
 # date_choice <- as.Date("2019-11-01")
 save_sub_cat_clim <- function(date_choice, df){
+  
   # Establish flie name and save location
   cat_clim_year <- lubridate::year(date_choice)
   cat_clim_dir <- paste0("../data/cat_clim/",cat_clim_year)
   dir.create(as.character(cat_clim_dir), showWarnings = F)
   cat_clim_name <- paste0("cat.clim.",date_choice,".Rda")
+  
   # Extract data and save
   df_sub <- df %>% 
     filter(t == date_choice)
   saveRDS(df_sub, file = paste0(cat_clim_dir,"/",cat_clim_name))
-  # print(paste0("Finished creating ", date_choice," slice at ",Sys.time()))
 }
 
 # Function for loading, prepping, and saving the daily global category slices
 # tester...
 # date_range <- c(as.Date("1984-01-01"), as.Date("1986-01-31"))
 cat_clim_global_daily <- function(date_range){
-  # print(paste0("Began creating ", date_choice," slice at ",Sys.time()))
   # tester...
   # cat_clim_daily <- plyr::ldply(dir("../data/test/", pattern = "MHW.cat", full.names = T), 
   cat_clim_daily <- plyr::ldply(cat_lon_files,
@@ -446,7 +445,7 @@ cat_clim_global_daily <- function(date_range){
     na.omit()
   
   # NB: Running this on too many cores may cause RAM issues
-  doParallel::registerDoParallel(cores = 10)
+  doParallel::registerDoParallel(cores = 20)
   plyr::l_ply(seq(min(cat_clim_daily$t), max(cat_clim_daily$t), by = "day"), 
               save_sub_cat_clim, .parallel = T, df = cat_clim_daily)
 }
@@ -472,15 +471,15 @@ save_sub_anom <- function(date_choice, df){
 # Function for loading global clims and saving each daily file
 # date_range <- c(as.Date("1982-01-01"), as.Date("1982-12-31"))
 anom_global_daily <- function(date_range){
-  print(paste0("Began loading data at ",Sys.time()))
+  print(paste0("Began loading anom data at ",Sys.time()))
   # system.time(
   global_anom <- plyr::ldply(lon_OISST, sst_seas_thresh_merge, .parallel = T,
                              date_range = date_range)
   # ) # 215 seconds for 1 day, 263 seconds for 1 year
   
   # NB: Running this on too many cores may cause RAM issues
-  print(paste0("Began saving data at ",Sys.time()))
-  doParallel::registerDoParallel(cores = 10)
+  print(paste0("Began saving anom data at ",Sys.time()))
+  doParallel::registerDoParallel(cores = 20)
   plyr::l_ply(seq(min(global_anom$t), max(global_anom$t), by = "day"), 
               save_sub_anom, .parallel = T, df = global_anom)
 }

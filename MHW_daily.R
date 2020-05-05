@@ -43,7 +43,6 @@ OISST_url_month_get <- getURL(OISST_url_month)
 OISST_months <- data.frame(months = readHTMLTable(OISST_url_month_get, skip.rows = 1:2)[[1]]$Name) %>% 
   mutate(months = lubridate::as_date(str_replace(as.character(months), "/", "01"))) %>% 
   filter(months >= max(lubridate::floor_date(final_dates, unit = "month"))) %>% 
-  # filter(months <= "2019-12-01") %>% # For staged uploads of v2.1 data
   mutate(months = gsub("-", "", substr(months, 1, 7)))
 
 
@@ -142,7 +141,7 @@ doParallel::registerDoParallel(cores = 25)
 if(nrow(OISST_dat) > 2){
   print(paste0("Updating MHW results at ", Sys.time()))
   # system.time(
-  plyr::l_ply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE)
+  plyr::l_ply(lon_OISST[file_dates$file_num], .fun = MHW_event_cat_update, .parallel = TRUE)
   # ) # ~ 40 seconds per cycle
   print(paste0("Finished MHW results at ", Sys.time()))
 }
@@ -158,10 +157,10 @@ if(nrow(OISST_dat) > 2){
 # plyr::l_ply(lon_OISST[1300:1365], .fun = MHW_event_cat_fix, .parallel = TRUE)
 
 # Find files that haven't been run since a certain date
-# file_dates <- file.info(dir("../data/cat_lon", full.names = T)) %>% 
-#   mutate(file_name = sapply(strsplit(row.names(.), "/"), "[[", 4)) %>% 
+# file_dates <- file.info(dir("../data/cat_lon", full.names = T)) %>%
+#   mutate(file_name = sapply(strsplit(row.names(.), "/"), "[[", 4)) %>%
 #   mutate(file_num = as.integer(sapply(strsplit(file_name, "[.]"), "[[", 3))) %>%
-#   filter(ctime < Sys.Date()-1)
+#   filter(ctime < Sys.Date()-2)
 # plyr::l_ply(lon_OISST[file_dates$file_num], .fun = MHW_event_cat_fix, .parallel = TRUE)
 
 # Run ALL
@@ -170,23 +169,23 @@ if(nrow(OISST_dat) > 2){
 
 # 3: Create daily global files --------------------------------------------
 
-doParallel::registerDoParallel(cores = 25)
-
 # Get most current processed OISST dates
 time_index <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transforms$time$time, origin = "1970-01-01")
-# max(time_index)
+# tail(time_index)
 
 # Get the range of dates that need to be run
   # Manually control dates as desired
-# update_dates <- seq(as.Date("2016-01-01"), as.Date("2020-05-03"), by = "day")
-update_dates <- time_index[which(time_index >= min(final_index$t))]
+update_dates <- seq(as.Date("2020-01-01"), as.Date("2020-05-03"), by = "day")
+# update_dates <- time_index[which(time_index >= min(final_index$t))]
 if(length(update_dates) > 0) {
   print(paste0("Updating global MHW files from ",min(update_dates)," to ",max(update_dates)))
   print(paste0("Updating daily cat files at ", Sys.time()))
+  doParallel::registerDoParallel(cores = 30)
   # system.time(
   cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)))
   # ) # ~28 seconds
   print(paste0("Updating daily anom files at ", Sys.time()))
+  doParallel::registerDoParallel(cores = 30)
   # system.time(
   anom_global_daily(date_range = c(min(update_dates), max(update_dates)))
   # ) # 455 seconds
