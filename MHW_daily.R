@@ -12,12 +12,11 @@
 ## 6: Push to GitHub
 
 source("MHW_daily_functions.R")
-# source("MHW_daily_fixes.R")
 
-## NB: Don't run any of this code manually
-## NB: Only run it via source("MHW_daily.R") in an R terminal
+## NB: Run this script via source("MHW_daily.R") in an R terminal
 ## NB: The NetCDF files seem to stop cooperating if they are opened manually via RStudio Server
 ## NB: My thinking is this somehow confuses the write privileges for the files
+## NB: This is likely an Rstudio Server issue and it may not occur locally
 
 
 # 1: Update OISST data ----------------------------------------------------
@@ -88,7 +87,7 @@ if(nrow(OISST_dat) > 2){
 
 
 # Add new prelim and final data to the files
-## NB: -NEVER- run this in RStudio Server!
+## NB: -NEVER- run the following if statement in RStudio Server!
   ## It breaks the NetCDF write privileges
 if(nrow(OISST_dat) > 2){
   print(paste0("Adding new data to NetCDF files at ", Sys.time()))
@@ -109,36 +108,25 @@ if(nrow(OISST_dat) > 2){
   save(prelim_dates, file = "metadata/prelim_dates.Rdata")
 }
 
-# stop("Finish getting all new v2.1 data before continuing.")
 
-# Fix files that didn't run correctly
-# This happens every few months, usaually due to a core slipping
-  # NB: These fixes have not been updated since the tidync framework was implemented on 2019-10-29
-
-# The easiest way to fix this is actually to load the `final_dates` and `prelim_dates` objects,
+# Fix files that didn't run correctly:
+# This happens every few months, usually due to a core slipping
+# The easiest way to fix this is to load the `final_dates` and `prelim_dates` objects,
 # alter them to require re-downloading the affected data, and then save the files.
 # One then runs source() on this script IN A TERMINAL AND NOT RSTUDIO
 # Check the MHW Tracker in a few minutes after this finishes running again
-# to see if the correction propogated through successfully
-
-# Fix one longitude slice
-# fix_lon_step <- which(lon_OISST == 92.375)
-# OISST_ncdf_fix(fix_lon_step, end_date = "2019-01-22")
-
-# Fix many
-# fix_lon_steps <- which(lon_OISST %in% seq(-173.875, -11.375, by = 12.5))
-# plyr::ldply(fix_lon_steps, .fun = OISST_ncdf_fix, .parallel = TRUE, end_date = "2019-08-21")
+# to see if the correction propogated through successfully.
 
 
 # 2: Update MHW event and category data -----------------------------------
 
 # Prep guide info for this section
-doParallel::registerDoParallel(cores = 25)
-# load("metadata/final_dates.Rdata")
-# load("metadata/prelim_dates.Rdata")
+doParallel::registerDoParallel(cores = 50)
+ncdf_date <- max(as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transforms$time$time, origin = "1970-01-01"))
+cat_lon_date <- max(readRDS("../data/cat_lon/MHW.cat.1440.Rda")$t)
 
 # This takes roughly 45 minutes and is by far the largest time requirement
-if(nrow(OISST_dat) > 2){
+if(ncdf_date > cat_lon_date){
   print(paste0("Updating MHW results at ", Sys.time()))
   # system.time(
   plyr::l_ply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE)
@@ -151,41 +139,41 @@ if(nrow(OISST_dat) > 2){
 # This function can fix a specific file
 
 # Run one
-# MHW_event_cat_fix(lon_OISST[88])
+# MHW_event_cat_update(lon_OISST[88], full = TRUE)
 
 # Run many
-# plyr::l_ply(lon_OISST[1300:1365], .fun = MHW_event_cat_fix, .parallel = TRUE)
+# plyr::l_ply(lon_OISST[1300:1365], .fun = MHW_event_cat_update, .parallel = TRUE, full = TRUE)
+
+# Run ALL
+# plyr::l_ply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE, full = TRUE) # ~1.5 hours on 50 cores
 
 # Find files that haven't been run since a certain date
 # file_dates <- file.info(dir("../data/cat_lon", full.names = T)) %>%
 #   mutate(file_name = sapply(strsplit(row.names(.), "/"), "[[", 4)) %>%
 #   mutate(file_num = as.integer(sapply(strsplit(file_name, "[.]"), "[[", 3))) %>%
 #   filter(ctime < Sys.Date()-2)
-# plyr::l_ply(lon_OISST[file_dates$file_num], .fun = MHW_event_cat_fix, .parallel = TRUE)
-
-# Run ALL
-# plyr::l_ply(lon_OISST[1:1440], .fun = MHW_event_cat_fix, .parallel = TRUE) # ~1.5 hours on 50 cores
+# plyr::l_ply(lon_OISST[file_dates$file_num], .fun = MHW_event_cat_update, .parallel = TRUE)
 
 
 # 3: Create daily global files --------------------------------------------
 
 # Get most current processed OISST dates
 time_index <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transforms$time$time, origin = "1970-01-01")
-# tail(time_index)
+cat_clim_date <- max(as.Date(sapply(str_split(list.files("../data/cat_clim/", recursive = T), "[.]"), "[[", 3)))
 
 # Get the range of dates that need to be run
   # Manually control dates as desired
 # update_dates <- seq(as.Date("2020-01-01"), as.Date("2020-05-03"), by = "day")
-update_dates <- time_index[which(time_index >= min(final_index$t))]
+update_dates <- time_index[which(time_index > cat_clim_date)]
 if(length(update_dates) > 0) {
   print(paste0("Updating global MHW files from ",min(update_dates)," to ",max(update_dates)))
   print(paste0("Updating daily cat files at ", Sys.time()))
-  doParallel::registerDoParallel(cores = 30)
+  doParallel::registerDoParallel(cores = 50)
   # system.time(
   cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)))
   # ) # ~28 seconds
   print(paste0("Updating daily anom files at ", Sys.time()))
-  doParallel::registerDoParallel(cores = 30)
+  doParallel::registerDoParallel(cores = 50)
   # system.time(
   anom_global_daily(date_range = c(min(update_dates), max(update_dates)))
   # ) # 455 seconds
@@ -195,11 +183,8 @@ if(length(update_dates) > 0) {
 
 # 4: Check current dates --------------------------------------------------
 
-# Indexes all files throughout the cat_clim sub-folders to create the current_dates index
-current_dates <- as.character(dir(path = "../data/cat_clim", pattern = "cat.clim",
-                                  full.names = TRUE, recursive = TRUE))
-current_dates <- sapply(strsplit(current_dates, "cat.clim."), "[[", 3)
-current_dates <- as.Date(as.vector(sapply(strsplit(current_dates, ".Rda"), "[[", 1)))
+# Indexes all files throughout the OISST/daily sub-folders to create the current_dates index
+current_dates <- as.Date(sapply(str_split(list.files("../data/OISST/daily/", recursive = T), "[.]"), "[[", 2))
 
 # Check that no days are missing
 possible_dates <- seq(as.Date("1982-01-01"), max(current_dates), by = "day")

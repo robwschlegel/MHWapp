@@ -7,7 +7,6 @@ The code found in this GitHub repo contains everything required to download, pro
 * /MHWapp/
   * /MHW_daily.R - This script is run daily via a cron job. It downloads and processes the global MHW results. This scrip shows the step-by-step workflow used to create the data that are then fed to the MHW Tracker.  
   * /MHW_daily_functions.R - This script houses the functions used by MHW_daily.R.  
-  * /MHW_daily_fixes.R - Occassionally the daily processing hits a bump. This script contains functions used to smooth out those issues as they arise. This occurrs less than once a month.  
   * /MHW_daily_test.R - This script houses code used to poke and prod at the MHW_daily.R and MHW_daily_functions.R scripts.  
   * /MHW_annual_summary.R - This script contains code used to calculate annual summaries for MHWs. The figures created in this script are saved in /figures/ and the data files are saved in /data/annual_summary/.  
   * /LICENSE.md - The MIT License for the MHW Tracker open source software. This applies to all files found within this GitHub repository.  
@@ -40,6 +39,10 @@ The code found in this GitHub repo contains everything required to download, pro
     * /style.css - The CSS for the Shiny app.  
   
 ## Updates
+
+* May 6th, 2020
+  * Made a couple of pipeline improvements
+  * Released as v1.0.1
 
 * May 5th, 2020
   * The Tracker now uses OISST v2.1 from 2016 onwards

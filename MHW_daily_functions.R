@@ -288,7 +288,7 @@ sst_seas_thresh_merge <- function(lon_step, date_range){
 # Function for updating the MHW event metric lon slice files
 # tester...
 # lon_step <- lon_OISST[1]
-MHW_event_cat_update <- function(lon_step){
+MHW_event_cat_update <- function(lon_step, full = F){
   
   # load the final download date
   load("metadata/final_dates.Rdata")
@@ -320,10 +320,14 @@ MHW_event_cat_update <- function(lon_step){
   #   filter(lat == -51.875)
   
   # Extract each pixel time series based on how far back the oldest event occurred for the entire longitude slice
-  sst_seas_thresh <- sst_seas_thresh_merge(lon_step, 
-                                           date_range = min(previous_event_index$date_start))
-                                           # Use to recalculate everything
-                                           # date_range = as.Date("1982-01-01"))
+  # Or calculate events for the full time series
+  if(full){
+    sst_seas_thresh <- sst_seas_thresh_merge(lon_step, 
+                                             date_range = as.Date("1982-01-01"))
+  } else {
+    sst_seas_thresh <- sst_seas_thresh_merge(lon_step, 
+                                             date_range = min(previous_event_index$date_start))
+  }
   
   # Calculate new event metrics with new data as necessary
   # system.time(

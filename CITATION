@@ -5,5 +5,5 @@ bibentry(bibtype = "Misc",
                           email = "robert.schlegel@dal.ca"),
          year    = "2020",
       	 url     = "http://www.marineheatwaves.org/tracker.html",
-      	 doi     = "10.5281/zenodo.3787873"
+      	 doi     = "10.5281/zenodo.3787872"
 )
