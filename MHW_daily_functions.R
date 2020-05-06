@@ -313,11 +313,8 @@ MHW_event_cat_update <- function(lon_step, full = F){
   # We then go back one event before the final data end date to ensure we are not missing anything
   previous_event_index <- MHW_event_data %>% 
     group_by(lon, lat) %>% 
-    # filter(date_start < "2016-01-01") %>% # For going back to 2016 for the v2.1 data
     filter(date_start < max(final_dates)) %>%
     filter(event_no == max(event_no)-2)
-  # test_index <- MHW_event_data %>% 
-  #   filter(lat == -51.875)
   
   # Extract each pixel time series based on how far back the oldest event occurred for the entire longitude slice
   # Or calculate events for the full time series
@@ -364,7 +361,7 @@ MHW_event_cat_update <- function(lon_step, full = F){
   # saveRDS(MHW_cat_new, dir("../data/test", pattern = "MHW.cat", full.names = T)[lon_row])
 }
 
-# Function for extracting correct sst data based on pre-determined subsets
+# Function for extracting correct SST data based on pre-determined subsets
 # It also calculates and returns corrected MHW metric results
 # df <- final_event_index[319,]
 event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon){
