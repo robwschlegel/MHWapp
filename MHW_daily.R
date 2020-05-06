@@ -141,7 +141,7 @@ doParallel::registerDoParallel(cores = 25)
 if(nrow(OISST_dat) > 2){
   print(paste0("Updating MHW results at ", Sys.time()))
   # system.time(
-  plyr::l_ply(lon_OISST[file_dates$file_num], .fun = MHW_event_cat_update, .parallel = TRUE)
+  plyr::l_ply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE)
   # ) # ~ 40 seconds per cycle
   print(paste0("Finished MHW results at ", Sys.time()))
 }
@@ -175,8 +175,8 @@ time_index <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transform
 
 # Get the range of dates that need to be run
   # Manually control dates as desired
-update_dates <- seq(as.Date("2020-01-01"), as.Date("2020-05-03"), by = "day")
-# update_dates <- time_index[which(time_index >= min(final_index$t))]
+# update_dates <- seq(as.Date("2020-01-01"), as.Date("2020-05-03"), by = "day")
+update_dates <- time_index[which(time_index >= min(final_index$t))]
 if(length(update_dates) > 0) {
   print(paste0("Updating global MHW files from ",min(update_dates)," to ",max(update_dates)))
   print(paste0("Updating daily cat files at ", Sys.time()))
