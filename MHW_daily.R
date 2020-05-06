@@ -68,7 +68,7 @@ OISST_new <- rbind(final_index, prelim_index) %>%
 if(nrow(OISST_new) > 10) stop("A suspicious amount of new files are attempting to be downloaded.")
 if(nrow(OISST_new) > 0){
   print(paste0("Downloading new data at ", Sys.time()))
-  OISST_dat <- plyr::ldply(OISST_new$full_name, .fun = OISST_url_daily_dl, .parallel = T)
+  OISST_dat <- plyr::ldply(OISST_new$full_name, .fun = OISST_url_daily_dl, .parallel = F)
   OISST_dat$lon <- ifelse(OISST_dat$lon > 180, OISST_dat$lon-360, OISST_dat$lon)
 } else {
   print("No new data to download")
@@ -179,6 +179,9 @@ if(length(update_dates) > 0) {
   # ) # 455 seconds
   print(paste0("Finished global daily MHW files at ", Sys.time()))
 }
+
+# If any of the files created in this section break for any reason,
+# simply change the 'update_dates' object manually and re-run the section.
 
 
 # 4: Check current dates --------------------------------------------------
