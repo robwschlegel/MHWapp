@@ -1,9 +1,9 @@
 # MHW_daily.R
 # This script runs the full daily analysis that produces the results fed to the MHW Tracker
   # The functions that this script draws on are found in "MHW_daily_functions.R"
-# This script is designed to be run autonomously once per day via a chron job
+# This script is designed to be run autonomously once per day via a cron job
 # It performs the following tasks:
-## 1: Downloads the most recent final and prelim NOAA OISST 
+## 1: Downloads the most recent final and prelim NOAA OISST
 ##    data available and updates the local NetCDF files
 ## 2: Updates MHW event and category data
 ## 3: Creates daily global MHW category file(s)
@@ -115,7 +115,7 @@ if(nrow(OISST_dat) > 2){
 # alter them to require re-downloading the affected data, and then save the files.
 # One then runs source() on this script IN A TERMINAL AND NOT RSTUDIO
 # Check the MHW Tracker in a few minutes after this finishes running again
-# to see if the correction propogated through successfully.
+# to see if the correction propagated through successfully.
 
 
 # 2: Update MHW event and category data -----------------------------------
