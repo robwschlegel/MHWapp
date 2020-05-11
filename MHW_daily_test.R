@@ -7,6 +7,18 @@ source("MHW_daily_functions.R")
 
 # 1: Testing the downloaded NOAA data -------------------------------------
 
+# Function for extracting one day of data
+# testers...
+# index_val <- 20
+# file_name <- OISST_files[1]
+extract_OISST_one <- function(index_val){
+  file_name <- OISST_files[index_val]
+  res <- tidync(file_name) %>%
+    hyper_filter(time = time == 18000) %>%
+    hyper_tibble() %>%
+    select(-time, -sst)
+}
+
 # Load every pixel for a chosen day
 registerDoParallel(cores = 50)
 OISST_test <- plyr::ldply(lon_OISST, sst_seas_thresh_merge, .parallel = T,

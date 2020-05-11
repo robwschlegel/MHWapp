@@ -1,8 +1,11 @@
 # MHW_daily_functions.R
 # This script houses all of the functions used in "MHW_daily.R"
 # This is done to keep everything tidier and easier to read
+# 1: Setup the environment
+# 2: Update OISST data functions
+# 
 
-# Libraries ---------------------------------------------------------------
+# 1: Setup ----------------------------------------------------------------
 
 .libPaths(c("~/R-packages", .libPaths()))
 suppressPackageStartupMessages({
@@ -22,8 +25,11 @@ library(doParallel)
 print(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))
 registerDoParallel(cores = 25)
 
+# Load metadata
+source("metadata/metadata.R")
 
-# Prep functions ----------------------------------------------------------
+
+# 2: Extract MHW results functions ----------------------------------------
 
 # Pull out climatologies
 MHW_clim <- function(df){
@@ -76,34 +82,13 @@ MHW_cat_event <- function(df){
 # test <- MHW_cat_event(MHW_res)
 
 
-# Meta-data ---------------------------------------------------------------
-
-lon_OISST <- c(seq(0.125, 179.875, by = 0.25), seq(-179.875, -0.125, by = 0.25))
-lat_OISST <- seq(-89.875, 89.875, by = 0.25)
-lon_lat_OISST <- base::expand.grid(lon_OISST, lat_OISST) %>% 
-  dplyr::rename(lon = Var1, lat = Var2) %>% 
-  arrange(lon, lat) %>% 
-  data.frame()
-
-# File locations
-OISST_files <- dir("../data/OISST", pattern = "avhrr-only", full.names = T)
-MHW_event_files <- dir("../data/event", pattern = "MHW.event.", full.names = T)
-seas_thresh_files <- dir("../data/thresh", pattern = "MHW.seas.thresh.", full.names = T)
-cat_lon_files <- dir("../data/cat_lon", full.names = T)
-cat_clim_files <- as.character(dir(path = "../data/cat_clim", pattern = "cat.clim", 
-                                   full.names = TRUE, recursive = TRUE))
-# The current date
-  # NB: This script is running from a server in Atlantic Canada (UTC-3)
-current_date <- Sys.Date()
+# 1: Update OISST data functions ------------------------------------------
 
 # Wrapper function to coerce ERDDAP date format to R
 NOAA_date <- function(date_string, piece){
   res <- as.Date(as.POSIXct(as.numeric(sapply(strsplit(as.character(date_string), ", "), "[[", piece)),
                             origin = "1970-01-01 00:00:00"))
 }
-
-
-# 1: Update OISST data functions ------------------------------------------
 
 # Find the URLs for all files that need to be downloaded
 OISST_url_daily <- function(target_month){

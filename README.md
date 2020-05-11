@@ -9,6 +9,7 @@ The code found in this GitHub repo contains everything required to download, pro
   * /MHW_daily_functions.R - This script houses the functions used by MHW_daily.R.  
   * /MHW_daily_test.R - This script houses code used to poke and prod at the MHW_daily.R and MHW_daily_functions.R scripts.  
   * /MHW_annual_summary.R - This script contains code used to calculate annual summaries for MHWs. The figures created in this script are saved in /figures/ and the data files are saved in /data/annual_summary/.  
+  * /MHW_database.R - This script establishes the database used by the MHW Tracker. It is only meant to be run once.
   * /LICENSE.md - The MIT License for the MHW Tracker open source software. This applies to all files found within this GitHub repository.  
   * /README.md - That's this file, the one you are reading now.  
   * /data/ - This folder contains data files and scripts used in addition to the primary purpose of the Tracker.  
@@ -25,6 +26,7 @@ The code found in this GitHub repo contains everything required to download, pro
     * /MHW_cat_historic.png - This is a summary of the annual results of MHWs from 1982 to the present.  
     * /MHW_cat_summary_*.png - These figures contain the visual summary og each year.  
   * /metadata/ - This folder contains metadata used for the processing and visualisation of daily MHWs.  
+    * /metadata.R - This script is used to create or load the metadata objects used in this project.
     * /final_dates.Rdata - This file contains the dates for all of the final processed OISST data available.  
     * /prelim_dates.Rdata - This file contains the dates of the preliminary OISST data. Usually this will be for the most recent two weeks until the data become finalised.  
     * /map_base.Rdata - This is a global map that works nicely with _ggplot2_. It is not used in the Tracker.  
