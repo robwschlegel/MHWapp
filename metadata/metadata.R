@@ -26,6 +26,8 @@ seas_thresh_files <- dir("../data/thresh", pattern = "MHW.seas.thresh.", full.na
 cat_lon_files <- dir("../data/cat_lon", full.names = T)
 cat_clim_files <- as.character(dir(path = "../data/cat_clim", pattern = "cat.clim", 
                                    full.names = TRUE, recursive = TRUE))
+CCI_files <- dir("../data/CCI", full.names = T)
+
 # The current date
 # NB: This script is running from a server in Atlantic Canada (UTC-3)
 current_date <- Sys.Date()
@@ -106,6 +108,23 @@ MHW_colours <- c(
   "III Severe" = "#9e0000",
   "IV Extreme" = "#2d0000"
 )
+
+# Add an index column for easier pixel comparisons below
+OISST_ocean_coords$index <- seq_len(nrow(OISST_ocean_coords))
+
+# CCI to OISST coordinate regridding
+# CCI_OISST_coords <- tidync(CCI_files[1]) %>% 
+#   hyper_tibble() %>% 
+#   na.omit() %>% 
+#   select(lon, lat) %>% 
+#   mutate(index = as.vector(knnx.index(as.matrix(OISST_ocean_coords[,c("lon", "lat")]),
+#                                       as.matrix(.), k = 1))) %>%
+#   left_join(OISST_ocean_coords, by = "index") %>% 
+#   dplyr::rename(lon = lon.x, lat = lat.x, 
+#                 lon_OI = lon.y, lat_OI = lat.y) %>% 
+#   dplyr::select(lon, lat, lon_OI, lat_OI)
+# saveRDS(CCI_OISST_coords, "metadata/CCI_OISST_coords.Rds")
+CCI_OISST_coords <- readRDS("metadata/CCI_OISST_coords.Rds")
 
 
 # 3: Load metadata --------------------------------------------------------

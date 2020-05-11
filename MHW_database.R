@@ -19,12 +19,6 @@ library(dtplyr) # Sometimes data.table can be faster
 # Metadata
 source("metadata/metadata.R")
 
-# Add an index column for easier pixel comparisons below
-OISST_ocean_coords$index <- seq_len(nrow(OISST_ocean_coords))
-
-# The CCI files
-CCI_files <- dir("../data/CCI", full.names = T)
-
 
 # 2: OISST database -------------------------------------------------------
 
@@ -48,33 +42,6 @@ CCI_files <- dir("../data/CCI", full.names = T)
 # NCDUMP
 ncdump::NetCDF(CCI_files[1])$variable[1:5]
 
-# Load a single CCI NetCDF file
-CCI_dat <- tidync(CCI_files[1]) %>% 
-  hyper_tibble() %>% 
-  na.omit()
-
-# Visualise
-  # NB: This is a beefy boi
-# ggplot(data = CCI_dat, aes(x = lon, y = lat)) +
-#   geom_tile(aes(fill = analysed_sst)) +
-#   borders(colour = "black") +
-#   coord_quickmap(expand = F)
-
-# Get the coordinate system
-CCI_ocean_coords <- CCI_dat %>% 
-  na.omit() %>% 
-  select(lon, lat)
-
-# Find the nearest coordinates to the OISST grid
-CCI_OISST_coords <- CCI_ocean_coords %>% 
-  mutate(index = as.vector(knnx.index(as.matrix(OISST_ocean_coords[,c("lon", "lat")]),
-                                      as.matrix(.), k = 1))) %>%
-  left_join(OISST_ocean_coords, by = "index") %>% 
-  dplyr::rename(lon = lon.x, lat = lat.x, 
-                lon_OI = lon.y, lat_OI = lat.y) %>% 
-  dplyr::select(lon, lat, lon_OI, lat_OI)
-saveRDS(CCI_OISST_coords, "metadata/CCI_OISST_coords.Rds")
-
 # Regrid the CCI data to the OI grid
 system.time(
 CCI_regrid_dat <- left_join(CCI_dat, CCI_OISST_coords, by = c("lon", "lat")) %>% 
@@ -87,9 +54,33 @@ CCI_regrid_dat <- left_join(CCI_dat, CCI_OISST_coords, by = c("lon", "lat")) %>%
 # Visualise
 ggplot(data = CCI_regrid_dat, aes(x = lon_OI, y = lat_OI)) +
   geom_tile(aes(fill = temp)) +
-  # borders(colour = "black") +
+  borders(colour = "black") +
   scale_fill_viridis_c() +
   coord_quickmap(expand = F) +
   theme_void()
 
+# Function for loading the CCI pixels in a chosen OISST lon slice
+# chosen_lon <- lon_OISST[1]
+# day_int <- 1
+CCI_OISST_lon_day <- function(day_int, chosen_lon){
+  
+  # Find the pixels nearest to the chosen OISST lon slice
+  CCI_pixels <- filter(CCI_OISST_coords, lon_OI == chosen_lon)
+  
+  # Extract and processes a CCI lon slice
+  CCI_lon_day <- tidync(CCI_files[day_int]) %>%
+    hyper_filter(lon = dplyr::between(lon, min(CCI_pixels$lon), max(CCI_pixels$lon))) %>%
+    hyper_tibble() %>%
+    right_join(CCI_pixels, by = c("lon", "lat")) %>% 
+    dplyr::select(lon_OI, lat_OI, time, analysed_sst) %>% 
+    dplyr::rename(t = time, temp = analysed_sst, 
+                  lon = lon_OI, lat = lat_OI) %>% 
+    group_by(lon, lat, t) %>% 
+    summarise(temp = mean(temp, na.rm = T)) %>% 
+    ungroup() %>% 
+    mutate(t = as.Date(as.POSIXct(t, origin = '1981-01-01', tz = "GMT")),
+           temp = round(temp-273.15, 2))
+  return(CCI_lon_day)
+}
+test <- CCI_OISST_lon_day(1,lon_OISST[1])
 
