@@ -7,7 +7,9 @@
 
 # 1: Setup ----------------------------------------------------------------
 
+.libPaths(c("~/R-packages", .libPaths()))
 library(tidyverse)
+library(FNN)
 
 
 # 2: Create metadata ------------------------------------------------------
@@ -27,6 +29,7 @@ cat_lon_files <- dir("../data/cat_lon", full.names = T)
 cat_clim_files <- as.character(dir(path = "../data/cat_clim", pattern = "cat.clim", 
                                    full.names = TRUE, recursive = TRUE))
 CCI_files <- dir("../data/CCI", full.names = T)
+CMC_files <- dir("../data/CMC", full.names = T)
 
 # The current date
 # NB: This script is running from a server in Atlantic Canada (UTC-3)
@@ -97,7 +100,6 @@ OISST_ice_coords <- OISST_ocean_coords %>%
 # The base map
 map_base <- ggplot2::fortify(maps::map(fill = TRUE, col = "grey80", plot = FALSE)) %>%
   dplyr::rename(lon = long) %>%
-  # filter(lat >= 25.6) %>%
   mutate(group = ifelse(lon > 180, group+9999, group),
          lon = ifelse(lon > 180, lon-360, lon))
 
@@ -112,22 +114,35 @@ MHW_colours <- c(
 # Add an index column for easier pixel comparisons below
 OISST_ocean_coords$index <- seq_len(nrow(OISST_ocean_coords))
 
-# CCI to OISST coordinate regridding
-# CCI_OISST_coords <- tidync(CCI_files[1]) %>% 
-#   hyper_tibble() %>% 
-#   na.omit() %>% 
-#   select(lon, lat) %>% 
-#   mutate(index = as.vector(knnx.index(as.matrix(OISST_ocean_coords[,c("lon", "lat")]),
-#                                       as.matrix(.), k = 1))) %>%
-#   left_join(OISST_ocean_coords, by = "index") %>% 
-#   dplyr::rename(lon = lon.x, lat = lat.x, 
-#                 lon_OI = lon.y, lat_OI = lat.y) %>% 
-#   dplyr::select(lon, lat, lon_OI, lat_OI)
+# Function for finding matching pixels between OISST and another product
+X_OISST_coords <- function(file_name){
+  coord_match <- tidync(file_name) %>% 
+      hyper_tibble() %>%
+      na.omit() %>%
+      select(lon, lat) %>%
+      mutate(index = as.vector(knnx.index(as.matrix(OISST_ocean_coords[,c("lon", "lat")]),
+                                          as.matrix(.), k = 1))) %>%
+      left_join(OISST_ocean_coords, by = "index") %>%
+      dplyr::rename(lon = lon.x, lat = lat.x,
+                    lon_OI = lon.y, lat_OI = lat.y) %>%
+      dplyr::select(lon, lat, lon_OI, lat_OI)
+}
+
+## CCI to OISST coordinate regridding
+# CCI_OISST_coords <- X_OISST_coords(CCI_files[1])
 # saveRDS(CCI_OISST_coords, "metadata/CCI_OISST_coords.Rds")
-CCI_OISST_coords <- readRDS("metadata/CCI_OISST_coords.Rds")
+
+## CMC to OISST coordinate regridding
+# CMC0.2_OISST_coords <- X_OISST_coords(CMC_files[1])
+# saveRDS(CMC0.2_OISST_coords, "metadata/CMC0.2_OISST_coords.Rds")
+# CMC0.1_OISST_coords <- X_OISST_coords(CMC_files[10000])
+# saveRDS(CMC0.1_OISST_coords, "metadata/CMC0.1_OISST_coords.Rds")
 
 
 # 3: Load metadata --------------------------------------------------------
 
-
+# The pixel grids against OISST
+CCI_OISST_coords <- readRDS("metadata/CCI_OISST_coords.Rds")
+CMC0.2_OISST_coords <- readRDS("metadata/CMC0.2_OISST_coords.Rds")
+CMC0.1_OISST_coords <- readRDS("metadata/CMC0.1_OISST_coords.Rds")
 
