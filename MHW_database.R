@@ -54,6 +54,8 @@ load_lon_day <- function(day_int, lon_int, product){
   # Find the pixels nearest to the chosen OISST lon slice
   lon_pixels <- filter(grid_coords, lon_OI %in% lon_steps)
 
+  print(paste0("Began run on ",file_name," at ",Sys.time()))
+  
   # Extracts and processes a lon slice
   lon_day <- tidync(file_name) %>%
     hyper_filter(lon = dplyr::between(lon, min(lon_pixels$lon), max(lon_pixels$lon))) %>%
@@ -151,7 +153,7 @@ detect_event_lon <- function(lon_int, product, chosen_clim){
 
 # Only run this to fully rectangle ALL of the CCI data
 # This takes roughly 15 hours on 25 cores
-# registerDoParallel(cores = 25)
+# registerDoParallel(cores = 20)
 # plyr::l_ply(1:15, load_lon_full, .parallel = F, product = "CCI",
 #             date_start = as.Date("1981-09-01"), date_end = as.Date("2018-12-31"))
 
@@ -166,73 +168,16 @@ detect_event_lon <- function(lon_int, product, chosen_clim){
 
 # The code used to download these data are at: "../tikoraluk/CMC_download.R"
 
-# Function for loading a day of CCI pixels in a chosen OISST lon slice
-# lon_int <- 1
-# day_int <- 100
-CMC_OISST_lon_day <- function(day_int, lon_int){
-  
-  # Set the range of lon values
-  lon_int_1 <- (lon_int*100)-99
-  lon_int_2 <- (lon_int*100)
-  if(lon_int_2 > 1440) lon_int_2 <- 1440
-  
-  # Find the range of lon values
-  lon_steps <- lon_OISST[seq(lon_int_1, lon_int_2)]
-  
-  # Find the file date to get correct lon/lat grid
-  file_date <- as.Date(substr(CMC_files[day_int], start = 13, stop = 21), format = "%Y%m%d")
-  if(file_date <= as.Date("2016-12-31")){
-    CCI_OISST_coords <- CMC0.2_OISST_coords
-  } else {
-    CCI_OISST_coords <- CMC0.1_OISST_coords
-  }
-  
-  # Find the pixels nearest to the chosen OISST lon slice
-  CMC_pixels <- filter(CCI_OISST_coords, lon_OI %in% lon_steps)
-  
-  # Extracts and processes a CCI lon slice
-  # system.time(
-  CMC_lon_day <- tidync(CMC_files[day_int]) %>%
-    hyper_filter(lon = dplyr::between(lon, min(CMC_pixels$lon), max(CMC_pixels$lon))) %>%
-    hyper_tibble() %>%
-    right_join(CMC_pixels, by = c("lon", "lat")) %>% 
-    dplyr::select(lon_OI, lat_OI, time, analysed_sst) %>% 
-    dplyr::rename(t = time, temp = analysed_sst, 
-                  lon = lon_OI, lat = lat_OI) %>% 
-    group_by(lon, lat, t) %>% 
-    summarise(temp = mean(temp, na.rm = T)) %>% 
-    ungroup() %>% 
-    mutate(t = as.Date(as.POSIXct(t, origin = '1981-01-01', tz = "GMT")),
-           temp = round(temp-273.15, 2))
-  # )
-  return(CMC_lon_day)
-}
+# Rectangle all of the CMC data
+# NB: This takes roughly 4 hours on 25 cores
+# registerDoParallel(cores = 50)
+# plyr::l_ply(1:15, load_lon_full, .parallel = F, product = "CMC",
+#             date_start = as.Date("1991-09-01"), date_end = as.Date("2019-12-31"))
 
-plyr::l_ply(1:15, load_lon_full, .parallel = F, product = "CMC",
-            date_start = as.Date("1981-09-01"), date_end = as.Date("2018-12-31"))
 
-# Function for loading all data within a lon slice
-# lon_int <- 1
-# registerDoParallel(cores = 25)
-CMC_OISST_lon_full <- function(lon_int){
-  date_int_range <- 1:length(seq(as.Date("1991-09-01"), as.Date("2019-12-31"), by = "day"))
-  print(paste0("Began run on CMC ",lon_int," at ",Sys.time()))
-  system.time(
-  CMC_lon_full <- plyr::ldply(date_int_range, CMC_OISST_lon_day, .parallel = T, 
-                              lon_int = lon_int) # ~790 seconds on 25 cores for 100 lon slices
-  )
-  lon_int_pad <- str_pad(lon_int, width = 2, pad = "0", side = "left")
-  saveRDS(CMC_lon_full, paste0("../data/CMC_lon/CMC_SST_",lon_int_pad,".Rds"))
-  rm(CMC_lon_full); gc()
-}
-
-# Run them all
-  # NB: Only run this to fully rectangle ALL of the CCI data
-  # This takes roughly XXX hours on 25 cores
-registerDoParallel(cores = 5)
-plyr::l_ply(7:15, CMC_OISST_lon_full, .parallel = F)
-
-# Calculate CMC MHWs based on the shared clim period: 1992 - 2018
-# plyr::l_ply(1:15, CMC_detect_event, .parallel = F)
+# # Calculate CMC MHWs based on the shared clim period: 1992 - 2018
+# plyr::l_ply(1:15, detect_event_lon, .parallel = F, product = "CMC",
+#             chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
 
 # Create daily CMC MHW clim slice results
+
