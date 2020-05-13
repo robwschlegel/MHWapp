@@ -1,6 +1,7 @@
 # MHW_database.R
 # This script houses the code used to establish the database used in the MHW Tracker
 # Note that the code in this script is only meant to be run once
+# For best results uncomment the desired lines and run this script via source()
 # 1: Setup the environment
 # 2: OISST database
 # 3: CCI database
@@ -25,8 +26,9 @@ registerDoParallel(cores = 25)
 source("metadata/metadata.R")
 
 # Function for loading a day of CCI pixels in a chosen OISST lon slice
-# lon_int <- 15
+# lon_int <- 7
 # day_int <- 1318
+# product <- "CCI"
 load_lon_day <- function(day_int, lon_int, product){
   
   # Set product related info
@@ -57,10 +59,13 @@ load_lon_day <- function(day_int, lon_int, product){
   print(paste0("Began run on ",file_name," at ",Sys.time()))
   
   # Extracts and processes a lon slice
+  # system.time(
   lon_day <- tidync(file_name) %>%
     hyper_filter(lon = dplyr::between(lon, min(lon_pixels$lon), max(lon_pixels$lon))) %>%
     hyper_tibble() %>%
-    right_join(lon_pixels, by = c("lon", "lat")) %>% 
+    left_join(lon_pixels, by = c("lon", "lat")) %>%
+    na.omit() %>%
+    # right_join(lon_pixels, by = c("lon", "lat")) %>%
     dplyr::select(lon_OI, lat_OI, time, analysed_sst) %>% 
     dplyr::rename(t = time, temp = analysed_sst, 
                   lon = lon_OI, lat = lat_OI) %>% 
@@ -69,6 +74,7 @@ load_lon_day <- function(day_int, lon_int, product){
     ungroup() %>% 
     mutate(t = as.Date(as.POSIXct(t, origin = '1981-01-01', tz = "GMT")),
            temp = round(temp-273.15, 2))
+  # ) # 21 seconds, 65,525 rows
   return(lon_day)
 }
 
@@ -93,7 +99,7 @@ load_lon_full <- function(lon_int, product, date_start, date_end){
 # lon_int <- 1
 # chosen_clim <- c("1982-01-01", "2011-12-31")
 # product <- "OISST"
-detect_event_lon <- function(lon_int, product, chosen_clim){
+detect_MHW_lon <- function(lon_int, product, chosen_clim){
   
   # Prep the needed metadata
   if(file_dir == "OISST"){
@@ -110,24 +116,52 @@ detect_event_lon <- function(lon_int, product, chosen_clim){
   min_year <- lubridate::year(min(as.Date(chosen_clim)))
   max_year <- lubridate::year(max(as.Date(chosen_clim)))
   
+  registerDoParallel(cores = 25)
+  system.time(
+  lon_clim <- plyr::ddply(lon_full, c("lon", "lat"), ts2clm, .parallel = T,
+                          climatologyPeriod = chosen_clim, 
+                          .paropts = c(.inorder = FALSE))
+  ) # 20 seconds for 1 OISST slice
+  
   # Detect the MHWs
-  # system.time(
-  res <- lon_full %>%
+  system.time(
+  lon_clim <- lon_full %>%
     group_by(lon, lat) %>%
     nest() %>%
     mutate(clims = map(data, ts2clm,
-                       climatologyPeriod = chosen_clim),
-           events = map(clims, detect_event),
-           cats = map(events, category, S = FALSE)) %>%
-    select(-data, -clims)
-  # ) # 389 seconds for 1 OISST slice
+                       climatologyPeriod = chosen_clim)) %>% #,
+           # events = map(clims, detect_event),
+           # cats = map(events, category, S = FALSE)) %>%
+    # select(-data, -clims)
+    dplyr::select(-data) %>% 
+    unnest(cols = clims)
+  ) # 597 seconds for 1 OISST slice
   
   # Save the results
+  res <- list(clim,
+              event,
+              cat)
   saveRDS(res, paste0("../data/",product,"_lon/",product,"_MHW_",
                       min_year,"-",max_year,"_",lon_int_pad,".Rds"))
   rm(CCI_lon_full); gc()
 }
 
+# Function for calculating and returning parred down MHW results
+detect_event_lon <- function(df){
+  event_base <- detect_event(df)
+  event_step_1 <- event_base$event %>% 
+    mutate(lon = df$lon, lat = df$lat) %>% 
+    dplyr::select(lon, lat, event_no, duration:intensity_max, intensity_cumulative) %>%
+    mutate_all(round, 3)
+}
+
+detect_cat_lon <- function(df){
+  cat_step_1 <- category(df, climatology = T)$climatology %>% 
+    mutate(event_no = event_no + df$event_no,
+           lon = df$lon,
+           lat = df$lat) %>% 
+    select(t, lon, lat, event_no, intensity, category)
+}
 
 # 2: OISST database -------------------------------------------------------
 
@@ -153,9 +187,9 @@ detect_event_lon <- function(lon_int, product, chosen_clim){
 
 # Only run this to fully rectangle ALL of the CCI data
 # This takes roughly 15 hours on 25 cores
-# registerDoParallel(cores = 20)
-# plyr::l_ply(1:15, load_lon_full, .parallel = F, product = "CCI",
-#             date_start = as.Date("1981-09-01"), date_end = as.Date("2018-12-31"))
+registerDoParallel(cores = 20)
+plyr::l_ply(8:15, load_lon_full, .parallel = F, product = "CCI",
+            date_start = as.Date("1981-09-01"), date_end = as.Date("2018-12-31"))
 
 # Calculate CCI MHWs
 # Clim period 1982 - 2011
