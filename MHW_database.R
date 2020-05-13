@@ -25,6 +25,17 @@ registerDoParallel(cores = 25)
 # Metadata
 source("metadata/metadata.R")
 
+# Convenience function for event detection
+detect_event_event <- function(df){
+  res <- detect_event(df)$event
+  return(res)
+}
+
+# Convenience function for daily category results
+category_clim <- function(df){
+  res <- category(df, climatology = T, S = F)$climatology
+}
+
 # Function for loading a day of CCI pixels in a chosen OISST lon slice
 # lon_int <- 7
 # day_int <- 1318
@@ -108,60 +119,90 @@ detect_MHW_lon <- function(lon_int, product, chosen_clim){
       hyper_tibble() %>% 
       dplyr::rename(t = time, temp = sst) %>% 
       mutate(t = as.Date(t, origin = "1970-01-01")) %>% 
-      dplyr::select(lon, lat, t, temp)
+      dplyr::select(lon, lat, t, temp) %>% 
+      filter(t >= as.Date("1982-01-01"), t <= as.Date("2019-12-31"))
   } else {
     lon_int_pad <- str_pad(lon_int, width = 2, pad = "0", side = "left")
-    lon_full <- readRDS(paste0("../data/",product,"_lon/",product,"_SST_",lon_int_pad,".Rds"))
+    lon_full <- readRDS(paste0("../data/",product,"_lon/",product,"_SST_",lon_int_pad,".Rds")) %>% 
+      filter(t >= as.Date("1982-01-01"), t <= as.Date("2019-12-31"))
   }
   min_year <- lubridate::year(min(as.Date(chosen_clim)))
   max_year <- lubridate::year(max(as.Date(chosen_clim)))
   
-  registerDoParallel(cores = 25)
+  # registerDoParallel(cores = 25)
+  # Calculate climatologies
+  # system.time(
+  # lon_clim <- plyr::ddply(lon_full, c("lon", "lat"), ts2clm, .parallel = T,
+  #                         climatologyPeriod = chosen_clim, 
+  #                         .paropts = c(.inorder = FALSE))
+  # ) # 20 seconds for 1 OISST slice
+  
+  # system.time(
+  # lon_event_cat <- plyr::dlply(lon_clim, c("lon", "lat"), detect_event_cat, 
+  #                              .parallel = T, .paropts = c(.inorder = FALSE))
+  # ) # 12 seconds for 1 OISST slice
+  
+  # system.time(
+  #   lon_event <- plyr::dlply(lon_clim, c("lon", "lat"), detect_event_event, 
+  #                            .parallel = T, .paropts = c(.inorder = FALSE))
+  # ) # 20 seconds for 1 OISST slice
+  
+  # system.time(
+  #   lon_cat <- plyr::ddply(lon_event, c("lon", "lat"), category_clim, 
+  #                          .parallel = T, .paropts = c(.inorder = FALSE))
+  # ) # 20 seconds for 1 OISST slice
+  
   system.time(
-  lon_clim <- plyr::ddply(lon_full, c("lon", "lat"), ts2clm, .parallel = T,
-                          climatologyPeriod = chosen_clim, 
-                          .paropts = c(.inorder = FALSE))
+  lon_res <- plyr::dlply(lon_full, c("lon", "lat"), clim_event_cat, .parallel = T,
+                         chosen_clim = chosen_clim, .paropts = c(.inorder = FALSE))
   ) # 20 seconds for 1 OISST slice
   
-  # Detect the MHWs
-  system.time(
-  lon_clim <- lon_full %>%
-    group_by(lon, lat) %>%
-    nest() %>%
-    mutate(clims = map(data, ts2clm,
-                       climatologyPeriod = chosen_clim)) %>% #,
-           # events = map(clims, detect_event),
-           # cats = map(events, category, S = FALSE)) %>%
-    # select(-data, -clims)
-    dplyr::select(-data) %>% 
-    unnest(cols = clims)
-  ) # 597 seconds for 1 OISST slice
+  
+  # df <- lon_clim %>% 
+  #   filter(lon == lon_full$lon[1],
+  #          lat == lon_full$lat[1])
+  
+  # test <- unnest(lon_event)
+  # test <- as.data.frame(unlist(lon_event))
+  # test <- unlist(lon_event)
+  
+  # cat_step_1 <- category(event_base, climatology = T)
   
   # Save the results
-  res <- list(clim,
-              event,
-              cat)
-  saveRDS(res, paste0("../data/",product,"_lon/",product,"_MHW_",
-                      min_year,"-",max_year,"_",lon_int_pad,".Rds"))
+  saveRDS(lon_res, paste0("../data/",product,"_lon/",product,"_MHW_",
+                          min_year,"-",max_year,"_",lon_int_pad,".Rds"))
   rm(CCI_lon_full); gc()
 }
 
 # Function for calculating and returning parred down MHW results
-detect_event_lon <- function(df){
-  event_base <- detect_event(df)
-  event_step_1 <- event_base$event %>% 
-    mutate(lon = df$lon, lat = df$lat) %>% 
-    dplyr::select(lon, lat, event_no, duration:intensity_max, intensity_cumulative) %>%
+clim_event_cat <- function(df, chosen_clim){
+  
+  # Climatology
+  clim_base <- ts2clm(df, climatologyPeriod = chosen_clim)
+  
+  # Clean climatology
+  clim_clean <- dplyr::select(clim_base, doy, seas, thresh) %>% 
+    unique() %>% arrange(doy)
+  
+  # Base MHW detectiom
+  event_base <- detect_event(clim_base)
+  
+  # Clean it up
+  event_clean <- event_base$event %>% 
+    dplyr::select(event_no, duration:intensity_max, intensity_cumulative) %>%
     mutate_all(round, 3)
+  
+  # Cleaned up event categories
+  cat_clean <- category(event_base, climatology = T)$climatology %>% 
+    select(t, event_no, intensity, category)
+  
+  # Exit
+  res <- list(clim = clim_clean,
+              event = event_clean,
+              cat = cat_clean)
+  return(res)
 }
 
-detect_cat_lon <- function(df){
-  cat_step_1 <- category(df, climatology = T)$climatology %>% 
-    mutate(event_no = event_no + df$event_no,
-           lon = df$lon,
-           lat = df$lat) %>% 
-    select(t, lon, lat, event_no, intensity, category)
-}
 
 # 2: OISST database -------------------------------------------------------
 
