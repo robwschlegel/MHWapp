@@ -142,7 +142,7 @@ X_OISST_coords <- function(file_name){
 # 3: Load metadata --------------------------------------------------------
 
 # The pixel grids against OISST
-CCI_OISST_coords <- readRDS("metadata/CCI_OISST_coords.Rds")
-CMC0.2_OISST_coords <- readRDS("metadata/CMC0.2_OISST_coords.Rds")
-CMC0.1_OISST_coords <- readRDS("metadata/CMC0.1_OISST_coords.Rds")
+# CCI_OISST_coords <- readRDS("metadata/CCI_OISST_coords.Rds")
+# CMC0.2_OISST_coords <- readRDS("metadata/CMC0.2_OISST_coords.Rds")
+# CMC0.1_OISST_coords <- readRDS("metadata/CMC0.1_OISST_coords.Rds")
 

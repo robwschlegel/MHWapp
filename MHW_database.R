@@ -25,16 +25,10 @@ registerDoParallel(cores = 25)
 # Metadata
 source("metadata/metadata.R")
 
-# Convenience function for event detection
-detect_event_event <- function(df){
-  res <- detect_event(df)$event
-  return(res)
-}
-
-# Convenience function for daily category results
-category_clim <- function(df){
-  res <- category(df, climatology = T, S = F)$climatology
-}
+# The product vs. OISST grids
+CCI_OISST_coords <- readRDS("metadata/CCI_OISST_coords.Rds")
+CMC0.2_OISST_coords <- readRDS("metadata/CMC0.2_OISST_coords.Rds")
+CMC0.1_OISST_coords <- readRDS("metadata/CMC0.1_OISST_coords.Rds")
 
 # Function for loading a day of CCI pixels in a chosen OISST lon slice
 # lon_int <- 7
@@ -113,7 +107,8 @@ load_lon_full <- function(lon_int, product, date_start, date_end){
 detect_MHW_lon <- function(lon_int, product, chosen_clim){
   
   # Prep the needed metadata
-  if(file_dir == "OISST"){
+  print(paste0("Began run on ",product," ",lon_int," at ",Sys.time()))
+  if(product == "OISST"){
     lon_int_pad <- str_pad(lon_int, width = 4, pad = "0", side = "left")
     lon_full <- tidync(paste0("../data/OISST/avhrr-only-v2.ts.",lon_int_pad,".nc")) %>% 
       hyper_tibble() %>% 
@@ -128,50 +123,17 @@ detect_MHW_lon <- function(lon_int, product, chosen_clim){
   }
   min_year <- lubridate::year(min(as.Date(chosen_clim)))
   max_year <- lubridate::year(max(as.Date(chosen_clim)))
-  
-  # registerDoParallel(cores = 25)
-  # Calculate climatologies
+
+  # The full MHW results
   # system.time(
-  # lon_clim <- plyr::ddply(lon_full, c("lon", "lat"), ts2clm, .parallel = T,
-  #                         climatologyPeriod = chosen_clim, 
-  #                         .paropts = c(.inorder = FALSE))
-  # ) # 20 seconds for 1 OISST slice
-  
-  # system.time(
-  # lon_event_cat <- plyr::dlply(lon_clim, c("lon", "lat"), detect_event_cat, 
-  #                              .parallel = T, .paropts = c(.inorder = FALSE))
-  # ) # 12 seconds for 1 OISST slice
-  
-  # system.time(
-  #   lon_event <- plyr::dlply(lon_clim, c("lon", "lat"), detect_event_event, 
-  #                            .parallel = T, .paropts = c(.inorder = FALSE))
-  # ) # 20 seconds for 1 OISST slice
-  
-  # system.time(
-  #   lon_cat <- plyr::ddply(lon_event, c("lon", "lat"), category_clim, 
-  #                          .parallel = T, .paropts = c(.inorder = FALSE))
-  # ) # 20 seconds for 1 OISST slice
-  
-  system.time(
   lon_res <- plyr::dlply(lon_full, c("lon", "lat"), clim_event_cat, .parallel = T,
                          chosen_clim = chosen_clim, .paropts = c(.inorder = FALSE))
-  ) # 20 seconds for 1 OISST slice
-  
-  
-  # df <- lon_clim %>% 
-  #   filter(lon == lon_full$lon[1],
-  #          lat == lon_full$lat[1])
-  
-  # test <- unnest(lon_event)
-  # test <- as.data.frame(unlist(lon_event))
-  # test <- unlist(lon_event)
-  
-  # cat_step_1 <- category(event_base, climatology = T)
+  # ) # 20 seconds for 1 OISST slice
   
   # Save the results
   saveRDS(lon_res, paste0("../data/",product,"_lon/",product,"_MHW_",
                           min_year,"-",max_year,"_",lon_int_pad,".Rds"))
-  rm(CCI_lon_full); gc()
+  rm(lon_res); gc()
 }
 
 # Function for calculating and returning parred down MHW results
@@ -203,6 +165,24 @@ clim_event_cat <- function(df, chosen_clim){
   return(res)
 }
 
+# list_df <- lon_res
+extract_MHW <- function(list_df, list_sub){
+  list_df_sub <- lapply(list_df, `[`, c(list_sub)) %>% 
+    plyr::ldply(., data.frame) %>% 
+    separate(.id, into = c("lon_1", "lon_2", "lat_1", "lat_2"), sep = "[.]") %>% 
+    unite(lon_1, lon_2, col = "lon", sep = ".") %>% 
+    unite(lat_1, lat_2, col = "lat", sep = ".") %>% 
+    rename_at(.vars = vars(starts_with(paste0(list_sub,"."))),
+              .funs = funs(sub(paste0(list_sub,"."), "", .))) %>% 
+    mutate(lon = as.numeric(lon),
+           lat = as.numeric(lat))
+}
+
+MHW_list <- readRDS("../data/CCI_lon/CCI_MHW_1982-2011_01.Rds")
+MHW_clim <- extract_MHW(MHW_list, "clim")
+MHW_event <- extract_MHW(MHW_list, "event")
+MHW_cat <- extract_MHW(MHW_list, "cat")
+
 
 # 2: OISST database -------------------------------------------------------
 
@@ -213,6 +193,15 @@ clim_event_cat <- function(df, chosen_clim){
 
 # The code needed to download and prep the NOAA OISST data for MHW calculations 
 # may be found here: https://theoceancode.netlify.app/post/dl_env_data_r/
+
+
+## Detect MHWs for a given clim period
+# 1992 - 2018
+# registerDoParallel(cores = 50)
+# system.time(
+# plyr::l_ply(1:1440, detect_MHW_lon, .parallel = F, product = "OISST", 
+#             chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
+# ) # 20 seconds on 25 cores, 12 seconds on 50
 
 
 # 3: CCI database ---------------------------------------------------------
@@ -226,33 +215,45 @@ clim_event_cat <- function(df, chosen_clim){
 # NCDUMP
 # ncdump::NetCDF(CCI_files[1])$variable[1:5]
 
-# Only run this to fully rectangle ALL of the CCI data
+## Only run this to fully rectangle ALL of the CCI data
 # This takes roughly 15 hours on 25 cores
-registerDoParallel(cores = 20)
-plyr::l_ply(8:15, load_lon_full, .parallel = F, product = "CCI",
-            date_start = as.Date("1981-09-01"), date_end = as.Date("2018-12-31"))
+# registerDoParallel(cores = 20)
+# plyr::l_ply(8:15, load_lon_full, .parallel = F, product = "CCI",
+            # date_start = as.Date("1981-09-01"), date_end = as.Date("2018-12-31"))
 
-# Calculate CCI MHWs
+
+## Calculate CCI MHWs
 # Clim period 1982 - 2011
-# plyr::l_ply(1:15, detect_event_lon, .parallel = F)
+registerDoParallel(cores = 40)
+# system.time(
+  # plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CCI", 
+  #             chosen_clim = c(as.Date("1982-01-01"), as.Date("2011-12-31")))
+# ) # 818 seconds on 50 cores for one slice
+# Clim period 1992 - 2018
+# plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CCI", 
+#             chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
 
-# Create daily CCI MHW daily clim slice results
+
+## Create daily CCI MHW daily clim slice results
 
 
 # 4: CMC database ---------------------------------------------------------
 
-# The code used to download these data are at: "../tikoraluk/CMC_download.R"
+# The code used to download these data may be found at: "../tikoraluk/CMC_download.R"
 
-# Rectangle all of the CMC data
+## Rectangle all of the CMC data
 # NB: This takes roughly 4 hours on 25 cores
 # registerDoParallel(cores = 50)
 # plyr::l_ply(1:15, load_lon_full, .parallel = F, product = "CMC",
 #             date_start = as.Date("1991-09-01"), date_end = as.Date("2019-12-31"))
 
 
-# # Calculate CMC MHWs based on the shared clim period: 1992 - 2018
-# plyr::l_ply(1:15, detect_event_lon, .parallel = F, product = "CMC",
-#             chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
+## Calculate CMC MHWs
+# clim period: 1992 - 2018
+# registerDoParallel(cores = 50)
+#   plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CMC", 
+#               chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
 
-# Create daily CMC MHW clim slice results
+
+## Create daily CMC MHW clim slice results
 
