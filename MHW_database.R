@@ -141,19 +141,9 @@ detect_MHW_lon <- function(lon_int, product, chosen_clim){
   
   # Prep the needed metadata
   print(paste0("Began run on ",product," ",lon_int," at ",Sys.time()))
-  if(product == "OISST"){
-    lon_int_pad <- str_pad(lon_int, width = 4, pad = "0", side = "left")
-    lon_full <- tidync(paste0("../data/OISST/avhrr-only-v2.ts.",lon_int_pad,".nc")) %>% 
-      hyper_tibble() %>% 
-      dplyr::rename(t = time, temp = sst) %>% 
-      mutate(t = as.Date(t, origin = "1970-01-01")) %>% 
-      dplyr::select(lon, lat, t, temp) %>% 
-      filter(t >= as.Date("1982-01-01"), t <= as.Date("2019-12-31"))
-  } else {
-    lon_int_pad <- str_pad(lon_int, width = 2, pad = "0", side = "left")
-    lon_full <- readRDS(paste0("../data/",product,"_lon/",product,"_SST_",lon_int_pad,".Rds")) %>% 
-      filter(t >= as.Date("1982-01-01"), t <= as.Date("2019-12-31"))
-  }
+  lon_int_pad <- str_pad(lon_int, width = 2, pad = "0", side = "left")
+  lon_full <- readRDS(paste0("../data/",product,"_lon/",product,"_SST_",lon_int_pad,".Rds")) %>% 
+    filter(t >= as.Date("1982-01-01"), t <= as.Date("2019-12-31"))
   min_year <- lubridate::year(min(as.Date(chosen_clim)))
   max_year <- lubridate::year(max(as.Date(chosen_clim)))
 
@@ -229,17 +219,15 @@ extract_MHW <- function(list_df, list_sub){
 
 
 ## Create wider lon slices to match the rest of the project
-plyr::l_ply(1:15, widen_OISST, .parallel = F)
+# plyr::l_ply(1:15, widen_OISST, .parallel = F)
 
 
 ## Detect MHWs for a given clim period
 # 1992 - 2018
-# registerDoParallel(cores = 40)
-# system.time(
-# plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "OISST",
-#             chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
-# ) # 20 seconds on 25 cores, 12 seconds on 50
-# Sys.sleep(60); gc()
+registerDoParallel(cores = 40)
+plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "OISST",
+            chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
+Sys.sleep(60); gc()
 
 
 # 3: CCI database ---------------------------------------------------------
@@ -268,9 +256,9 @@ plyr::l_ply(1:15, widen_OISST, .parallel = F)
   #             chosen_clim = c(as.Date("1982-01-01"), as.Date("2011-12-31")))
 # ) # 818 seconds on 50 cores for one slice
 # Clim period 1992 - 2018
-# plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CCI",
-#             chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
-# Sys.sleep(60); gc()
+plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CCI",
+            chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
+Sys.sleep(60); gc()
 
 ## Create daily CCI MHW daily clim slice results
 
@@ -289,8 +277,8 @@ plyr::l_ply(1:15, widen_OISST, .parallel = F)
 ## Calculate CMC MHWs
 # clim period: 1992 - 2018
 # registerDoParallel(cores = 50)
-# plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CMC",
-#             chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
+plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CMC",
+            chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
 
 
 ## Create daily CMC MHW clim slice results
