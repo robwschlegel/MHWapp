@@ -30,6 +30,38 @@ CCI_OISST_coords <- readRDS("metadata/CCI_OISST_coords.Rds")
 CMC0.2_OISST_coords <- readRDS("metadata/CMC0.2_OISST_coords.Rds")
 CMC0.1_OISST_coords <- readRDS("metadata/CMC0.1_OISST_coords.Rds")
 
+# Function for loading a single OISST file
+load_OISST <- function(file_name){
+  tidync_OISST <- tidync(file_name) %>% 
+    hyper_tibble() %>% 
+    mutate(time = as.Date(time, origin = "1970-01-01")) %>% 
+    dplyr::rename(t = time, temp = sst) %>%
+    dplyr::select(lon, lat, t, temp)
+}
+
+# Function to create wider OISST slices to match the rest of the project
+widen_OISST <- function(lon_int){
+  
+  print(paste0("Began run on OISST wide ",lon_int," at ",Sys.time()))
+  
+  # Set the range of lon values
+  lon_int_1 <- (lon_int*100)-99
+  lon_int_2 <- (lon_int*100)
+  if(lon_int_2 > 1440) lon_int_2 <- 1440
+  
+  # Load multiple thin OISST slices
+  # system.time(
+  wide_OISST <- plyr::ldply(OISST_files[lon_int_1:lon_int_2], load_OISST, 
+                            .parallel = T, .paropts = c(.inorder = FALSE))
+  # ) # 85 seconds on 25 cores
+  
+  # Save and clean up
+  lon_int_pad <- str_pad(lon_int, width = 2, pad = "0", side = "left")
+  saveRDS(wide_OISST, paste0("../data/OISST_lon/OISST_SST_",lon_int_pad,".Rds"))
+  rm(wide_OISST); gc()
+  return(wide_OISST)
+}
+
 # Function for loading a day of CCI pixels in a chosen OISST lon slice
 # lon_int <- 7
 # day_int <- 1318
@@ -92,7 +124,8 @@ load_lon_full <- function(lon_int, product, date_start, date_end){
   
   # Load all days for chosen slice
   lon_full <- plyr::ldply(date_int_range, load_lon_day, .parallel = T, 
-                          lon_int = lon_int, product = product)
+                          lon_int = lon_int, product = product, 
+                          .paropts = c(.inorder = FALSE))
   
   # Save and clean up
   lon_int_pad <- str_pad(lon_int, width = 2, pad = "0", side = "left")
@@ -178,10 +211,10 @@ extract_MHW <- function(list_df, list_sub){
            lat = as.numeric(lat))
 }
 
-MHW_list <- readRDS("../data/CCI_lon/CCI_MHW_1982-2011_01.Rds")
-MHW_clim <- extract_MHW(MHW_list, "clim")
-MHW_event <- extract_MHW(MHW_list, "event")
-MHW_cat <- extract_MHW(MHW_list, "cat")
+# MHW_list <- readRDS("../data/CCI_lon/CCI_MHW_1982-2011_01.Rds")
+# MHW_clim <- extract_MHW(MHW_list, "clim")
+# MHW_event <- extract_MHW(MHW_list, "event")
+# MHW_cat <- extract_MHW(MHW_list, "cat")
 
 
 # 2: OISST database -------------------------------------------------------
@@ -195,13 +228,18 @@ MHW_cat <- extract_MHW(MHW_list, "cat")
 # may be found here: https://theoceancode.netlify.app/post/dl_env_data_r/
 
 
+## Create wider lon slices to match the rest of the project
+plyr::l_ply(1:15, widen_OISST, .parallel = F)
+
+
 ## Detect MHWs for a given clim period
 # 1992 - 2018
-# registerDoParallel(cores = 50)
+# registerDoParallel(cores = 40)
 # system.time(
-# plyr::l_ply(1:1440, detect_MHW_lon, .parallel = F, product = "OISST", 
+# plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "OISST",
 #             chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
 # ) # 20 seconds on 25 cores, 12 seconds on 50
+# Sys.sleep(60); gc()
 
 
 # 3: CCI database ---------------------------------------------------------
@@ -224,15 +262,15 @@ MHW_cat <- extract_MHW(MHW_list, "cat")
 
 ## Calculate CCI MHWs
 # Clim period 1982 - 2011
-registerDoParallel(cores = 40)
+# registerDoParallel(cores = 40)
 # system.time(
   # plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CCI", 
   #             chosen_clim = c(as.Date("1982-01-01"), as.Date("2011-12-31")))
 # ) # 818 seconds on 50 cores for one slice
 # Clim period 1992 - 2018
-# plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CCI", 
+# plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CCI",
 #             chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
-
+# Sys.sleep(60); gc()
 
 ## Create daily CCI MHW daily clim slice results
 
@@ -251,8 +289,8 @@ registerDoParallel(cores = 40)
 ## Calculate CMC MHWs
 # clim period: 1992 - 2018
 # registerDoParallel(cores = 50)
-#   plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CMC", 
-#               chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
+# plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CMC",
+#             chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
 
 
 ## Create daily CMC MHW clim slice results
