@@ -41,10 +41,9 @@ load_OISST <- function(file_name){
 
 # Function to create wider OISST slices to match the rest of the project
 widen_OISST <- function(lon_int){
-  
-  print(paste0("Began run on OISST wide ",lon_int," at ",Sys.time()))
-  
+
   # Set the range of lon values
+  print(paste0("Began run on OISST wide ",lon_int," at ",Sys.time()))
   lon_int_1 <- (lon_int*100)-99
   lon_int_2 <- (lon_int*100)
   if(lon_int_2 > 1440) lon_int_2 <- 1440
@@ -218,7 +217,7 @@ extract_MHW <- function(list_df, list_sub){
 
 
 ## Create wider lon slices to match the rest of the project
-# plyr::l_ply(1:15, widen_OISST, .parallel = F)
+plyr::l_ply(1:15, widen_OISST, .parallel = F)
 
 
 ## Detect MHWs for a given clim period
