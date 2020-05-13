@@ -59,7 +59,6 @@ widen_OISST <- function(lon_int){
   lon_int_pad <- str_pad(lon_int, width = 2, pad = "0", side = "left")
   saveRDS(wide_OISST, paste0("../data/OISST_lon/OISST_SST_",lon_int_pad,".Rds"))
   rm(wide_OISST); gc()
-  return(wide_OISST)
 }
 
 # Function for loading a day of CCI pixels in a chosen OISST lon slice
@@ -241,6 +240,7 @@ Sys.sleep(60); gc()
 # NCDUMP
 # ncdump::NetCDF(CCI_files[1])$variable[1:5]
 
+
 ## Only run this to fully rectangle ALL of the CCI data
 # This takes roughly 15 hours on 25 cores
 # registerDoParallel(cores = 20)
@@ -259,6 +259,7 @@ Sys.sleep(60); gc()
 plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CCI",
             chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
 Sys.sleep(60); gc()
+
 
 ## Create daily CCI MHW daily clim slice results
 
