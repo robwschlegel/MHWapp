@@ -6,7 +6,7 @@
 # 2: OISST database
 # 3: CCI database
 # 4: CMC database
-# 5: Nog een
+# 5: Test visuals
 
 
 # 1: Setup ----------------------------------------------------------------
@@ -60,7 +60,7 @@ widen_OISST <- function(lon_int){
   rm(wide_OISST); gc()
 }
 
-# Function for loading a day of CCI pixels in a chosen OISST lon slice
+# Function for loading a day of pixels in a chosen lon slice
 # lon_int <- 7
 # day_int <- 1318
 # product <- "CCI"
@@ -186,6 +186,7 @@ clim_event_cat <- function(df, chosen_clim){
   return(res)
 }
 
+# Function for extracting chosen parts of the MHW results
 # list_df <- lon_res
 extract_MHW <- function(list_df, list_sub){
   list_df_sub <- lapply(list_df, `[`, c(list_sub)) %>% 
@@ -199,10 +200,67 @@ extract_MHW <- function(list_df, list_sub){
            lat = as.numeric(lat))
 }
 
-# MHW_list <- readRDS("../data/CCI_lon/CCI_MHW_1982-2011_01.Rds")
-# MHW_clim <- extract_MHW(MHW_list, "clim")
-# MHW_event <- extract_MHW(MHW_list, "event")
-# MHW_cat <- extract_MHW(MHW_list, "cat")
+# Function for loading, prepping, and saving the daily global category slices
+# tester...
+# date_range <- c(as.Date("1982-01-01"), as.Date("1990-01-31"))
+# clim_period <- "1982-2011"
+# product <- "CCI"
+proc_cat <- function(date_range, product, clim_period){
+  
+  # Fetch file names
+  lon_files <- dir(paste0("../data/",product,"_lon"), 
+                   pattern = clim_period, full.names = T)
+  if(length(lon_files) < 15) stop("Lon files not fetched correctly")
+  
+  # Load the files
+  # NB: Can't run all 15 slices at once
+  registerDoParallel(cores = 8)
+  print(paste0("Began loading ",product,": ",clim_period, " for ",
+               date_range[1]," to ",date_range[2]," at ",Sys.time()))
+  cat_sub <- plyr::ldply(lon_files, load_cat, .parallel = T, 
+                         date_range = date_range, .paropts = c(.inorder = FALSE)) %>% 
+    mutate(category = factor(category, levels = c("I Moderate", "II Strong",
+                                                  "III Severe", "IV Extreme"))) %>% 
+    na.omit()
+  
+  # NB: Running this on too many cores may cause RAM issues
+  registerDoParallel(cores = 10)
+  print(paste0("Began saving ",product,": ",clim_period, " for ",
+               date_range[1]," to ",date_range[2]," at ",Sys.time()))
+  plyr::l_ply(seq(min(cat_sub$t), max(cat_sub$t), by = "day"), 
+              save_cat, .parallel = T, df = cat_sub,
+              product = product, clim_period = clim_period)
+  rm(cat_sub); gc()
+}
+
+# Function for loading a cat_lon slice and extracting a single day of values
+load_cat <- function(cat_lon_file, date_range){
+  # system.time(
+  cat_clim <- readRDS(cat_lon_file) %>% 
+    extract_MHW(., "cat")
+  # ) # 172 seconds
+  cat_clim_sub <- cat_clim %>%
+    filter(t >= date_range[1], t <= date_range[2])
+  rm(cat_clim); gc()
+  return(cat_clim_sub)
+}
+
+# Function for saving daily global cat files
+save_cat <- function(date_choice, df, product, clim_period){
+  
+  # Establish flie name and save location
+  cat_year <- lubridate::year(date_choice)
+  cat_dir <- paste0("../data/",product,"_cat/",cat_year)
+  dir.create(as.character(cat_dir), showWarnings = F)
+  cat_name <- paste0(product,"_cat_",clim_period,"_",date_choice,".Rds")
+  
+  # Extract data and save
+  df_sub <- df %>% 
+    filter(t == date_choice) %>% 
+    mutate(intensity = round(intensity, 2))
+  saveRDS(df_sub, file = paste0(cat_dir,"/",cat_name))
+  rm(df); gc()
+}
 
 
 # 2: OISST database -------------------------------------------------------
@@ -217,15 +275,53 @@ extract_MHW <- function(list_df, list_sub){
 
 
 ## Create wider lon slices to match the rest of the project
-plyr::l_ply(1:15, widen_OISST, .parallel = F)
+# plyr::l_ply(1:15, widen_OISST, .parallel = F)
 
 
 ## Detect MHWs for a given clim period
-# 1992 - 2018
+# 1982 - 2011
 registerDoParallel(cores = 40)
 plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "OISST",
-            chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
-Sys.sleep(60); gc()
+            chosen_clim = c(as.Date("1982-01-01"), as.Date("2011-12-31")))
+Sys.sleep(10); gc()
+
+# 1992 - 2018
+# registerDoParallel(cores = 40)
+# plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "OISST",
+#             chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
+# Sys.sleep(10); gc()
+
+
+## Create daily category slices
+# NB: This sets it's own core usage internally
+# Clim period 1982-2011
+proc_cat(date_range = c(as.Date("1982-01-01"), as.Date("1990-12-31")),
+         product = "OISST", clim_period = "1982-2011")
+Sys.sleep(10); gc()
+proc_cat(date_range = c(as.Date("1991-01-01"), as.Date("2000-12-31")),
+         product = "OISST", clim_period = "1982-2011")
+Sys.sleep(10); gc()
+proc_cat(date_range = c(as.Date("2001-01-01"), as.Date("2010-12-31")),
+         product = "OISST", clim_period = "1982-2011")
+Sys.sleep(10); gc()
+proc_cat(date_range = c(as.Date("2011-01-01"), as.Date("2019-12-31")),
+         product = "OISST", clim_period = "1982-2011")
+Sys.sleep(10); gc()
+
+# Clim period 1992-2018
+  # ~ xx minutes for one decade
+proc_cat(date_range = c(as.Date("1982-01-01"), as.Date("1990-12-31")),
+         product = "OISST", clim_period = "1992-2018")
+Sys.sleep(10); gc()
+proc_cat(date_range = c(as.Date("1991-01-01"), as.Date("2000-12-31")), 
+         product = "OISST", clim_period = "1992-2018")
+Sys.sleep(10); gc()
+proc_cat(date_range = c(as.Date("2001-01-01"), as.Date("2010-12-31")),  
+         product = "OISST", clim_period = "1992-2018")
+Sys.sleep(10); gc()
+proc_cat(date_range = c(as.Date("2011-01-01"), as.Date("2019-12-31")), 
+         product = "OISST", clim_period = "1992-2018")
+Sys.sleep(10); gc()
 
 
 # 3: CCI database ---------------------------------------------------------
@@ -250,17 +346,45 @@ Sys.sleep(60); gc()
 ## Calculate CCI MHWs
 # Clim period 1982 - 2011
 # registerDoParallel(cores = 40)
-# system.time(
-  # plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CCI", 
-  #             chosen_clim = c(as.Date("1982-01-01"), as.Date("2011-12-31")))
-# ) # 818 seconds on 50 cores for one slice
+  # 818 seconds on 50 cores for one slice
+# plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CCI",
+#             chosen_clim = c(as.Date("1982-01-01"), as.Date("2011-12-31")))
+# Sys.sleep(10); gc()
+
 # Clim period 1992 - 2018
-plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CCI",
-            chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
-Sys.sleep(60); gc()
+# plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CCI",
+#             chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
+# Sys.sleep(10); gc()
 
 
 ## Create daily CCI MHW daily clim slice results
+# Clim period 1982-2011
+proc_cat(date_range = c(as.Date("1982-01-01"), as.Date("1990-12-31")),
+         product = "CCI", clim_period = "1982-2011")
+Sys.sleep(10); gc()
+proc_cat(date_range = c(as.Date("1991-01-01"), as.Date("2000-12-31")), 
+         product = "CCI", clim_period = "1982-2011")
+Sys.sleep(10); gc()
+proc_cat(date_range = c(as.Date("2001-01-01"), as.Date("2010-12-31")),  
+         product = "CCI", clim_period = "1982-2011")
+Sys.sleep(10); gc()
+proc_cat(date_range = c(as.Date("2011-01-01"), as.Date("2019-12-31")), 
+         product = "CCI", clim_period = "1982-2011")
+Sys.sleep(10); gc()
+
+# Clim period 1992-2018
+proc_cat(date_range = c(as.Date("1982-01-01"), as.Date("1990-12-31")),
+         product = "CCI", clim_period = "1992-2018")
+Sys.sleep(10); gc()
+proc_cat(date_range = c(as.Date("1991-01-01"), as.Date("2000-12-31")), 
+         product = "CCI", clim_period = "1992-2018")
+Sys.sleep(10); gc()
+proc_cat(date_range = c(as.Date("2001-01-01"), as.Date("2010-12-31")),  
+         product = "CCI", clim_period = "1992-2018")
+Sys.sleep(10); gc()
+proc_cat(date_range = c(as.Date("2011-01-01"), as.Date("2019-12-31")), 
+         product = "CCI", clim_period = "1992-2018")
+Sys.sleep(10); gc()
 
 
 # 4: CMC database ---------------------------------------------------------
@@ -277,9 +401,32 @@ Sys.sleep(60); gc()
 ## Calculate CMC MHWs
 # clim period: 1992 - 2018
 # registerDoParallel(cores = 50)
-plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CMC",
-            chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
+# plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CMC",
+#             chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
+# Sys.sleep(10); gc()
 
 
 ## Create daily CMC MHW clim slice results
+# Clim period 1992-2018
+proc_cat(date_range = c(as.Date("1992-01-01"), as.Date("2000-12-31")), 
+         product = "CMC", clim_period = "1992-2018")
+Sys.sleep(10); gc()
+proc_cat(date_range = c(as.Date("2001-01-01"), as.Date("2010-12-31")),  
+         product = "CMC", clim_period = "1992-2018")
+Sys.sleep(10); gc()
+proc_cat(date_range = c(as.Date("2011-01-01"), as.Date("2019-12-31")), 
+         product = "CMC", clim_period = "1992-2018")
+Sys.sleep(10); gc()
 
+
+
+# 5: Test visuals ---------------------------------------------------------
+
+# CCI_test <- readRDS("../data/CCI_cat/1990/CCI_cat_1982-2011_1990-01-01.Rds")
+# OISST_test1 <- readRDS("../data/cat_clim/1990/cat.clim.1990-01-01.Rda")
+# OISST_test2 <- readRDS("../data/OISST_cat/1990/OISST_cat_1992-2018_1990-01-01.Rds")
+# 
+# ggplot(data = OISST_test2, aes(x = lon, y = lat)) +
+#   borders() +
+#   geom_tile(aes(fill = category)) +
+#   scale_fill_manual(values = MHW_colours)
