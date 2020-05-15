@@ -29,9 +29,21 @@ readRDS_date <- function(file_name){
     mutate(t = file_date)
 }
 
+# Function for finding the first date of the highest category MHW per pixel
+max_event_date <- function(df){
+  df %>% 
+    group_by(lat) %>% 
+    filter(as.integer(category) == max(as.integer(category))) %>% 
+    filter(t == min(t)) %>% 
+    ungroup()
+}
 
 # 3: Full analysis --------------------------------------------------------
 
+# testers...
+# product <- "OISST"
+# chosen_year <- 2004 
+# chosen_clim <- "1982-2011"
 MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F){
   
   print(paste0("Started run on ",product, "(", 
@@ -57,58 +69,42 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F){
   if(force_calc){
     # system.time(
     MHW_cat <- plyr::ldply(MHW_cat_files, readRDS, .parallel = T) #%>% 
-    #right_join(OISST_no_ice_coords, by = c("lon", "lat")) %>%  # Filter out ice if desired
+    # right_join(OISST_no_ice_coords, by = c("lon", "lat")) %>%  # Filter out ice if desired
     # na.omit()
     # ) # 12 seconds
   }
   
   ## Process data
   # Max category per pixel
-  if(file.exists(paste0("data/annual_summary/",product,"_cat_pixel_",chosen_year,".Rds")) & !force_calc){
-    MHW_cat_pixel <- readRDS(paste0("data/annual_summary/",product,"_cat_pixel_",chosen_year,".Rds"))
+  if(file.exists(paste0("data/annual_summary/",product,"_cat_pixel_",
+                        chosen_clim,"_",chosen_year,".Rds")) & !force_calc){
+    MHW_cat_pixel <- readRDS(paste0("data/annual_summary/",product,"_cat_pixel_",
+                                    chosen_clim,"_",chosen_year,".Rds"))
   } else{
-    # print(paste0("Filtering out the max category at each pixel and counting sum of intensity; ~220 seconds"))
+    # print(paste0("Filtering out the max category at each pixel and counting sum of intensity; ~14 seconds"))
     
     MHW_intensity <- MHW_cat %>% 
       group_by(lon, lat) %>% 
       summarise(intensity_sum = sum(intensity)) %>% 
       ungroup()
-    
-    max_event_date <- function(df){
-      df %>% 
-        # dplyr::select(-event_no)
-        filter(as.integer(category) == max(as.integer(category))) %>%
-        filter(t == min(t))
-    }
-    
-    MHW_cat_sub <- MHW_cat %>% 
-      filter(lon %in% MHW_cat$lon[1:1000],
-             lat %in% MHW_cat$lat[1:1000])
-    
-    system.time(
-    MHW_cat_pixel_test <- plyr::ddply(MHW_cat_sub, c("lon", "lat"), max_event_date, 
-                                 .parallel = T, .paropts = c(.inorder = FALSE)) %>% 
+
+    # system.time(
+    MHW_cat_pixel <- MHW_cat %>% 
       dplyr::select(-event_no) %>% 
+      plyr::ddply(., c("lon"), max_event_date, 
+                  .parallel = T, .paropts = c(.inorder = FALSE)) %>% 
+      unique() %>%
       left_join(MHW_intensity, by = c("lon", "lat"))
-    )
-    
-    system.time(
-    MHW_cat_pixel <- lazy_dt(MHW_cat_sub) %>%
-      dplyr::select(-event_no) %>%
-      group_by(lon, lat) %>%
-      filter(as.integer(category) == max(as.integer(category))) %>%
-      filter(t == min(t)) %>%
-      ungroup() %>%
-      data.frame() %>%
-      left_join(MHW_intensity, by = c("lon", "lat"))
-    ) # 210 seconds
+    # ) # 14 seconds
     saveRDS(MHW_cat_pixel, file = paste0("data/annual_summary/",product,"_cat_pixel_",
                                          chosen_clim,"_",chosen_year,".Rds"))
   }
   
   # Daily count and cumulative count per pixel
-  if(file.exists(paste0("data/annual_summary/",product,"_cat_daily_",chosen_year,".Rds")) & !force_calc){
-    MHW_cat_daily <- readRDS(paste0("data/annual_summary/",product,"_cat_daily_",chosen_year,".Rds"))
+  if(file.exists(paste0("data/annual_summary/",product,"_cat_daily_",
+                        chosen_clim,"_",chosen_year,".Rds")) & !force_calc){
+    MHW_cat_daily <- readRDS(paste0("data/annual_summary/",product,"_cat_daily_",
+                                    chosen_clim,"_",chosen_year,".Rds"))
   } else{
     # print(paste0("Counting the daily + cumulative categories per day; ~3 seconds"))
     
@@ -123,27 +119,32 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F){
       count(category) %>%
       dplyr::rename(first_n = n) %>% 
       ungroup() %>% 
+      right_join(full_grid, by = c("t", "category")) %>% 
+      mutate(first_n = ifelse(is.na(first_n), 0, first_n)) %>% 
       arrange(t) %>% 
       group_by(category) %>%
       mutate(first_n_cum = cumsum(first_n)) %>% 
       ungroup() %>% 
-      right_join(full_grid, by = c("t", "category")) %>% 
       group_by(category) %>% 
-      fill(first_n_cum, .direction = "downup")
+      ungroup()
     # ) # 1 second
     
     # system.time(
     MHW_cat_daily <- MHW_cat %>% 
       group_by(t) %>% 
       count(category) %>% 
-      group_by(category) %>% 
+      ungroup() %>% 
+      right_join(full_grid, by = c("t", "category")) %>% 
       dplyr::rename(cat_n = n) %>% 
+      mutate(cat_n = ifelse(is.na(cat_n), 0, cat_n)) %>% 
+      group_by(category) %>% 
       mutate(cat_n_cum = cumsum(cat_n),
              cat_n_prop = round(cat_n_cum/nrow(OISST_ocean_coords), 4)) %>% 
       ungroup() %>% 
       right_join(MHW_cat_single, by = c("t", "category"))
-    # ) # 2 seconds
-    saveRDS(MHW_cat_daily, file = paste0("data/annual_summary/MHW_cat_daily_",chosen_year,".Rds"))
+    # ) # 1 second
+    saveRDS(MHW_cat_daily, file = paste0("data/annual_summary/",product,"_cat_daily_",
+                                         chosen_clim,"_",chosen_year,".Rds"))
   }
   
   # Add prop columns for more accurate plotting
@@ -153,6 +154,7 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F){
   
   # Extract small data.frame for easier labelling
   MHW_cat_daily_labels <- MHW_cat_daily %>% 
+    group_by(category) %>% 
     filter(t == max(t)) %>% 
     ungroup() %>% 
     mutate(label_first_n_cum = cumsum(first_n_cum_prop))
@@ -235,10 +237,13 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F){
   fig_ALL_cap <- ggpubr::ggarrange(fig_ALL_cap, fig_ALL, heights = c(0.07, 1), nrow = 2)
   
   # print("Saving final figure")
-  ggsave(fig_ALL_cap, filename = paste0("figures/MHW_cat_summary_",chosen_year,".png"), height = 12, width = 18)
-  # ggsave(fig_ALL_cap, filename = paste0("figures/MHW_cat_summary_",chosen_year,".pdf"), height = 12, width = 18) # looks bad...
+  ggsave(fig_ALL_cap, height = 12, width = 18, 
+         filename = paste0("figures/",product,"_cat_summary_", chosen_clim,"_",chosen_year,".png"))
+  # ggsave(fig_ALL_cap, height = 12, width = 18, 
+         # filename = paste0("figures/",product,"_cat_summary_", chosen_clim,"_",chosen_year,".pdf")) # looks bad...
   
-  print(paste0("Finished run on ",chosen_year," at ",Sys.time()))
+  # print(paste0("Finished run on ",product, "(", 
+  #              chosen_clim,"): ", chosen_year," at ",Sys.time()))
 }
 
 # Run the current year
@@ -246,9 +251,25 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F){
 # MHW_annual_state(2019, force_calc = F)
 
 # Run ALL years
-  # NB: Running this in parallel will cause a proper stack overflow
-# plyr::l_ply(2016:2020, MHW_annual_state, force_calc = T, .parallel = F) # ~1.5 hours
-  # This is okay to run in parallel as it doesn't load/process any data
+# NB: Running this in parallel will cause a proper stack overflow
+# OISST
+# plyr::l_ply(1982:2019, MHW_annual_state, force_calc = T, .parallel = F,
+#             product = "OISST", chosen_clim = "1982-2011") # ~50 seconds for one
+# plyr::l_ply(1982:2019, MHW_annual_state, force_calc = T, .parallel = F,
+#             product = "OISST", chosen_clim = "1992-2018")
+
+# CCI
+# plyr::l_ply(1982:2018, MHW_annual_state, force_calc = T, .parallel = F,
+#             product = "CCI", chosen_clim = "1982-2011") # ~50 seconds for one
+# plyr::l_ply(1982:2018, MHW_annual_state, force_calc = T, .parallel = F,
+#             product = "CCI", chosen_clim = "1992-2018")
+
+# CMC
+# plyr::l_ply(1992:2019, MHW_annual_state, force_calc = T, .parallel = F,
+#             product = "CMC", chosen_clim = "1992-2018")
+
+# NB: This is okay to run in parallel as it doesn't load/process any data
+# NB: This is old code from the previous version of the pipeline...
 # plyr::l_ply(1982:2019, MHW_annual_state, force_calc = F, .parallel = T) # ~ 1 minute
 
 
@@ -256,6 +277,7 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F){
 
 # Create a load option for southern hemisphere, July - June
 # and one for Northern Hemisphere, January - December
+# NB: This is old code from the previous pipeline...
 
 # chosen_year <- 2013
 # hemisphere <- "S"
