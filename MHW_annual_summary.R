@@ -1,8 +1,13 @@
 # MHW_annual_summary.R
 # The purpose of this script is to perform an annual summary of the global state of MHWs
+# 1: Setup the environment
+# 2: Functions used in the following steps
+# 3: The full annual summary analysis
+# 4: An additional count summary of each category
+# 5: Total summary of all years
+# 6: Animations (not much here yet)
 
-
-# Setup -------------------------------------------------------------------
+# 1: Setup ----------------------------------------------------------------
 
 source("MHW_daily_functions.R")
 library(dtplyr)
@@ -13,12 +18,8 @@ registerDoParallel(cores = 50)
 # library(animation)
 # library(magick)
 
-# Chosen year for analysis
-# chosen_year <- 2019
-# chosen_year <- 1982
 
-
-# Functions ---------------------------------------------------------------
+# 2: Functions ------------------------------------------------------------
 
 # Function that loads a MHW cat file but includes the date from the file name
 readRDS_date <- function(file_name){
@@ -29,14 +30,16 @@ readRDS_date <- function(file_name){
 }
 
 
-# Full analysis -----------------------------------------------------------
+# 3: Full analysis --------------------------------------------------------
 
-MHW_annual_state <- function(chosen_year, force_calc = F){
+MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F){
   
-  print(paste0("Started run on ",chosen_year," at ",Sys.time()))
+  print(paste0("Started run on ",product, "(", 
+               chosen_clim,"): ", chosen_year," at ",Sys.time()))
   
   ## Find file location
-  MHW_cat_files <- dir(paste0("../data/cat_clim/", chosen_year), full.names = T)
+  MHW_cat_files <- dir(paste0("../data/",product,"_cat/", chosen_year), 
+                       full.names = T, pattern = chosen_clim)
   # print(paste0("There are currently ",length(MHW_cat_files)," days of data for ",chosen_year))
   
   ## Create figure title
@@ -45,13 +48,15 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
   } else{
     extra_bit <- ""
   }
+  product_name <- product
+  if(product == "OISST") product_name <- "NOAA OISST"
   fig_title <- paste0("MHW categories of ",chosen_year, extra_bit,
-                      "\nNOAA OISST; Climatogy period: 1982 - 2011")
+                      "\n",product_name,"; Climatogy period: ",chosen_clim)
   
   ## Load data
   if(force_calc){
     # system.time(
-    MHW_cat <- plyr::ldply(MHW_cat_files, readRDS_date, .parallel = T) #%>% 
+    MHW_cat <- plyr::ldply(MHW_cat_files, readRDS, .parallel = T) #%>% 
     #right_join(OISST_no_ice_coords, by = c("lon", "lat")) %>%  # Filter out ice if desired
     # na.omit()
     # ) # 12 seconds
@@ -59,8 +64,8 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
   
   ## Process data
   # Max category per pixel
-  if(file.exists(paste0("data/annual_summary/MHW_cat_pixel_",chosen_year,".Rds")) & !force_calc){
-    MHW_cat_pixel <- readRDS(paste0("data/annual_summary/MHW_cat_pixel_",chosen_year,".Rds"))
+  if(file.exists(paste0("data/annual_summary/",product,"_cat_pixel_",chosen_year,".Rds")) & !force_calc){
+    MHW_cat_pixel <- readRDS(paste0("data/annual_summary/",product,"_cat_pixel_",chosen_year,".Rds"))
   } else{
     # print(paste0("Filtering out the max category at each pixel and counting sum of intensity; ~220 seconds"))
     
@@ -69,22 +74,41 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
       summarise(intensity_sum = sum(intensity)) %>% 
       ungroup()
     
-    # system.time(
-    MHW_cat_pixel <- lazy_dt(MHW_cat) %>% 
-      select(-event_no) %>% 
-      group_by(lon, lat) %>% 
-      filter(as.integer(category) == max(as.integer(category))) %>%
-      filter(t == min(t)) %>% 
-      ungroup() %>% 
-      data.frame() %>% 
+    max_event_date <- function(df){
+      df %>% 
+        # dplyr::select(-event_no)
+        filter(as.integer(category) == max(as.integer(category))) %>%
+        filter(t == min(t))
+    }
+    
+    MHW_cat_sub <- MHW_cat %>% 
+      filter(lon %in% MHW_cat$lon[1:1000],
+             lat %in% MHW_cat$lat[1:1000])
+    
+    system.time(
+    MHW_cat_pixel_test <- plyr::ddply(MHW_cat_sub, c("lon", "lat"), max_event_date, 
+                                 .parallel = T, .paropts = c(.inorder = FALSE)) %>% 
+      dplyr::select(-event_no) %>% 
       left_join(MHW_intensity, by = c("lon", "lat"))
-    # ) # 210 seconds
-    saveRDS(MHW_cat_pixel, file = paste0("data/annual_summary/MHW_cat_pixel_",chosen_year,".Rds")) 
+    )
+    
+    system.time(
+    MHW_cat_pixel <- lazy_dt(MHW_cat_sub) %>%
+      dplyr::select(-event_no) %>%
+      group_by(lon, lat) %>%
+      filter(as.integer(category) == max(as.integer(category))) %>%
+      filter(t == min(t)) %>%
+      ungroup() %>%
+      data.frame() %>%
+      left_join(MHW_intensity, by = c("lon", "lat"))
+    ) # 210 seconds
+    saveRDS(MHW_cat_pixel, file = paste0("data/annual_summary/",product,"_cat_pixel_",
+                                         chosen_clim,"_",chosen_year,".Rds"))
   }
   
   # Daily count and cumulative count per pixel
-  if(file.exists(paste0("data/annual_summary/MHW_cat_daily_",chosen_year,".Rds")) & !force_calc){
-    MHW_cat_daily <- readRDS(paste0("data/annual_summary/MHW_cat_daily_",chosen_year,".Rds"))
+  if(file.exists(paste0("data/annual_summary/",product,"_cat_daily_",chosen_year,".Rds")) & !force_calc){
+    MHW_cat_daily <- readRDS(paste0("data/annual_summary/",product,"_cat_daily_",chosen_year,".Rds"))
   } else{
     # print(paste0("Counting the daily + cumulative categories per day; ~3 seconds"))
     
@@ -218,7 +242,7 @@ MHW_annual_state <- function(chosen_year, force_calc = F){
 }
 
 # Run the current year
-MHW_annual_state(as.numeric(lubridate::year(Sys.Date())), force_calc = T) # 161 seconds
+# MHW_annual_state(as.numeric(lubridate::year(Sys.Date())), force_calc = T) # 161 seconds
 # MHW_annual_state(2019, force_calc = F)
 
 # Run ALL years
@@ -228,14 +252,63 @@ MHW_annual_state(as.numeric(lubridate::year(Sys.Date())), force_calc = T) # 161 
 # plyr::l_ply(1982:2019, MHW_annual_state, force_calc = F, .parallel = T) # ~ 1 minute
 
 
-# Animations --------------------------------------------------------------
+# 4: Annual sum of MHW categories per pixel -------------------------------
 
-# setwd("figures") # Need to change working directory for animation code to be able to access png files
-# system.time(system("convert -delay 100 *.png ../anim/MHW_cat_summary.mp4")) # 139 seconds
-# setwd("../")
+# Create a load option for southern hemisphere, July - June
+# and one for Northern Hemisphere, January - December
+
+# chosen_year <- 2013
+# hemisphere <- "S"
+MHW_annual_count <- function(chosen_year, hemisphere){
+  
+  print(paste0("Started run on ",chosen_year," at ",Sys.time()))
+  
+  ## Decide on files based on hemisphere
+  if(hemisphere == "N"){
+    MHW_cat_files <- dir(paste0("../data/cat_clim/", chosen_year), full.names = T)
+  } else if(hemisphere == "S"){
+    MHW_cat_files <- c(dir(paste0("../data/cat_clim/", chosen_year), full.names = T),
+                       dir(paste0("../data/cat_clim/", chosen_year+1), full.names = T))
+    if(chosen_year == 2019){ # This will need to be updated once July 1st, 2020 data are available
+      MHW_cat_files <- MHW_cat_files[grep("07-01", MHW_cat_files)[1]:length(MHW_cat_files)]
+    } else {
+      MHW_cat_files <- MHW_cat_files[grep("07-01", MHW_cat_files)[1]:grep("06-30", MHW_cat_files)[2]]
+    }
+  }
+  
+  ## Load data
+  MHW_cat <- plyr::ldply(MHW_cat_files, readRDS_date, .parallel = T) 
+  
+  ## Summarise
+  # system.time(
+  MHW_cat_count <- lazy_dt(MHW_cat) %>% 
+    group_by(lon, lat, event_no) %>% 
+    summarise(max_cat = max(as.integer(category))) %>% 
+    data.frame() %>% 
+    dplyr::select(-event_no) %>% 
+    mutate(max_cat = factor(max_cat, levels = c(1:4),  labels = levels(MHW_cat$category))) %>% 
+    group_by(lon, lat) %>% 
+    table() %>% 
+    as.data.frame() %>% 
+    pivot_wider(values_from = Freq, names_from = max_cat) %>% 
+    mutate(lon = as.numeric(as.character(lon)),
+           lat = as.numeric(as.character(lat)))
+  # ) # 16 seconds
+  saveRDS(MHW_cat_count, paste0("data/annual_summary/MHW_cat_count_",hemisphere,"_", chosen_year,".Rds"))
+  # write_csv(MHW_cat_count, paste0("data/annual_summary/MHW_cat_sum_",hemisphere,"_", chosen_year,".csv"))
+}
+
+# Run them all
+# plyr::l_ply(2015:2019, MHW_annual_count, .parallel = F, hemisphere = "S")
+# plyr::l_ply(2016:2020, MHW_annual_count, .parallel = F, hemisphere = "N")
+
+# test visuals
+# MHW_cat_count <- readRDS("data/annual_summary/MHW_cat_count_S_2014.Rds")
+# ggplot(data = MHW_cat_count, aes(x = lon, y = lat, fill = `I Moderate`)) +
+#   geom_tile()
 
 
-# Historic annual comparisons ---------------------------------------------
+# 5: Total summary of all years -------------------------------------------
 
 # print(paste0("Began calculating historic results at ",Sys.time()))
 # 
@@ -318,58 +391,10 @@ MHW_annual_state(as.numeric(lubridate::year(Sys.Date())), force_calc = T) # 161 
 # print(paste0("Finished calculating historic results at ",Sys.time()))
 
 
-# Annual sum of MHW categories per pixel ----------------------------------
+# 6: Animations -----------------------------------------------------------
 
-# Create a load option for southern hemisphere, July - June
-# and one for Northern Hemisphere, January - December
+# setwd("figures") # Need to change working directory for animation code to be able to access png files
+# system.time(system("convert -delay 100 *.png ../anim/MHW_cat_summary.mp4")) # 139 seconds
+# setwd("../")
 
-# chosen_year <- 2013
-# hemisphere <- "S"
-MHW_annual_count <- function(chosen_year, hemisphere){
-  
-  print(paste0("Started run on ",chosen_year," at ",Sys.time()))
-  
-  ## Decide on files based on hemisphere
-  if(hemisphere == "N"){
-    MHW_cat_files <- dir(paste0("../data/cat_clim/", chosen_year), full.names = T)
-  } else if(hemisphere == "S"){
-    MHW_cat_files <- c(dir(paste0("../data/cat_clim/", chosen_year), full.names = T),
-                       dir(paste0("../data/cat_clim/", chosen_year+1), full.names = T))
-    if(chosen_year == 2019){ # This will need to be updated once July 1st, 2020 data are available
-      MHW_cat_files <- MHW_cat_files[grep("07-01", MHW_cat_files)[1]:length(MHW_cat_files)]
-    } else {
-      MHW_cat_files <- MHW_cat_files[grep("07-01", MHW_cat_files)[1]:grep("06-30", MHW_cat_files)[2]]
-    }
-  }
-  
-  ## Load data
-  MHW_cat <- plyr::ldply(MHW_cat_files, readRDS_date, .parallel = T) 
-  
-  ## Summarise
-  # system.time(
-  MHW_cat_count <- lazy_dt(MHW_cat) %>% 
-    group_by(lon, lat, event_no) %>% 
-    summarise(max_cat = max(as.integer(category))) %>% 
-    data.frame() %>% 
-    dplyr::select(-event_no) %>% 
-    mutate(max_cat = factor(max_cat, levels = c(1:4),  labels = levels(MHW_cat$category))) %>% 
-    group_by(lon, lat) %>% 
-    table() %>% 
-    as.data.frame() %>% 
-    pivot_wider(values_from = Freq, names_from = max_cat) %>% 
-    mutate(lon = as.numeric(as.character(lon)),
-           lat = as.numeric(as.character(lat)))
-  # ) # 16 seconds
-  saveRDS(MHW_cat_count, paste0("data/annual_summary/MHW_cat_count_",hemisphere,"_", chosen_year,".Rds"))
-  # write_csv(MHW_cat_count, paste0("data/annual_summary/MHW_cat_sum_",hemisphere,"_", chosen_year,".csv"))
-}
-
-# Run them all
-# plyr::l_ply(2015:2019, MHW_annual_count, .parallel = F, hemisphere = "S")
-# plyr::l_ply(2016:2020, MHW_annual_count, .parallel = F, hemisphere = "N")
-
-# test visuals
-# MHW_cat_count <- readRDS("data/annual_summary/MHW_cat_count_S_2014.Rds")
-# ggplot(data = MHW_cat_count, aes(x = lon, y = lat, fill = `I Moderate`)) +
-#   geom_tile()
 

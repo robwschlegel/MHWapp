@@ -199,7 +199,8 @@ if(length(possible_dates) > length(current_dates)){
 
 # 5: Run annual summary ---------------------------------------------------
 
-source("MHW_annual_summary.R")
+# NB: Currently disabled until the foundational changes to the pipeline are updated project-wide
+# source("MHW_annual_summary.R")
 
 
 # 6: Push to GitHub -------------------------------------------------------
