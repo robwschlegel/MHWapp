@@ -2,6 +2,6 @@ thresh
 OISST
 event
 cat_clim
-OISST_clim
-CCI_clim
-CMC_clim
+OISST_cat
+CCI_cat
+CMC_cat
