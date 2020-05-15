@@ -61,9 +61,6 @@ widen_OISST <- function(lon_int){
 }
 
 # Function for loading a day of pixels in a chosen lon slice
-# lon_int <- 7
-# day_int <- 1318
-# product <- "CCI"
 load_lon_day <- function(day_int, lon_int, product){
   
   # Set product related info
@@ -187,7 +184,6 @@ clim_event_cat <- function(df, chosen_clim){
 }
 
 # Function for extracting chosen parts of the MHW results
-# list_df <- lon_res
 extract_MHW <- function(list_df, list_sub){
   list_df_sub <- lapply(list_df, `[`, c(list_sub)) %>% 
     plyr::ldply(., data.frame) %>% 

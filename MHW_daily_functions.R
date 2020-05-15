@@ -272,7 +272,7 @@ sst_seas_thresh_merge <- function(lon_step, date_range){
 
 # Function for updating the MHW event metric lon slice files
 # tester...
-# lon_step <- lon_OISST[1]
+# lon_step <- lon_OISST[2]
 MHW_event_cat_update <- function(lon_step, full = F){
   
   # load the final download date
@@ -331,24 +331,16 @@ MHW_event_cat_update <- function(lon_step, full = F){
     filter(row_number() %% 2 == 1) %>% 
     unnest(cols = event_cat_res)
   saveRDS(MHW_event_new, file = MHW_event_files[lon_row])
-  # tester...
-  # MHW_event_new_test <- MHW_event_new %>% 
-  #   filter(lat == df$lat)
-  # saveRDS(MHW_event_new, dir("../data/test", pattern = "MHW.event", full.names = T)[lon_row])
   
   MHW_cat_new <- MHW_event_cat %>% 
     filter(row_number() %% 2 == 0) %>% 
     unnest(cols = event_cat_res)
   saveRDS(MHW_cat_new, file = cat_lon_files[lon_row])
-  # tester...
-  # MHW_cat_new_test <- MHW_cat_new %>% 
-  #   filter(lat == df$lat)
-  # saveRDS(MHW_cat_new, dir("../data/test", pattern = "MHW.cat", full.names = T)[lon_row])
 }
 
 # Function for extracting correct SST data based on pre-determined subsets
 # It also calculates and returns corrected MHW metric results
-# df <- final_event_index[319,]
+# df <- previous_event_index[148,]
 event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon){
   
   # Extract necessary SST
