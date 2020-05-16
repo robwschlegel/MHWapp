@@ -84,6 +84,43 @@ readRDS_year <- function(file_name){
 }
 
 
+# Map used in comparison tab ----------------------------------------------
+
+comp_map <- function(df){
+  ggplot(df, aes(x = lon, y = lat)) +
+    # geom_tile(data = OISST_ice_coords, fill = "powderblue", colour = NA, alpha = 0.5) +
+    geom_raster(aes(fill = category), colour = NA, show.legend = F) +
+    geom_polygon(data = map_base, aes(x = lon, y = lat, group = group)) +
+    scale_fill_manual("Category", values = MHW_colours) +
+    coord_cartesian(expand = F, ylim = c(min(OISST_ocean_coords$lat),
+                                         max(OISST_ocean_coords$lat))) +
+    theme_void() +
+    theme(panel.background = element_rect(fill = "grey90"))
+    # guides(fill = guide_legend(override.aes = list(size = 10))) +
+    # theme(legend.position = "bottom",
+    #       legend.text = element_text(size = 14),
+    #       legend.title = element_text(size = 16),
+    #       panel.background = element_rect(fill = "grey90"))
+}
+
+
+# Daily barplots ----------------------------------------------------------
+
+# daily_bar <- function(df){
+#   ggplot(df, aes(x = t, y = cat_prop)) +
+#     geom_bar(aes(fill = category), stat = "identity", show.legend = F,
+#              position = position_stack(reverse = TRUE), width = 1) +
+#     scale_fill_manual("Category", values = MHW_colours) +
+#     scale_y_continuous(limits = c(0, 1),
+#                        breaks = seq(0.2, 0.8, length.out = 4),
+#                        labels = paste0(seq(20, 80, by = 20), "%")) +
+#     scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +
+#     labs(y = "Global MHW count\n(non-cumulative)", x = "Day of the year") +
+#     coord_cartesian(expand = F) +
+#     theme(axis.title = element_text(size = 15),
+#           axis.text = element_text(size = 13))
+# }
+
 # Shiny testing -----------------------------------------------------------
 
 # NB: This must be commented out unless being run explicitly

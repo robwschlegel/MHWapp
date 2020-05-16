@@ -332,73 +332,93 @@ MHW_annual_count <- function(chosen_year, hemisphere){
 
 # 5: Total summary of all years -------------------------------------------
 
-# print(paste0("Began calculating historic results at ",Sys.time()))
-# 
-# # Load all date based annual summaries
-# MHW_cat_daily <- map_dfr(dir("data/annual_summary", pattern = "MHW_cat_daily", full.names = T), readRDS) %>%
-#   filter(lubridate::month(t) == 12, lubridate::day(t) == 31) %>%
-#   mutate(t = lubridate::year(t),
-#          first_n_cum_prop = round(first_n_cum/nrow(OISST_ocean_coords), 4))
-# 
-# # Create mean values
-# MHW_cat_daily_mean <- map_dfr(dir("data/annual_summary", pattern = "MHW_cat_daily", full.names = T), readRDS) %>%
-#   mutate(t = lubridate::year(t)) %>%
-#   filter(t != 2020) %>%
-#   group_by(t, category) %>%
-#   summarise_all(mean, na.rm = T) %>%
-#   ungroup() %>%
-#   mutate(cat_prop = round(cat_n/nrow(OISST_ocean_coords), 4))
-# 
+# testers...
+# product <- "OISST"
+# chosen_clim <- "1982-2011"
+MHW_total_state <- function(product, chosen_clim){
+  
+  # Create mean values of daily count
+  cat_daily_mean <- map_dfr(dir("data/annual_summary", pattern = paste0(product,"_cat_daily_",chosen_clim), 
+                                full.names = T), readRDS) %>%
+    mutate(t = lubridate::year(t)) %>%
+    group_by(t, category) %>%
+    summarise(cat_n = mean(cat_n, na.rm = T)) %>%
+    ungroup() %>%
+    mutate(cat_prop_daily_mean = round(cat_n/nrow(OISST_ocean_coords), 4))
+  
+  # Extract only values from Decemer 31st
+  cat_daily <- map_dfr(dir("data/annual_summary", pattern = paste0(product,"_cat_daily_",chosen_clim), 
+                           full.names = T), readRDS) %>%
+    filter(lubridate::month(t) == 12, lubridate::day(t) == 31) %>%
+    mutate(t = lubridate::year(t),
+           first_n_cum_prop = round(first_n_cum/nrow(OISST_ocean_coords), 4)) %>% 
+    left_join(cat_daily_mean, by = c("t", "category"))
+  
+  # Save and exit
+  saveRDS(cat_daily, paste0("data/annual_summary/",product,
+                            "_cat_daily_", chosen_clim,"_total.Rds"))
+}
+
+## Run them all
+# OISST
+# MHW_total_state("OISST", "1982-2011")
+# MHW_total_state("OISST", "1992-2018")
+# CCI
+# MHW_total_state("CCI", "1982-2011")
+# MHW_total_state("CCI", "1992-2018")
+# CMC
+# MHW_total_state("CMC", "1992-2018")
+
 # # Stacked barplot of global daily count of MHWs by category
-# fig_count_historic <- ggplot(MHW_cat_daily_mean, aes(x = t, y = cat_prop)) +
-#   geom_bar(aes(fill = category), stat = "identity", show.legend = T,
-#            position = position_stack(reverse = TRUE), width = 1) +
-#   scale_fill_manual("Category", values = MHW_colours) +
-#   scale_y_continuous(limits = c(0, 1),
-#                      breaks = seq(0.2, 0.8, length.out = 4),
-#                      labels = paste0(seq(20, 80, by = 20), "%")) +
-#   scale_x_continuous(breaks = seq(1982, 2019, 5)) +
-#   labs(y = "Daily MHW occurrence", x = NULL) +
-#   coord_cartesian(expand = F) +
-#   theme(axis.title = element_text(size = 14),
-#         axis.text = element_text(size = 12),
-#         legend.title = element_text(size = 18),
-#         legend.text = element_text(size = 16))
-# # fig_count_historic
-# 
+fig_count_historic <- ggplot(cat_daily, aes(x = t, y = cat_prop_daily_mean)) +
+  geom_bar(aes(fill = category), stat = "identity", show.legend = T,
+           position = position_stack(reverse = TRUE), width = 1) +
+  scale_fill_manual("Category", values = MHW_colours) +
+  scale_y_continuous(limits = c(0, 1),
+                     breaks = seq(0.2, 0.8, length.out = 4),
+                     labels = paste0(seq(20, 80, by = 20), "%")) +
+  scale_x_continuous(breaks = seq(1982, 2019, 5)) +
+  labs(y = "Daily MHW occurrence", x = NULL) +
+  coord_cartesian(expand = F) +
+  theme(axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12),
+        legend.title = element_text(size = 18),
+        legend.text = element_text(size = 16))
+fig_count_historic
+ 
 # # Stacked barplot of cumulative percent of ocean affected by MHWs
-# fig_cum_historic <- ggplot(MHW_cat_daily, aes(x = t, y = first_n_cum_prop)) +
-#   geom_bar(aes(fill = category), stat = "identity", show.legend = T,
-#            position = position_stack(reverse = TRUE), width = 1) +
-#   scale_fill_manual("Category", values = MHW_colours) +
-#   scale_y_continuous(limits = c(0, 1),
-#                      breaks = seq(0.2, 0.8, length.out = 4),
-#                      labels = paste0(seq(20, 80, by = 20), "%")) +
-#   scale_x_continuous(breaks = seq(1982, 2019, 5)) +
-#   labs(y = "Total MHW occurrence", x = NULL) +
-#   coord_cartesian(expand = F) +
-#   theme(axis.title = element_text(size = 14),
-#         axis.text = element_text(size = 12),
-#         legend.title = element_text(size = 18),
-#         legend.text = element_text(size = 16))
-# # fig_cum_historic
-# 
+fig_cum_historic <- ggplot(cat_daily, aes(x = t, y = first_n_cum_prop)) +
+  geom_bar(aes(fill = category), stat = "identity", show.legend = T,
+           position = position_stack(reverse = TRUE), width = 1) +
+  scale_fill_manual("Category", values = MHW_colours) +
+  scale_y_continuous(limits = c(0, 1),
+                     breaks = seq(0.2, 0.8, length.out = 4),
+                     labels = paste0(seq(20, 80, by = 20), "%")) +
+  scale_x_continuous(breaks = seq(1982, 2019, 5)) +
+  labs(y = "Total MHW occurrence", x = NULL) +
+  coord_cartesian(expand = F) +
+  theme(axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12),
+        legend.title = element_text(size = 18),
+        legend.text = element_text(size = 16))
+fig_cum_historic
+ 
 # # Stacked barplot of average cumulative MHW days per pixel
-# fig_prop_historic <- ggplot(MHW_cat_daily, aes(x = t, y = cat_n_prop)) +
-#   geom_bar(aes(fill = category), stat = "identity", show.legend = T,
-#            position = position_stack(reverse = TRUE), width = 1) +
-#   scale_fill_manual("Category", values = MHW_colours) +
-#   scale_y_continuous(limits = c(0, 90),
-#                      breaks = seq(15, 75, length.out = 3)) +
-#   scale_x_continuous(breaks = seq(1982, 2019, 5)) +
-#   labs(y = "MHW days/pixel", x = NULL) +
-#   coord_cartesian(expand = F) +
-#   theme(axis.title = element_text(size = 14),
-#         axis.text = element_text(size = 12),
-#         legend.title = element_text(size = 18),
-#         legend.text = element_text(size = 16))
-# # fig_prop_historic
-# 
+fig_prop_historic <- ggplot(cat_daily, aes(x = t, y = cat_n_prop)) +
+  geom_bar(aes(fill = category), stat = "identity", show.legend = T,
+           position = position_stack(reverse = TRUE), width = 1) +
+  scale_fill_manual("Category", values = MHW_colours) +
+  scale_y_continuous(limits = c(0, 90),
+                     breaks = seq(15, 75, length.out = 3)) +
+  scale_x_continuous(breaks = seq(1982, 2019, 5)) +
+  labs(y = "MHW days/pixel", x = NULL) +
+  coord_cartesian(expand = F) +
+  theme(axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12),
+        legend.title = element_text(size = 18),
+        legend.text = element_text(size = 16))
+fig_prop_historic
+ 
 # # Stick them together and save
 # fig_ALL_historic <- ggpubr::ggarrange(fig_count_historic, fig_cum_historic, fig_prop_historic,
 #                                       ncol = 3, align = "hv", labels = c("(a)", "(b)", "(c)"), hjust = -0.1,

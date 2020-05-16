@@ -7,22 +7,22 @@ comparisonUI <- function(id, label = 'comparison') {
   # - High level choice on the left is which year is being compared
   # - This will also allow for an overall comparison and seasons (e.g, Q1 - Q4)
   
-  dashboardPage(
+  dashboardPage(skin = "black",
     
     # The app title
-    # dashboardHeader(title = "Correlation between SST and other variable anomalies during MHWs"),
-    dashboardHeader(title = "MHW flux"),
+    dashboardHeader(disable = TRUE),
     
     # The primary options
     dashboardSidebar(
-      sidebarMenu(id = "mainMenu",
-                  menuItem("Annual", tabName = "annual", icon = icon("map"), selected = TRUE),
+      sidebarMenu(id = ns("mainMenu"),
+                  menuItem("Total", tabName = "total", icon = icon("chart-bar"), selected = TRUE),
+                  menuItem("Daily", tabName = "daily", icon = icon("chart-bar")),
+                  menuItem("Map", tabName = "map", icon = icon("map")),
                   # menuItem("Season", tabName = "season", icon = icon("chart-pie")),
-                  # menuItem("Total", tabName = "total", icon = icon("chart-bar")),
                   # menuItem("Tables", tabname = "tables", icon = icon("table")),
                   menuItem("About", tabName = "about", icon = icon("question")),
                   # The reactive controls based on the primary option chosen
-                  uiOutput(outputId = "sidebar_controls"))
+                  uiOutput(outputId = ns("sidebar_controls")))
     ),
     
     # The dashboard
@@ -30,42 +30,40 @@ comparisonUI <- function(id, label = 'comparison') {
       tabItems(
         
 
-        # Annual figures ----------------------------------------------------------
-
-        tabItem(tabName = "annual",
-                fluidRow(box(plotOutput(ns("compOne")), width = 4, title = "OISST",
-                             status = "primary", solidHeader = TRUE, collapsible = TRUE),
-                         box(plotOutput(ns("compTwo")), width = 4, title = "CCI",
-                             status = "primary", solidHeader = TRUE, collapsible = TRUE),
-                         box(plotOutput(ns("compThree")), width = 4, title = "CMC",
-                             status = "primary", solidHeader = TRUE, collapsible = TRUE))),
-        
-
-        # Season figures ----------------------------------------------------------
-# 
-#         tabItem(tabName = "season",
-#                 # The event metric table
-#                 fluidRow(box(dataTableOutput("eventTable"), width = 12, title = "Event metrics", 
-#                              status = "primary", solidHeader = TRUE, collapsible = TRUE))),
-        # Test box
-        # fluidRow(box(verbatimTextOutput("devel")))),
-        
-
         # Total figures -----------------------------------------------------------
-
-        # tabItem(tabName = "total", 
-        #         fluidRow(
-        #           # Histogram box
-        #           box(width = 6, title = "Histogram", status = "primary", solidHeader = TRUE, collapsible = TRUE,
-        #               dropdownButton(
-        #                 h4("Histogram controls:"),
-        #                 radioButtons(inputId = "position", label = "Position:", 
-        #                              choices = c("stack", "dodge"),
-        #                              selected = "stack", inline = T),
-        #                 sliderInput(inputId = "bins", label = "Number of bins:",
-        #                             min = 1, max = 20, value = 10),
-        #                 circle = TRUE, status = "danger", icon = icon("gear"))))),
         
+        tabItem(tabName = "total",
+                fluidRow(box(plotlyOutput(ns("totalCount")), width = 12, title = "Average count per day",
+                             status = "primary", solidHeader = TRUE, collapsible = TRUE),
+                         box(plotlyOutput(ns("totalFirst")), width = 12, title = "Total coverage",
+                             status = "warning", solidHeader = TRUE, collapsible = TRUE),
+                         box(plotlyOutput(ns("totalCum")), width = 12, title = "Total days per pixel",
+                             status = "success", solidHeader = TRUE, collapsible = TRUE))),
+        
+
+        # Daily figures -----------------------------------------------------------
+
+        tabItem(tabName = "daily",
+                fluidRow(box(plotlyOutput(ns("dailyCount")), width = 12, title = "Daily count",
+                             status = "primary", solidHeader = TRUE, collapsible = TRUE),
+                         box(plotlyOutput(ns("dailyFirst")), width = 12, title = "Total coverage",
+                             status = "warning", solidHeader = TRUE, collapsible = TRUE),
+                         box(plotlyOutput(ns("dailyCum")), width = 12, title = "Days per pixel",
+                             status = "success", solidHeader = TRUE, collapsible = TRUE))),
+        
+        # Map figures -------------------------------------------------------------
+
+        tabItem(tabName = "map",
+                fluidRow(box(plotOutput(ns("compOISST")), width = 4, title = "OISST", # These titles will need to be reactive
+                             status = "primary", solidHeader = TRUE, collapsible = TRUE),
+                         box(plotOutput(ns("compCCI")), width = 4, title = "CCI",
+                             status = "success", solidHeader = TRUE, collapsible = TRUE),
+                         box(plotOutput(ns("compCMC")), width = 4, title = "CMC",
+                             status = "warning", solidHeader = TRUE, collapsible = TRUE)),
+                fluidRow(box(plotlyOutput(ns("compLat")), width = 12, title = "Latitude",
+                             status = "danger", solidHeader = TRUE, collapsible = TRUE))),
+
+
         
         # Tables ------------------------------------------------------------------
         
