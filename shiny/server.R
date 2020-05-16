@@ -4,11 +4,13 @@ server <- function(input, output, session){
   
   callModule(map, "map")
   
+  callModule(comparison, "comparison")
+  
   callModule(summary, "summary")
   
   callModule(about, 'about')
   
   # During testing...
-  # session$onSessionEnded(stopApp)
+  session$onSessionEnded(stopApp)
 }
 

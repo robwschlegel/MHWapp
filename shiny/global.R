@@ -12,6 +12,7 @@
 # Required up front
 .libPaths(c("~/R-packages", .libPaths()))
 library(shinyWidgets)
+library(shinydashboard)
 library(dplyr)
 library(shinyBS)
 library(leaflet)
@@ -48,6 +49,8 @@ source("modules/map-server.R", local = TRUE)
 source("modules/map-ui.R", local = TRUE)
 source("modules/summary-server.R", local = TRUE)
 source("modules/summary-ui.R", local = TRUE)
+source("modules/comparison-server.R", local = TRUE)
+source("modules/comparison-ui.R", local = TRUE)
 
 # mapbox_moon <- "https://api.mapbox.com/styles/v1/..."
 
@@ -141,14 +144,17 @@ empty_date_map <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>%
 #   slice(1) %>% 
 #   mutate(category = NA)
 
-#### The base map
+### The base map
 # map_base <- ggplot2::fortify(maps::map(fill = TRUE, col = "grey80", plot = FALSE)) %>%
 #   dplyr::rename(lon = long) %>%
 #   # filter(lat >= 25.6) %>%
 #   mutate(group = ifelse(lon > 180, group+9999, group),
 #          lon = ifelse(lon > 180, lon-360, lon))
 # save(map_base, file = "metadata/map_base.Rdata")
-# load("../metadata/map_base.Rdata")
+load("../metadata/map_base.Rdata")
+
+### The OISST ocean coordinates
+load("../metadata/OISST_ocean_coords.Rdata")
 
 # cat("\nglobal.R finished")
 
