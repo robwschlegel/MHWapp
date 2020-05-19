@@ -415,7 +415,6 @@ proc_cat(date_range = c(as.Date("2011-01-01"), as.Date("2019-12-31")),
 Sys.sleep(10); gc()
 
 
-
 # 5: Test visuals ---------------------------------------------------------
 
 # CCI_test <- readRDS("../data/CCI_cat/1990/CCI_cat_1982-2011_1990-01-01.Rds")

@@ -33,22 +33,22 @@ comparisonUI <- function(id, label = 'comparison') {
         # Total figures -----------------------------------------------------------
         
         tabItem(tabName = "total",
-                fluidRow(box(plotlyOutput(ns("totalCount")), width = 12, title = "Average count per day",
+                fluidRow(box(plotlyOutput(ns("totalCount")), width = 12, title = "Average daily MHW occurrence per year (% of ocean)",
                              status = "primary", solidHeader = TRUE, collapsible = TRUE),
-                         box(plotlyOutput(ns("totalFirst")), width = 12, title = "Total coverage",
+                         box(plotlyOutput(ns("totalFirst")), width = 12, title = "Total coverage per year (% of ocean)",
                              status = "warning", solidHeader = TRUE, collapsible = TRUE),
-                         box(plotlyOutput(ns("totalCum")), width = 12, title = "Total days per pixel",
+                         box(plotlyOutput(ns("totalCum")), width = 12, title = "Total MHW days per pixel per year",
                              status = "success", solidHeader = TRUE, collapsible = TRUE))),
         
 
         # Daily figures -----------------------------------------------------------
 
         tabItem(tabName = "daily",
-                fluidRow(box(plotlyOutput(ns("dailyCount")), width = 12, title = "Daily count",
+                fluidRow(box(plotlyOutput(ns("dailyCount")), width = 12, title = "Daily count (% of ocean)",
                              status = "primary", solidHeader = TRUE, collapsible = TRUE),
-                         box(plotlyOutput(ns("dailyFirst")), width = 12, title = "Total coverage",
+                         box(plotlyOutput(ns("dailyFirst")), width = 12, title = "Total coverage (% of ocean)",
                              status = "warning", solidHeader = TRUE, collapsible = TRUE),
-                         box(plotlyOutput(ns("dailyCum")), width = 12, title = "Days per pixel",
+                         box(plotlyOutput(ns("dailyCum")), width = 12, title = "MHW days per pixel",
                              status = "success", solidHeader = TRUE, collapsible = TRUE))),
         
         # Map figures -------------------------------------------------------------

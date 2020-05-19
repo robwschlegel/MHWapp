@@ -5,7 +5,9 @@
 # 3: The full annual summary analysis
 # 4: An additional count summary of each category
 # 5: Total summary of all years
-# 6: Animations (not much here yet)
+# 6: Comparisons of the annual summarries of multiple products
+# 7: Animations (not much here yet)
+
 
 # 1: Setup ----------------------------------------------------------------
 
@@ -370,54 +372,54 @@ MHW_total_state <- function(product, chosen_clim){
 # MHW_total_state("CMC", "1992-2018")
 
 # # Stacked barplot of global daily count of MHWs by category
-fig_count_historic <- ggplot(cat_daily, aes(x = t, y = cat_prop_daily_mean)) +
-  geom_bar(aes(fill = category), stat = "identity", show.legend = T,
-           position = position_stack(reverse = TRUE), width = 1) +
-  scale_fill_manual("Category", values = MHW_colours) +
-  scale_y_continuous(limits = c(0, 1),
-                     breaks = seq(0.2, 0.8, length.out = 4),
-                     labels = paste0(seq(20, 80, by = 20), "%")) +
-  scale_x_continuous(breaks = seq(1982, 2019, 5)) +
-  labs(y = "Daily MHW occurrence", x = NULL) +
-  coord_cartesian(expand = F) +
-  theme(axis.title = element_text(size = 14),
-        axis.text = element_text(size = 12),
-        legend.title = element_text(size = 18),
-        legend.text = element_text(size = 16))
-fig_count_historic
+# fig_count_historic <- ggplot(cat_daily, aes(x = t, y = cat_prop_daily_mean)) +
+#   geom_bar(aes(fill = category), stat = "identity", show.legend = T,
+#            position = position_stack(reverse = TRUE), width = 1) +
+#   scale_fill_manual("Category", values = MHW_colours) +
+#   scale_y_continuous(limits = c(0, 1),
+#                      breaks = seq(0.2, 0.8, length.out = 4),
+#                      labels = paste0(seq(20, 80, by = 20), "%")) +
+#   scale_x_continuous(breaks = seq(1982, 2019, 5)) +
+#   labs(y = "Daily MHW occurrence", x = NULL) +
+#   coord_cartesian(expand = F) +
+#   theme(axis.title = element_text(size = 14),
+#         axis.text = element_text(size = 12),
+#         legend.title = element_text(size = 18),
+#         legend.text = element_text(size = 16))
+# fig_count_historic
  
 # # Stacked barplot of cumulative percent of ocean affected by MHWs
-fig_cum_historic <- ggplot(cat_daily, aes(x = t, y = first_n_cum_prop)) +
-  geom_bar(aes(fill = category), stat = "identity", show.legend = T,
-           position = position_stack(reverse = TRUE), width = 1) +
-  scale_fill_manual("Category", values = MHW_colours) +
-  scale_y_continuous(limits = c(0, 1),
-                     breaks = seq(0.2, 0.8, length.out = 4),
-                     labels = paste0(seq(20, 80, by = 20), "%")) +
-  scale_x_continuous(breaks = seq(1982, 2019, 5)) +
-  labs(y = "Total MHW occurrence", x = NULL) +
-  coord_cartesian(expand = F) +
-  theme(axis.title = element_text(size = 14),
-        axis.text = element_text(size = 12),
-        legend.title = element_text(size = 18),
-        legend.text = element_text(size = 16))
-fig_cum_historic
+# fig_cum_historic <- ggplot(cat_daily, aes(x = t, y = first_n_cum_prop)) +
+#   geom_bar(aes(fill = category), stat = "identity", show.legend = T,
+#            position = position_stack(reverse = TRUE), width = 1) +
+#   scale_fill_manual("Category", values = MHW_colours) +
+#   scale_y_continuous(limits = c(0, 1),
+#                      breaks = seq(0.2, 0.8, length.out = 4),
+#                      labels = paste0(seq(20, 80, by = 20), "%")) +
+#   scale_x_continuous(breaks = seq(1982, 2019, 5)) +
+#   labs(y = "Total MHW occurrence", x = NULL) +
+#   coord_cartesian(expand = F) +
+#   theme(axis.title = element_text(size = 14),
+#         axis.text = element_text(size = 12),
+#         legend.title = element_text(size = 18),
+#         legend.text = element_text(size = 16))
+# fig_cum_historic
  
 # # Stacked barplot of average cumulative MHW days per pixel
-fig_prop_historic <- ggplot(cat_daily, aes(x = t, y = cat_n_prop)) +
-  geom_bar(aes(fill = category), stat = "identity", show.legend = T,
-           position = position_stack(reverse = TRUE), width = 1) +
-  scale_fill_manual("Category", values = MHW_colours) +
-  scale_y_continuous(limits = c(0, 90),
-                     breaks = seq(15, 75, length.out = 3)) +
-  scale_x_continuous(breaks = seq(1982, 2019, 5)) +
-  labs(y = "MHW days/pixel", x = NULL) +
-  coord_cartesian(expand = F) +
-  theme(axis.title = element_text(size = 14),
-        axis.text = element_text(size = 12),
-        legend.title = element_text(size = 18),
-        legend.text = element_text(size = 16))
-fig_prop_historic
+# fig_prop_historic <- ggplot(cat_daily, aes(x = t, y = cat_n_prop)) +
+#   geom_bar(aes(fill = category), stat = "identity", show.legend = T,
+#            position = position_stack(reverse = TRUE), width = 1) +
+#   scale_fill_manual("Category", values = MHW_colours) +
+#   scale_y_continuous(limits = c(0, 90),
+#                      breaks = seq(15, 75, length.out = 3)) +
+#   scale_x_continuous(breaks = seq(1982, 2019, 5)) +
+#   labs(y = "MHW days/pixel", x = NULL) +
+#   coord_cartesian(expand = F) +
+#   theme(axis.title = element_text(size = 14),
+#         axis.text = element_text(size = 12),
+#         legend.title = element_text(size = 18),
+#         legend.text = element_text(size = 16))
+# fig_prop_historic
  
 # # Stick them together and save
 # fig_ALL_historic <- ggpubr::ggarrange(fig_count_historic, fig_cum_historic, fig_prop_historic,
@@ -433,10 +435,39 @@ fig_prop_historic
 # print(paste0("Finished calculating historic results at ",Sys.time()))
 
 
-# 6: Animations -----------------------------------------------------------
+# 6: Comparisons ----------------------------------------------------------
+
+# Load the annual summaries
+ann_sum_OISST <- readRDS("data/annual_summary/OISST_cat_daily_1992-2018_total.Rds") %>% 
+  mutate(product = "OISST")
+ann_sum_CCI <- readRDS("data/annual_summary/CCI_cat_daily_1992-2018_total.Rds") %>% 
+  mutate(product = "CCI")
+ann_sum_CMC <- readRDS("data/annual_summary/CMC_cat_daily_1992-2018_total.Rds") %>% 
+  mutate(product = "CMC")
+
+# Combine for further analyses
+ann_sum_ALL <- rbind(ann_sum_OISST, ann_sum_CCI, ann_sum_CMC) %>% 
+  filter(t >= 1992, t <= 2018)
+
+# Highest total daily occurrences; cat_prop_daily_mean
+ann_sum_daily <- ann_sum_ALL %>% 
+  group_by(product, category) %>% 
+  summarise(cat_daily_mean = round(mean(cat_prop_daily_mean), 5)*100)
+
+# Highest total ocean coverage; first_n_cum_prop
+ann_sum_cover <- ann_sum_ALL %>% 
+  group_by(product, category) %>% 
+  summarise(first_n_cum = round(mean(first_n_cum_prop), 5)*100)
+
+# Highest MHW days per pixel; cat_n_prop
+ann_sum_days <- ann_sum_ALL %>% 
+  group_by(product, category) %>% 
+  summarise(cat_n = round(mean(cat_n_prop), 5)*100)
+
+
+# 7: Animations -----------------------------------------------------------
 
 # setwd("figures") # Need to change working directory for animation code to be able to access png files
 # system.time(system("convert -delay 100 *.png ../anim/MHW_cat_summary.mp4")) # 139 seconds
 # setwd("../")
-
 
