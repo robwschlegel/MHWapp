@@ -208,12 +208,17 @@ aboutUI <- function(id, label = 'About') {
            br(),
            h2("References"),
            br(),
-           p("Any use of the NOAA OISST data should be accompanied by the following two references:"),
+           p("Any use of the NOAA OISST data should be accompanied by the following reference:"),
+           p("Reynolds, R. W., Smith, T. M., Liu, C., Chelton, D. B., Casey, K. S., and Schlax, M. G. (2007). 
+             Daily high-resolution-blended analyses for sea surface temperature. J. Clim. 20, 5473–5496. doi: 10.1175/2007JCLI1824.1"),
+           p("The use of v2.0 data should additionally be accompanied with this reference:"),
            p("Banzon, V., Smith, T. M., Chin, T. M., Liu, C., and Hankins, W. (2016). 
              A long-term record of blended satellite and in situ sea-surface temperature for climate monitoring, 
              modeling and environmental studies. Earth Syst. Sci. Data 8, 165–176. doi: 10.5194/essd-8-165-2016"),
-           p("Reynolds, R. W., Smith, T. M., Liu, C., Chelton, D. B., Casey, K. S., and Schlax, M. G. (2007). 
-             Daily high-resolution-blended analyses for sea surface temperature. J. Clim. 20, 5473–5496. doi: 10.1175/2007JCLI1824.1"),
+           p("The use of v2.1 data should refer to this publication:"),
+           p("Banzon, V., Smith, T. M., Steele, M., Huang, B., & Zhang, H. M. (2020). 
+             Improved Estimation of Proxy Sea Surface Temperature in the Arctic. 
+             Journal of Atmospheric and Oceanic Technology, 37(2), 341-349. doi: 10.1175/JTECH-D-19-0177.1"),
            br(),
            p("The marine heatwave data displayed in this app were calculated with the heatwaveR R package. To cite 
              heatwaveR in publications please use:"),
