@@ -392,7 +392,7 @@ MHW_total_state_fig <- function(df, product, chosen_clim){
           axis.text = element_text(size = 12),
           legend.title = element_text(size = 18),
           legend.text = element_text(size = 16))
-  fig_count_historic
+  # fig_count_historic
 
   # Stacked barplot of cumulative percent of ocean affected by MHWs
   fig_cum_historic <- ggplot(df, aes(x = t, y = first_n_cum_prop)) +
@@ -409,7 +409,7 @@ MHW_total_state_fig <- function(df, product, chosen_clim){
           axis.text = element_text(size = 12),
           legend.title = element_text(size = 18),
           legend.text = element_text(size = 16))
-  fig_cum_historic
+  # fig_cum_historic
 
   # Stacked barplot of average cumulative MHW days per pixel
   fig_prop_historic <- ggplot(df, aes(x = t, y = cat_n_prop)) +
@@ -425,18 +425,25 @@ MHW_total_state_fig <- function(df, product, chosen_clim){
           axis.text = element_text(size = 12),
           legend.title = element_text(size = 18),
           legend.text = element_text(size = 16))
-  fig_prop_historic
+  # fig_prop_historic
 
+  # Create the figure title
+  product_title <- product
+  if(product == "OISST") product_title <- "NOAA OISST"
+  min_year <- min(df$t)
+  max_year <- max(df$t)
+  clim_title <- gsub("-", " - ", chosen_clim)
+  fig_title <- paste0("MHW category summaries: ",min_year," - ",max_year,
+                      "\n",product_title,"; Climatogy period: ",clim_title)
+  
   # Stick them together and save
   fig_ALL_historic <- ggpubr::ggarrange(fig_count_historic, fig_cum_historic, fig_prop_historic,
                                         ncol = 3, align = "hv", labels = c("(a)", "(b)", "(c)"), hjust = -0.1,
                                         font.label = list(size = 14), common.legend = T, legend = "bottom")
-  fig_ALL_cap <- grid::textGrob(paste0("MHW category summaries: 1982 - 2019",
-                                       "\nNOAA OISST; Climatogy period: 1982 - 2011"),
-                                x = 0.01, just = "left", gp = grid::gpar(fontsize = 20))
+  fig_ALL_cap <- grid::textGrob(fig_title, x = 0.01, just = "left", gp = grid::gpar(fontsize = 20))
   fig_ALL_full <- ggpubr::ggarrange(fig_ALL_cap, fig_ALL_historic, heights = c(0.25, 1), nrow = 2)
   ggsave(fig_ALL_full, filename = paste0("figures/",product,"_cat_historic_",chosen_clim,".png"), height = 4.25, width = 12)
-  # ggsave(fig_ALL_full, filename = paste0("figures/MHW_cat_historic.eps"), height = 4.25, width = 12)
+  # ggsave(fig_ALL_full, filename = paste0("figures/",product,"_cat_historic_",chosen_clim,".eps"), height = 4.25, width = 12)
 }
 
 ## Run them all
@@ -455,8 +462,8 @@ CMC_1992_2018 <- readRDS("data/annual_summary/CMC_cat_daily_1992-2018_total.Rds"
 MHW_total_state_fig(CMC_1992_2018, "CMC", "1992-2018")
 
 # Look at a total sum
-OISST_1982_2011_sum <- OISST_1982_2011 %>% 
-  group_by(t) %>% 
+OISST_1982_2011_sum <- OISST_1982_2011 %>%
+  group_by(t) %>%
   summarise_if(is.numeric, sum)
 
 
