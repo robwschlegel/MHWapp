@@ -23,7 +23,7 @@ source("MHW_daily_functions.R")
 
 # The most up-to-date data downloaded
 # For manually testing
-# final_dates <- seq(as.Date("1982-01-01"), as.Date("2015-12-31"), by = "day")
+# final_dates <- seq(as.Date("1982-01-01"), as.Date("2020-05-06"), by = "day")
 # save(final_dates, file = "metadata/final_dates.Rdata")
 # prelim_dates <- seq(as.Date("2016-01-01"), as.Date("2020-04-19"), by = "day")
 # save(prelim_dates, file = "metadata/prelim_dates.Rdata")
@@ -41,7 +41,7 @@ OISST_url_month <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optim
 OISST_url_month_get <- getURL(OISST_url_month)
 OISST_months <- data.frame(months = readHTMLTable(OISST_url_month_get, skip.rows = 1:2)[[1]]$Name) %>% 
   mutate(months = lubridate::as_date(str_replace(as.character(months), "/", "01"))) %>% 
-  filter(months >= max(lubridate::floor_date(final_dates, unit = "month"))) %>% 
+  filter(months >= max(lubridate::floor_date(final_dates, unit = "month"))) %>%
   mutate(months = gsub("-", "", substr(months, 1, 7)))
 
 
@@ -100,12 +100,16 @@ if(nrow(OISST_dat) > 2){
   ncdf_dates <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transforms$time$time, origin = "1970-01-01")
 
   # final_dates index
-  final_dates <- ncdf_dates[ncdf_dates <= max(final_index$t)]
-  save(final_dates, file = "metadata/final_dates.Rdata")
+  if(!is.na(final_index$files[1])){
+    final_dates <- ncdf_dates[ncdf_dates <= max(final_index$t)]
+    save(final_dates, file = "metadata/final_dates.Rdata")
+  }
 
   # prelim_dates index
-  prelim_dates <- ncdf_dates[ncdf_dates >= min(OISST_filenames$t[grepl("prelim", OISST_filenames$files)])]
-  save(prelim_dates, file = "metadata/prelim_dates.Rdata")
+  if(!is.na(prelim_index$files[1])){
+    prelim_dates <- ncdf_dates[ncdf_dates >= min(OISST_filenames$t[grepl("prelim", OISST_filenames$files)])]
+    save(prelim_dates, file = "metadata/prelim_dates.Rdata")
+  }
 }
 
 
