@@ -42,6 +42,9 @@ The code found in this GitHub repo contains everything required to download, pro
   
 ## Updates
 
+* May 28th, 2020
+  * A tweak to the daily pipeline
+
 * May 11th, 2020
   * Added metadata.R and MHW_database.R scripts
 

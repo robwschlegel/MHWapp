@@ -163,12 +163,13 @@ if(ncdf_date > cat_lon_date){
 
 # Get most current processed OISST dates
 time_index <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transforms$time$time, origin = "1970-01-01")
-cat_clim_date <- max(as.Date(sapply(str_split(list.files("../data/cat_clim/", recursive = T), "[.]"), "[[", 3)))
+# cat_clim_date <- max(as.Date(sapply(str_split(list.files("../data/cat_clim/", recursive = T), "[.]"), "[[", 3)))
+load("metadata/final_dates.Rdata")
 
 # Get the range of dates that need to be run
   # Manually control dates as desired
-# update_dates <- seq(as.Date("2020-01-01"), as.Date("2020-05-03"), by = "day")
-update_dates <- time_index[which(time_index > cat_clim_date)]
+# update_dates <- seq(as.Date("2020-04-01"), as.Date("2020-05-26"), by = "day")
+update_dates <- time_index[which(time_index >= max(final_dates))]
 if(length(update_dates) > 0) {
   print(paste0("Updating global MHW files from ",min(update_dates)," to ",max(update_dates)))
   print(paste0("Updating daily cat files at ", Sys.time()))
