@@ -13,8 +13,8 @@ summary <- function(input, output, session) {
   
   # Select years from a dropdown
   summary_year_picker <- pickerInput(inputId = ns("summary_year"), label = h4("Annual summary"),
-                                     choices = seq(1982, lubridate::year(Sys.time())), multiple = FALSE,
-                                     selected = lubridate::year(Sys.time())-1)
+                                     choices = seq(1982, 2019), multiple = FALSE,
+                                     selected = 2018)
   
   # Select SST products from a dropdown
   summary_product_picker <- pickerInput(inputId = ns("summary_product"), label = h4("Product"),
@@ -55,13 +55,14 @@ summary <- function(input, output, session) {
   # The chosen controls per tab
   output$summarySidebarControls <- renderUI({
     if(input$summaryMenu == "summary_annual"){
-      sidebarMenu(summary_clim_period_radio, summary_product_picker, summary_year_picker, annual_caption, download_annual_summary)
+      sidebarMenu(summary_clim_period_radio, summary_product_picker, summary_year_picker)
     } else if(input$summaryMenu == "summary_total"){
-      sidebarMenu(summary_clim_period_radio, summary_product_picker, total_caption, download_total_summary)
+      sidebarMenu(summary_clim_period_radio, summary_product_picker)
     } else {
       # Intentionally empty
     }
   })
+  
   
   # Reactive values ---------------------------------------------------------
   
@@ -80,7 +81,11 @@ summary <- function(input, output, session) {
     req(input$summary_year); req(input$summary_product); req(input$summary_clim_period)
     file_name <- paste0("../data/annual_summary/",input$summary_product,"_cat_daily_",
                         input$summary_clim_period,"_",input$summary_year,".Rds")
-    if(file.exists(file_name)) cat_daily <- readRDS(file_name)
+    if(file.exists(file_name)){
+      cat_daily <- readRDS(file_name) %>% 
+        mutate(first_n_cum_prop = round(first_n_cum/nrow(OISST_ocean_coords), 4),
+               cat_prop = round(cat_n/nrow(OISST_ocean_coords), 4))
+    } 
   })
   
   ## The total summary file
@@ -96,12 +101,13 @@ summary <- function(input, output, session) {
 
   ## Global map of MHW occurrence
   output$summary_map <- renderPlot({
+    req(input$summary_year); req(input$summary_product); req(input$summary_clim_period)
     
     cat_pixel <- cat_pixel()
     
     ggplot(cat_pixel, aes(x = lon, y = lat)) +
       # geom_tile(data = OISST_ice_coords, fill = "powderblue", colour = NA, alpha = 0.5) +
-      geom_tile(aes(fill = category), colour = NA) +
+      geom_tile(aes(fill = category), colour = NA, show.legend = F) +
       geom_polygon(data = map_base, aes(x = lon, y = lat, group = group)) +
       scale_fill_manual("Category", values = MHW_colours) +
       coord_cartesian(expand = F, ylim = c(min(OISST_ocean_coords$lat),
@@ -115,11 +121,12 @@ summary <- function(input, output, session) {
   })
   
   ## Stacked barplot of global daily count of MHWs by category
-  output$annual_daily_count <- renderPlotly({
+  output$summary_daily_count <- renderPlotly({
+    req(input$summary_year); req(input$summary_product); req(input$summary_clim_period)
     
     cat_daily <- cat_daily()
     
-    tdc <- ggplot(cat_daily, aes(x = t, y = cat_prop)) +
+    sdc <- ggplot(cat_daily, aes(x = t, y = cat_prop)) +
       geom_bar(aes(fill = category, text = paste0(t,": ", round(cat_prop*100, 2),"%")), 
                stat = "identity", show.legend = F, position = position_stack(reverse = TRUE), width = 1) +
       scale_fill_manual("Category", values = MHW_colours) +
@@ -127,10 +134,69 @@ summary <- function(input, output, session) {
                          breaks = seq(0.2, 0.8, length.out = 4),
                          labels = paste0(seq(20, 80, by = 20), "%")) +
       scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +
-      labs(y = "Global MHW count\n(non-cumulative)", x = "Day of the year") +
+      # labs(y = "Global MHW count\n(non-cumulative)", x = "Day of the year") +
+      labs(y = "Global MHW count\n(non-cumulative)", x = NULL) +
       coord_cartesian(expand = F) +
-      theme(axis.title = element_text(size = 15),
-            axis.text = element_text(size = 13))
+      theme(axis.title = element_text(size = 10),
+            axis.text = element_text(size = 8),
+            legend.title = element_text(size = 10),
+            legend.text = element_text(size = 8))
+    ggplotly(sdc, tooltip = "text") %>% 
+      layout(hovermode = 'compare', legend = list(orientation = "h", x = -0.1, y = -0.2))
+  })
+  
+  ## Stacked barplot of cumulative percent of ocean affected by MHWs
+  output$summary_cum_perc <- renderPlotly({
+    
+    cat_daily <- cat_daily()
+    
+    scp <- ggplot(cat_daily, aes(x = t, y = first_n_cum_prop)) +
+      geom_bar(aes(fill = category, text = paste0(t,": ", round(first_n_cum_prop*100, 2),"%")),  
+               stat = "identity", show.legend = F, position = position_stack(reverse = TRUE), width = 1) +
+      scale_fill_manual("Category", values = MHW_colours) +
+      scale_y_continuous(limits = c(0, 1),
+                         breaks = seq(0.2, 0.8, length.out = 4),
+                         labels = paste0(seq(20, 80, by = 20), "%")) +
+      scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +
+      # labs(y = "Top MHW category per pixel\n(cumulative)", x = "Day of first occurrence") +
+      labs(y = "Top MHW category per pixel\n(cumulative)", x = NULL) +
+      coord_cartesian(expand = F) +
+      theme(axis.title = element_text(size = 10),
+            axis.text = element_text(size = 8),
+            legend.title = element_text(size = 10),
+            legend.text = element_text(size = 8))
+    ggplotly(scp, tooltip = "text") %>% 
+      layout(hovermode = 'compare', legend = list(orientation = "h", x = -0.1, y = -0.2))
+  })
+  
+  ## Stacked barplot of average cumulative MHW days per pixel
+  output$summary_cum_days <- renderPlotly({
+    
+    cat_daily <- cat_daily()
+  
+    # Create small data.frame for easier labelling
+    cat_daily_labels <- cat_daily %>% 
+      group_by(category) %>% 
+      filter(t == max(t)) %>% 
+      ungroup() %>% 
+      mutate(label_first_n_cum = cumsum(first_n_cum_prop))
+      
+    scd <- ggplot(cat_daily, aes(x = t, y = cat_n_prop)) +
+      geom_bar(aes(fill = category, text = paste0(t,": ", round(cat_n_prop, 2))), 
+               stat = "identity", show.legend = F, position = position_stack(reverse = TRUE), width = 1) +
+      scale_fill_manual("Category", values = MHW_colours) +
+      scale_y_continuous(breaks = round(seq(sum(cat_daily_labels$cat_n_prop)*0.25,
+                                            sum(cat_daily_labels$cat_n_prop)*0.75, length.out = 3), 0)) +
+      scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +  
+      # labs(y = "Average MHW days per pixel\n(cumulative)", x = "Day of the year") +
+      labs(y = "Average MHW days per pixel\n(cumulative)", x = NULL) +
+      coord_cartesian(expand = F) +
+      theme(axis.title = element_text(size = 10),
+            axis.text = element_text(size = 8),
+            legend.title = element_text(size = 10),
+            legend.text = element_text(size = 8))
+    ggplotly(scd, tooltip = "text") %>% 
+      layout(hovermode = 'compare', legend = list(orientation = "h", x = -0.1, y = -0.2))
   })
   
   ## Load chosen year's summary; pre-rendered

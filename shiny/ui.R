@@ -7,7 +7,7 @@ ui <- tagList(shinyjs::useShinyjs(),
                   h2("Loading...")),
               # Nav bar tabs
               navbarPage(title =  "Marine Heatwave Tracker",
-                         selected = 'Summary',
+                         selected = 'Map',
                          tabPanel(title = 'Map',
                                   mapUI('map')),
                          tabPanel(title = 'Comparison',

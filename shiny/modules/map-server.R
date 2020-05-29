@@ -11,8 +11,9 @@ map <- function(input, output, session) {
   #                     #categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
   
   
-# Reactive UI features ----------------------------------------------------
-  
+
+# Reactive UI -------------------------------------------------------------
+
   ### The popup modal when starting the app
   # Open on startup
   observe({
@@ -40,7 +41,9 @@ map <- function(input, output, session) {
                           <hr>
                           After clicking on a pixel of interest, click the <b>Plot pixel</b> button to see more.
                           <hr>
-                          For more information please click on the <b>Summary</b> or <b>About</b> tabs."))
+                          Additional features may be found in the <b>Comparison</b> and <b>Summary</b> tabs. 
+                          <hr>
+                          For more information please click on the <b>About</b> tab."))
   })
   
   ### Switch the display of the Controls on and off
@@ -754,8 +757,7 @@ map <- function(input, output, session) {
   
   ### Create static time series plot
   tsPlot <- reactive({
-    req(input$from_to[1])
-    req(input$from_to[2])
+    req(input$from_to[1]); req(input$from_to[2])
     
     # Get time series
     ts_data <- pixelData()$ts
@@ -845,7 +847,8 @@ map <- function(input, output, session) {
                        xend = input$date[1],
                        y = min(temp), 
                        yend = max(temp),
-                       text = "Date shown"), colour = "limegreen")
+                       text = "Date shown"), 
+                   colour = "limegreen")
     )
     
     # Convert to plotly
@@ -896,7 +899,8 @@ map <- function(input, output, session) {
   ### Interactive lolliplot
   lolliPlotly <- reactive({
     p <- lollilot()
-    pp <- ggplotly(p, tooltip = "text", dynamicTicks = F)
+    pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) #%>%
+      # style(hoverinfo = "none", traces = c(3, 4))
     pp
   })
   

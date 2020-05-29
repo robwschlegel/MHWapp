@@ -29,10 +29,10 @@ summaryUI <- function(id, label = 'summary') {
                             fluidRow(box(plotlyOutput(outputId = ns("summary_daily_count")), width = 4,
                                          title = "Daily MHW occurrence",
                                          status = "primary", solidHeader = TRUE, collapsible = TRUE),
-                                     box(plotOutput(outputId = ns("summary_cum_perc")), width = 4,
+                                     box(plotlyOutput(outputId = ns("summary_cum_perc")), width = 4,
                                          title = "Total MHW coverage",
                                          status = "warning", solidHeader = TRUE, collapsible = TRUE),
-                                     box(plotOutput(ns("summary_cum_days")), width = 4,
+                                     box(plotlyOutput(ns("summary_cum_days")), width = 4,
                                          title = "Average MHW days per pixel",
                                          status = "success", solidHeader = TRUE, collapsible = TRUE))
                             ),
@@ -59,7 +59,9 @@ summaryUI <- function(id, label = 'summary') {
                     # App explanation ---------------------------------------------------------
                     
                     tabItem(tabName = "summary_about", 
-                            h2("This is where the functioning of the app will be explained..."))
+                            h2("This is where the functioning of the app will be explained...")
+                            # h4("")
+                            )
                   )
                 )
   )
