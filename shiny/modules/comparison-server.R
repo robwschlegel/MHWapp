@@ -85,7 +85,7 @@ comparison <- function(input, output, session) {
   })
   # Combine for figures
   cat_daily_ALL <- reactive({
-    req(input$year)
+    req(input$year); req(input$clim_period)
     
     # testers...
     # cat_daily_OISST <- readRDS("../data/annual_summary/OISST_cat_daily_1992-2018_1992.Rds")
@@ -98,16 +98,20 @@ comparison <- function(input, output, session) {
     
     cat_daily_OISST$product <- "OISST"
     
-    if(input$year > 2018){
+    if(input$year > 2018 & input$clim_period == "1992-2018"){
       cat_daily_CMC$product <- "CMC"
       cat_daily_ALL <- rbind(cat_daily_OISST, cat_daily_CMC)
-    } else if(input$year < 1992){
+    } else if(input$year > 2018 & input$clim_period == "1982-2011"){
+      cat_daily_ALL <- cat_daily_OISST
+    } else if(input$year < 1992 | input$clim_period == "1982-2011"){
       cat_daily_CCI$product <- "CCI"
       cat_daily_ALL <- rbind(cat_daily_OISST, cat_daily_CCI)
-    } else{
+    } else if(input$clim_period == "1992-2018"){
       cat_daily_CCI$product <- "CCI"
       cat_daily_CMC$product <- "CMC"
       cat_daily_ALL <- rbind(cat_daily_OISST, cat_daily_CCI, cat_daily_CMC)
+    } else{
+      stop("Something has gone wrong with the daily data selection")
     }
     
     cat_daily_ALL <- cat_daily_ALL %>% 
@@ -210,7 +214,7 @@ comparison <- function(input, output, session) {
   
 
   # Latitude figures --------------------------------------------------------
-
+  
   output$compLat <- renderPlotly({
     req(input$year); req(input$clim_period)
     
@@ -225,18 +229,22 @@ comparison <- function(input, output, session) {
     
     cat_pixel_OISST$product <- "OISST"
     
-    if(input$year > 2018){
+    if(input$year > 2018 & input$clim_period == "1992-2018"){
       cat_pixel_CMC$product <- "CMC"
       cat_pixel_ALL <- rbind(cat_pixel_OISST, cat_pixel_CMC)
-    } else if(input$year < 1992){
+    } else if(input$year > 2018 & input$clim_period == "1982-2011"){
+      cat_pixel_ALL <- cat_pixel_OISST
+    } else if(input$year < 1992 | input$clim_period == "1982-2011"){
       cat_pixel_CCI$product <- "CCI"
       cat_pixel_ALL <- rbind(cat_pixel_OISST, cat_pixel_CCI)
-    } else{
+    } else if(input$clim_period == "1992-2018"){
       cat_pixel_CCI$product <- "CCI"
       cat_pixel_CMC$product <- "CMC"
       cat_pixel_ALL <- rbind(cat_pixel_OISST, cat_pixel_CCI, cat_pixel_CMC) %>% 
         group_by(product, lat) %>% 
         count(category)
+    } else{
+      stop("Something has gone wrong with the latitude data selection")
     }
     
     lat_plot <- ggplot(data = cat_pixel_ALL, aes(x = lat, y = n)) +
@@ -256,7 +264,7 @@ comparison <- function(input, output, session) {
   
 
   # Daily figures -----------------------------------------------------------
-
+  
   # Daily count figure
   output$dailyCount <- renderPlotly({
     req(input$year); req(input$clim_period)
