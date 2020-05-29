@@ -25,11 +25,11 @@ comparison <- function(input, output, session) {
   
   # The chosen controls per tab
   output$sidebar_controls <- renderUI({
-    if(input$mainMenu == "map"){
+    if(input$comparisonMenu == "map"){
       sidebarMenu(radio_clim_period, picker_year)
-    } else if(input$mainMenu == "daily"){
+    } else if(input$comparisonMenu == "daily"){
       sidebarMenu(radio_clim_period, picker_year)
-    } else if(input$mainMenu == "total"){
+    } else if(input$comparisonMenu == "total"){
       sidebarMenu(radio_clim_period)
     } else {
       # Intentionally empty

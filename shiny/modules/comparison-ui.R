@@ -14,7 +14,7 @@ comparisonUI <- function(id, label = 'comparison') {
     
     # The primary options
     dashboardSidebar(
-      sidebarMenu(id = ns("mainMenu"),
+      sidebarMenu(id = ns("comparisonMenu"),
                   menuItem("Total", tabName = "total", icon = icon("chart-bar"), selected = TRUE),
                   menuItem("Daily", tabName = "daily", icon = icon("chart-bar")),
                   menuItem("Map", tabName = "map", icon = icon("map")),
