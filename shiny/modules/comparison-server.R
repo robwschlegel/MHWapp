@@ -14,7 +14,7 @@ comparison <- function(input, output, session) {
   # Select years from a dropdown
   picker_year <- pickerInput(inputId = ns("year"), label = "Year:",
                              choices = seq(1982, 2019), multiple = FALSE,
-                             selected = 1992)
+                             selected = 1992,    options = list(size = 5))
   
   # Select seasons from a dropdown
   picker_season <- pickerInput(inputId = ns("season"), label = "Season:",

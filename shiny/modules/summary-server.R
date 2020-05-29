@@ -80,10 +80,7 @@ summary <- function(input, output, session) {
     req(input$summary_year); req(input$summary_product); req(input$summary_clim_period)
     file_name <- paste0("../data/annual_summary/",input$summary_product,"_cat_daily_",
                         input$summary_clim_period,"_",input$summary_year,".Rds")
-    if(file.exists(file_name)){
-      cat_daily <- readRDS(file_name)
-      return(cat_daily)
-    }
+    if(file.exists(file_name)) cat_daily <- readRDS(file_name)
   })
   
   ## The total summary file
@@ -92,60 +89,51 @@ summary <- function(input, output, session) {
     file_name <- paste0("../data/annual_summary/",input$summary_product,"_cat_daily_",
                         input$summary_clim_period,"_total.Rds")
     if(file.exists(file_name)) cat_total <- readRDS(file_name)
-    return(cat_total)
   })
   
-  
-  # Figures -----------------------------------------------------------------
-  
-  ## The total display
-  ### Stacked barplot of global daily count of MHWs by category
-  output$total_daily_count <- renderPlot({
+
+  # Annual figures ----------------------------------------------------------
+
+  ## Global map of MHW occurrence
+  output$summary_map <- renderPlot({
     
-    cat_total <- cat_total()
+    cat_pixel <- cat_pixel()
     
-    ggplot(cat_total, aes(x = t, y = cat_prop_daily_mean)) +
-      geom_bar(aes(fill = category), stat = "identity", show.legend = T,
-               position = position_stack(reverse = TRUE), width = 1) +
+    ggplot(cat_pixel, aes(x = lon, y = lat)) +
+      # geom_tile(data = OISST_ice_coords, fill = "powderblue", colour = NA, alpha = 0.5) +
+      geom_tile(aes(fill = category), colour = NA) +
+      geom_polygon(data = map_base, aes(x = lon, y = lat, group = group)) +
+      scale_fill_manual("Category", values = MHW_colours) +
+      coord_cartesian(expand = F, ylim = c(min(OISST_ocean_coords$lat),
+                                           max(OISST_ocean_coords$lat))) +
+      theme_void() +
+      guides(fill = guide_legend(override.aes = list(size = 10))) +
+      theme(legend.position = "bottom",
+            legend.text = element_text(size = 14),
+            legend.title = element_text(size = 16),
+            panel.background = element_rect(fill = "grey90"))
+  })
+  
+  ## Stacked barplot of global daily count of MHWs by category
+  output$annual_daily_count <- renderPlotly({
+    
+    cat_daily <- cat_daily()
+    
+    tdc <- ggplot(cat_daily, aes(x = t, y = cat_prop)) +
+      geom_bar(aes(fill = category, text = paste0(t,": ", round(cat_prop*100, 2),"%")), 
+               stat = "identity", show.legend = F, position = position_stack(reverse = TRUE), width = 1) +
       scale_fill_manual("Category", values = MHW_colours) +
       scale_y_continuous(limits = c(0, 1),
                          breaks = seq(0.2, 0.8, length.out = 4),
                          labels = paste0(seq(20, 80, by = 20), "%")) +
-      scale_x_continuous(breaks = seq(1982, 2019, 5)) +
-      labs(y = "Daily MHW occurrence", x = NULL) +
+      scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +
+      labs(y = "Global MHW count\n(non-cumulative)", x = "Day of the year") +
       coord_cartesian(expand = F) +
-      guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
-      theme(axis.title = element_text(size = 14),
-            axis.text = element_text(size = 12),
-            legend.position = "bottom",
-            legend.title = element_text(size = 18),
-            legend.text = element_text(size = 16))
+      theme(axis.title = element_text(size = 15),
+            axis.text = element_text(size = 13))
   })
   
-  ### Stacked barplot of cumulative percent of ocean affected by MHWs
-  output$total_cum_perc <- renderPlot({
-    
-    cat_total <- cat_total()
-    
-    ggplot(cat_total, aes(x = t, y = first_n_cum_prop)) +
-      geom_bar(aes(fill = category), stat = "identity", show.legend = T,
-               position = position_stack(reverse = TRUE), width = 1) +
-      scale_fill_manual("Category", values = MHW_colours) +
-      scale_y_continuous(limits = c(0, 1),
-                         breaks = seq(0.2, 0.8, length.out = 4),
-                         labels = paste0(seq(20, 80, by = 20), "%")) +
-      scale_x_continuous(breaks = seq(1982, 2019, 5)) +
-      labs(y = "Total MHW occurrence", x = NULL) +
-      coord_cartesian(expand = F) +
-      guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
-      theme(axis.title = element_text(size = 14),
-            axis.text = element_text(size = 12),
-            legend.position = "bottom",
-            legend.title = element_text(size = 18),
-            legend.text = element_text(size = 16))
-  })
-  
-  ### Load chosen year's summary; pre-rendered
+  ## Load chosen year's summary; pre-rendered
   output$summary_all <- renderImage({
     return(list(
       src = paste0("../figures/MHW_cat_summary_",input$summary_year,".png"),
@@ -155,7 +143,86 @@ summary <- function(input, output, session) {
     ))
   }, deleteFile = FALSE)
   
-  ### Load chosen year's summary; pre-rendered
+
+  # Total figures -----------------------------------------------------------
+
+  ## Stacked barplot of global daily count of MHWs by category
+  output$total_daily_count <- renderPlotly({
+    
+    cat_total <- cat_total()
+    
+    tdc <- ggplot(cat_total, aes(x = t, y = cat_prop_daily_mean)) +
+      geom_bar(aes(fill = category, text = paste0(t,": ", round(cat_prop_daily_mean*100, 2),"%")), 
+               stat = "identity", show.legend = F, position = position_stack(reverse = TRUE), width = 1) +
+      scale_fill_manual("Category", values = MHW_colours) +
+      scale_y_continuous(limits = c(0, 1),
+                         breaks = seq(0.2, 0.8, length.out = 4),
+                         labels = paste0(seq(20, 80, by = 20), "%")) +
+      scale_x_continuous(breaks = seq(1982, 2019, 5)) +
+      labs(y = "Daily MHW occurrence", x = NULL) +
+      coord_cartesian(expand = F) +
+      guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
+      theme(axis.title = element_text(size = 10),
+            axis.text = element_text(size = 8),
+            legend.position = "bottom",
+            legend.title = element_text(size = 10),
+            legend.text = element_text(size = 8))
+    ggplotly(tdc, tooltip = "text") %>% 
+      layout(hovermode = 'compare', legend = list(orientation = "h", x = -0.1, y = -0.2))
+  })
+  
+  ## Stacked barplot of cumulative percent of ocean affected by MHWs
+  output$total_cum_perc <- renderPlotly({
+    
+    cat_total <- cat_total()
+    
+    tcp <- ggplot(cat_total, aes(x = t, y = first_n_cum_prop)) +
+      geom_bar(aes(fill = category, text = paste0(t,": ", round(first_n_cum_prop*100, 2),"%")), 
+               stat = "identity", show.legend = T, position = position_stack(reverse = TRUE), width = 1) +
+      scale_fill_manual("Category", values = MHW_colours) +
+      scale_y_continuous(limits = c(0, 1),
+                         breaks = seq(0.2, 0.8, length.out = 4),
+                         labels = paste0(seq(20, 80, by = 20), "%")) +
+      scale_x_continuous(breaks = seq(1982, 2019, 5)) +
+      labs(y = "Total MHW occurrence", x = NULL) +
+      coord_cartesian(expand = F) +
+      guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
+      theme(axis.title = element_text(size = 10),
+            axis.text = element_text(size = 8),
+            legend.position = "bottom",
+            legend.title = element_text(size = 10),
+            legend.text = element_text(size = 8))
+    ggplotly(tcp, tooltip = "text") %>% 
+      layout(hovermode = 'compare', legend = list(orientation = "h", x = -0.1, y = -0.2))
+  })
+  
+  ## Stacked barplot of average cumulative MHW days per pixel
+  output$total_cum_days <- renderPlotly({
+    
+    cat_total <- cat_total()
+    
+    tcd <- ggplot(cat_total, aes(x = t, y = cat_n_prop)) +
+      geom_bar(aes(fill = category, text = paste0(t,": ", round(cat_n_prop, 2))), 
+               stat = "identity", show.legend = T, position = position_stack(reverse = TRUE), width = 1) +
+      scale_fill_manual("Category", values = MHW_colours) +
+      scale_y_continuous(limits = c(0, 90),
+                         breaks = seq(15, 75, length.out = 3)) +
+      scale_x_continuous(breaks = seq(1982, 2019, 5)) +
+      guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
+      labs(y = "MHW days/pixel", x = NULL) +
+      coord_cartesian(expand = F) +
+      theme(axis.title = element_text(size = 10),
+            axis.text = element_text(size = 8),
+            legend.position = "bottom",
+            legend.title = element_text(size = 10),
+            legend.text = element_text(size = 8))
+    ggplotly(tcd, tooltip = "text") %>% 
+      layout(hovermode = 'compare', legend = list(orientation = "h", x = -0.1, y = -0.2))
+  })
+  
+  ## Total caption
+  
+  ## Load chosen year's summary; pre-rendered
   output$total_all <- renderImage({
     return(list(
       src = paste0("../figures/MHW_cat_historic.png"),
