@@ -9,9 +9,9 @@ summaryUI <- function(id, label = 'summary') {
                 # The primary options
                 dashboardSidebar(
                   sidebarMenu(id = ns("summaryMenu"),
-                              menuItem("Annual", tabName = "summary_annual", icon = icon("chart-bar")),
+                              menuItem("Annual", tabName = "summary_annual", icon = icon("chart-bar"), selected = TRUE),
                               menuItem("Total", tabName = "summary_total", icon = icon("chart-bar")),
-                              menuItem("About", tabName = "summary_about", icon = icon("question"), selected = TRUE),
+                              menuItem("How To", tabName = "summary_about", icon = icon("question")),
                               # The reactive controls based on the primary option chosen
                               uiOutput(outputId = ns("summarySidebarControls"))
                               )
@@ -24,17 +24,14 @@ summaryUI <- function(id, label = 'summary') {
                     # Annual figures ----------------------------------------------------------
                     
                     tabItem(tabName = "summary_annual",
-                            fluidRow(box(plotOutput(outputId = ns("summary_map")),
+                            fluidRow(box(shinycssloaders::withSpinner(plotOutput(outputId = ns("summary_map")), type = 6, color = "#b0b7be"),
                                          width = 12, title = "Highest MHW category", status = "danger", solidHeader = TRUE, collapsible = TRUE)),
-                            fluidRow(box(plotlyOutput(outputId = ns("summary_daily_count")), width = 4,
-                                         title = "Daily MHW occurrence",
-                                         status = "primary", solidHeader = TRUE, collapsible = TRUE),
-                                     box(plotlyOutput(outputId = ns("summary_cum_perc")), width = 4,
-                                         title = "Total MHW coverage",
-                                         status = "warning", solidHeader = TRUE, collapsible = TRUE),
-                                     box(plotlyOutput(ns("summary_cum_days")), width = 4,
-                                         title = "Average MHW days per pixel",
-                                         status = "success", solidHeader = TRUE, collapsible = TRUE))
+                            fluidRow(box(shinycssloaders::withSpinner(plotlyOutput(outputId = ns("summary_daily_count")), type = 6, color = "#b0b7be"), 
+                                         width = 4, title = "Daily MHW occurrence", status = "primary", solidHeader = TRUE, collapsible = TRUE),
+                                     box(shinycssloaders::withSpinner(plotlyOutput(outputId = ns("summary_cum_perc")), type = 6, color = "#b0b7be"), 
+                                         width = 4, title = "Total MHW coverage", status = "warning", solidHeader = TRUE, collapsible = TRUE),
+                                     box(shinycssloaders::withSpinner(plotlyOutput(ns("summary_cum_days")), type = 6, color = "#b0b7be"), 
+                                         width = 4, title = "Average MHW days per pixel", status = "success", solidHeader = TRUE, collapsible = TRUE))
                             ),
                     
                     
@@ -70,7 +67,7 @@ summaryUI <- function(id, label = 'summary') {
                                          href = "https://www.eea.europa.eu/data-and-maps/data/external/esa-sst-cci-level-4", "ESA CCI SST"), ", and ",
                                        a(target = '_blank', rel = 'noopener noreferrer', 
                                          href = "https://www.eea.europa.eu/data-and-maps/data/external/esa-sst-cci-level-4", "CMC SST"), ". Note that the 
-                                       data seen in the main map of the MHW Tracker are from NOAA OISST. The following section provide additional information."),
+                                       data seen in the main map of the MHW Tracker are from NOAA OISST. The following sections provide additional information."),
                                      h2(tags$b("Annual")),
                                      p("The 'Annual' tab window contains four panels and provides three choices in the side menu. The first choice is a radio
                                        button that allows one to choose between two climatology periods when looking at the annual or total summaries.

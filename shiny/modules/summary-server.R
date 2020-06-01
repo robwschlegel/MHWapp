@@ -58,8 +58,10 @@ summary <- function(input, output, session) {
       sidebarMenu(summary_clim_period_radio, summary_product_picker, summary_year_picker)
     } else if(input$summaryMenu == "summary_total"){
       sidebarMenu(summary_clim_period_radio, summary_product_picker)
-    } else {
+    } else if(input$summaryMenu == "summary_about"){
       # Intentionally empty
+    } else{
+      sidebarMenu(summary_clim_period_radio, summary_product_picker, summary_year_picker)
     }
   })
   

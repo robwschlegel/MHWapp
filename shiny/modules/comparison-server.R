@@ -31,8 +31,10 @@ comparison <- function(input, output, session) {
       sidebarMenu(radio_clim_period, picker_year)
     } else if(input$comparisonMenu == "annual"){
       sidebarMenu(radio_clim_period)
-    } else {
+    } else if(input$comparisonMenu == "about"){
       # Intentionally empty
+    } else{
+      sidebarMenu(radio_clim_period)
     }
   })
 

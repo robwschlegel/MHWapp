@@ -9,11 +9,11 @@ comparisonUI <- function(id, label = 'comparison') {
                 # The primary options
                 dashboardSidebar(
                   sidebarMenu(id = ns("comparisonMenu"),
-                              menuItem("Annual", tabName = "annual", icon = icon("chart-bar")),
-                              menuItem("Daily", tabName = "daily", icon = icon("chart-bar")),
+                              menuItem("Annual", tabName = "annual", icon = icon("chart-line"), selected = TRUE),
+                              menuItem("Daily", tabName = "daily", icon = icon("chart-line")),
                               menuItem("Map", tabName = "map", icon = icon("map")),
                               # menuItem("Tables", tabname = "tables", icon = icon("table")),
-                              menuItem("About", tabName = "about", icon = icon("question"), selected = TRUE),
+                              menuItem("How To", tabName = "about", icon = icon("question")),
                               # The reactive controls based on the primary option chosen
                               uiOutput(outputId = ns("sidebar_controls")))
                 ),
@@ -50,14 +50,14 @@ comparisonUI <- function(id, label = 'comparison') {
                     # Map figures -------------------------------------------------------------
                     
                     tabItem(tabName = "map",
-                            fluidRow(box(plotOutput(ns("compOISST")), width = 4, title = "OISST",
-                                         status = "primary", solidHeader = TRUE, collapsible = TRUE),
-                                     box(plotOutput(ns("compCCI")), width = 4, title = "CCI",
-                                         status = "success", solidHeader = TRUE, collapsible = TRUE),
-                                     box(plotOutput(ns("compCMC")), width = 4, title = "CMC",
-                                         status = "warning", solidHeader = TRUE, collapsible = TRUE)),
-                            fluidRow(box(plotlyOutput(ns("compLat")), width = 12, title = "Latitude",
-                                         status = "danger", solidHeader = TRUE, collapsible = TRUE))),
+                            fluidRow(box(shinycssloaders::withSpinner(plotOutput(ns("compOISST")), type = 6, color = "#b0b7be"),
+                                         width = 4, title = "OISST", status = "primary", solidHeader = TRUE, collapsible = TRUE),
+                                     box(shinycssloaders::withSpinner(plotOutput(ns("compCCI")), type = 6, color = "#b0b7be"), 
+                                         width = 4, title = "CCI", status = "success", solidHeader = TRUE, collapsible = TRUE),
+                                     box(shinycssloaders::withSpinner(plotOutput(ns("compCMC")), type = 6, color = "#b0b7be"), 
+                                         width = 4, title = "CMC", status = "warning", solidHeader = TRUE, collapsible = TRUE)),
+                            fluidRow(box(shinycssloaders::withSpinner(plotlyOutput(ns("compLat")), type = 6, color = "#b0b7be"), 
+                                         width = 12, title = "Latitude", status = "danger", solidHeader = TRUE, collapsible = TRUE))),
                     
                     
                     # Tables ------------------------------------------------------------------
@@ -94,7 +94,7 @@ comparisonUI <- function(id, label = 'comparison') {
                                        shows three line graphs. The x-axis for each line graph is in years. The first line graph shows the average daily 
                                        % of the ocean that experienced MHWs during a given year. The second line graph shows the total % of the ocean that
                                        experienced at least one MHW in a given year. The third line graph shows the average number of MHW days experienced
-                                       by the entire ocean. On each graph their are separate lines for each category of MHW and each product. One may turn
+                                       by the entire ocean. On each graph there are separate lines for each category of MHW and each product. One may turn
                                        lines on and off by clicking on the corresponding category/product name in the legend. One may also zoom in on any
                                        area of a plot by clicking and dragging like a selection tool. Hovering over any area of a plot will bring up 
                                        additional information. Hovering over any graph will also bring up a menu bar on the top right with additional
