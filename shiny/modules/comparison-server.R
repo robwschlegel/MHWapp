@@ -29,7 +29,7 @@ comparison <- function(input, output, session) {
       sidebarMenu(radio_clim_period, picker_year)
     } else if(input$comparisonMenu == "daily"){
       sidebarMenu(radio_clim_period, picker_year)
-    } else if(input$comparisonMenu == "total"){
+    } else if(input$comparisonMenu == "annual"){
       sidebarMenu(radio_clim_period)
     } else {
       # Intentionally empty
@@ -338,7 +338,7 @@ comparison <- function(input, output, session) {
   })
   
 
-  # Total figures -----------------------------------------------------------
+  # Annual figures -----------------------------------------------------------
 
   # total count figure
   output$totalCount <- renderPlotly({

@@ -8,7 +8,7 @@ summary <- function(input, output, session) {
   # Radio buttons to choose clim period
   summary_clim_period_radio <- prettyRadioButtons(inputId = ns("summary_clim_period"), label = "Clim. period:",
                                                   choices = c("1982-2011", "1992-2018"),
-                                                  selected = "1992-2018", inline = F,
+                                                  selected = "1982-2011", inline = F,
                                                   status = "primary", fill = TRUE)
   
   # Select years from a dropdown

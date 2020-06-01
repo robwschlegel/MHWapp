@@ -42,6 +42,9 @@ The code found in this GitHub repo contains everything required to download, pro
   
 ## Updates
 
+* June 1st, 2020
+  * Added 'About' text to the revamped 'Comparison' and 'Summary' tabs
+
 * May 28th, 2020
   * A tweak to the daily pipeline
 

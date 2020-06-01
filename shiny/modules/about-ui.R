@@ -5,14 +5,14 @@ aboutUI <- function(id, label = 'About') {
     column(1,
            HTML("")),
     column(10,
-           h2("Welcome!"),
+           h2(tags$b("Welcome!")),
            br(),
            p("You have arrived at the Marine Heatwave (MHW) Tracker. This web application shows the occurrence of MHWs 
              around the world in near-real-time (roughly a one-two day delay). The Tracker also shows daily the 
              historic records for the whole planet going back to January 1st, 1982. There are several other data layers
              offered in the Tracker. Please see the 'How do I use this?' section below for details."),
            br(),
-           h2("What is a Marine Heatwave (MHW)?"),
+           h2(tags$b("What is a Marine Heatwave (MHW)?")),
            br(),
            p("A MHW is generally defined as when the temperature in a given location is in the top 10% of temperatures 
              ever recorded during that time of year for at least 5 straight days. For example, if the coastal waters off
@@ -25,7 +25,7 @@ aboutUI <- function(id, label = 'About') {
              a(target = '_blank', rel = 'noopener noreferrer',
                href = "http://www.marineheatwaves.org/all-about-mhws.html", "link"), "."),
            br(),
-           h2("What do these colours mean?"),
+           h2(tags$b("What do these colours mean?")),
            br(),
            p("In the map panel of the Marine Heatwave Tracker we can see that there is a particular colour palette being used. Each of 
              these four colours corresponds to increasing categories of MHWs as first proposed in ", 
@@ -38,7 +38,7 @@ aboutUI <- function(id, label = 'About') {
              devastating when they persist for more than a month. The last category, 'IV Extreme', is thankfully a rare occurrence.
              It is now known that less than three months of a persistent category four MHW can wipe out entire coastal ecosystems."),
            br(),
-           h2("Why should I care?"),
+           h2(tags$b("Why should I care?")),
            br(),
            p("If you've found your way to this website then you are likely interested in the effects we are having on
              the worlds oceans and probably have your own personal reasons to care about their health. There are
@@ -52,7 +52,7 @@ aboutUI <- function(id, label = 'About') {
              around the world to help anyone that is interested to see if the changes they have noticed in their ocean are 
              due to a MHW or not."),
            br(),
-           h2("How do I use this?"),
+           h2(tags$b("How do I use this?")),
            br(),
            p("This site works similarly to the Google maps we use in day-to-day life. Click and drag to move 
              around the world. Use the mouse scroll to zoom in or out. The 'Date' box in the 'Controls' panel tells us which 
@@ -82,7 +82,7 @@ aboutUI <- function(id, label = 'About') {
              backgrounds to chose from for the map. The 'Coordinates' button opens up a menu that allows the user to input the exact 
              longitude/latitude values desire to jump to a specific point on the map."),
            br(),
-           h2("Where do these data come from?"),
+           h2(tags$b("Where do these data come from?")),
            br(),
            p("The global satellite product used in the Marine Heatwave Tracker is the daily Optimally Interpolated Sea Surface Temperature 
              (OISST) data that may be downloaded from the National Oceanic and Atmospheric Administration (NOAA). Specifically these are 
@@ -111,7 +111,7 @@ aboutUI <- function(id, label = 'About') {
                href = "https://github.com/ZijieZhaoMMHW/m_mhw1.0", "MATLAB"),
              ". The climatology period used for calculating the MHWs is 1982-01-01 to 2011-12-31."),
            br(),
-           h2("What are these different map layers?"),
+           h2(tags$b("What are these different map layers?")),
            br(),
            p("The default map layer, 'Category', shows the categories of the MHW occurring at each pixel on the chosen day. 
              The 'Summary' layer shows the highest category MHW that occurred at each pixel over the course of the chosen year. 
@@ -126,7 +126,7 @@ aboutUI <- function(id, label = 'About') {
              a(target = '_blank', rel = 'noopener noreferrer', href = "https://www.nature.com/articles/s41467-018-03732-9/", "Oliver et al., 2018"),
              " and a more detailed description for them may be found in that publication."),
            br(),
-           h2("Who made this?"),
+           h2(tags$b("Who made this?")),
            br(),
            p("The Marine Heatwave Tracker was developed by ", 
              a(target = '_blank', rel = 'noopener noreferrer', href = "https://theoceancode.netlify.com/", "Robert Schlegel"),
@@ -166,7 +166,7 @@ aboutUI <- function(id, label = 'About') {
            column(1), p("UWC - ", a(target = '_blank', rel = 'noopener noreferrer', href = "https://www.uwc.ac.za", 
                                     "University of the Western Cape")),
            br(),
-           h2("Bugs?"),
+           h2(tags$b("Bugs?")),
            br(),
            p("This app is visually heavy and so appears clumsy on a screen smaller than a laptop (e.g. cell phones or tablets).
              It has been optimised for use on mobile devices as much as is possible."),
@@ -182,7 +182,7 @@ aboutUI <- function(id, label = 'About') {
            p("To report any bugs or to provide any other feedback on the app please contact the developer at:
              robert.schlegel@dal.ca"),
            br(),
-           h2("How do I cite this app?"),
+           h2(tags$b("How do I cite this app?")),
            br(),
            p("To ",
              a(target = '_blank', rel = 'noopener noreferrer', 
@@ -199,14 +199,14 @@ aboutUI <- function(id, label = 'About') {
                href = "https://github.com/robwschlegel/MHWapp/blob/master/LICENSE.md","MIT License"), ". For questions about the 
              use or adaptation of the source code please contact the developer at: robert.schlegel@dal.ca"),
            br(),
-           h2("Press release"),
+           h2(tags$b("Press release")),
            br(),
            p("A press release was issued for the Marine Heatwave Tracker on May 27th, 2019. A link to the initial release on 
              the Ocean Frontier Institute (OFI) page may be found ", 
              a(target = '_blank', rel = 'noopener noreferrer',
                href = "https://oceanfrontierinstitute.com/news/news/the-ocean-feels-the-heat", "here"), "."),
            br(),
-           h2("References"),
+           h2(tags$b("References")),
            br(),
            p("Any use of the NOAA OISST data should be accompanied by the following reference:"),
            p("Reynolds, R. W., Smith, T. M., Liu, C., Chelton, D. B., Casey, K. S., and Schlax, M. G. (2007). 
