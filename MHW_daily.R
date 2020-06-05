@@ -163,7 +163,6 @@ if(ncdf_date > cat_lon_date){
 
 # Get most current processed OISST dates
 time_index <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transforms$time$time, origin = "1970-01-01")
-# cat_clim_date <- max(as.Date(sapply(str_split(list.files("../data/cat_clim/", recursive = T), "[.]"), "[[", 3)))
 load("metadata/final_dates.Rdata")
 
 # Get the range of dates that need to be run

@@ -335,7 +335,7 @@ Sys.sleep(10); gc()
 ## Only run this to fully rectangle ALL of the CCI data
 # This takes roughly 15 hours on 25 cores
 # registerDoParallel(cores = 20)
-# plyr::l_ply(8:15, load_lon_full, .parallel = F, product = "CCI",
+# plyr::l_ply(1:15, load_lon_full, .parallel = F, product = "CCI",
             # date_start = as.Date("1981-09-01"), date_end = as.Date("2018-12-31"))
 
 

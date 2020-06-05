@@ -10,7 +10,7 @@
 .libPaths(c("~/R-packages", .libPaths()))
 suppressPackageStartupMessages({
 library(tidyverse)
-library(rerddap)
+# library(rerddap)
 library(tidync)
 library(ncdf4)
 library(abind)
@@ -272,7 +272,7 @@ sst_seas_thresh_merge <- function(lon_step, date_range){
 
 # Function for updating the MHW event metric lon slice files
 # tester...
-# lon_step <- lon_OISST[2]
+# lon_step <- lon_OISST[303]
 MHW_event_cat_update <- function(lon_step, full = F){
   
   # load the final download date
@@ -282,24 +282,8 @@ MHW_event_cat_update <- function(lon_step, full = F){
   lon_row <- which(lon_OISST == lon_step)
   lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
   
-  # Load current lon slice for event/category
-  MHW_event_data <- na.omit(readRDS(MHW_event_files[lon_row]))
-  if(MHW_event_data$lon[1] != lon_step) stop(paste0("The lon_row indexing has broken down somewhere for ",lon_row_pad))
-  MHW_cat_lon <- na.omit(readRDS(cat_lon_files[lon_row]))
-  if(MHW_cat_lon$lon[1] != lon_step) stop(paste0("The lon_row indexing has broken down somewhere for ",lon_row_pad))
-  
   # Begin the calculations
   # print(paste0("Began run on ",MHW_event_files[lon_row]," at ",Sys.time()))
-  
-  # Determine how far back in time to get old data based on the occurrence of previous MHWs
-  # The problem here is that sometimes the prelim data will dip below the threshold long enough
-  # that the MHW will be considered finished and the code would incorrectly begin calculating another MHW
-  # To correct for this we must use the final_dates R object, which is tied to the OISST downloading
-  # We then go back one event before the final data end date to ensure we are not missing anything
-  previous_event_index <- MHW_event_data %>% 
-    group_by(lon, lat) %>% 
-    filter(date_start < max(final_dates)) %>%
-    filter(event_no == max(event_no)-2)
   
   # Extract each pixel time series based on how far back the oldest event occurred for the entire longitude slice
   # Or calculate events for the full time series
@@ -311,6 +295,30 @@ MHW_event_cat_update <- function(lon_step, full = F){
                                              date_range = min(previous_event_index$date_start))
   }
   
+  # Load current lon slice for event/category
+  if(full){
+    MHW_event_data <- data.frame()
+    MHW_cat_lon <- data.frame()
+    previous_event_index <- data.frame(lon = sst_seas_thresh$lon[1],
+                                       lat = unique(sst_seas_thresh$lat),
+                                       event_no = 0, date_end = min(sst_seas_thresh$t))
+  } else{
+    MHW_event_data <- na.omit(readRDS(MHW_event_files[lon_row]))
+    if(MHW_event_data$lon[1] != lon_step) stop(paste0("The lon_row indexing has broken down somewhere for ",lon_row_pad))
+    MHW_cat_lon <- na.omit(readRDS(cat_lon_files[lon_row]))
+    if(MHW_cat_lon$lon[1] != lon_step) stop(paste0("The lon_row indexing has broken down somewhere for ",lon_row_pad))
+    
+    # Determine how far back in time to get old data based on the occurrence of previous MHWs
+    # The problem here is that sometimes the prelim data will dip below the threshold long enough
+    # that the MHW will be considered finished and the code would incorrectly begin calculating another MHW
+    # To correct for this we must use the final_dates R object, which is tied to the OISST downloading
+    # We then go back one event before the final data end date to ensure we are not missing anything
+    previous_event_index <- MHW_event_data %>% 
+      group_by(lon, lat) %>% 
+      filter(date_start < max(final_dates)) %>%
+      filter(event_no == max(event_no)-2)
+  }
+  
   # Calculate new event metrics with new data as necessary
   # system.time(
   MHW_event_cat <- previous_event_index %>% 
@@ -320,9 +328,10 @@ MHW_event_cat_update <- function(lon_step, full = F){
     mutate(event_cat_res = map(data, event_calc,
                                sst_seas_thresh = sst_seas_thresh,
                                MHW_event_data = MHW_event_data,
-                               MHW_cat_lon = MHW_cat_lon)) %>% 
+                               MHW_cat_lon = MHW_cat_lon,
+                               full = full)) %>% 
     ungroup() %>% 
-    select(-data, -lat2) %>%
+    dplyr::select(-data, -lat2) %>%
     unnest(cols = event_cat_res)
   # ) # ~28 seconds for 478 pixels
   
@@ -341,7 +350,7 @@ MHW_event_cat_update <- function(lon_step, full = F){
 # Function for extracting correct SST data based on pre-determined subsets
 # It also calculates and returns corrected MHW metric results
 # df <- previous_event_index[148,]
-event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon){
+event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon, full){
   
   # Extract necessary SST
   sst_step_1 <- sst_seas_thresh %>% 
@@ -354,22 +363,30 @@ event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon){
     mutate(lon = df$lon, lat = df$lat) %>% 
     dplyr::select(lon, lat, event_no, duration:intensity_max, intensity_cumulative) %>%
     mutate_all(round, 3)
-  event_step_2 <- MHW_event_data %>%
-    filter(lat == df$lat,
-           date_end <= df$date_end) %>%
-    rbind(event_step_1) %>%
-    mutate(event_no = seq_len(n()))
+  if(full){
+    event_step_2 <- event_step_1
+  } else{
+    event_step_2 <- MHW_event_data %>%
+      filter(lat == df$lat,
+             date_end <= df$date_end) %>%
+      rbind(event_step_1) %>%
+      mutate(event_no = seq_len(n()))
+  }
   
   # Calculate categories
   cat_step_1 <- category(event_base, climatology = T)$climatology %>% 
     mutate(event_no = event_no + df$event_no,
            lon = df$lon,
            lat = df$lat) %>% 
-    select(t, lon, lat, event_no, intensity, category)
-  cat_step_2 <- MHW_cat_lon %>%
-    filter(lat == df$lat,
-           t <= df$date_end) %>%
-    rbind(cat_step_1)
+    dplyr::select(t, lon, lat, event_no, intensity, category)
+  if(full){
+    cat_step_2 <- cat_step_1
+  } else{
+    cat_step_2 <- MHW_cat_lon %>%
+      filter(lat == df$lat,
+             t <= df$date_end) %>%
+      rbind(cat_step_1)
+  }
   
   # Exit
   event_cat <- list(event = event_step_2,
