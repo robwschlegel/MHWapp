@@ -272,7 +272,7 @@ sst_seas_thresh_merge <- function(lon_step, date_range){
 
 # Function for updating the MHW event metric lon slice files
 # tester...
-# lon_step <- lon_OISST[303]
+# lon_step <- lon_OISST[88]
 MHW_event_cat_update <- function(lon_step, full = F){
   
   # load the final download date
@@ -285,23 +285,12 @@ MHW_event_cat_update <- function(lon_step, full = F){
   # Begin the calculations
   # print(paste0("Began run on ",MHW_event_files[lon_row]," at ",Sys.time()))
   
-  # Extract each pixel time series based on how far back the oldest event occurred for the entire longitude slice
-  # Or calculate events for the full time series
-  if(full){
-    sst_seas_thresh <- sst_seas_thresh_merge(lon_step, 
-                                             date_range = as.Date("1982-01-01"))
-  } else {
-    sst_seas_thresh <- sst_seas_thresh_merge(lon_step, 
-                                             date_range = min(previous_event_index$date_start))
-  }
-  
   # Load current lon slice for event/category
   if(full){
     MHW_event_data <- data.frame()
     MHW_cat_lon <- data.frame()
-    previous_event_index <- data.frame(lon = sst_seas_thresh$lon[1],
-                                       lat = unique(sst_seas_thresh$lat),
-                                       event_no = 0, date_end = min(sst_seas_thresh$t))
+    previous_event_index <- data.frame(lon = lon_step, lat = lat_OISST,
+                                       event_no = 0, date_end = as.Date("1982-01-01"))
   } else{
     MHW_event_data <- na.omit(readRDS(MHW_event_files[lon_row]))
     if(MHW_event_data$lon[1] != lon_step) stop(paste0("The lon_row indexing has broken down somewhere for ",lon_row_pad))
@@ -317,6 +306,16 @@ MHW_event_cat_update <- function(lon_step, full = F){
       group_by(lon, lat) %>% 
       filter(date_start < max(final_dates)) %>%
       filter(event_no == max(event_no)-2)
+  }
+  
+  # Extract each pixel time series based on how far back the oldest event occurred for the entire longitude slice
+  # Or calculate events for the full time series
+  if(full){
+    sst_seas_thresh <- sst_seas_thresh_merge(lon_step, 
+                                             date_range = as.Date("1982-01-01"))
+  } else {
+    sst_seas_thresh <- sst_seas_thresh_merge(lon_step, 
+                                             date_range = min(previous_event_index$date_start))
   }
   
   # Calculate new event metrics with new data as necessary
@@ -356,6 +355,7 @@ event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon, full){
   sst_step_1 <- sst_seas_thresh %>% 
     filter(lat == df$lat,
            t >= df$date_end)
+  if(nrow(sst_step_1) == 0) return()
   
   # Calculate events
   event_base <- detect_event(sst_step_1)
