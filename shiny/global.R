@@ -79,10 +79,10 @@ menu_panel_left <- 10
 # sidepanel.width <- 400
 
 ### The different layer groupings
-cat_layers <- c("Category", "Summary")
-rb_layers <- c("Anomaly", "Trend: Count", "Trend: Duration", 
+cat_layers <- c("Category: OISST", "Summary: OISST")
+rb_layers <- c("Anomaly: OISST", "Trend: Count", "Trend: Duration",
                "Trend: Intensity (mean)", "Trend: Intensity (max)")
-trend_layers <- c("Trend: Count", "Trend: Duration", 
+trend_layers <- c("Trend: Count", "Trend: Duration",
                   "Trend: Intensity (mean)", "Trend: Intensity (max)")
 
 ### The lon/lat steps

@@ -23,7 +23,7 @@ source("MHW_daily_functions.R")
 
 # The most up-to-date data downloaded
 # For manually testing
-# final_dates <- seq(as.Date("1982-01-01"), as.Date("2020-05-06"), by = "day")
+# final_dates <- seq(as.Date("1982-01-01"), as.Date("2020-05-31"), by = "day")
 # save(final_dates, file = "metadata/final_dates.Rdata")
 # prelim_dates <- seq(as.Date("2016-01-01"), as.Date("2020-04-19"), by = "day")
 # save(prelim_dates, file = "metadata/prelim_dates.Rdata")
@@ -167,7 +167,7 @@ load("metadata/final_dates.Rdata")
 
 # Get the range of dates that need to be run
   # Manually control dates as desired
-# update_dates <- seq(as.Date("2020-04-01"), as.Date("2020-05-26"), by = "day")
+# update_dates <- seq(as.Date("2020-06-01"), as.Date("2020-06-17"), by = "day")
 update_dates <- time_index[which(time_index >= max(final_dates)-2)]
 if(length(update_dates) > 0) {
   print(paste0("Updating global MHW files from ",min(update_dates)," to ",max(update_dates)))
