@@ -18,29 +18,32 @@ The code found in this GitHub repo contains everything required to download, pro
       * /v2.0/ - This folder contains the annual summaries from the older OISST v2.0 data. The file naming conventions are the same as the following explanations. 
       * /MHW_cat_pixel_X.Rds - These files contain annual summaries of MHW statistics per pixel of the ocean.  
       * /MHW_cat_daily_X.Rds - These files contain annual summaries of MHW statistics per day of that year.  
-      * /MHW_cat_count_X_X.Rds - These files contain the count of MHWs per pixel based on the max category reached by each event. The files marked with an 'N' are annual summaries over the boreal calendar season (Northern Hemisphere, January - December). The files marked with an 'S' are for the autral calendar year (Southern Hemishpere, July - June).  
+      * /MHW_cat_count_X_X.Rds - These files contain the count of MHWs per pixel based on the max category reached by each event. The files marked with an 'N' are annual summaries over the boreal calendar season (Northern Hemisphere, January - December). The files marked with an 'S' are for the austral calendar year (Southern Hemisphere, July - June).  
     * /published/ - This folder contains the script used to process data from MHW related publications for use/display with the Tracker.  
-      * /published.R - This is the script used to do the procesing.  
+      * /published.R - This is the script used to do the processing.  
       * /Oliver_2018.Rds - Results from Oliver et al. 2018 (Nature; https://www.nature.com/articles/s41467-018-03732-9/)  
   * /figures/ - This folder contains pre-rendered annual summaries of MHWs.  
     * /MHW_cat_historic.png - This is a summary of the annual results of MHWs from 1982 to the present.  
-    * /MHW_cat_summary_*.png - These figures contain the visual summary og each year.  
+    * /MHW_cat_summary_*.png - These figures contain the visual summary of each year.  
   * /metadata/ - This folder contains metadata used for the processing and visualisation of daily MHWs.  
     * /metadata.R - This script is used to create or load the metadata objects used in this project.
     * /final_dates.Rdata - This file contains the dates for all of the final processed OISST data available.  
     * /prelim_dates.Rdata - This file contains the dates of the preliminary OISST data. Usually this will be for the most recent two weeks until the data become finalised.  
     * /map_base.Rdata - This is a global map that works nicely with _ggplot2_. It is not used in the Tracker.  
     * /OISST_no_ice_coords.Rdata - These are the coordinates for all pixels in OISST with no ice present.  
-    * /OISST_ocean_coords.Rdata - These are all OISST corrdinates for pixels in the ocean.  
+    * /OISST_ocean_coords.Rdata - These are all OISST coordinates for pixels in the ocean.  
   * /shiny/ - This folder contains the scripts that constitute the MHW Tracker.  
     * /modules/ - Due to the complexity of the MHW Tracker, it is necessary to break it up into multiple smaller scripts. These scripts are called modules and for each tab of the Tracker there is a corresponding -ui.R and -server.R. The -ui.R files show the code that generates the UI for each tab. The -server.R files show the code used on the server side of each tab.  
     * /functions.R - This script contains a few custom made R functions used in the Shiny code.  
-    * /global.R - This script sets up the environmnet within which the Shiny app runs.  
+    * /global.R - This script sets up the environment within which the Shiny app runs.  
     * /server.R - This is the top level server side of the Shiny app. It calls the -server.R modules.  
     * /ui.R - This is the top level UI for the Shiny app. It calls the -ui.R modules.  
     * /style.css - The CSS for the Shiny app.  
   
 ## Updates
+
+* June 23rd, 2020
+  * Fixed a bug in the main pipeline caused by a change in the default behaviour of `dplyr::right_join()` where joining in NA pixels for landmass areas were now being inserted at the bottom of the data.frame instead of in their correctly ordered place. This is why the world looked like it was melting.
 
 * June 1st, 2020
   * Added 'About' text to the revamped 'Comparison' and 'Summary' tabs
@@ -56,7 +59,7 @@ The code found in this GitHub repo contains everything required to download, pro
   * Released as v1.0.1
 
 * May 5th, 2020
-  * The Tracker now uses OISST v2.1 from 2016 onwards
+  * The Tracker now uses OISST v2.1 from 2016 onward
   * The annual summaries from 2016 forwards have been updated accordingly
   * The v2.0 annual summaries are stored in /annual_summaries/v2.0/
   * Added regional analysis links for several Fishforecast pages around Northern Europe
@@ -73,7 +76,7 @@ The code found in this GitHub repo contains everything required to download, pro
 
 * April 6th, 2020
   * Added colourbar for red-blue layers
-  * Upated 'About' section with info for map layers
+  * Updated 'About' section with info for map layers
   * Removed static time series modal tab
   * Added download for time series and lolliplot figures
   * Minor bug fix to event filtering for modal panel figures

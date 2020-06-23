@@ -22,12 +22,14 @@ sst_seas_thresh_ts <- function(lon_step, lat_step){
   tidync_OISST <- tidync::tidync(OISST_files[lon_row]) %>% 
     tidync::hyper_filter(lat = lat == lat_step) %>%
     tidync::hyper_tibble() %>% 
-    mutate(time = as.Date(time, origin = "1970-01-01")) %>% 
-    dplyr::rename(ts_x = time, ts_y = sst) %>%
-    group_by(lon, lat) %>% 
-    group_modify(~heatwaveR:::make_whole_fast(.x)) %>% # This is necessary for the doy column
-    ungroup() %>% 
-    dplyr::rename(t = ts_x, temp = ts_y) %>%
+    mutate(time = as.Date(time, origin = "1970-01-01"),
+           year = year(time)) %>% 
+    dplyr::rename(t = time, temp = sst) %>%
+    mutate(doy = yday(t)) %>% 
+    group_by(year) %>% 
+    mutate(doy = ifelse(!leap_year(year),
+                        ifelse(doy > 59, doy+1, doy), doy)) %>% 
+    ungroup() %>%
     select(lon, lat, t, doy, temp)
   
   if(length(na.omit(tidync_OISST)) == 0){

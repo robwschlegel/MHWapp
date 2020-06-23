@@ -23,7 +23,7 @@ source("MHW_daily_functions.R")
 
 # The most up-to-date data downloaded
 # For manually testing
-# final_dates <- seq(as.Date("1982-01-01"), as.Date("2020-05-31"), by = "day")
+# final_dates <- seq(as.Date("1982-01-01"), as.Date("2020-05-30"), by = "day")
 # save(final_dates, file = "metadata/final_dates.Rdata")
 # prelim_dates <- seq(as.Date("2016-01-01"), as.Date("2020-04-19"), by = "day")
 # save(prelim_dates, file = "metadata/prelim_dates.Rdata")
@@ -65,7 +65,7 @@ OISST_new <- rbind(final_index, prelim_index) %>%
 
 
 # Download the new data
-if(nrow(OISST_new) > 10) stop("A suspicious amount of new files are attempting to be downloaded.")
+# if(nrow(OISST_new) > 10) stop("A suspicious amount of new files are attempting to be downloaded.")
 if(nrow(OISST_new) > 0){
   print(paste0("Downloading new data at ", Sys.time()))
   OISST_dat <- plyr::ldply(OISST_new$full_name, .fun = OISST_url_daily_dl, .parallel = F)
@@ -167,7 +167,7 @@ load("metadata/final_dates.Rdata")
 
 # Get the range of dates that need to be run
   # Manually control dates as desired
-# update_dates <- seq(as.Date("2020-06-01"), as.Date("2020-06-17"), by = "day")
+# update_dates <- seq(as.Date("2020-05-31"), as.Date("2020-06-22"), by = "day")
 update_dates <- time_index[which(time_index >= max(final_dates)-2)]
 if(length(update_dates) > 0) {
   print(paste0("Updating global MHW files from ",min(update_dates)," to ",max(update_dates)))

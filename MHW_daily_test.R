@@ -7,27 +7,48 @@ source("MHW_daily_functions.R")
 
 # 1: Testing the downloaded NOAA data -------------------------------------
 
-# Function for extracting one day of data
-# testers...
-# index_val <- 20
-# file_name <- OISST_files[1]
-extract_OISST_one <- function(index_val){
-  file_name <- OISST_files[index_val]
-  res <- tidync(file_name) %>%
-    hyper_filter(time = time == 18000) %>%
-    hyper_tibble() %>%
-    select(-time, -sst)
-}
+# Front nub
+OISST_url_month <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/"
 
-# Load every pixel for a chosen day
-registerDoParallel(cores = 50)
-OISST_test <- plyr::ldply(lon_OISST, sst_seas_thresh_merge, .parallel = T,
-                          date_range = c(as.Date("2016-12-01"), as.Date("2016-12-01")))
+# Download a day of data and test it directly
+OISST_test <- plyr::ldply(paste0(OISST_url_month, "202006/oisst-avhrr-v02r01.20200601.nc"),
+                          .fun = OISST_url_daily_dl, .parallel = F)
+OISST_test$lon <- ifelse(OISST_test$lon > 180, OISST_test$lon-360, OISST_test$lon)
 
 # test visual
 ggplot(data = OISST_test, aes(x = lon, y = lat)) +
   borders(fill = "grey70", colour = "black") +
-  geom_tile(aes(fill = ts_y))
+  geom_tile(aes(fill = temp))
+
+# Function for extracting one day of data
+extract_OISST_one <- function(index_val, date_val){
+  file_name <- OISST_files[index_val]
+  date_int <- as.integer(date_val)
+  res <- tidync(file_name) %>%
+    hyper_filter(time = time == date_int) %>%
+    hyper_tibble() #%>%
+    # select(-time, -sst)
+}
+
+# Load every pixel for a chosen day
+registerDoParallel(cores = 50)
+OISST_test <- plyr::ldply(1:1440, extract_OISST_one, .parallel = T,
+                          date_val = as.Date("2020-06-21"))
+
+# test visual
+ggplot(data = OISST_test, aes(x = lon, y = lat)) +
+  borders(fill = "grey70", colour = "black") +
+  geom_tile(aes(fill = sst))
+
+# test visuals for data downloaded via MHW_daily.r script
+ggplot(data = filter(OISST_dat, t == "2020-06-20"), aes(x = lon, y = lat)) +
+  borders(fill = "grey70", colour = "black") +
+  geom_tile(aes(fill = temp))
+
+# test the lon lat grid
+ggplot(data = lon_lat_OISST, aes(x = lon, y = lat)) +
+  geom_tile(fill = "red") +
+  borders(fill = "grey70", colour = "black")
 
 
 # 2: Testing the MHW event and cat production -----------------------------
@@ -48,12 +69,10 @@ sst_seas_thresh <- sst_seas_thresh_merge(lon_step = lon_OISST[chosen_sub],
 sst_seas_thresh_sub <- sst_seas_thresh %>% 
   filter(lat == chosen_lat)
 
-
 ## Load events
 MHW_event_data <- readRDS(MHW_event_files[chosen_sub]) %>% 
   filter(lat == chosen_lat)#,
          # date_start >= "2018-01-01")
-
 
 ## Load a daily slice that should have a MHW
 MHW_cat_data <- readRDS(cat_clim_files[which(as.Date("2018-10-15") == seq(as.Date("1982-01-01"), 

@@ -117,7 +117,7 @@ OISST_url_daily_dl <- function(target_URL){
 }
 
 # Function for creating arrays from data.frames
-# df <- OISST_step_2
+# df <- filter(OISST_step, t == 18413)
 OISST_acast <- function(df){
   
   # Ensure correct grid size
@@ -129,7 +129,8 @@ OISST_acast <- function(df){
   
   # Force grid
   res <- df %>%
-    right_join(lon_lat_OISST_sub, by = c("lon", "lat"))
+    right_join(lon_lat_OISST_sub, by = c("lon", "lat")) %>% 
+    arrange(lon, lat)
   
   # Create array
   res_array <- base::array(res$temp, dim = c(720,1,1))
@@ -140,7 +141,7 @@ OISST_acast <- function(df){
 }
 
 # Wrapper function for last step before data are entered into NetCDF files
-# df <- OISST_prelim_sub
+# df <- OISST_final_sub
 OISST_temp <- function(df){
   
   # Filter NA and convert dates to integer
@@ -176,7 +177,7 @@ OISST_merge <- function(lon_step, df){
   # Determine file name
   ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
   # tester...
-  # ncdf_file_name <- paste0("proc/test/test-only-v2.ts.",lon_row_pad,".nc")
+  # ncdf_file_name <- paste0("../data/test/avhrr-only-v2.ts.",lon_row_pad,".nc")
   
   ### Open NetCDF and determine dates present
   nc <- nc_open(ncdf_file_name, write = T)
@@ -241,7 +242,7 @@ OISST_merge <- function(lon_step, df){
 # Function that loads and merges sst/seas/thresh for a given lon_step
 # lon_step <- lon_OISST[2]
 # date_range <- as.Date("2018-01-01")
-# date_range <- c(as.Date("2018-01-01"), as.Date("2018-01-01"))
+# date_range <- c(as.Date("2016-02-01"), as.Date("2017-04-01"))
 sst_seas_thresh_merge <- function(lon_step, date_range){
   
   # Establish lon row number
@@ -254,12 +255,14 @@ sst_seas_thresh_merge <- function(lon_step, date_range){
   tidync_OISST <- tidync(OISST_files[lon_row]) %>% 
     hyper_filter(time = between(time, as.integer(date_range[1]), as.integer(date_range[2]))) %>% 
     hyper_tibble() %>% 
-    mutate(time = as.Date(time, origin = "1970-01-01")) %>% 
-    dplyr::rename(ts_x = time, ts_y = sst) %>%
-    group_by(lon, lat) %>%
-    group_modify(~heatwaveR:::make_whole_fast(.x)) %>% # This is necessary for the doy column
+    mutate(time = as.Date(time, origin = "1970-01-01"),
+           year = year(time)) %>% 
+    dplyr::rename(t = time, temp = sst) %>%
+    mutate(doy = yday(t)) %>% 
+    group_by(year) %>% 
+    mutate(doy = ifelse(!leap_year(year),
+                        ifelse(doy > 59, doy+1, doy), doy)) %>% 
     ungroup() %>%
-    dplyr::rename(t = ts_x, temp = ts_y) %>%
     select(lon, lat, t, doy, temp)
   
   # Merge to seas/thresh and exit
@@ -272,7 +275,7 @@ sst_seas_thresh_merge <- function(lon_step, date_range){
 
 # Function for updating the MHW event metric lon slice files
 # tester...
-# lon_step <- lon_OISST[88]
+# lon_step <- lon_OISST[1]
 MHW_event_cat_update <- function(lon_step, full = F){
   
   # load the final download date
@@ -464,16 +467,16 @@ save_sub_anom <- function(date_choice, df){
 }
 
 # Function for loading global clims and saving each daily file
-# date_range <- c(as.Date("1982-01-01"), as.Date("1982-12-31"))
+# date_range <- c(as.Date("2020-05-31"), as.Date("2020-06-22"))
 anom_global_daily <- function(date_range){
-  print(paste0("Began loading anom data at ",Sys.time()))
+  # print(paste0("Began loading anom data at ",Sys.time()))
   # system.time(
   global_anom <- plyr::ldply(lon_OISST, sst_seas_thresh_merge, .parallel = T,
                              date_range = date_range)
-  # ) # 215 seconds for 1 day, 263 seconds for 1 year
+  # ) # ~50 seconds for 1 day, ~60 seconds for 1 year
   
   # NB: Running this on too many cores may cause RAM issues
-  print(paste0("Began saving anom data at ",Sys.time()))
+  # print(paste0("Began saving anom data at ",Sys.time()))
   doParallel::registerDoParallel(cores = 20)
   plyr::l_ply(seq(min(global_anom$t), max(global_anom$t), by = "day"), 
               save_sub_anom, .parallel = T, df = global_anom)
