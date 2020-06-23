@@ -23,9 +23,9 @@ sst_seas_thresh_ts <- function(lon_step, lat_step){
     tidync::hyper_filter(lat = lat == lat_step) %>%
     tidync::hyper_tibble() %>% 
     mutate(time = as.Date(time, origin = "1970-01-01"),
-           year = year(time)) %>% 
+           year = lubridate::year(time)) %>% 
     dplyr::rename(t = time, temp = sst) %>%
-    mutate(doy = yday(t)) %>% 
+    mutate(doy = lubridate::yday(t)) %>% 
     group_by(year) %>% 
     mutate(doy = ifelse(!leap_year(year),
                         ifelse(doy > 59, doy+1, doy), doy)) %>% 
