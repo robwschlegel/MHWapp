@@ -27,7 +27,7 @@ sst_seas_thresh_ts <- function(lon_step, lat_step){
     dplyr::rename(t = time, temp = sst) %>%
     mutate(doy = lubridate::yday(t)) %>% 
     group_by(year) %>% 
-    mutate(doy = ifelse(!leap_year(year),
+    mutate(doy = ifelse(!lubridate::leap_year(year),
                         ifelse(doy > 59, doy+1, doy), doy)) %>% 
     ungroup() %>%
     select(lon, lat, t, doy, temp)
