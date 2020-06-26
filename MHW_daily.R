@@ -65,7 +65,7 @@ OISST_new <- rbind(final_index, prelim_index) %>%
 
 
 # Download the new data
-# if(nrow(OISST_new) > 10) stop("A suspicious amount of new files are attempting to be downloaded.")
+if(nrow(OISST_new) > 10) stop("A suspicious amount of new files are attempting to be downloaded.")
 if(nrow(OISST_new) > 0){
   print(paste0("Downloading new data at ", Sys.time()))
   OISST_dat <- plyr::ldply(OISST_new$full_name, .fun = OISST_url_daily_dl, .parallel = F)
@@ -125,7 +125,7 @@ if(nrow(OISST_dat) > 2){
 # 2: Update MHW event and category data -----------------------------------
 
 # Prep guide info for this section
-doParallel::registerDoParallel(cores = 50)
+doParallel::registerDoParallel(cores = 25)
 ncdf_date <- max(as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transforms$time$time, origin = "1970-01-01"))
 cat_lon_date <- max(readRDS("../data/cat_lon/MHW.cat.1440.Rda")$t)
 
