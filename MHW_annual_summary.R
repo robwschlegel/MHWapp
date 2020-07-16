@@ -5,7 +5,7 @@
 # 3: The full annual summary analysis
 # 4: An additional count summary of each category
 # 5: Total summary of all years
-# 6: Comparisons of the annual summarries of multiple products
+# 6: Comparisons of the annual summaries of multiple products
 # 7: Animations (not much here yet)
 
 
