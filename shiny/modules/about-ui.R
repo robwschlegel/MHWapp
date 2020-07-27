@@ -171,12 +171,14 @@ aboutUI <- function(id, label = 'About') {
            p("This app is visually heavy and so appears clumsy on a screen smaller than a laptop (e.g. cell phones or tablets).
              It has been optimised for use on mobile devices as much as is possible."),
            p("Occasionally the marine heatwave polygons in the time series plots do not render correctly. 
-             Changing the date selection will cause the figure to re-render correctly."),
+             Changing the date selection will allow the figure to re-render correctly."),
            p("Very rarely when the app starts up no MHW pixels will be displayed. Refreshing the website will fix this."),
            p("The map panel of the app may not render on a machine running on an Apple operating System. This is likely due to a 
              Javascript extension issue and is not caused by the MHW Tracker."),
            p("It has also been noted that the map panel may not show up on Windows operating systems either. This is usually remedied
              by accessing the Tracker in either Internet Explorer or Microsoft Edge."),
+           p("If the MHW pixels appear, but the map remains grey, one may manually change the map selection with the 'Background' 
+             button in the control panel to the left of the screen."),
            p("If problems with viewing the map panel persist, one is encouraged to update the javascript plugins on one's browser of choice."),
            br(),
            p("To report any bugs or to provide any other feedback on the app please contact the developer at:
@@ -190,7 +192,7 @@ aboutUI <- function(id, label = 'About') {
              " the app itself please use:"),
            p("Schlegel, R. W. (2020). Marine Heatwave Tracker. http://www.marineheatwaves.org/tracker. doi: 10.5281/zenodo.3787872"),
            br(),
-           h2("Is the code for the Tracker open source?"),
+           h2(tags$b("Is the code for the Tracker open source?")),
            br(),
            p("Yes. The source code for the MHW Tracker is freely available in a ",
              a(target = '_blank', rel = 'noopener noreferrer', href = "https://github.com/robwschlegel/MHWapp", "GitHub repo"), 

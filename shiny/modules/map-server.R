@@ -19,7 +19,7 @@ map <- function(input, output, session) {
   observe({
     query <- parseQueryString(session$clientData$url_search)
     if(length(query) < 1){
-      # shinyBS::toggleModal(session, "startupModal", "open")
+      shinyBS::toggleModal(session, "startupModal", "open")
     }
   })
   # The content of the welcome window
@@ -66,7 +66,6 @@ map <- function(input, output, session) {
       h3("Select map layer"),
       prettyRadioButtons(inputId = ns("layer"), label = NULL,
                          choices = c(cat_layers, rb_layers),
-                         # selected = "OISST",
                          selected = "Category: OISST",
                          status = "primary",
                          shape = "curve",
@@ -266,10 +265,10 @@ map <- function(input, output, session) {
     query <- parseQueryString(session$clientData$url_search)
     if (!is.null(query[['date']])) {
       date_menu_choice <- as.Date(as.character(query[['date']]))
-      } else{
-        date_menu_choice <- max(current_dates)
-      }
-      if(input$layer %in% c("Category: OISST", "Anomaly: OISST")){
+    } else{
+      date_menu_choice <- max(current_dates)
+    }
+    if(input$layer %in% c("Category: OISST", "Anomaly: OISST")){
         dateInput(inputId = ns("date"),
                   label = NULL, width = '100%',
                   value = date_menu_choice,
@@ -277,11 +276,11 @@ map <- function(input, output, session) {
                   max = max(current_dates))
       } else if(input$layer == "Summary: OISST"){
         selectInput(inputId = ns("date"), label = NULL,
-                    choices = seq(1982, lubridate::year(Sys.time())), 
+                    choices = seq(1982, lubridate::year(Sys.time())),
                     selected = lubridate::year(Sys.time()), multiple = F)
       } else{
-        selectInput(inputId = ns("date"), 
-                    label = NULL, choices = "NA", 
+        selectInput(inputId = ns("date"),
+                    label = NULL, choices = "NA",
                     selected = "NA", multiple = F)
       }
 
@@ -431,7 +430,7 @@ map <- function(input, output, session) {
     if(input$layer %in% cat_layers){
       baseData <- baseDataPre %>%
         dplyr::filter(category %in% categories$categories)
-      # Fix for the issue caused by de-slecting all of the cateogries
+      # Fix for the issue caused by de-selecting all of the categories
       if(length(baseData$category) == 0){
         baseData <- empty_date_map
       }
@@ -677,7 +676,7 @@ map <- function(input, output, session) {
   })
 
   ### The raster layer
-  observeEvent(c(input$date, input$layer,
+  observeEvent(c(input$layer, input$date,
                  input$moderate_filter, input$strong_filter,
                  input$severe_filter, input$extreme_filter), {
                    leafletProxy("map") %>%
@@ -1143,7 +1142,7 @@ map <- function(input, output, session) {
           date_seq_files <- paste0("../data/annual_summary/MHW_cat_count_N_",date_seq_years,".Rds")
           map_data <- plyr::ldply(date_seq_files, readRDS_year)
         } else{
-          # This wil need to be updated in July 2020
+          # This will need to be updated in July 2020
           # date_seq_years <- 2018:2018
           if(2020 %in% date_seq_years) date_seq_years <- date_seq_years[-which(date_seq_years == 2020)]
           if(length(date_seq_years) < 1) date_seq_years <- 2019
