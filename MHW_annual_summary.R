@@ -161,7 +161,7 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, 
     mutate(first_n_cum_prop = round(first_n_cum/nrow(OISST_ocean_coords), 4),
            cat_prop = round(cat_n/nrow(OISST_ocean_coords), 4))
   
-  # Extract small data.frame for easier labelling
+  # Extract small data.frame for easier labeling
   MHW_cat_daily_labels <- MHW_cat_daily %>% 
     group_by(category) %>% 
     filter(t == max(t)) %>% 
