@@ -364,7 +364,9 @@ MHW_total_state <- function(product, chosen_clim){
   cat_daily <- map_dfr(cat_daily_files, readRDS) %>%
   # cat_daily <- map_dfr(dir("data/annual_summary/v2.0", pattern = "cat_daily",
   # full.names = T), readRDS) %>% # The old v2.0 OISST data
-    filter(lubridate::month(t) == 12, lubridate::day(t) == 31) %>%
+    group_by(lubridate::year(t)) %>% 
+    filter(t == max(t)) %>% 
+    # filter(lubridate::month(t) == 12, lubridate::day(t) == 31) %>%
     mutate(t = lubridate::year(t),
            first_n_cum_prop = round(first_n_cum/nrow(OISST_ocean_coords), 4)) %>% 
     left_join(cat_daily_mean, by = c("t", "category"))
