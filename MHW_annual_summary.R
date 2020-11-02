@@ -40,20 +40,27 @@ max_event_date <- function(df){
     ungroup()
 }
 
+
 # 3: Full analysis --------------------------------------------------------
 
 # testers...
 # product <- "OISST"
-# chosen_year <- 2004 
+# chosen_year <- 2020
 # chosen_clim <- "1982-2011"
-MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F){
+MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, database = F){
   
   print(paste0("Started run on ",product, "(", 
                chosen_clim,"): ", chosen_year," at ",Sys.time()))
   
   ## Find file location
-  MHW_cat_files <- dir(paste0("../data/",product,"_cat/", chosen_year), 
-                       full.names = T, pattern = chosen_clim)
+    # NB: The database files are created in 'MHW_database.R'
+  if(database){
+    MHW_cat_files <- dir(paste0("../data/",product,"_cat/", chosen_year), 
+                         full.names = T, pattern = chosen_clim)
+  } else{
+    MHW_cat_files <- dir(paste0("../data/cat_clim/",chosen_year), full.names = T)
+  }
+
   # print(paste0("There are currently ",length(MHW_cat_files)," days of data for ",chosen_year))
   
   ## Create figure title
@@ -249,7 +256,8 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F){
 }
 
 # Run the current year
-# MHW_annual_state(as.numeric(lubridate::year(Sys.Date())), force_calc = T) # 161 seconds
+MHW_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), 
+                 product = "OISST", chosen_clim = "1982-2011", force_calc = T) # 161 seconds
 # MHW_annual_state(2019, force_calc = F)
 
 # Run ALL years
@@ -340,8 +348,10 @@ MHW_annual_count <- function(chosen_year, hemisphere){
 MHW_total_state <- function(product, chosen_clim){
   
   # Create mean values of daily count
-  cat_daily_mean <- map_dfr(dir("data/annual_summary", pattern = paste0(product,"_cat_daily_",chosen_clim),
-                                full.names = T), readRDS) %>%
+  cat_daily_files <- dir("data/annual_summary", full.names = T,
+                         pattern = paste0(product,"_cat_daily_",chosen_clim))
+  cat_daily_files <- cat_daily_files[!grepl("total", cat_daily_files)]
+  cat_daily_mean <- map_dfr(cat_daily_files, readRDS) %>%
   # cat_daily_mean <- map_dfr(dir("data/annual_summary/v2.0", pattern = "cat_daily",
   #                               full.names = T), readRDS) %>% # The old v2.0 OISST data
     mutate(t = lubridate::year(t)) %>%
@@ -351,8 +361,7 @@ MHW_total_state <- function(product, chosen_clim){
     mutate(cat_prop_daily_mean = round(cat_n/nrow(OISST_ocean_coords), 4))
   
   # Extract only values from Decemer 31st
-  cat_daily <- map_dfr(dir("data/annual_summary", pattern = paste0(product,"_cat_daily_",chosen_clim),
-                           full.names = T), readRDS) %>%
+  cat_daily <- map_dfr(cat_daily_files, readRDS) %>%
   # cat_daily <- map_dfr(dir("data/annual_summary/v2.0", pattern = "cat_daily",
   # full.names = T), readRDS) %>% # The old v2.0 OISST data
     filter(lubridate::month(t) == 12, lubridate::day(t) == 31) %>%
@@ -450,51 +459,51 @@ MHW_total_state_fig <- function(df, product, chosen_clim){
 # OISST
 OISST_1982_2011 <- readRDS("data/annual_summary/OISST_cat_daily_1982-2011_total.Rds")
 MHW_total_state_fig(OISST_1982_2011, "OISST", "1982-2011")
-OISST_1992_2018 <- readRDS("data/annual_summary/OISST_cat_daily_1992-2018_total.Rds")
-MHW_total_state_fig(OISST_1992_2018, "OISST", "1992-2018")
+# OISST_1992_2018 <- readRDS("data/annual_summary/OISST_cat_daily_1992-2018_total.Rds")
+# MHW_total_state_fig(OISST_1992_2018, "OISST", "1992-2018")
 # CCI
-CCI_1982_2011 <- readRDS("data/annual_summary/CCI_cat_daily_1982-2011_total.Rds")
-MHW_total_state_fig(CCI_1982_2011, "CCI", "1982-2011")
-CCI_1992_2018 <- readRDS("data/annual_summary/CCI_cat_daily_1992-2018_total.Rds")
-MHW_total_state_fig(CCI_1992_2018, "CCI", "1992-2018")
+# CCI_1982_2011 <- readRDS("data/annual_summary/CCI_cat_daily_1982-2011_total.Rds")
+# MHW_total_state_fig(CCI_1982_2011, "CCI", "1982-2011")
+# CCI_1992_2018 <- readRDS("data/annual_summary/CCI_cat_daily_1992-2018_total.Rds")
+# MHW_total_state_fig(CCI_1992_2018, "CCI", "1992-2018")
 # CMC
-CMC_1992_2018 <- readRDS("data/annual_summary/CMC_cat_daily_1992-2018_total.Rds")
-MHW_total_state_fig(CMC_1992_2018, "CMC", "1992-2018")
+# CMC_1992_2018 <- readRDS("data/annual_summary/CMC_cat_daily_1992-2018_total.Rds")
+# MHW_total_state_fig(CMC_1992_2018, "CMC", "1992-2018")
 
 # Look at a total sum
-OISST_1982_2011_sum <- OISST_1982_2011 %>%
-  group_by(t) %>%
-  summarise_if(is.numeric, sum)
+# OISST_1982_2011_sum <- OISST_1982_2011 %>%
+#   group_by(t) %>%
+#   summarise_if(is.numeric, sum)
 
 
 # 6: Comparisons ----------------------------------------------------------
 
 # Load the annual summaries
-ann_sum_OISST <- readRDS("data/annual_summary/OISST_cat_daily_1992-2018_total.Rds") %>% 
-  mutate(product = "OISST")
-ann_sum_CCI <- readRDS("data/annual_summary/CCI_cat_daily_1992-2018_total.Rds") %>% 
-  mutate(product = "CCI")
-ann_sum_CMC <- readRDS("data/annual_summary/CMC_cat_daily_1992-2018_total.Rds") %>% 
-  mutate(product = "CMC")
+# ann_sum_OISST <- readRDS("data/annual_summary/OISST_cat_daily_1992-2018_total.Rds") %>% 
+#   mutate(product = "OISST")
+# ann_sum_CCI <- readRDS("data/annual_summary/CCI_cat_daily_1992-2018_total.Rds") %>% 
+#   mutate(product = "CCI")
+# ann_sum_CMC <- readRDS("data/annual_summary/CMC_cat_daily_1992-2018_total.Rds") %>% 
+#   mutate(product = "CMC")
 
 # Combine for further analyses
-ann_sum_ALL <- rbind(ann_sum_OISST, ann_sum_CCI, ann_sum_CMC) %>% 
-  filter(t >= 1992, t <= 2018)
+# ann_sum_ALL <- rbind(ann_sum_OISST, ann_sum_CCI, ann_sum_CMC) %>% 
+#   filter(t >= 1992, t <= 2018)
 
 # Highest total daily occurrences; cat_prop_daily_mean
-ann_sum_daily <- ann_sum_ALL %>% 
-  group_by(product, category) %>% 
-  summarise(cat_daily_mean = round(mean(cat_prop_daily_mean), 5)*100)
+# ann_sum_daily <- ann_sum_ALL %>% 
+#   group_by(product, category) %>% 
+#   summarise(cat_daily_mean = round(mean(cat_prop_daily_mean), 5)*100)
 
 # Highest total ocean coverage; first_n_cum_prop
-ann_sum_cover <- ann_sum_ALL %>% 
-  group_by(product, category) %>% 
-  summarise(first_n_cum = round(mean(first_n_cum_prop), 5)*100)
+# ann_sum_cover <- ann_sum_ALL %>% 
+#   group_by(product, category) %>% 
+#   summarise(first_n_cum = round(mean(first_n_cum_prop), 5)*100)
 
 # Highest MHW days per pixel; cat_n_prop
-ann_sum_days <- ann_sum_ALL %>% 
-  group_by(product, category) %>% 
-  summarise(cat_n = round(mean(cat_n_prop), 5)*100)
+# ann_sum_days <- ann_sum_ALL %>% 
+#   group_by(product, category) %>% 
+#   summarise(cat_n = round(mean(cat_n_prop), 5)*100)
 
 
 # 7: Animations -----------------------------------------------------------
