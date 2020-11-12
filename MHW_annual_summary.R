@@ -11,7 +11,7 @@
 
 # 1: Setup ----------------------------------------------------------------
 
-source("MHW_daily_functions.R")
+# source("MHW_daily_functions.R")
 library(dtplyr)
 
 registerDoParallel(cores = 50)
@@ -47,6 +47,8 @@ max_event_date <- function(df){
 # product <- "OISST"
 # chosen_year <- 2020
 # chosen_clim <- "1982-2011"
+# force_calc = T
+# database = F
 MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, database = F){
   
   print(paste0("Started run on ",product, "(", 
@@ -94,8 +96,7 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, 
     
     MHW_intensity <- MHW_cat %>% 
       group_by(lon, lat) %>% 
-      summarise(intensity_sum = sum(intensity)) %>% 
-      ungroup()
+      summarise(intensity_sum = sum(intensity), .groups = "drop")
 
     # system.time(
     MHW_cat_pixel <- MHW_cat %>% 
@@ -133,8 +134,6 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, 
       arrange(t) %>% 
       group_by(category) %>%
       mutate(first_n_cum = cumsum(first_n)) %>% 
-      ungroup() %>% 
-      group_by(category) %>% 
       ungroup()
     # ) # 1 second
     
