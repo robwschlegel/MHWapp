@@ -13,8 +13,8 @@ summary <- function(input, output, session) {
   
   # Select years from a dropdown
   summary_year_picker <- pickerInput(inputId = ns("summary_year"), label = h4("Annual summary"),
-                                     choices = seq(1982, 2019), multiple = FALSE,
-                                     selected = 2018)
+                                     choices = seq(1982, as.numeric(lubridate::year(Sys.Date()))), multiple = FALSE,
+                                     selected = as.numeric(lubridate::year(Sys.Date())))
   
   # Select SST products from a dropdown
   summary_product_picker <- pickerInput(inputId = ns("summary_product"), label = h4("Product"),
@@ -226,7 +226,7 @@ summary <- function(input, output, session) {
       scale_y_continuous(limits = c(0, 1),
                          breaks = seq(0.2, 0.8, length.out = 4),
                          labels = paste0(seq(20, 80, by = 20), "%")) +
-      scale_x_continuous(breaks = seq(1982, 2019, 5)) +
+      scale_x_continuous(breaks = seq(1982, 2020, 5)) +
       labs(y = "Daily MHW occurrence", x = NULL) +
       coord_cartesian(expand = F) +
       guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
@@ -251,7 +251,7 @@ summary <- function(input, output, session) {
       scale_y_continuous(limits = c(0, 1),
                          breaks = seq(0.2, 0.8, length.out = 4),
                          labels = paste0(seq(20, 80, by = 20), "%")) +
-      scale_x_continuous(breaks = seq(1982, 2019, 5)) +
+      scale_x_continuous(breaks = seq(1982, 2020, 5)) +
       labs(y = "Total MHW occurrence", x = NULL) +
       coord_cartesian(expand = F) +
       guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
@@ -275,7 +275,7 @@ summary <- function(input, output, session) {
       scale_fill_manual("Category", values = MHW_colours) +
       scale_y_continuous(limits = c(0, 90),
                          breaks = seq(15, 75, length.out = 3)) +
-      scale_x_continuous(breaks = seq(1982, 2019, 5)) +
+      scale_x_continuous(breaks = seq(1982, 2020, 5)) +
       guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
       labs(y = "MHW days/pixel", x = NULL) +
       coord_cartesian(expand = F) +
