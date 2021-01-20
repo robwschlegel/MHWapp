@@ -257,7 +257,7 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, 
 # Run the current year
 MHW_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), 
                  product = "OISST", chosen_clim = "1982-2011", force_calc = T) # 161 seconds
-# MHW_annual_state(2019, force_calc = F)
+# MHW_annual_state(2020, product = "OISST", chosen_clim = "1982-2011", force_calc = T)
 
 # Run ALL years
 # NB: Running this in parallel will cause a proper stack overflow
