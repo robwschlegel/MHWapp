@@ -180,7 +180,8 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, 
                                          max(OISST_ocean_coords$lat))) +
     theme_void() +
     guides(fill = guide_legend(override.aes = list(size = 10))) +
-    theme(legend.position = "bottom",
+    theme(panel.border = element_rect(colour = "black", fill = NA),
+          legend.position = "bottom",
           legend.text = element_text(size = 14),
           legend.title = element_text(size = 16),
           panel.background = element_rect(fill = "grey90"))
@@ -197,7 +198,8 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, 
     scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +
     labs(y = "Global MHW count\n(non-cumulative)", x = "Day of the year") +
     coord_cartesian(expand = F) +
-    theme(axis.title = element_text(size = 15),
+    theme(panel.border = element_rect(colour = "black", fill = NA),
+          axis.title = element_text(size = 15),
           axis.text = element_text(size = 13))
   # fig_count
   
@@ -215,7 +217,8 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, 
     scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +
     labs(y = "Top MHW category per pixel\n(cumulative)", x = "Day of first occurrence") +
     coord_cartesian(expand = F) +
-    theme(axis.title = element_text(size = 15),
+    theme(panel.border = element_rect(colour = "black", fill = NA),
+          axis.title = element_text(size = 15),
           axis.text = element_text(size = 13))
   # fig_cum
   
@@ -229,7 +232,8 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, 
     scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +  
     labs(y = "Average MHW days per pixel\n(cumulative)", x = "Day of the year") +
     coord_cartesian(expand = F) +
-    theme(axis.title = element_text(size = 15),
+    theme(panel.border = element_rect(colour = "black", fill = NA),
+          axis.title = element_text(size = 15),
           axis.text = element_text(size = 13))
   # fig_prop
   
@@ -257,7 +261,7 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, 
 # Run the current year
 MHW_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), 
                  product = "OISST", chosen_clim = "1982-2011", force_calc = T) # 161 seconds
-# MHW_annual_state(2020, product = "OISST", chosen_clim = "1982-2011", force_calc = T)
+# MHW_annual_state(2016, product = "OISST", chosen_clim = "1982-2011", force_calc = F)
 
 # Run ALL years
 # NB: Running this in parallel will cause a proper stack overflow
@@ -400,7 +404,8 @@ MHW_total_state_fig <- function(df, product, chosen_clim){
     scale_x_continuous(breaks = seq(1982, 2019, 5)) +
     labs(y = "Daily MHW occurrence", x = NULL) +
     coord_cartesian(expand = F) +
-    theme(axis.title = element_text(size = 14),
+    theme(panel.border = element_rect(colour = "black", fill = NA),
+          axis.title = element_text(size = 14),
           axis.text = element_text(size = 12),
           legend.title = element_text(size = 18),
           legend.text = element_text(size = 16))
@@ -417,7 +422,8 @@ MHW_total_state_fig <- function(df, product, chosen_clim){
     scale_x_continuous(breaks = seq(1982, 2019, 5)) +
     labs(y = "Total MHW occurrence", x = NULL) +
     coord_cartesian(expand = F) +
-    theme(axis.title = element_text(size = 14),
+    theme(panel.border = element_rect(colour = "black", fill = NA),
+          axis.title = element_text(size = 14),
           axis.text = element_text(size = 12),
           legend.title = element_text(size = 18),
           legend.text = element_text(size = 16))
@@ -433,7 +439,8 @@ MHW_total_state_fig <- function(df, product, chosen_clim){
     scale_x_continuous(breaks = seq(1982, 2019, 5)) +
     labs(y = "MHW days/pixel", x = NULL) +
     coord_cartesian(expand = F) +
-    theme(axis.title = element_text(size = 14),
+    theme(panel.border = element_rect(colour = "black", fill = NA),
+          axis.title = element_text(size = 14),
           axis.text = element_text(size = 12),
           legend.title = element_text(size = 18),
           legend.text = element_text(size = 16))
