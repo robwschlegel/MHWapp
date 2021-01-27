@@ -355,9 +355,10 @@ MHW_total_state <- function(product, chosen_clim){
   #                               full.names = T), readRDS) %>% # The old v2.0 OISST data
     mutate(t = lubridate::year(t)) %>%
     group_by(t, category) %>%
-    summarise(cat_n = mean(cat_n, na.rm = T)) %>%
+    summarise(cat_n = mean(cat_n, na.rm = T), .groups = "drop") %>%
     ungroup() %>%
-    mutate(cat_prop_daily_mean = round(cat_n/nrow(OISST_ocean_coords), 4))
+    mutate(cat_prop_daily_mean = round(cat_n/nrow(OISST_ocean_coords), 4)) %>% 
+    filter(t <= 2020) # Use this to not include the current partial year
   
   # Extract only values from Decemer 31st
   cat_daily <- map_dfr(cat_daily_files, readRDS) %>%
@@ -368,7 +369,8 @@ MHW_total_state <- function(product, chosen_clim){
     # filter(lubridate::month(t) == 12, lubridate::day(t) == 31) %>%
     mutate(t = lubridate::year(t),
            first_n_cum_prop = round(first_n_cum/nrow(OISST_ocean_coords), 4)) %>% 
-    left_join(cat_daily_mean, by = c("t", "category"))
+    left_join(cat_daily_mean, by = c("t", "category")) %>% 
+    filter(t <= 2020) # Use this to not include the current partial year
   
   # Save and exit
   saveRDS(cat_daily, paste0("data/annual_summary/",product,
@@ -448,7 +450,7 @@ MHW_total_state_fig <- function(df, product, chosen_clim){
   
   # Stick them together and save
   fig_ALL_historic <- ggpubr::ggarrange(fig_count_historic, fig_cum_historic, fig_prop_historic,
-                                        ncol = 3, align = "hv", labels = c("(a)", "(b)", "(c)"), hjust = -0.1,
+                                        ncol = 3, align = "hv", labels = c("A)", "B)", "C)"), hjust = -0.1,
                                         font.label = list(size = 14), common.legend = T, legend = "bottom")
   fig_ALL_cap <- grid::textGrob(fig_title, x = 0.01, just = "left", gp = grid::gpar(fontsize = 20))
   fig_ALL_full <- ggpubr::ggarrange(fig_ALL_cap, fig_ALL_historic, heights = c(0.25, 1), nrow = 2)
@@ -458,8 +460,8 @@ MHW_total_state_fig <- function(df, product, chosen_clim){
 
 ## Run them all
 # OISST
-OISST_1982_2011 <- readRDS("data/annual_summary/OISST_cat_daily_1982-2011_total.Rds")
-MHW_total_state_fig(OISST_1982_2011, "OISST", "1982-2011")
+# OISST_1982_2011 <- readRDS("data/annual_summary/OISST_cat_daily_1982-2011_total.Rds")
+# MHW_total_state_fig(OISST_1982_2011, "OISST", "1982-2011")
 # OISST_1992_2018 <- readRDS("data/annual_summary/OISST_cat_daily_1992-2018_total.Rds")
 # MHW_total_state_fig(OISST_1992_2018, "OISST", "1992-2018")
 # CCI
