@@ -182,7 +182,7 @@ aboutUI <- function(id, label = 'About') {
            p("If problems with viewing the map panel persist, one is encouraged to update the javascript plugins on one's browser of choice."),
            br(),
            p("To report any bugs or to provide any other feedback on the app please contact the developer at:
-             robert.schlegel@dal.ca"),
+             robert.schlegel@imev-mer.fr"),
            br(),
            h2(tags$b("How do I cite this app?")),
            br(),
@@ -199,7 +199,7 @@ aboutUI <- function(id, label = 'About') {
              "and is protected under the terms of the",
              a(target = '_blank', rel = 'noopener noreferrer', 
                href = "https://github.com/robwschlegel/MHWapp/blob/master/LICENSE.md","MIT License"), ". For questions about the 
-             use or adaptation of the source code please contact the developer at: robert.schlegel@dal.ca"),
+             use or adaptation of the source code please contact the developer at: robert.schlegel@imev-mer.fr"),
            br(),
            h2(tags$b("Press release")),
            br(),
