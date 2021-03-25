@@ -401,7 +401,7 @@ MHW_total_state_fig <- function(df, product, chosen_clim){
     scale_y_continuous(limits = c(0, 1),
                        breaks = seq(0.2, 0.8, length.out = 4),
                        labels = paste0(seq(20, 80, by = 20), "%")) +
-    scale_x_continuous(breaks = seq(1982, 2019, 5)) +
+    scale_x_continuous(breaks = seq(1984, 2019, 7)) +
     labs(y = "Daily MHW occurrence", x = NULL) +
     coord_cartesian(expand = F) +
     theme(panel.border = element_rect(colour = "black", fill = NA),
@@ -419,7 +419,7 @@ MHW_total_state_fig <- function(df, product, chosen_clim){
     scale_y_continuous(limits = c(0, 1),
                        breaks = seq(0.2, 0.8, length.out = 4),
                        labels = paste0(seq(20, 80, by = 20), "%")) +
-    scale_x_continuous(breaks = seq(1982, 2019, 5)) +
+    scale_x_continuous(breaks = seq(1984, 2019, 7)) +
     labs(y = "Total MHW occurrence", x = NULL) +
     coord_cartesian(expand = F) +
     theme(panel.border = element_rect(colour = "black", fill = NA),
@@ -436,7 +436,7 @@ MHW_total_state_fig <- function(df, product, chosen_clim){
     scale_fill_manual("Category", values = MHW_colours) +
     scale_y_continuous(limits = c(0, 90),
                        breaks = seq(15, 75, length.out = 3)) +
-    scale_x_continuous(breaks = seq(1982, 2019, 5)) +
+    scale_x_continuous(breaks = seq(1984, 2019, 7)) +
     labs(y = "MHW days/pixel", x = NULL) +
     coord_cartesian(expand = F) +
     theme(panel.border = element_rect(colour = "black", fill = NA),
