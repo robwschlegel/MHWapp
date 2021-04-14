@@ -210,3 +210,22 @@ saveRDS(USGC_MHW_event_file, file = "data/USGC_MHW_event_file.Rds")
 USGC_cat_lon_file <- munge_lon_steps(USGC, cat_lon_files) %>% 
   filter(lat >= 10, lat <= 50)
 saveRDS(USGC_cat_lon_file, file = "data/USGC_cat_lon_file.Rds")
+
+
+# Extract global annual pixel data ----------------------------------------
+
+# Locate files
+cat_pixel_files <- dir("data/annual_summary", full.names = T,
+                       pattern = paste0("OISST_cat_pixel_1982-2011"))
+
+# Load them into one brick
+cat_pixel <- map_dfr(cat_pixel_files, readRDS) 
+
+# Filter down to only 2011-2021
+MHW_global_2011_2021 <- cat_pixel %>% 
+  filter(t >= "2011-01-01")
+
+# Save as a .RData and .csv for convenience
+save(MHW_global_2011_2021, file = "data/MHW_global_2011_2021.RData")
+write_csv(MHW_global_2011_2021, "data/MHW_global_2011_2021.csv")
+
