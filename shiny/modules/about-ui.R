@@ -147,6 +147,8 @@ aboutUI <- function(id, label = 'About') {
                                     "Dalhousie University")),
            column(1), p("MBA - ", a(target = '_blank', rel = 'noopener noreferrer', href = "https://www.mba.ac.uk/", 
                                      "Marine Biological Association")),
+           column(1), p("MEOPAR - ", a(target = '_blank', rel = 'noopener noreferrer', href = "https://meopar.ca/",
+                                       "Marine Environmental Observation, Prediction and Response Network")),
            column(1), p("NESP - ", a(target = '_blank', rel = 'noopener noreferrer', href = "http://nespclimate.com.au/", 
                                      "National Environmental Science Programme")),
            column(1), p("OFI - ", a(target = '_blank', rel = 'noopener noreferrer', href = "https://www.oceanfrontierinstitute.com/", 
