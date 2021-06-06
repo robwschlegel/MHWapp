@@ -2,8 +2,11 @@
 # This script houses all of the functions used in "MHW_daily.R"
 # This is done to keep everything tidier and easier to read
 # 1: Setup the environment
-# 2: Update OISST data functions
-# 
+# 2: Extract MHW results functions
+# 3: Update OISST data functions
+# 4: Update MHW event and category data functions
+# 5: Create daily global file functions
+
 
 # 1: Setup ----------------------------------------------------------------
 
@@ -82,7 +85,7 @@ MHW_cat_event <- function(df){
 # test <- MHW_cat_event(MHW_res)
 
 
-# 1: Update OISST data functions ------------------------------------------
+# 3: Update OISST data functions ------------------------------------------
 
 # Wrapper function to coerce ERDDAP date format to R
 NOAA_date <- function(date_string, piece){
@@ -237,7 +240,7 @@ OISST_merge <- function(lon_step, df){
 }
 
 
-# 2: Update MHW event and category data functions -------------------------
+# 4: Update MHW event and category data functions -------------------------
 
 # Function that loads and merges sst/seas/thresh for a given lon_step
 # lon_step <- lon_OISST[2]
@@ -398,7 +401,7 @@ event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon, full){
 }
 
 
-# 3: Create daily global file functions -----------------------------------
+# 5: Create daily global file functions -----------------------------------
 
 # Function for loading a cat_lon slice and extracting a single day of values
 # testers...
