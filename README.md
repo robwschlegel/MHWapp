@@ -5,7 +5,7 @@ The code found in this GitHub repo contains everything required to download, pro
 ## File structure
 
 * /MHWapp/
-  * /MHW_daily.R - This script is run daily via a cron job. It downloads and processes the global MHW results. This scrip shows the step-by-step workflow used to create the data that are then fed to the MHW Tracker.  
+  * /MHW_daily.R - This script is run daily via a cron job. It downloads and processes the global MHW results. This script shows the step-by-step workflow used to create the data that are then fed to the MHW Tracker.  
   * /MHW_daily_functions.R - This script houses the functions used by MHW_daily.R.  
   * /MHW_daily_test.R - This script houses code used to poke and prod at the MHW_daily.R and MHW_daily_functions.R scripts.  
   * /MHW_annual_summary.R - This script contains code used to calculate annual summaries for MHWs. The figures created in this script are saved in /figures/ and the data files are saved in /data/annual_summary/.  
