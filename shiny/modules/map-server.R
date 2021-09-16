@@ -410,7 +410,7 @@ map <- function(input, output, session) {
     req(input$date)
     if(input$layer == "Category: OISST"){
       req(lubridate::is.Date(input$date))
-      sub_dir <- paste0("cat_clim/",lubridate::year(input$date))
+      sub_dir <- paste0("cat_clim/MHW/",lubridate::year(input$date))
       sub_file <- paste0(sub_dir,"/cat.clim.",input$date,".Rda")
     } else if(input$layer == "MCS categories (OISST)"){
       req(lubridate::is.Date(input$date))

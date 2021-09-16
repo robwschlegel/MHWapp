@@ -65,7 +65,7 @@ if(!dir.exists("OISST")) stop("The 'OISST' folder is missing.")
 if(!dir.exists("thresh")) stop("The 'thresh' folder is missing.")
 
 ### The dates currently processed
-current_dates <- dir(dir("cat_clim", full.names = T), pattern = "cat.clim", full.names = T)
+current_dates <- dir("cat_clim/MHW", recursive = T, pattern = "cat.clim", full.names = T)
 current_dates <- sapply(strsplit(current_dates, split = "cat.clim."), "[[", 3)
 current_dates <- as.Date(sapply(strsplit(current_dates, split = ".Rda"), "[[", 1))
 
@@ -142,7 +142,7 @@ regional_North_Sea <- "https://fishforecasts.dtu.dk/heatwaves/north_sea"
 regional_European_Northwest_Shelf <- "https://fishforecasts.dtu.dk/heatwaves/nw_shelf"
 
 ### Placeholders when invalid dates are typed into date selectors
-empty_date_map <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>% 
+empty_date_map <- readRDS("cat_clim/MHW/1982/cat.clim.1982-01-01.Rda") %>% 
   slice(1) %>% 
   mutate(category = NA)
 # empty_summary_map <- readRDS("../data/annual_summary/MHW_cat_pixel_1982.Rds") %>% 
