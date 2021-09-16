@@ -79,7 +79,7 @@ menu_panel_left <- 10
 # sidepanel.width <- 400
 
 ### The different layer groupings
-cat_layers <- c("Category: OISST", "Summary: OISST")
+cat_layers <- c("Category: OISST", "MCS categories (OISST)", "Summary: OISST")
 rb_layers <- c("Anomaly: OISST", "Trend: Count", "Trend: Duration",
                "Trend: Intensity (mean)", "Trend: Intensity (max)")
 trend_layers <- c("Trend: Count", "Trend: Duration",
@@ -103,7 +103,7 @@ Oliver_2018 <- readRDS("../data/published/Oliver_2018.Rds")
 ### The empty dataframe for the legend
 MHW_cat_clim_sub <- data.frame(category = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
 
-### The category colour pallette
+### The category colour palettes
 MHW_colours <- c(
   "I Moderate" = "#ffc866",
   "II Strong" = "#ff6900",
@@ -112,6 +112,14 @@ MHW_colours <- c(
 )
 # MHW_colours <- data.frame(val = c("#ffc866", "#ff6900", "#9e0000", "#2d0000"),
 #                           label = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
+
+MCS_colours <- c(
+  "I Moderate" = "#C7ECF2",
+  "II Strong" = "#85B7CC",
+  "III Severe" = "#4A6A94",
+  "IV Extreme" = "#111433"#,
+  # "V Ice" = "thistle1"
+)
 
 ### Colour palettes for leaflet
 # pal_factor <- colorFactor(palette = MHW_colours, levels = levels(MHW_cat_clim_sub$category))

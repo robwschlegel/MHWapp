@@ -6,9 +6,11 @@ map <- function(input, output, session) {
   # x <- -42.125
   # y <- 39.875
   # input <- data.frame(date = as.Date("2019-07-19"),
-  #                     layer = "Trend")#,
-  #                     # pixel = "Smooth")
-  #                     #categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
+  #                     layer = "MCS categories (OISST)")
+                      # layer = "Trend")#,
+                      # pixel = "Smooth")
+                      #categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
+  # categories <- data.frame(categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
   
   
 
@@ -54,7 +56,7 @@ map <- function(input, output, session) {
   ### Toggle animation switch on and off
   output$check_animate_UI <- renderUI({
     req(input$layer)
-    if(input$layer %in% c("Category: OISST", "Anomaly: OISST")){
+    if(input$layer %in% c("Category: OISST", "Anomaly: OISST", "MCS categories (OISST)")){
       materialSwitch(inputId = ns("check_animate"), 
                      label = "Animate", status = "primary")
     }
@@ -66,7 +68,8 @@ map <- function(input, output, session) {
       h3("Select map layer"),
       prettyRadioButtons(inputId = ns("layer"), label = NULL,
                          choices = c(cat_layers, rb_layers),
-                         selected = "Category: OISST",
+                         # selected = "Category: OISST",
+                         selected = "MCS categories (OISST)", # For testing
                          status = "primary",
                          shape = "curve",
                          inline = F),
@@ -78,6 +81,8 @@ map <- function(input, output, session) {
   
   ### Reactive category filters
   categories <- reactiveValues(categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
+  
+  ## Reac
   
   ### Moderate filtering button
   # The base reactive value for clicking
@@ -97,14 +102,19 @@ map <- function(input, output, session) {
   # Change button icon upon click
   output$moderate <- renderUI({
     req(input$layer)
+    if(input$layer == "MCS categories (OISST)"){
+      style_react <- "color: black; background-color: #C7ECF2; border-color: black; width: 110px"
+    } else {
+      style_react <- "color: black; background-color: #ffc866; border-color: black; width: 110px"
+    }
     if(input$layer %in% rb_layers){
       # No button when anomaly layer is chosen
     } else if(button_I$clicked){
-      actionButton(inputId = ns("moderate_filter"), "I Moderate", icon = icon("remove", lib = "glyphicon"),
-                   style = "color: black; background-color: #ffc866; border-color: black; width: 110px")     
+      actionButton(inputId = ns("moderate_filter"), "I Moderate", icon = icon("remove", lib = "glyphicon"), style = style_react)
+                   # style = "color: black; background-color: #ffc866; border-color: black; width: 110px")     
     } else {
-      actionButton(inputId = ns("moderate_filter"), "I Moderate", icon = icon("ok", lib = "glyphicon"),
-                   style = "color: black; background-color: #ffc866; border-color: black; width: 110px")
+      actionButton(inputId = ns("moderate_filter"), "I Moderate", icon = icon("ok", lib = "glyphicon"), style = style_react)
+                   # style = "color: black; background-color: #ffc866; border-color: black; width: 110px")
     }
   })
   
@@ -199,7 +209,7 @@ map <- function(input, output, session) {
   output$button_ts <- renderUI({
     req(input$layer)
     # req(input$map_click)
-    if(input$layer %in% c("Category: OISST", "Anomaly: OISST")){
+    if(input$layer %in% c("Category: OISST", "Anomaly: OISST", "MCS categories (OISST)")){
       if(is.null(input$map_click)){
         actionBttn(inputId = ns("does_nothing"), label = "Plot pixel", #icon = icon("map-marked"),
                    style = "pill", color = "danger", size = "md")
@@ -266,9 +276,10 @@ map <- function(input, output, session) {
     if (!is.null(query[['date']])) {
       date_menu_choice <- as.Date(as.character(query[['date']]))
     } else{
-      date_menu_choice <- max(current_dates)
+      # date_menu_choice <- max(current_dates)
+      date_menu_choice <- as.Date("2019-12-31") # For testing
     }
-    if(input$layer %in% c("Category: OISST", "Anomaly: OISST")){
+    if(input$layer %in% c("Category: OISST", "Anomaly: OISST", "MCS categories (OISST)")){
         dateInput(inputId = ns("date"),
                   label = NULL, width = '100%',
                   value = date_menu_choice,
@@ -300,7 +311,7 @@ map <- function(input, output, session) {
     req(input$layer)
     
     # Reactive bits based on the map layer chosen
-    if(input$layer %in% c("Category: OISST", "Anomaly: OISST")){
+    if(input$layer %in% c("Category: OISST", "Anomaly: OISST", "MCS categories (OISST)")){
       date_input <- dateRangeInput(
         inputId = ns("map_download_date"),
         label = h5("Date range"),
@@ -394,6 +405,12 @@ map <- function(input, output, session) {
       req(lubridate::is.Date(input$date))
       sub_dir <- paste0("cat_clim/",lubridate::year(input$date))
       sub_file <- paste0(sub_dir,"/cat.clim.",input$date,".Rda")
+    } else if(input$layer == "MCS categories (OISST)"){
+      req(lubridate::is.Date(input$date))
+      sub_dir <- paste0("cat_clim/MCS/",lubridate::year(input$date))
+      sub_file <- paste0(sub_dir,"/cat.clim.MCS.",input$date,".Rds")
+      # sub_dir <- paste0("cat_clim/",lubridate::year(input$date))
+      # sub_file <- paste0(sub_dir,"/cat.clim.",input$date,".Rda")
     } else if(input$layer == "Summary: OISST"){
       sub_dir <- "../data/annual_summary"
       sub_file <- paste0(sub_dir,"/MHW_cat_pixel_",input$date,".Rds")
@@ -414,11 +431,13 @@ map <- function(input, output, session) {
       baseDataPre <- Oliver_2018 %>% 
         filter(var == "MHW_max_tr")
     }
-    if(input$layer %in% c("Category: OISST", "Summary: OISST", "Anomaly: OISST")){
+    if(input$layer %in% c("Category: OISST", "MCS categories (OISST)", "Summary: OISST", "Anomaly: OISST")){
       if(file.exists(sub_file)){
         baseDataPre <- readRDS(sub_file)
       } else {
         baseDataPre <- empty_date_map
+        # baseDataPre <- readRDS("cat_clim/MCS/1982/cat.clim.MCS.1982-01-01.Rds")
+        # baseDataPre <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda")
       }
     }
     return(baseDataPre)
@@ -444,7 +463,7 @@ map <- function(input, output, session) {
   ### Non-shiny-projected raster data
   rasterNonProj <- reactive({
     baseData <- baseData()
-    if(input$layer %in% c("Category: OISST", "Summary: OISST")){
+    if(input$layer %in% c("Category: OISST", "Summary: OISST", "MCS categories (OISST)")){
       MHW_raster <- baseData %>%
         dplyr::select(lon, lat, category) 
     } else if(input$layer == "Anomaly: OISST"){
@@ -639,7 +658,9 @@ map <- function(input, output, session) {
     } else{
       domain_high <- -domain_low
     }
-    if(input$layer %in% cat_layers){
+    if(input$layer == "MCS categories (OISST)"){
+      colorNumeric(palette = MCS_colours, domain = c(1,2,3,4), na.color = NA)
+    } else if(input$layer %in% cat_layers){
       colorNumeric(palette = MHW_colours, domain = c(1,2,3,4), na.color = NA)
     } else {
       colorNumeric(palette = c( "blue", "white", "red"), na.color = NA, 

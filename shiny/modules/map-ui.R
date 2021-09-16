@@ -3,7 +3,7 @@ mapUI <- function(id, label = 'map') {
   
   fluidPage(
 
-    ### Actvivate underlying javascript to R functionality
+    ### Activate underlying javascript to R functionality
     shinyjs::useShinyjs(),
   
     ### Set the skin for the sliders used
