@@ -108,6 +108,9 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, 
     # ) # 14 seconds
     saveRDS(MHW_cat_pixel, file = paste0("data/annual_summary/",product,"_cat_pixel_",
                                          chosen_clim,"_",chosen_year,".Rds"))
+    if(product == "OISST" & chosen_clim == "1982-2011"){
+      saveRDS(MHW_cat_pixel, file = paste0("data/annual_summary/MHW_cat_pixel_",chosen_year,".Rds"))
+    }
   }
   
   # Daily count and cumulative count per pixel
@@ -153,6 +156,9 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, 
     # ) # 1 second
     saveRDS(MHW_cat_daily, file = paste0("data/annual_summary/",product,"_cat_daily_",
                                          chosen_clim,"_",chosen_year,".Rds"))
+    if(product == "OISST" & chosen_clim == "1982-2011"){
+      saveRDS(MHW_cat_daily, file = paste0("data/annual_summary/MHW_cat_daily_",chosen_year,".Rds"))
+    }
   }
   
   # Add prop columns for more accurate plotting

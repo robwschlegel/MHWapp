@@ -420,7 +420,7 @@ load_sub_cat_clim <- function(cat_lon_file, date_range){
 # date_choice <- as.Date("2019-11-01")
 save_sub_cat_clim <- function(date_choice, df){
   
-  # Establish flie name and save location
+  # Establish file name and save location
   cat_clim_year <- lubridate::year(date_choice)
   cat_clim_dir <- paste0("../data/cat_clim/",cat_clim_year)
   dir.create(as.character(cat_clim_dir), showWarnings = F)
@@ -433,7 +433,6 @@ save_sub_cat_clim <- function(date_choice, df){
 }
 
 # Function for loading, prepping, and saving the daily global category slices
-# tester...
 # date_range <- c(as.Date("1984-01-01"), as.Date("1986-01-31"))
 cat_clim_global_daily <- function(date_range){
   # tester...
