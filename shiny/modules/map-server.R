@@ -68,8 +68,8 @@ map <- function(input, output, session) {
       h3("Select map layer"),
       prettyRadioButtons(inputId = ns("layer"), label = NULL,
                          choices = c(cat_layers, rb_layers),
-                         # selected = "Category: OISST",
-                         selected = "MCS categories (OISST)", # For testing
+                         selected = "Category: OISST",
+                         # selected = "MCS categories (OISST)", # For testing
                          status = "primary",
                          shape = "curve",
                          inline = F),
@@ -111,10 +111,8 @@ map <- function(input, output, session) {
       # No button when anomaly layer is chosen
     } else if(button_I$clicked){
       actionButton(inputId = ns("moderate_filter"), "I Moderate", icon = icon("remove", lib = "glyphicon"), style = style_react)
-                   # style = "color: black; background-color: #ffc866; border-color: black; width: 110px")     
     } else {
       actionButton(inputId = ns("moderate_filter"), "I Moderate", icon = icon("ok", lib = "glyphicon"), style = style_react)
-                   # style = "color: black; background-color: #ffc866; border-color: black; width: 110px")
     }
   })
   
@@ -136,14 +134,17 @@ map <- function(input, output, session) {
   # Change button icon upon click
   output$strong <- renderUI({
     req(input$layer)
+    if(input$layer == "MCS categories (OISST)"){
+      style_react <- "color: black; background-color: #85B7CC; border-color: black; width: 110px"
+    } else {
+      style_react <- "color: black; background-color: #ff6900; border-color: black; width: 110px"
+    }
     if(input$layer %in% rb_layers){
       # No button when anomaly layer is chosen
     } else if(button_II$clicked){
-      actionButton(inputId = ns("strong_filter"), "II Strong", icon = icon("remove", lib = "glyphicon"),
-                   style = "color: black; background-color: #ff6900; border-color: black; width: 110px")     
+      actionButton(inputId = ns("strong_filter"), "II Strong", icon = icon("remove", lib = "glyphicon"), style = style_react)     
     } else {
-      actionButton(inputId = ns("strong_filter"), "II Strong", icon = icon("ok", lib = "glyphicon"),
-                   style = "color: black; background-color: #ff6900; border-color: black; width: 110px")
+      actionButton(inputId = ns("strong_filter"), "II Strong", icon = icon("ok", lib = "glyphicon"), style = style_react)
     }
   })
   
@@ -165,14 +166,17 @@ map <- function(input, output, session) {
   # Change button icon upon click
   output$severe <- renderUI({
     req(input$layer)
+    if(input$layer == "MCS categories (OISST)"){
+      style_react <- "color: black; background-color: #4A6A94; border-color: black; width: 110px"
+    } else {
+      style_react <- "color: black; background-color: #9e0000; border-color: black; width: 110px"
+    }
     if(input$layer %in% rb_layers){
       # No button when anomaly layer is chosen
     } else if(button_III$clicked){
-      actionButton(inputId = ns("severe_filter"), "III Severe", icon = icon("remove", lib = "glyphicon"),
-                   style = "color: white; background-color: #9e0000; border-color: black; width: 110px")     
+      actionButton(inputId = ns("severe_filter"), "III Severe", icon = icon("remove", lib = "glyphicon"), style = style_react)     
     } else {
-      actionButton(inputId = ns("severe_filter"), "III Severe", icon = icon("ok", lib = "glyphicon"),
-                   style = "color: white; background-color: #9e0000; border-color: black; width: 110px")
+      actionButton(inputId = ns("severe_filter"), "III Severe", icon = icon("ok", lib = "glyphicon"), style = style_react)
     }
   })
   
@@ -194,14 +198,17 @@ map <- function(input, output, session) {
   # Change button icon upon click
   output$extreme <- renderUI({
     req(input$layer)
+    if(input$layer == "MCS categories (OISST)"){
+      style_react <- "color: black; background-color: #111433; border-color: black; width: 110px"
+    } else {
+      style_react <- "color: black; background-color: #2d0000; border-color: black; width: 110px"
+    }
     if(input$layer %in% rb_layers){
       # No button when anomaly layer is chosen
     } else if(button_IV$clicked){
-      actionButton(inputId = ns("extreme_filter"), "IV Extreme", icon = icon("remove", lib = "glyphicon"),
-                   style = "color: white; background-color: #2d0000; border-color: black; width: 110px")     
+      actionButton(inputId = ns("extreme_filter"), "IV Extreme", icon = icon("remove", lib = "glyphicon"), style = style_react)     
     } else {
-      actionButton(inputId = ns("extreme_filter"), "IV Extreme ", icon = icon("ok", lib = "glyphicon"),
-                   style = "color: white; background-color: #2d0000; border-color: black; width: 110px")
+      actionButton(inputId = ns("extreme_filter"), "IV Extreme ", icon = icon("ok", lib = "glyphicon"), style = style_react)
     }
   })
   
@@ -276,8 +283,8 @@ map <- function(input, output, session) {
     if (!is.null(query[['date']])) {
       date_menu_choice <- as.Date(as.character(query[['date']]))
     } else{
-      # date_menu_choice <- max(current_dates)
-      date_menu_choice <- as.Date("2019-12-31") # For testing
+      date_menu_choice <- max(current_dates)
+      # date_menu_choice <- as.Date("2019-12-31") # For testing
     }
     if(input$layer %in% c("Category: OISST", "Anomaly: OISST", "MCS categories (OISST)")){
         dateInput(inputId = ns("date"),
