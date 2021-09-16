@@ -118,7 +118,7 @@ MCS_colours <- c(
   "II Strong" = "#85B7CC",
   "III Severe" = "#4A6A94",
   "IV Extreme" = "#111433"#,
-  # "V Ice" = "thistle1"
+  # "V Ice" = "thistle1" # Not added yet as this adds quite a lot of complexity
 )
 
 ### Colour palettes for leaflet

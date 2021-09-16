@@ -127,7 +127,7 @@ if(nrow(OISST_dat) > 2){
 # Prep guide info for this section
 doParallel::registerDoParallel(cores = 25)
 ncdf_date <- max(as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transforms$time$time, origin = "1970-01-01"))
-cat_lon_date <- max(readRDS("../data/cat_lon/MHW.cat.1440.Rda")$t)
+cat_lon_date <- max(readRDS("../data/cat_lon/MHW/MHW.cat.1440.Rda")$t)
 
 # This takes roughly 45 minutes and is by far the largest time requirement
 if(ncdf_date > cat_lon_date){
@@ -170,7 +170,7 @@ load("metadata/final_dates.Rdata")
 # update_dates <- seq(as.Date("2020-05-31"), as.Date("2020-06-22"), by = "day")
 update_dates <- time_index[which(time_index >= max(final_dates)-2)]
 if(length(update_dates) > 0) {
-  print(paste0("Updating global MHW files from ",min(update_dates)," to ",max(update_dates)))
+  print(paste0("Updating global MHW/MCS files from ",min(update_dates)," to ",max(update_dates)))
   print(paste0("Updating daily cat files at ", Sys.time()))
   doParallel::registerDoParallel(cores = 50)
   # system.time(
@@ -181,7 +181,7 @@ if(length(update_dates) > 0) {
   # system.time(
   anom_global_daily(date_range = c(min(update_dates), max(update_dates)))
   # ) # 455 seconds
-  print(paste0("Finished global daily MHW files at ", Sys.time()))
+  print(paste0("Finished global daily MHW/MCS files at ", Sys.time()))
 }
 
 # If any of the files created in this section break for any reason,

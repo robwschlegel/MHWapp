@@ -244,7 +244,7 @@ OISST_merge <- function(lon_step, df){
 
 # Function that loads and merges sst/seas/thresh for a given lon_step
 # lon_step <- lon_OISST[2]
-# date_range <- as.Date("2018-01-01")
+# date_range <- as.Date("2020-01-01")
 # date_range <- c(as.Date("2016-02-01"), as.Date("2017-04-01"))
 sst_seas_thresh_merge <- function(lon_step, date_range){
   
@@ -297,10 +297,10 @@ MHW_event_cat_update <- function(lon_step, full = F){
     MHW_cat_lon <- data.frame()
     previous_event_index <- data.frame(lon = lon_step, lat = lat_OISST,
                                        event_no = 0, date_end = as.Date("1982-01-01"))
-  } else{
+  } else {
     MHW_event_data <- na.omit(readRDS(MHW_event_files[lon_row]))
     if(MHW_event_data$lon[1] != lon_step) stop(paste0("The lon_row indexing has broken down somewhere for ",lon_row_pad))
-    MHW_cat_lon <- na.omit(readRDS(cat_lon_files[lon_row]))
+    MHW_cat_lon <- na.omit(readRDS(MHW_cat_lon_files[lon_row]))
     if(MHW_cat_lon$lon[1] != lon_step) stop(paste0("The lon_row indexing has broken down somewhere for ",lon_row_pad))
     
     # Determine how far back in time to get old data based on the occurrence of previous MHWs

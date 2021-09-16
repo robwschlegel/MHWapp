@@ -23,10 +23,14 @@ lon_lat_OISST <- base::expand.grid(lon_OISST, lat_OISST) %>%
 
 # File locations
 OISST_files <- dir("../data/OISST", pattern = "avhrr-only", full.names = T)
-MHW_event_files <- dir("../data/event", pattern = "MHW.event.", full.names = T)
+MHW_event_files <- dir("../data/event/MHW", pattern = "MHW.event.", full.names = T)
+MCS_event_files <- dir("../data/event/MCS", pattern = "MCS.event.", full.names = T)
 seas_thresh_files <- dir("../data/thresh", pattern = "MHW.seas.thresh.", full.names = T)
-cat_lon_files <- dir("../data/cat_lon", full.names = T)
-cat_clim_files <- as.character(dir(path = "../data/cat_clim", pattern = "cat.clim", 
+MHW_cat_lon_files <- dir("../data/cat_lon/MHW", full.names = T)
+MCS_cat_lon_files <- dir("../data/cat_lon/MCS", full.names = T)
+MHW_cat_clim_files <- as.character(dir(path = "../data/cat_clim/MHW", pattern = "cat.clim", 
+                                   full.names = TRUE, recursive = TRUE))
+MCS_cat_clim_files <- as.character(dir(path = "../data/cat_clim/MCS", pattern = "cat.clim", 
                                    full.names = TRUE, recursive = TRUE))
 CCI_files <- dir("../data/CCI", full.names = T)
 CMC_files <- dir("../data/CMC", full.names = T)
