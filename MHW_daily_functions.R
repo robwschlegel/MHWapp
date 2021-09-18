@@ -349,7 +349,7 @@ MHW_event_cat_update <- function(lon_step, full = F){
   MHW_cat_new <- MHW_event_cat %>% 
     filter(row_number() %% 2 == 0) %>% 
     unnest(cols = event_cat_res)
-  saveRDS(MHW_cat_new, file = cat_lon_files[lon_row])
+  saveRDS(MHW_cat_new, file = MHW_cat_lon_files[lon_row])
 }
 
 # Function for extracting correct SST data based on pre-determined subsets
@@ -422,7 +422,7 @@ save_sub_cat_clim <- function(date_choice, df){
   
   # Establish file name and save location
   cat_clim_year <- lubridate::year(date_choice)
-  cat_clim_dir <- paste0("../data/cat_clim/",cat_clim_year)
+  cat_clim_dir <- paste0("../data/cat_clim/MHW/",cat_clim_year)
   dir.create(as.character(cat_clim_dir), showWarnings = F)
   cat_clim_name <- paste0("cat.clim.",date_choice,".Rda")
   
@@ -433,11 +433,11 @@ save_sub_cat_clim <- function(date_choice, df){
 }
 
 # Function for loading, prepping, and saving the daily global category slices
-# date_range <- c(as.Date("1984-01-01"), as.Date("1986-01-31"))
+# date_range <- c(as.Date("1986-01-01"), as.Date("1986-01-31"))
 cat_clim_global_daily <- function(date_range){
   # tester...
   # cat_clim_daily <- plyr::ldply(dir("../data/test/", pattern = "MHW.cat", full.names = T), 
-  cat_clim_daily <- plyr::ldply(cat_lon_files,
+  cat_clim_daily <- plyr::ldply(MHW_cat_lon_files,
                                 load_sub_cat_clim,
                                 .parallel = T, date_range = date_range) %>% 
     mutate(category = factor(category, levels = c("I Moderate", "II Strong",
