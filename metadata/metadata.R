@@ -25,7 +25,8 @@ lon_lat_OISST <- base::expand.grid(lon_OISST, lat_OISST) %>%
 OISST_files <- dir("../data/OISST", pattern = "avhrr-only", full.names = T)
 MHW_event_files <- dir("../data/event/MHW", pattern = "MHW.event.", full.names = T)
 MCS_event_files <- dir("../data/event/MCS", pattern = "MCS.event.", full.names = T)
-seas_thresh_files <- dir("../data/thresh", pattern = "MHW.seas.thresh.", full.names = T)
+MHW_seas_thresh_files <- dir("../data/thresh/MHW", pattern = "MHW.seas.thresh.", full.names = T)
+MCS_seas_thresh_files <- dir("../data/thresh/MCS", pattern = "MCS.seas.thresh.", full.names = T)
 MHW_cat_lon_files <- dir("../data/cat_lon/MHW", full.names = T)
 MCS_cat_lon_files <- dir("../data/cat_lon/MCS", full.names = T)
 MHW_cat_clim_files <- as.character(dir(path = "../data/cat_clim/MHW", pattern = "cat.clim", 
@@ -113,6 +114,15 @@ MHW_colours <- c(
   "II Strong" = "#ff6900",
   "III Severe" = "#9e0000",
   "IV Extreme" = "#2d0000"
+)
+
+# The CSW category colour palette
+MCS_colours <- c(
+  "I Moderate" = "#C7ECF2",
+  "II Strong" = "#85B7CC",
+  "III Severe" = "#4A6A94",
+  "IV Extreme" = "#111433"#,
+  # "V Ice" = "thistle1" # Not added yet as this adds quite a lot of complexity
 )
 
 # Add an index column for easier pixel comparisons below

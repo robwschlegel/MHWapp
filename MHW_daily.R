@@ -129,34 +129,34 @@ doParallel::registerDoParallel(cores = 25)
 ncdf_date <- max(as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transforms$time$time, origin = "1970-01-01"))
 cat_lon_date <- max(readRDS("../data/cat_lon/MHW/MHW.cat.1440.Rda")$t)
 
-# This takes roughly 45 minutes and is by far the largest time requirement
+# This takes roughly 90 minutes and is by far the largest time requirement
 if(ncdf_date > cat_lon_date){
-  print(paste0("Updating MHW results at ", Sys.time()))
+  print(paste0("Updating MHW/MCS results at ", Sys.time()))
   # system.time(
-  plyr::l_ply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE)
+  plyr::l_ply(lon_OISST, .fun = event_cat_update, .parallel = TRUE)
   # ) # ~ 40 seconds per cycle
-  print(paste0("Finished MHW results at ", Sys.time()))
+  print(paste0("Finished MHW/MCS results at ", Sys.time()))
 }
 
-# Occasionaly the cat_lon files don't come right
+# Occasionally the cat_lon files don't come right
 # One can usually tell if the size is under 400 kb
 # This function can fix a specific file
 
 # Run one
-# MHW_event_cat_update(lon_OISST[88], full = TRUE)
+# event_cat_update(lon_OISST[2], full = TRUE)
 
 # Run many
-# plyr::l_ply(lon_OISST[1300:1365], .fun = MHW_event_cat_update, .parallel = TRUE, full = TRUE)
+# plyr::l_ply(lon_OISST[1300:1365], .fun = event_cat_update, .parallel = TRUE, full = TRUE)
 
 # Run ALL
-# plyr::l_ply(lon_OISST, .fun = MHW_event_cat_update, .parallel = TRUE, full = TRUE) # ~1.5 hours on 50 cores
+# plyr::l_ply(lon_OISST, .fun = event_cat_update, .parallel = TRUE, full = TRUE) # ~1.5 hours on 50 cores
 
 # Find files that haven't been run since a certain date
 # file_dates <- file.info(dir("../data/cat_lon", full.names = T)) %>%
 #   mutate(file_name = sapply(strsplit(row.names(.), "/"), "[[", 4)) %>%
 #   mutate(file_num = as.integer(sapply(strsplit(file_name, "[.]"), "[[", 3))) %>%
 #   filter(ctime < Sys.Date()-2)
-# plyr::l_ply(lon_OISST[file_dates$file_num], .fun = MHW_event_cat_update, .parallel = TRUE)
+# plyr::l_ply(lon_OISST[file_dates$file_num], .fun = event_cat_update, .parallel = TRUE)
 
 
 # 3: Create daily global files --------------------------------------------
@@ -167,11 +167,11 @@ load("metadata/final_dates.Rdata")
 
 # Get the range of dates that need to be run
   # Manually control dates as desired
-# update_dates <- seq(as.Date("2020-05-31"), as.Date("2020-06-22"), by = "day")
-update_dates <- time_index[which(time_index >= max(final_dates)-2)]
+update_dates <- seq(as.Date("2019-01-01"), as.Date("2019-12-31"), by = "day")
+# update_dates <- time_index[which(time_index >= max(final_dates)-2)]
 if(length(update_dates) > 0) {
-  print(paste0("Updating global MHW/MCS files from ",min(update_dates)," to ",max(update_dates)))
-  print(paste0("Updating daily cat files at ", Sys.time()))
+  print(paste0("Updating global files from ",min(update_dates)," to ",max(update_dates)))
+  print(paste0("Updating daily MHW/MCS cat files at ", Sys.time()))
   doParallel::registerDoParallel(cores = 50)
   # system.time(
   cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)))

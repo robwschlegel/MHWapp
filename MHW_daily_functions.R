@@ -270,16 +270,20 @@ sst_seas_thresh_merge <- function(lon_step, date_range){
   
   # Merge to seas/thresh and exit
   sst_seas_thresh <- tidync_OISST %>%
-    left_join(hyper_tibble(tidync(seas_thresh_files[lon_row])),
+    left_join(hyper_tibble(tidync(MHW_seas_thresh_files[lon_row])),
               by = c("lon", "lat", "doy" = "time")) %>%
+    left_join(readRDS(MCS_seas_thresh_files[lon_row]),
+              by = c("lon", "lat", "doy" = "time")) %>%
+    dplyr::select(-seas.y) %>% 
+    dplyr::rename(seas = seas.x, thresh_MHW = thresh.x, thresh_MCS = thresh.y) %>% 
     mutate(anom = round(temp - seas, 2))
   return(sst_seas_thresh)
 }
 
 # Function for updating the MHW event metric lon slice files
 # tester...
-# lon_step <- lon_OISST[1]
-MHW_event_cat_update <- function(lon_step, full = F){
+# lon_step <- lon_OISST[2]
+event_cat_update <- function(lon_step, full = F){
   
   # load the final download date
   load("metadata/final_dates.Rdata")
@@ -294,13 +298,19 @@ MHW_event_cat_update <- function(lon_step, full = F){
   # Load current lon slice for event/category
   if(full){
     MHW_event_data <- data.frame()
+    MCS_event_data <- data.frame()
     MHW_cat_lon <- data.frame()
-    previous_event_index <- data.frame(lon = lon_step, lat = lat_OISST,
-                                       event_no = 0, date_end = as.Date("1982-01-01"))
+    MCS_cat_lon <- data.frame()
+    MHW_previous_event_index <- data.frame(lon = lon_step, lat = lat_OISST,
+                                           event_no = 0, date_end = as.Date("1982-01-01"))
+    MCS_previous_event_index <- data.frame(lon = lon_step, lat = lat_OISST,
+                                           event_no = 0, date_end = as.Date("1982-01-01"))
   } else {
     MHW_event_data <- na.omit(readRDS(MHW_event_files[lon_row]))
+    MCS_event_data <- na.omit(readRDS(MCS_event_files[lon_row]))
     if(MHW_event_data$lon[1] != lon_step) stop(paste0("The lon_row indexing has broken down somewhere for ",lon_row_pad))
     MHW_cat_lon <- na.omit(readRDS(MHW_cat_lon_files[lon_row]))
+    MCS_cat_lon <- na.omit(readRDS(MCS_cat_lon_files[lon_row]))
     if(MHW_cat_lon$lon[1] != lon_step) stop(paste0("The lon_row indexing has broken down somewhere for ",lon_row_pad))
     
     # Determine how far back in time to get old data based on the occurrence of previous MHWs
@@ -308,7 +318,11 @@ MHW_event_cat_update <- function(lon_step, full = F){
     # that the MHW will be considered finished and the code would incorrectly begin calculating another MHW
     # To correct for this we must use the final_dates R object, which is tied to the OISST downloading
     # We then go back one event before the final data end date to ensure we are not missing anything
-    previous_event_index <- MHW_event_data %>% 
+    MHW_previous_event_index <- MHW_event_data %>% 
+      group_by(lon, lat) %>% 
+      filter(date_start < max(final_dates)) %>%
+      filter(event_no == max(event_no)-2)
+    MCS_previous_event_index <- MCS_event_data %>% 
       group_by(lon, lat) %>% 
       filter(date_start < max(final_dates)) %>%
       filter(event_no == max(event_no)-2)
@@ -317,45 +331,66 @@ MHW_event_cat_update <- function(lon_step, full = F){
   # Extract each pixel time series based on how far back the oldest event occurred for the entire longitude slice
   # Or calculate events for the full time series
   if(full){
-    sst_seas_thresh <- sst_seas_thresh_merge(lon_step, 
+    sst_seas_thresh <- sst_seas_thresh_merge(lon_step,
                                              date_range = as.Date("1982-01-01"))
   } else {
     sst_seas_thresh <- sst_seas_thresh_merge(lon_step, 
-                                             date_range = min(previous_event_index$date_start))
+                                             date_range = min(c(min(MHW_previous_event_index$date_start),
+                                                                min(MCS_previous_event_index$date_start))))
   }
   
-  # Calculate new event metrics with new data as necessary
+  # Detect and save new event metrics with new data for MHWs as necessary
   # system.time(
-  MHW_event_cat <- previous_event_index %>% 
+  event_proc(MHW_previous_event_index, sst_seas_thresh, MHW_event_data, MHW_cat_lon, 
+             MHW_event_files[lon_row], MHW_cat_lon_files[lon_row], full)
+  # ) # 66 seconds for 478 pixels
+  # Detect and save new event metrics with new data for MCSs as necessary
+  # system.time(
+  event_proc(MCS_previous_event_index, sst_seas_thresh, MCS_event_data, MCS_cat_lon, 
+             MCS_event_files[lon_row], MCS_cat_lon_files[lon_row], full, cold_choice = T)
+  # ) # 102 seconds for 478 pixels
+}
+
+# Wrapper function to detect events and save the results
+event_proc <- function(df, sst_seas_thresh, event_data, cat_lon, event_file, cat_lon_file, full, cold_choice = F){
+  
+  # Calculate new event metrics with new data for MHWs as necessary
+  # system.time(
+  event_cat <- df %>% 
     mutate(lat2 = lat) %>% 
     group_by(lat2) %>% 
     nest() %>% 
     mutate(event_cat_res = map(data, event_calc,
                                sst_seas_thresh = sst_seas_thresh,
-                               MHW_event_data = MHW_event_data,
-                               MHW_cat_lon = MHW_cat_lon,
-                               full = full)) %>% 
+                               event_data = event_data,
+                               cat_lon = cat_lon,
+                               full = full,
+                               cold_choice = cold_choice)) %>% 
     ungroup() %>% 
     dplyr::select(-data, -lat2) %>%
     unnest(cols = event_cat_res)
   # ) # ~28 seconds for 478 pixels
   
   # Save results and exit
-  MHW_event_new <- MHW_event_cat %>% 
+  event_new <- event_cat %>% 
     filter(row_number() %% 2 == 1) %>% 
     unnest(cols = event_cat_res)
-  saveRDS(MHW_event_new, file = MHW_event_files[lon_row])
-  
-  MHW_cat_new <- MHW_event_cat %>% 
+  saveRDS(event_new, file = event_file)
+  cat_new <- event_cat %>% 
     filter(row_number() %% 2 == 0) %>% 
     unnest(cols = event_cat_res)
-  saveRDS(MHW_cat_new, file = MHW_cat_lon_files[lon_row])
+  saveRDS(cat_new, file = cat_lon_file)
+  rm(event_cat, event_new, cat_new); gc()
 }
 
 # Function for extracting correct SST data based on pre-determined subsets
 # It also calculates and returns corrected MHW metric results
-# df <- previous_event_index[148,]
-event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon, full){
+# df <- MHW_previous_event_index[148,]
+# df <- MCS_previous_event_index[452,]
+# event_data <- MCS_event_data[MCS_event_data$lat == df$lat,]
+# cat_lon <- MCS_cat_lon[MCS_cat_lon$lat == df$lat,]
+# full <- F; cold_choice <- T
+event_calc <- function(df, sst_seas_thresh, event_data, cat_lon, full, cold_choice){
   
   # Extract necessary SST
   sst_step_1 <- sst_seas_thresh %>% 
@@ -363,8 +398,19 @@ event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon, full){
            t >= df$date_end)
   if(nrow(sst_step_1) == 0) return()
   
+  # Get correct thresh column
+  if(cold_choice){
+    sst_step_1 <- sst_step_1 %>% 
+      dplyr::rename(thresh = thresh_MCS) %>% 
+      dplyr::select(-thresh_MHW)
+  } else {
+    sst_step_1 <- sst_step_1 %>% 
+      dplyr::rename(thresh = thresh_MHW) %>% 
+      dplyr::select(-thresh_MCS)
+  }
+  
   # Calculate events
-  event_base <- detect_event(sst_step_1)
+  event_base <- detect_event(sst_step_1, coldSpells = cold_choice)
   event_step_1 <- event_base$event %>% 
     mutate(lon = df$lon, lat = df$lat) %>% 
     dplyr::select(lon, lat, event_no, duration:intensity_max, intensity_cumulative) %>%
@@ -372,7 +418,7 @@ event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon, full){
   if(full){
     event_step_2 <- event_step_1
   } else{
-    event_step_2 <- MHW_event_data %>%
+    event_step_2 <- event_data %>%
       filter(lat == df$lat,
              date_end <= df$date_end) %>%
       rbind(event_step_1) %>%
@@ -385,13 +431,25 @@ event_calc <- function(df, sst_seas_thresh, MHW_event_data, MHW_cat_lon, full){
            lon = df$lon,
            lat = df$lat) %>% 
     dplyr::select(t, lon, lat, event_no, intensity, category)
+  if(cold_choice){
+   cat_step_1_correct_ice <- category(event_base, climatology = T, season = "peak", MCScorrect = T)$climatology %>% 
+     left_join(sst_step_1, by = "t") %>% 
+     dplyr::rename(category_correct = category) %>% 
+     mutate(event_no = event_no + df$event_no,
+            category_ice = case_when(thresh < -1.7 ~ "V Ice",
+                                     TRUE ~ category_correct)) %>% 
+     dplyr::select(t, lon, lat, event_no, intensity, category_correct, category_ice)
+   cat_step_1 <- cat_step_1 %>% 
+     mutate(category_correct = cat_step_1_correct_ice$category_correct,
+            category_ice = cat_step_1_correct_ice$category_ice)
+  }
   if(full){
     cat_step_2 <- cat_step_1
   } else{
-    cat_step_2 <- MHW_cat_lon %>%
+    cat_step_2 <- cat_lon %>%
       filter(lat == df$lat,
              t <= df$date_end) %>%
-      rbind(cat_step_1)
+      bind_rows(cat_step_1)
   }
   
   # Exit
@@ -418,13 +476,17 @@ load_sub_cat_clim <- function(cat_lon_file, date_range){
 # Function for saving daily global cat files
 # date_choice <- max(current_dates)+1
 # date_choice <- as.Date("2019-11-01")
-save_sub_cat_clim <- function(date_choice, df){
+save_sub_cat_clim <- function(date_choice, df, event_type){
   
   # Establish file name and save location
   cat_clim_year <- lubridate::year(date_choice)
-  cat_clim_dir <- paste0("../data/cat_clim/MHW/",cat_clim_year)
+  cat_clim_dir <- paste0("../data/cat_clim/",event_type,"/",cat_clim_year)
   dir.create(as.character(cat_clim_dir), showWarnings = F)
-  cat_clim_name <- paste0("cat.clim.",date_choice,".Rda")
+  if(event_type == "MCS"){
+    cat_clim_name <- paste0("cat.clim.MCS.",date_choice,".Rda")
+  } else {
+    cat_clim_name <- paste0("cat.clim.",date_choice,".Rda")
+  }
   
   # Extract data and save
   df_sub <- df %>% 
@@ -437,17 +499,34 @@ save_sub_cat_clim <- function(date_choice, df){
 cat_clim_global_daily <- function(date_range){
   # tester...
   # cat_clim_daily <- plyr::ldply(dir("../data/test/", pattern = "MHW.cat", full.names = T), 
-  cat_clim_daily <- plyr::ldply(MHW_cat_lon_files,
-                                load_sub_cat_clim,
-                                .parallel = T, date_range = date_range) %>% 
+  MHW_cat_clim_daily <- plyr::ldply(MHW_cat_lon_files,
+                                    load_sub_cat_clim,
+                                    .parallel = T, date_range = date_range) %>% 
     mutate(category = factor(category, levels = c("I Moderate", "II Strong",
                                                   "III Severe", "IV Extreme"))) %>% 
+    na.omit()
+  MCS_cat_clim_daily <- plyr::ldply(MCS_cat_lon_files,
+                                    load_sub_cat_clim,
+                                    .parallel = T, date_range = date_range) %>% 
+    mutate(category = factor(category, 
+                             levels = c("I Moderate", "II Strong",
+                                        "III Severe", "IV Extreme")),
+           category_correct = factor(category_correct, 
+                                     levels = c("I Moderate", "II Strong",
+                                                "III Severe", "IV Extreme")),
+           category_ice = factor(category_ice,
+                                 levels = c("I Moderate", "II Strong",
+                                            "III Severe", "IV Extreme", "V Ice"))) %>% 
     na.omit()
   
   # NB: Running this on too many cores may cause RAM issues
   doParallel::registerDoParallel(cores = 20)
-  plyr::l_ply(seq(min(cat_clim_daily$t), max(cat_clim_daily$t), by = "day"), 
-              save_sub_cat_clim, .parallel = T, df = cat_clim_daily)
+  plyr::l_ply(seq(min(MHW_cat_clim_daily$t), max(MHW_cat_clim_daily$t), by = "day"), 
+              save_sub_cat_clim, .parallel = T, df = MHW_cat_clim_daily, event_type = "MHW")
+  rm(MHW_cat_clim_daily); gc()
+  plyr::l_ply(seq(min(MCS_cat_clim_daily$t), max(MCS_cat_clim_daily$t), by = "day"), 
+              save_sub_cat_clim, .parallel = T, df = MCS_cat_clim_daily, event_type = "MCS")
+  rm(MCS_cat_clim_daily); gc()
 }
 
 # Function for saving daily global anom files

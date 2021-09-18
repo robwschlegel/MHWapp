@@ -40,7 +40,7 @@ sst_seas_thresh_ts <- function(lon_step, lat_step){
   
   # Merge to seas/thresh and exit
   sst_seas_thresh <- tidync_OISST %>% 
-    left_join(tidync::hyper_tibble(tidync::tidync(seas_thresh_files[lon_row])), 
+    left_join(tidync::hyper_tibble(tidync::tidync(MHW_seas_thresh_files[lon_row])), 
               by = c("lon", "lat", "doy" = "time")) %>% 
     mutate(temp = round(temp, 2),
            seas = round(seas, 2),

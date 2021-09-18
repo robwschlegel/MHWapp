@@ -64,6 +64,12 @@ if(!dir.exists("modules")) stop("The 'modules' folder is missing.")
 if(!dir.exists("OISST")) stop("The 'OISST' folder is missing.")
 if(!dir.exists("thresh")) stop("The 'thresh' folder is missing.")
 
+# Test other files
+MHW_seas_thresh_files <- dir("thresh/MHW", pattern = "MHW.seas.thresh.", full.names = T)
+head(MHW_seas_thresh_files)
+MCS_seas_thresh_files <- dir("thresh/MCS", pattern = "MCS.seas.thresh.", full.names = T)
+head(MCS_seas_thresh_files)
+
 ### The dates currently processed
 current_dates <- dir("cat_clim/MHW", recursive = T, pattern = "cat.clim", full.names = T)
 current_dates <- sapply(strsplit(current_dates, split = "cat.clim."), "[[", 3)
@@ -79,11 +85,11 @@ menu_panel_left <- 10
 # sidepanel.width <- 400
 
 ### The different layer groupings
-cat_layers <- c("Category: OISST", "MCS categories (OISST)", "Summary: OISST")
-rb_layers <- c("Anomaly: OISST", "Trend: Count", "Trend: Duration",
-               "Trend: Intensity (mean)", "Trend: Intensity (max)")
-trend_layers <- c("Trend: Count", "Trend: Duration",
-                  "Trend: Intensity (mean)", "Trend: Intensity (max)")
+cat_layers <- c("MHW Category", "MCS Category", "MHW Summary")
+rb_layers <- c("SST Anomaly", "MHW Trend: Count", "MHW Trend: Duration",
+               "MHW Trend: Intensity (mean)", "MHW Trend: Intensity (max)")
+trend_layers <- c("MHW Trend: Count", "MHW Trend: Duration",
+                  "MHW Trend: Intensity (mean)", "MHW Trend: Intensity (max)")
 
 ### The lon/lat steps
 # load("lon_OISST.RData")
@@ -93,7 +99,8 @@ lat_OISST <- seq(-89.875, 89.875, by = 0.25)
 ### The file locations
 OISST_files <- dir("OISST", pattern = "avhrr-only", full.names = T)
 # MHW_event_files <- dir("event", pattern = "MHW.event.", full.names = T)
-seas_thresh_files <- dir("thresh", pattern = "MHW.seas.thresh.", full.names = T)
+MHW_seas_thresh_files <- dir("thresh/MHW", pattern = "MHW.seas.thresh.", full.names = T)
+MCS_seas_thresh_files <- dir("thresh/MCS", pattern = "MCS.seas.thresh.", full.names = T)
 # cat_clim_files <- as.character(dir(path = "cat_clim", pattern = "cat.clim",
 #                                    full.names = TRUE, recursive = TRUE))
 
