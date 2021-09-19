@@ -282,7 +282,7 @@ sst_seas_thresh_merge <- function(lon_step, date_range){
 
 # Function for updating the MHW event metric lon slice files
 # tester...
-# lon_step <- lon_OISST[2]
+# lon_step <- lon_OISST[610]
 event_cat_update <- function(lon_step, full = F){
   
   # load the final download date
@@ -349,6 +349,9 @@ event_cat_update <- function(lon_step, full = F){
   event_proc(MCS_previous_event_index, sst_seas_thresh, MCS_event_data, MCS_cat_lon, 
              MCS_event_files[lon_row], MCS_cat_lon_files[lon_row], full, cold_choice = T)
   # ) # 102 seconds for 478 pixels
+  rm(sst_seas_thresh, MHW_previous_event_index, MHW_event_data, MHW_cat_lon,
+     MCS_previous_event_index, MCS_event_data, MCS_cat_lon); gc()
+  return()
 }
 
 # Wrapper function to detect events and save the results
@@ -381,6 +384,7 @@ event_proc <- function(df, sst_seas_thresh, event_data, cat_lon, event_file, cat
     unnest(cols = event_cat_res)
   saveRDS(cat_new, file = cat_lon_file)
   rm(event_cat, event_new, cat_new); gc()
+  return()
 }
 
 # Function for extracting correct SST data based on pre-determined subsets

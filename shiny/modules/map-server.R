@@ -410,11 +410,11 @@ map <- function(input, output, session) {
     req(input$date)
     if(input$layer == "MHW Category"){
       req(lubridate::is.Date(input$date))
-      sub_dir <- paste0("cat_clim/MHW/",lubridate::year(input$date))
+      sub_dir <- paste0("cat_clim/",lubridate::year(input$date))
       sub_file <- paste0(sub_dir,"/cat.clim.",input$date,".Rda")
     } else if(input$layer == "MCS Category"){
       req(lubridate::is.Date(input$date))
-      sub_dir <- paste0("cat_clim/MCS/",lubridate::year(input$date))
+      sub_dir <- paste0("cat_clim_MCS/",lubridate::year(input$date))
       sub_file <- paste0(sub_dir,"/cat.clim.MCS.",input$date,".Rds")
       # sub_dir <- paste0("cat_clim/",lubridate::year(input$date))
       # sub_file <- paste0(sub_dir,"/cat.clim.",input$date,".Rda")
@@ -530,7 +530,7 @@ map <- function(input, output, session) {
                     thresh_4x = thresh_3x + diff)
     
     # Grab event data
-    event_file <- dir("event/MHW", full.names = T)[which(lon_OISST == xy[1])]
+    event_file <- dir("event/", full.names = T)[which(lon_OISST == xy[1])]
     event_data <- readRDS(event_file) %>% 
       dplyr::filter(lat == xy[2]) %>%
       mutate(date_start = as.Date(date_start, origin = "1970-01-01"),

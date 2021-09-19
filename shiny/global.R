@@ -11,6 +11,7 @@
 
 # Required up front
 .libPaths(c("~/R-packages", .libPaths()))
+suppressPackageStartupMessages({
 library(shinyWidgets)
 library(shinydashboard)
 library(dplyr)
@@ -18,6 +19,7 @@ library(shinyBS)
 library(leaflet)
 library(plotly)
 library(DT)
+})
 
 # Dependencies that are called explicitly
 # library(ncdf4)
@@ -64,14 +66,8 @@ if(!dir.exists("modules")) stop("The 'modules' folder is missing.")
 if(!dir.exists("OISST")) stop("The 'OISST' folder is missing.")
 if(!dir.exists("thresh")) stop("The 'thresh' folder is missing.")
 
-# Test other files
-MHW_seas_thresh_files <- dir("thresh/MHW", pattern = "MHW.seas.thresh.", full.names = T)
-head(MHW_seas_thresh_files)
-MCS_seas_thresh_files <- dir("thresh/MCS", pattern = "MCS.seas.thresh.", full.names = T)
-head(MCS_seas_thresh_files)
-
 ### The dates currently processed
-current_dates <- dir("cat_clim/MHW", recursive = T, pattern = "cat.clim", full.names = T)
+current_dates <- dir("cat_clim", recursive = T, pattern = "cat.clim", full.names = T)
 current_dates <- sapply(strsplit(current_dates, split = "cat.clim."), "[[", 3)
 current_dates <- as.Date(sapply(strsplit(current_dates, split = ".Rda"), "[[", 1))
 
@@ -99,8 +95,8 @@ lat_OISST <- seq(-89.875, 89.875, by = 0.25)
 ### The file locations
 OISST_files <- dir("OISST", pattern = "avhrr-only", full.names = T)
 # MHW_event_files <- dir("event", pattern = "MHW.event.", full.names = T)
-MHW_seas_thresh_files <- dir("thresh/MHW", pattern = "MHW.seas.thresh.", full.names = T)
-MCS_seas_thresh_files <- dir("thresh/MCS", pattern = "MCS.seas.thresh.", full.names = T)
+MHW_seas_thresh_files <- dir("thresh", pattern = "MHW.seas.thresh.", full.names = T)
+MCS_seas_thresh_files <- dir("thresh_MCS", pattern = "MCS.seas.thresh.", full.names = T)
 # cat_clim_files <- as.character(dir(path = "cat_clim", pattern = "cat.clim",
 #                                    full.names = TRUE, recursive = TRUE))
 
@@ -149,7 +145,7 @@ regional_North_Sea <- "https://fishforecasts.dtu.dk/heatwaves/north_sea"
 regional_European_Northwest_Shelf <- "https://fishforecasts.dtu.dk/heatwaves/nw_shelf"
 
 ### Placeholders when invalid dates are typed into date selectors
-empty_date_map <- readRDS("cat_clim/MHW/1982/cat.clim.1982-01-01.Rda") %>% 
+empty_date_map <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>% 
   slice(1) %>% 
   mutate(category = NA)
 # empty_summary_map <- readRDS("../data/annual_summary/MHW_cat_pixel_1982.Rds") %>% 
