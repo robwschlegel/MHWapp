@@ -127,14 +127,14 @@ if(nrow(OISST_dat) > 2){
 # Prep guide info for this section
 doParallel::registerDoParallel(cores = 25)
 ncdf_date <- max(as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transforms$time$time, origin = "1970-01-01"))
-cat_lon_date <- max(readRDS("../data/cat_lon/MHW/MHW.cat.1440.Rda")$t)
+cat_lon_date <- max(readRDS("../data/cat_lon/MHW.cat.1440.Rda")$t)
 
-# This takes roughly 90 minutes and is by far the largest time requirement
+# This takes roughly 300 minutes and is by far the largest time requirement
 if(ncdf_date > cat_lon_date){
   print(paste0("Updating MHW/MCS results at ", Sys.time()))
   # system.time(
-  plyr::l_ply(lon_OISST, .fun = event_cat_update, .parallel = TRUE)
-  # ) # ~ 40 seconds per cycle
+  plyr::l_ply(lon_OISST, .fun = event_cat_update, .parallel = TRUE); gc()
+  # ) # ~ 258 seconds per cycle
   print(paste0("Finished MHW/MCS results at ", Sys.time()))
 }
 
@@ -155,7 +155,8 @@ if(ncdf_date > cat_lon_date){
 # file_dates <- file.info(dir("../data/cat_lon/MCS", full.names = T)) %>%
 #   mutate(file_name = sapply(strsplit(row.names(.), "/"), "[[", 5)) %>%
 #   mutate(file_num = as.integer(sapply(strsplit(file_name, "[.]"), "[[", 3))) %>%
-#   filter(ctime < Sys.Date()-1)
+#   # filter(ctime < Sys.Date()-1)
+#   filter(size < 1000000)
 # plyr::l_ply(lon_OISST[file_dates$file_num], .fun = event_cat_update, .parallel = TRUE, full = T)
 
 
@@ -167,7 +168,7 @@ load("metadata/final_dates.Rdata")
 
 # Get the range of dates that need to be run
   # Manually control dates as desired
-update_dates <- seq(as.Date("2019-01-01"), as.Date("2019-12-31"), by = "day")
+update_dates <- seq(as.Date("2021-01-01"), as.Date("2021-09-17"), by = "day")
 # update_dates <- time_index[which(time_index >= max(final_dates)-2)]
 if(length(update_dates) > 0) {
   print(paste0("Updating global files from ",min(update_dates)," to ",max(update_dates)))

@@ -282,7 +282,7 @@ sst_seas_thresh_merge <- function(lon_step, date_range){
 
 # Function for updating the MHW event metric lon slice files
 # tester...
-# lon_step <- lon_OISST[610]
+# lon_step <- lon_OISST[71]
 event_cat_update <- function(lon_step, full = F){
   
   # load the final download date
@@ -290,10 +290,10 @@ event_cat_update <- function(lon_step, full = F){
   
   # Determine correct lon/row/slice
   lon_row <- which(lon_OISST == lon_step)
-  lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
+  # lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
   
   # Begin the calculations
-  # print(paste0("Began run on ",MHW_event_files[lon_row]," at ",Sys.time()))
+  print(paste0("Began run on ",MHW_event_files[lon_row]," at ",Sys.time()))
   
   # Load current lon slice for event/category
   if(full){
@@ -375,12 +375,12 @@ event_proc <- function(df, sst_seas_thresh, event_data, cat_lon, event_file, cat
   # ) # ~28 seconds for 478 pixels
   
   # Save results and exit
-  event_new <- event_cat %>% 
-    filter(row_number() %% 2 == 1) %>% 
+  event_new <- event_cat %>%
+    filter(row_number() %% 2 == 1) %>%
     unnest(cols = event_cat_res)
   saveRDS(event_new, file = event_file)
-  cat_new <- event_cat %>% 
-    filter(row_number() %% 2 == 0) %>% 
+  cat_new <- event_cat %>%
+    filter(row_number() %% 2 == 0) %>%
     unnest(cols = event_cat_res)
   saveRDS(cat_new, file = cat_lon_file)
   rm(event_cat, event_new, cat_new); gc()
@@ -390,7 +390,7 @@ event_proc <- function(df, sst_seas_thresh, event_data, cat_lon, event_file, cat
 # Function for extracting correct SST data based on pre-determined subsets
 # It also calculates and returns corrected MHW metric results
 # df <- MHW_previous_event_index[148,]
-# df <- MCS_previous_event_index[452,]
+# df <- MCS_previous_event_index[91,]
 # event_data <- MCS_event_data[MCS_event_data$lat == df$lat,]
 # cat_lon <- MCS_cat_lon[MCS_cat_lon$lat == df$lat,]
 # full <- F; cold_choice <- T
@@ -419,6 +419,7 @@ event_calc <- function(df, sst_seas_thresh, event_data, cat_lon, full, cold_choi
     mutate(lon = df$lon, lat = df$lat) %>% 
     dplyr::select(lon, lat, event_no, duration:intensity_max, intensity_cumulative) %>%
     mutate_all(round, 3)
+  if(nrow(filter(event_step_1, !is.na(event_no))) == 0) return()
   if(full){
     event_step_2 <- event_step_1
   } else{
@@ -440,7 +441,7 @@ event_calc <- function(df, sst_seas_thresh, event_data, cat_lon, full, cold_choi
      left_join(sst_step_1, by = "t") %>% 
      dplyr::rename(category_correct = category) %>% 
      mutate(event_no = event_no + df$event_no,
-            category_ice = case_when(thresh < -1.7 ~ "V Ice",
+            category_ice = case_when(!is.na(category_correct) & thresh < -1.7 ~ "V Ice",
                                      TRUE ~ category_correct)) %>% 
      dplyr::select(t, lon, lat, event_no, intensity, category_correct, category_ice)
    cat_step_1 <- cat_step_1 %>% 
@@ -453,7 +454,8 @@ event_calc <- function(df, sst_seas_thresh, event_data, cat_lon, full, cold_choi
     cat_step_2 <- cat_lon %>%
       filter(lat == df$lat,
              t <= df$date_end) %>%
-      bind_rows(cat_step_1)
+      bind_rows(cat_step_1) %>% 
+      filter(!is.na(category))
   }
   
   # Exit
@@ -484,13 +486,14 @@ save_sub_cat_clim <- function(date_choice, df, event_type){
   
   # Establish file name and save location
   cat_clim_year <- lubridate::year(date_choice)
-  cat_clim_dir <- paste0("../data/cat_clim/",event_type,"/",cat_clim_year)
-  dir.create(as.character(cat_clim_dir), showWarnings = F)
   if(event_type == "MCS"){
-    cat_clim_name <- paste0("cat.clim.MCS.",date_choice,".Rda")
+    cat_clim_dir <- paste0("../data/cat_clim/MCS/",cat_clim_year)
+    cat_clim_name <- paste0("cat.clim.MCS.",date_choice,".Rds")
   } else {
+    cat_clim_dir <- paste0("../data/cat_clim/",cat_clim_year)
     cat_clim_name <- paste0("cat.clim.",date_choice,".Rda")
   }
+  dir.create(as.character(cat_clim_dir), showWarnings = F)
   
   # Extract data and save
   df_sub <- df %>% 
@@ -499,7 +502,7 @@ save_sub_cat_clim <- function(date_choice, df, event_type){
 }
 
 # Function for loading, prepping, and saving the daily global category slices
-# date_range <- c(as.Date("1986-01-01"), as.Date("1986-01-31"))
+# date_range <- c(as.Date("2020-01-01"), as.Date("2020-01-01"))
 cat_clim_global_daily <- function(date_range){
   # tester...
   # cat_clim_daily <- plyr::ldply(dir("../data/test/", pattern = "MHW.cat", full.names = T), 
@@ -507,7 +510,7 @@ cat_clim_global_daily <- function(date_range){
                                     load_sub_cat_clim,
                                     .parallel = T, date_range = date_range) %>% 
     mutate(category = factor(category, levels = c("I Moderate", "II Strong",
-                                                  "III Severe", "IV Extreme"))) %>% 
+                                                  "III Severe", "IV Extreme"))) %>%
     na.omit()
   MCS_cat_clim_daily <- plyr::ldply(MCS_cat_lon_files,
                                     load_sub_cat_clim,
