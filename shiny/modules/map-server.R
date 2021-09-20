@@ -527,12 +527,21 @@ map <- function(input, output, session) {
       dplyr::mutate(diff = thresh - seas,
                     thresh_2x = thresh + diff,
                     thresh_3x = thresh_2x + diff,
-                    thresh_4x = thresh_3x + diff)
+                    thresh_4x = thresh_3x + diff,
+                    diff_MCS = thresh_MCS - seas,
+                    thresh_MCS_2x = thresh_MCS + diff_MCS,
+                    thresh_MCS_3x = thresh_MCS_2x + diff_MCS,
+                    thresh_MCS_4x = thresh_MCS_3x + diff_MCS)
     
     # Grab event data
-    event_files <- dir("event/", full.names = T) %>% threadr::str_filter("MCS", invert = T)
-    event_file <- event_files[which(lon_OISST == xy[1])]
-    event_data <- readRDS(event_file) %>% 
+    # event_files <- dir("event/", full.names = T) %>% threadr::str_filter("MCS", invert = T)
+    # event_file <- MHW_event_files[which(lon_OISST == xy[1])]
+    event_data <- readRDS(MHW_event_files[which(lon_OISST == xy[1])]) %>% 
+      dplyr::filter(lat == xy[2]) %>%
+      mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
+             date_peak = as.Date(date_peak, origin = "1970-01-01"),
+             date_end = as.Date(date_end, origin = "1970-01-01"))
+    event_MCS_data <- readRDS(MCS_event_files[which(lon_OISST == xy[1])]) %>% 
       dplyr::filter(lat == xy[2]) %>%
       mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
              date_peak = as.Date(date_peak, origin = "1970-01-01"),
@@ -541,6 +550,7 @@ map <- function(input, output, session) {
     # Return the pixel data
     pixelData <- list(ts = ts_data,
                       event = event_data,
+                      event_MCS = event_MCS_data,
                       lon = xy[1],
                       lat = xy[2])
     return(pixelData)
@@ -813,6 +823,9 @@ map <- function(input, output, session) {
     event_data <- pixelData()$event
     event_data_sub <- event_data %>%
       dplyr::filter(date_peak >= input$from_to[1], date_peak <= input$from_to[2])
+    event_MCS_data <- pixelData()$event_MCS
+    event_MCS_data_sub <- event_MCS_data %>%
+      dplyr::filter(date_peak >= input$from_to[1], date_peak <= input$from_to[2])
     
     # The base
     suppressWarnings( # text aes for plotly
@@ -821,6 +834,7 @@ map <- function(input, output, session) {
         scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(input$from_to[1], input$from_to[2])) 
       )
     # Add flame categories as needed
+    ## MHWs
     if(any(ts_data_sub$temp > ts_data_sub$thresh)){
       p <- p + heatwaveR::geom_flame(aes(y2 = thresh), fill = "#ffc866", n = 5, n_gap = 2)
       }
@@ -833,23 +847,40 @@ map <- function(input, output, session) {
     if(any(ts_data_sub$temp > ts_data_sub$thresh_4x)){
       p <- p + heatwaveR::geom_flame(aes(y2 = thresh_4x), fill = "#2d0000")
     }
+    # MCSs
+    if(any(ts_data_sub$temp < ts_data_sub$thresh_MCS)){
+      p <- p + heatwaveR::geom_flame(aes(y = thresh_MCS, y2 = temp), fill = "#C7ECF2", n = 5, n_gap = 2)
+    }
+    if(any(ts_data_sub$temp < ts_data_sub$thresh_MCS_2x)){
+      p <- p + heatwaveR::geom_flame(aes(y = thresh_MCS_2x, y2 = temp), fill = "#85B7CC")
+    }
+    if(any(ts_data_sub$temp < ts_data_sub$thresh_MCS_3x)){
+      p <- p + heatwaveR::geom_flame(aes(y = thresh_MCS_3x, y2 = temp), fill = "#4A6A94")
+    }
+    if(any(ts_data_sub$temp < ts_data_sub$thresh_MCS_4x)){
+      p <- p + heatwaveR::geom_flame(aes(y = thresh_MCS_4x, y2 = temp), fill = "#111433")
+    }
     # Add SST, seas, clim lines
-    suppressWarnings( # text aes pltoly
+    suppressWarnings( # text aes plotly
       p <- p + geom_line(colour = "grey20",
                          aes(group = 1, text = paste0("Date: ",t,
                                                       "<br>Temperature: ",temp,"°C"))) +
-        geom_line(linetype = "dashed", colour = "steelblue3",
+        geom_line(linetype = "dashed", colour = "forestgreen",
                   aes(x = t, y = seas, group = 1,
                       text = paste0("Date: ",t,
                                     "<br>Climatology: ",seas,"°C"))) +
         geom_line(linetype = "dotted", colour = "tomato3",
                   aes(x = t, y = thresh, group = 1,
                       text = paste0("Date: ",t,
-                                    "<br>Threshold: ",thresh,"°C")))
+                                    "<br>Threshold: ",thresh,"°C"))) +
+        geom_line(linetype = "dotted", colour = "darkorchid",
+                  aes(x = t, y = thresh_MCS, group = 1,
+                      text = paste0("Date: ",t,
+                                    "<br>Threshold: ",thresh_MCS,"°C")))
     )
     # Add rug as needed
     if(length(event_data_sub$date_start) > 0){
-      suppressWarnings( # text aes pltoly
+      suppressWarnings( # text aes plotly
       p <- p + geom_rug(data = event_data_sub, sides = "b", colour = "salmon", size = 2,
                         aes(x = date_peak, y = min(ts_data_sub$temp),
                             text = paste0("Event: ",event_no,
@@ -860,6 +891,20 @@ map <- function(input, output, session) {
                                           "<br>Mean Intensity: ",intensity_mean,"°C",
                                           "<br>Max. Intensity: ",intensity_max,"°C",
                                           "<br>Cum. Intensity: ",intensity_cumulative,"°C")))
+      )
+    }
+    if(length(event_MCS_data_sub$date_start) > 0){
+      suppressWarnings( # text aes plotly
+        p <- p + geom_rug(data = event_MCS_data_sub, sides = "b", colour = "steelblue3", size = 2,
+                          aes(x = date_peak, y = min(ts_data_sub$temp),
+                              text = paste0("Event: ",event_no,
+                                            "<br>Duration: ",duration," days",
+                                            "<br>Start Date: ", date_start,
+                                            "<br>Peak Date: ", date_peak,
+                                            "<br>End Date: ", date_end,
+                                            "<br>Mean Intensity: ",intensity_mean,"°C",
+                                            "<br>Max. Intensity: ",intensity_max,"°C",
+                                            "<br>Cum. Intensity: ",intensity_cumulative,"°C")))
       )
     }
     p

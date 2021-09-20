@@ -42,9 +42,14 @@ sst_seas_thresh_ts <- function(lon_step, lat_step){
   sst_seas_thresh <- tidync_OISST %>% 
     left_join(tidync::hyper_tibble(tidync::tidync(MHW_seas_thresh_files[lon_row])), 
               by = c("lon", "lat", "doy" = "time")) %>% 
+    left_join(readRDS(MCS_seas_thresh_files[lon_row]),
+              by = c("lon", "lat", "doy" = "time")) %>%
+    dplyr::select(-seas.y) %>% 
+    dplyr::rename(seas = seas.x, thresh = thresh.x, thresh_MCS = thresh.y) %>% 
     mutate(temp = round(temp, 2),
            seas = round(seas, 2),
-           thresh = round(thresh, 2))
+           thresh = round(thresh, 2),
+           thresh_MCS = round(thresh_MCS, 2))
   return(sst_seas_thresh)
 }
 

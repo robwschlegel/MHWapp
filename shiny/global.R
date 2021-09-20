@@ -95,9 +95,10 @@ lat_OISST <- seq(-89.875, 89.875, by = 0.25)
 
 ### The file locations
 OISST_files <- dir("OISST", pattern = "avhrr-only", full.names = T)
-# MHW_event_files <- dir("event", pattern = "MHW.event.", full.names = T)
+MHW_event_files <- dir("event", pattern = "MHW.event.", full.names = T)
+MCS_event_files <- dir("event/MCS", pattern = "MCS.event.", full.names = T)
 MHW_seas_thresh_files <- dir("thresh", pattern = "MHW.seas.thresh.", full.names = T)
-MCS_seas_thresh_files <- dir("thresh_MCS", pattern = "MCS.seas.thresh.", full.names = T)
+MCS_seas_thresh_files <- dir("thresh/MCS", pattern = "MCS.seas.thresh.", full.names = T)
 # cat_clim_files <- as.character(dir(path = "cat_clim", pattern = "cat.clim",
 #                                    full.names = TRUE, recursive = TRUE))
 
