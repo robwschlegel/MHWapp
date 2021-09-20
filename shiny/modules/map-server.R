@@ -6,12 +6,100 @@ map <- function(input, output, session) {
   # x <- -42.125
   # y <- 39.875
   # input <- data.frame(date = as.Date("2019-07-19"),
-  #                     layer = "MCS Category")
-                      # layer = "Trend")#,
-                      # pixel = "Smooth")
-                      #categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
+  #                     # layer = "MCS Category",
+  #                     layer = "Trend",
+  #                     pixel = "Smooth",
+  #                     from = as.Date("2020-09-10"),
+  #                     to = as.Date("2021-09-10"))
+  # categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme")
   # categories <- data.frame(categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
   
+# Guided tour -------------------------------------------------------------
+  
+  guide <- Cicerone$
+    new()$
+    # step(
+    #   ns("date_reactive"),
+    #   "Chose a date",
+    #   "Chose which date to display on the map."
+    # )$
+    step(
+      el = ns("toggle"),
+      title = "Control panel",
+      description = HTML("This web application shows near-real-time information on where in the world marine heatwaves (MHWs) 
+                         and marine cold-spells (MCSs) are occurring and what category they are.
+                         <hr>
+                         This is where all of the controls are contained. Click <b>Controls</b> to minimise this panel.")
+    )$
+    step(
+      ns("controls"),
+      "Control panel",
+      HTML("Click in the <b>Date</b> box to choose a day to display on the map.
+           <hr>
+           Click on the <b>Animate</b> switch to bring up the animation options.
+           <hr>
+           Click on the <b>Map layer</b> button to choose between the different data options.
+           <hr>
+           Use the <b>Map data</b> interface to download the global MHW category data. There is a 31 day size limit per download request.
+           <hr>
+           Clicking on the <b>Category</b> buttons will filter those pixels from the map.
+           <hr>
+           After clicking a pixel of interest on the map the <b>Plot pixel</b> button will turn green. 
+           One may then click on this button to access the time series data for the chosen pixel."),
+      position = "right"
+    )$
+    step(
+      "[data-value='map_tab']",
+      "Map tab",
+      HTML("This tab provides an interactive map of global MHWs/MCSs in near-real-time.
+           <hr>
+           This is the tab that is currently shown."),
+      is_id = FALSE, position = "left"
+    )$
+    step(
+      "[data-value='comp_tab']",
+      "Comparison tab",
+      "Click here to access a dashboard that allows one to compare MHW results for different remotely sensed products.",
+      is_id = FALSE, position = "left"
+    )$
+    step(
+      "[data-value='sum_tab']",
+      "Summary tab",
+      "Click here to access a dashboard designed for more thoroughly investigating annual MHW summaries.",
+      is_id = FALSE, position = "left"
+    )$
+    step(
+      "[data-value='about_tab']",
+      "About tab",
+      "Click here for more detailed information about this app and MHWs.",
+      is_id = FALSE, position = "left"
+    )#$
+    # step(
+    #   el = ns("toggle"),
+    #   title = "Control panel",
+    #   description = "This is where all of the controls are contained."
+    # )$
+    # step(
+    #   ns("date_reactive"),
+    #   "Chose a date",
+    #   "Chose which date to display on the map."
+    # )$
+    # step(
+    #   ns("controls"),
+    #   "Control panel",
+    #   "This is where all of the controls are contained.",
+    #   position = "right"
+    # )#$
+    # step(
+    #   ns("map_back_menu"),
+    #   "Chose map layer",
+    #   "This drop down menu allows one to chose which data to visualise on the map.\n[Explanation]"
+    # )$
+    # step(
+    #   ns("check_animate"),
+    #   "Open animation menu",
+    #   "Toggling this switch will open the animation menu."
+    # )
   
 
 # Reactive UI -------------------------------------------------------------
@@ -21,9 +109,13 @@ map <- function(input, output, session) {
   observe({
     query <- parseQueryString(session$clientData$url_search)
     if(length(query) < 1){
-      shinyBS::toggleModal(session, "startupModal", "open")
+      # req(input$layer)
+      # req(input$extreme_filter)
+      # shinyBS::toggleModal(session, "startupModal", "open")
+      guide$init()$start()
     }
   })
+  
   # The content of the welcome window
   output$uiStartupModal <- renderUI({
     shinyBS::bsModal(ns('startupModal'), title = strong("Welcome to the Marine Heatwave Tracker!"), trigger = "click2", size = "m",
@@ -828,11 +920,11 @@ map <- function(input, output, session) {
       dplyr::filter(date_peak >= input$from_to[1], date_peak <= input$from_to[2])
     
     # The base
-    suppressWarnings( # text aes for plotly
-      p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
-        labs(x = "", y = "Temperature (°C)") +
-        scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(input$from_to[1], input$from_to[2])) 
-      )
+    p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
+      labs(x = "", y = "Temperature (°C)") +
+      scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(input$from_to[1], input$from_to[2])) +
+      theme(panel.border = element_rect(colour = "black", fill = NA))
+    
     # Add flame categories as needed
     ## MHWs
     if(any(ts_data_sub$temp > ts_data_sub$thresh)){
@@ -895,7 +987,7 @@ map <- function(input, output, session) {
     }
     if(length(event_MCS_data_sub$date_start) > 0){
       suppressWarnings( # text aes plotly
-        p <- p + geom_rug(data = event_MCS_data_sub, sides = "b", colour = "steelblue3", size = 2,
+        p <- p + geom_rug(data = event_MCS_data_sub, sides = "b", colour = "steelblue1", size = 2,
                           aes(x = date_peak, y = min(ts_data_sub$temp),
                               text = paste0("Event: ",event_no,
                                             "<br>Duration: ",duration," days",
@@ -915,7 +1007,7 @@ map <- function(input, output, session) {
     
     # Grab static plot
     p <- tsPlot()
-    suppressWarnings( # text aes pltoly
+    suppressWarnings( # text aes plotly
     p <- p +
       geom_segment(aes(x = input$date[1], 
                        xend = input$date[1],
@@ -935,36 +1027,71 @@ map <- function(input, output, session) {
   ### Create lolliplot
   lolliPlot <- reactive({
     
+    # Filter time series based on dates
+    ts_data <- pixelData()$ts
+    ts_data_sub <- ts_data %>%
+      dplyr::filter(t >= input$from_to[1], t <= input$from_to[2])
+    
     # Prep data
     event_data <- pixelData()$event
     event_data_sub <- event_data %>%
       dplyr::filter(date_peak >= input$from_to[1], date_peak <= input$from_to[2])
+    event_MCS_data <- pixelData()$event_MCS
+    event_MCS_data_sub <- event_MCS_data %>%
+      dplyr::filter(date_peak >= input$from_to[1], date_peak <= input$from_to[2])
     
-    # Base figure
+    # Get y_lims
+    y_lims <- c(0, 1)
+    if(length(event_data_sub$date_start) > 0) y_lims[2] <- max(event_data_sub$intensity_max)*1.1
+    if(length(event_MCS_data_sub$date_start) > 0) y_lims[1] <- min(event_MCS_data_sub$intensity_max)*1.1
+    if(length(event_MCS_data_sub$date_start) > 0 & length(event_data_sub$date_start) == 0) y_lims[2] <- 0
+      
+    # The base figure
+    p <- ggplot() +
+      labs(x = "", y = "Max. Intensity (°C)") +
+      scale_y_continuous(limits = y_lims, expand = c(0, 0)) +
+      scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(input$from_to[1], input$from_to[2])) +
+      theme(panel.border = element_rect(colour = "black", fill = NA))
+    
+    # Add lollis as necessary
     if(length(event_data_sub$date_start) > 0){
       suppressWarnings(
-        p <- ggplot(data = event_data_sub, aes(x = date_peak, y = intensity_max)) +
-          geom_segment(aes(xend = date_peak, yend = 0)) +
-          geom_point(fill = "salmon", shape = 21, size = 4,
-                     aes(text = paste0("Event: ",event_no,
+        p <- p + geom_segment(data = event_data_sub,
+                              aes(x = date_peak, xend = date_peak, y = intensity_max, yend = 0)) +
+          geom_hline(yintercept = 0) +
+          geom_point(data = event_data_sub, fill = "salmon", shape = 21, size = 4,
+                     aes(x = date_peak, y = intensity_max,
+                         text = paste0("Event: ",event_no,
                                        "<br>Duration: ",duration," days",
                                        "<br>Start Date: ", date_start,
                                        "<br>Peak Date: ", date_peak,
                                        "<br>End Date: ", date_end,
                                        "<br>Mean Intensity: ",intensity_mean,"°C",
                                        "<br>Max. Intensity: ",intensity_max,"°C",
-                                       "<br>Cum. Intensity: ",intensity_cumulative,"°C"))) +
-          scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(input$from_to[1], input$from_to[2])) +
-          scale_y_continuous(expand = c(0,0), limits = c(0, max(event_data_sub$intensity_max)*1.1)) +
-          labs(x = "", y = "Max. Intensity (°C)")
+                                       "<br>Cum. Intensity: ",intensity_cumulative,"°C")))
       )
-    } else{
+    }
+    if(length(event_MCS_data_sub$date_start) > 0){
       suppressWarnings(
-        p <- ggplot() + geom_text(aes(x = input$from_to[1] + ((input$from_to[2] - input$from_to[1])/2),
-                                      y = 0.5, label = "?", text = "No marine heatwave peaks in date range.")) +
-          scale_y_continuous(limits = c(0, 1), expand = c(0, 0)) +
-          scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(input$from_to[1], input$from_to[2])) +
-          labs(x = "", y = "Max. Intensity (°C)")
+        p <- p + geom_segment(data = event_MCS_data_sub,
+                              aes(x = date_peak, xend = date_peak, y = intensity_max, yend = 0)) +
+          geom_hline(yintercept = 0) +
+          geom_point(data = event_MCS_data_sub, fill = "steelblue1", shape = 21, size = 4,
+                     aes(x = date_peak, y = intensity_max,
+                         text = paste0("Event: ",event_no,
+                                       "<br>Duration: ",duration," days",
+                                       "<br>Start Date: ", date_start,
+                                       "<br>Peak Date: ", date_peak,
+                                       "<br>End Date: ", date_end,
+                                       "<br>Mean Intensity: ",intensity_mean,"°C",
+                                       "<br>Max. Intensity: ",intensity_max,"°C",
+                                       "<br>Cum. Intensity: ",intensity_cumulative,"°C")))
+      )
+    }
+    if(length(event_data_sub$date_start) == 0 & length(event_MCS_data_sub$date_start) == 0){
+      suppressWarnings(
+        p <- p + geom_text(aes(x = input$from_to[1] + ((input$from_to[2] - input$from_to[1])/2),
+                               y = 0.5, label = "?", text = "No marine heatwaves or marine cold-spells detected in date range."))
       )
     }
     p
@@ -972,7 +1099,8 @@ map <- function(input, output, session) {
   
   ### Interactive lolliplot
   lolliPlotly <- reactive({
-    p <- lollilot()
+    # p <- lollilot()
+    p <- lolliPlot()
     pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) #%>%
       # style(hoverinfo = "none", traces = c(3, 4))
     pp
@@ -982,9 +1110,10 @@ map <- function(input, output, session) {
   tsTable <- reactive({
     event_data <- pixelData()$event %>% 
       dplyr::filter(date_start >= input$from_to[1], date_start <= input$from_to[2]) %>% 
+      mutate(Event = "MHW") %>% 
       dplyr::rename(Lon = lon,
                     Lat = lat,
-                    Event = event_no,
+                    '#' = event_no,
                     Duration = duration,
                     'Start Date' = date_start,
                     'Peak Date' = date_peak,
@@ -992,6 +1121,22 @@ map <- function(input, output, session) {
                     'Mean Intensity' = intensity_mean,
                     'Max. Intensity' = intensity_max,
                     'Cum. Intensity' = intensity_cumulative)
+    event_MCS_data <- pixelData()$event_MCS %>% 
+      dplyr::filter(date_start >= input$from_to[1], date_start <= input$from_to[2]) %>% 
+      mutate(Event = "MCS") %>% 
+      dplyr::rename(Lon = lon,
+                    Lat = lat,
+                    '#' = event_no,
+                    Duration = duration,
+                    'Start Date' = date_start,
+                    'Peak Date' = date_peak,
+                    'End Date' = date_end,
+                    'Mean Intensity' = intensity_mean,
+                    'Max. Intensity' = intensity_max,
+                    'Cum. Intensity' = intensity_cumulative)
+    event_res <- rbind(event_data, event_MCS_data) %>% 
+      dplyr::arrange(`Peak Date`) %>% 
+      dplyr::select(Event, everything())
   })
   
   
@@ -1052,8 +1197,8 @@ map <- function(input, output, session) {
   })
   
   ### Lolli plot
-  output$lolliPlot <- renderPlotly({
-    lolliPlot()
+  output$lolliPlotly <- renderPlotly({
+    lolliPlotly()
   })
   
   ### Event metrics table
@@ -1087,7 +1232,7 @@ map <- function(input, output, session) {
                                             hr()),
                                    tabPanel(title = "Lolliplot",
                                             br(),
-                                            shinycssloaders::withSpinner(plotlyOutput(ns("lolliPlot")), 
+                                            shinycssloaders::withSpinner(plotlyOutput(ns("lolliPlotly")), 
                                                                          type = 6, color = "#b0b7be"),
                                             hr()),
                                    tabPanel(title = "Table",
@@ -1112,7 +1257,7 @@ map <- function(input, output, session) {
                                             downloadButton(outputId = ns("download_clim"),
                                                            label = "Climatology & Threshold (csv)", class = 'small-dl'),
                                             downloadButton(outputId = ns("download_event"),
-                                                           label = "MHW data (csv)", class = 'small-dl'))
+                                                           label = "Event data (csv)", class = 'small-dl'))
                                      )
                        )
     )
@@ -1143,13 +1288,14 @@ map <- function(input, output, session) {
   
   ### Prep event data
   downloadEventData <- reactive({
-    data <- pixelData()$event
+    data <- pixelData()$event %>% mutate(event = "MHW")
+    data_MCS <- pixelData()$event_MCS  %>% mutate(event = "MCS")
     lon <- pixelData()$lon[1]
     lat <- pixelData()$lat[1]
-    data_sub <- data %>% 
-      mutate(lon = lon,
-             lat = lat) %>% 
-      dplyr::select(lon, lat, event_no, date_start, date_peak, date_end, everything())
+    data_sub <- rbind(data, data_MCS) %>% 
+      mutate(lon = lon, lat = lat) %>% 
+      dplyr::select(event, lon, lat, event_no, date_start, date_peak, date_end, everything()) %>% 
+      dplyr::arrange(date_peak)
     return(data_sub)
   })
   
@@ -1171,7 +1317,7 @@ map <- function(input, output, session) {
     data_sub <- data %>% 
       mutate(lon = lon,
              lat = lat) %>% 
-      dplyr::select(lon, lat, doy, seas, thresh) %>% 
+      dplyr::select(lon, lat, doy, seas, thresh, thresh_MCS) %>% 
       dplyr::distinct() %>% 
       arrange(doy)
     return(data_sub)

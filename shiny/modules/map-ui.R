@@ -2,7 +2,7 @@ mapUI <- function(id, label = 'map') {
   ns <- NS(id)
   
   fluidPage(
-
+    
     ### Activate underlying javascript to R functionality
     shinyjs::useShinyjs(),
   
@@ -30,6 +30,7 @@ mapUI <- function(id, label = 'map') {
                       h5(""),
                       uiOutput(outputId = ns("date_reactive")),
                       # Animation UI
+                      h5(""),
                       uiOutput(outputId = ns("check_animate_UI")),
                       # Layer selector
                       h5(""),
@@ -39,7 +40,7 @@ mapUI <- function(id, label = 'map') {
                       uiOutput(outputId = ns("download_map_UI")),
                       # The background selector
                       h5(""),
-                      shinyWidgets::dropdownButton(
+                      shinyWidgets::dropdownButton(inputId = ns("map_back_menu"),
                         shinyWidgets::prettyRadioButtons(inputId = ns("map_back"),
                                                          label = h3("Background"),
                                                          choiceNames = list("Default", "Grey", "Land features", "Ocean features"),
@@ -51,7 +52,7 @@ mapUI <- function(id, label = 'map') {
                         label = "Background", tooltip = FALSE),
                       # The lon/lat/zoom controls
                       h5(""),
-                      shinyWidgets::dropdownButton(
+                      shinyWidgets::dropdownButton(inputId = ns("coords"),
                         # div(id = ns("coords"),
                             numericInput(inputId = ns("lon"), label = "Lon", value = initial_lon, step = 10),
                             numericInput(inputId = ns("lat"), label = "Lat", value = initial_lat, step = 10),
@@ -80,7 +81,7 @@ mapUI <- function(id, label = 'map') {
     uiOutput(ns('date_animator')),
     
     ### The welcome popup
-    uiOutput(ns('uiStartupModal')),
+    # uiOutput(ns('uiStartupModal')),
     
     ### The interactive time series panel
     uiOutput(ns('uiModal'))

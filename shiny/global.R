@@ -19,6 +19,7 @@ library(shinyBS)
 library(leaflet)
 library(plotly)
 library(DT)
+library(cicerone)
 })
 
 # Dependencies that are called explicitly
