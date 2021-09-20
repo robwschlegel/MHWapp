@@ -90,9 +90,7 @@ readRDS_year <- function(file_name){
 # NB: This used to be in the heatwaveR package but needed to be removed
 # when the plotly package was orphaned around Christmas time of 2020... 
 
-geom2trace.GeomFlame <- function (data,
-                                  params,
-                                  p) {
+geom2trace.GeomFlame <- function(data, params, p){
   
   x <- y <- y2 <- NULL
   
@@ -120,7 +118,7 @@ geom2trace.GeomFlame <- function (data,
   # Screen out spikes
   data1 <- data1[data_event$screen != TRUE,]
   
-  # Prepare to find the ploygon corners
+  # Prepare to find the polygon corners
   x1 <- data1$y
   x2 <- data1$y2
   
@@ -165,11 +163,17 @@ geom2trace.GeomFlame <- function (data,
   positions <- plotly::group2NA(positions, groupNames = "ids")
   positions <- positions[stats::complete.cases(positions$ids),]
   positions <- dplyr::left_join(positions, data[,-c(2,3)], by = "x")
-  positions$PANEL <- positions$PANEL[stats::complete.cases(positions$PANEL)][1]
-  positions$group <- positions$group[stats::complete.cases(positions$group)][1]
+  if(length(stats::complete.cases(positions$PANEL)) > 1) 
+    positions$PANEL <- positions$PANEL[stats::complete.cases(positions$PANEL)][1]
+  if(length(stats::complete.cases(positions$group)) > 1) 
+    positions$group <- positions$group[stats::complete.cases(positions$group)][1]
   
   # Run the plotly polygon code
-  getFromNamespace("geom2trace.GeomPolygon", asNamespace("plotly"))(positions)
+  if(length(unique(positions$PANEL)) == 1){
+    getFromNamespace("geom2trace.GeomPolygon", asNamespace("plotly"))(positions)
+  } else{
+    return()
+  }
 }
 
 

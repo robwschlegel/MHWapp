@@ -29,6 +29,7 @@ library(DT)
 # library(maps)
 # library(readr)
 # library(tidyr)
+# library(threadr)
 # library(stringr)
 # library(lubridate)
 # library(magrittr)
@@ -67,7 +68,7 @@ if(!dir.exists("OISST")) stop("The 'OISST' folder is missing.")
 if(!dir.exists("thresh")) stop("The 'thresh' folder is missing.")
 
 ### The dates currently processed
-current_dates <- dir("cat_clim", recursive = T, pattern = "cat.clim", full.names = T) %>% str_filter("MCS", invert = T)
+current_dates <- dir("cat_clim", recursive = T, pattern = "cat.clim", full.names = T) %>% threadr::str_filter("MCS", invert = T)
 current_dates <- sapply(strsplit(current_dates, split = "cat.clim."), "[[", 3)
 current_dates <- as.Date(sapply(strsplit(current_dates, split = ".Rda"), "[[", 1))
 

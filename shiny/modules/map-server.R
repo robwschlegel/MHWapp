@@ -530,7 +530,8 @@ map <- function(input, output, session) {
                     thresh_4x = thresh_3x + diff)
     
     # Grab event data
-    event_file <- dir("event/", full.names = T)[which(lon_OISST == xy[1])]
+    event_files <- dir("event/", full.names = T) %>% threadr::str_filter("MCS", invert = T)
+    event_file <- event_files[which(lon_OISST == xy[1])]
     event_data <- readRDS(event_file) %>% 
       dplyr::filter(lat == xy[2]) %>%
       mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
