@@ -282,7 +282,7 @@ sst_seas_thresh_merge <- function(lon_step, date_range){
 
 # Function for updating the MHW event metric lon slice files
 # tester...
-# lon_step <- lon_OISST[71]
+# lon_step <- lon_OISST[1116]
 event_cat_update <- function(lon_step, full = F){
   
   # load the final download date
@@ -293,7 +293,7 @@ event_cat_update <- function(lon_step, full = F){
   # lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
   
   # Begin the calculations
-  print(paste0("Began run on ",MHW_event_files[lon_row]," at ",Sys.time()))
+  # print(paste0("Began run on ",MHW_event_files[lon_row]," at ",Sys.time()))
   
   # Load current lon slice for event/category
   if(full){
@@ -351,10 +351,14 @@ event_cat_update <- function(lon_step, full = F){
   # ) # 102 seconds for 478 pixels
   rm(sst_seas_thresh, MHW_previous_event_index, MHW_event_data, MHW_cat_lon,
      MCS_previous_event_index, MCS_event_data, MCS_cat_lon); gc()
-  return()
+  # return()
 }
 
 # Wrapper function to detect events and save the results
+# df <- MHW_previous_event_index; event_data <- MHW_event_data; cat_lon <- MHW_cat_lon
+# event_file <- MHW_event_files[lon_row]; cat_lon_file <- MHW_cat_lon_files[lon_row]
+# df <- MCS_previous_event_index; event_data <- MCS_event_data; cat_lon <- MCS_cat_lon
+# event_file <- MCS_event_files[lon_row]; cat_lon_file <- MCS_cat_lon_files[lon_row]
 event_proc <- function(df, sst_seas_thresh, event_data, cat_lon, event_file, cat_lon_file, full, cold_choice = F){
   
   # Calculate new event metrics with new data for MHWs as necessary
@@ -363,12 +367,12 @@ event_proc <- function(df, sst_seas_thresh, event_data, cat_lon, event_file, cat
     mutate(lat2 = lat) %>% 
     group_by(lat2) %>% 
     nest() %>% 
-    mutate(event_cat_res = map(data, event_calc,
-                               sst_seas_thresh = sst_seas_thresh,
-                               event_data = event_data,
-                               cat_lon = cat_lon,
-                               full = full,
-                               cold_choice = cold_choice)) %>% 
+    mutate(event_cat_res = purrr::map(data, event_calc,
+                                      sst_seas_thresh = sst_seas_thresh,
+                                      event_data = event_data,
+                                      cat_lon = cat_lon,
+                                      full = full,
+                                      cold_choice = cold_choice)) %>% 
     ungroup() %>% 
     dplyr::select(-data, -lat2) %>%
     unnest(cols = event_cat_res)
@@ -384,13 +388,15 @@ event_proc <- function(df, sst_seas_thresh, event_data, cat_lon, event_file, cat
     unnest(cols = event_cat_res)
   saveRDS(cat_new, file = cat_lon_file)
   rm(event_cat, event_new, cat_new); gc()
-  return()
+  # return()
 }
 
 # Function for extracting correct SST data based on pre-determined subsets
 # It also calculates and returns corrected MHW metric results
-# df <- MHW_previous_event_index[148,]
-# df <- MCS_previous_event_index[91,]
+# df <- MHW_previous_event_index[1,]
+# event_data <- MHW_event_data[MHW_event_data$lat == df$lat,]
+# cat_lon <- MHW_cat_lon[MHW_cat_lon$lat == df$lat,]
+# df <- MCS_previous_event_index[1,]
 # event_data <- MCS_event_data[MCS_event_data$lat == df$lat,]
 # cat_lon <- MCS_cat_lon[MCS_cat_lon$lat == df$lat,]
 # full <- F; cold_choice <- T
@@ -435,18 +441,22 @@ event_calc <- function(df, sst_seas_thresh, event_data, cat_lon, full, cold_choi
     mutate(event_no = event_no + df$event_no,
            lon = df$lon,
            lat = df$lat) %>% 
-    dplyr::select(t, lon, lat, event_no, intensity, category)
-  if(cold_choice){
+    dplyr::select(t, lon, lat, event_no, intensity, category) %>% 
+    filter(!is.na(category))
+  if(cold_choice & nrow(cat_step_1) > 0){
    cat_step_1_correct_ice <- category(event_base, climatology = T, season = "peak", MCScorrect = T)$climatology %>% 
      left_join(sst_step_1, by = "t") %>% 
+     filter(!is.na(category)) %>% 
      dplyr::rename(category_correct = category) %>% 
      mutate(event_no = event_no + df$event_no,
-            category_ice = case_when(!is.na(category_correct) & thresh < -1.7 ~ "V Ice",
+            category_ice = case_when(thresh < -1.7 ~ "V Ice",
                                      TRUE ~ category_correct)) %>% 
      dplyr::select(t, lon, lat, event_no, intensity, category_correct, category_ice)
    cat_step_1 <- cat_step_1 %>% 
      mutate(category_correct = cat_step_1_correct_ice$category_correct,
             category_ice = cat_step_1_correct_ice$category_ice)
+  } else if(cold_choice){
+    cat_step_1 <- cat_lon[0,]
   }
   if(full){
     cat_step_2 <- cat_step_1
@@ -454,8 +464,7 @@ event_calc <- function(df, sst_seas_thresh, event_data, cat_lon, full, cold_choi
     cat_step_2 <- cat_lon %>%
       filter(lat == df$lat,
              t <= df$date_end) %>%
-      bind_rows(cat_step_1) %>% 
-      filter(!is.na(category))
+      bind_rows(cat_step_1)
   }
   
   # Exit

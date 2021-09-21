@@ -143,7 +143,7 @@ if(ncdf_date > cat_lon_date){
 # This function can fix a specific file
 
 # Run one
-# event_cat_update(lon_OISST[610], full = TRUE)
+# event_cat_update(lon_OISST[1116], full = FALSE)
 
 # Run many
 # plyr::l_ply(lon_OISST[1300:1365], .fun = event_cat_update, .parallel = TRUE, full = TRUE)
@@ -155,9 +155,9 @@ if(ncdf_date > cat_lon_date){
 # file_dates <- file.info(dir("../data/cat_lon/MCS", full.names = T)) %>%
 #   mutate(file_name = sapply(strsplit(row.names(.), "/"), "[[", 5)) %>%
 #   mutate(file_num = as.integer(sapply(strsplit(file_name, "[.]"), "[[", 3))) %>%
-#   # filter(ctime < Sys.Date()-1)
-#   filter(size < 1000000)
-# plyr::l_ply(lon_OISST[file_dates$file_num], .fun = event_cat_update, .parallel = TRUE, full = T)
+#   filter(ctime < Sys.Date()-1)
+#   #filter(size < 1000000)
+# plyr::l_ply(lon_OISST[file_dates$file_num], .fun = event_cat_update, .parallel = TRUE, full = F)
 
 
 # 3: Create daily global files --------------------------------------------
@@ -168,8 +168,8 @@ load("metadata/final_dates.Rdata")
 
 # Get the range of dates that need to be run
   # Manually control dates as desired
-update_dates <- seq(as.Date("2021-01-01"), as.Date("2021-09-17"), by = "day")
-# update_dates <- time_index[which(time_index >= max(final_dates)-2)]
+# update_dates <- seq(as.Date("2021-01-01"), as.Date("2021-09-17"), by = "day")
+update_dates <- time_index[which(time_index >= max(final_dates)-5)]
 if(length(update_dates) > 0) {
   print(paste0("Updating global files from ",min(update_dates)," to ",max(update_dates)))
   print(paste0("Updating daily MHW/MCS cat files at ", Sys.time()))
