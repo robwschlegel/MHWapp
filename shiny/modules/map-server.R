@@ -22,7 +22,7 @@ map <- function(input, output, session) {
     step(
       el = ns("toggle"),
       title = "Control panel",
-      description = HTML("This web application shows near-real-time information on where in the world marine heatwaves (MHWs) 
+      description = HTML("This web application shows near-real-time information on where in the world marine heatwaves (MHWs)
                          and marine cold-spells (MCSs) are occurring and what category they are.
                          <hr>
                          This is where all of the controls are contained. Click <b>Controls</b> to minimise this panel.")
@@ -81,7 +81,7 @@ map <- function(input, output, session) {
   observe({
     query <- parseQueryString(session$clientData$url_search)
     if(length(query) < 1){
-      req(input$layer)
+      # req(input$layer)
       guide$init()$start()
     }
   })
