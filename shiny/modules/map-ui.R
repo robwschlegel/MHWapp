@@ -80,9 +80,6 @@ mapUI <- function(id, label = 'map') {
     ### The separate animation menu
     uiOutput(ns('date_animator')),
     
-    ### The welcome popup
-    # uiOutput(ns('uiStartupModal')),
-    
     ### The interactive time series panel
     uiOutput(ns('uiModal'))
   )

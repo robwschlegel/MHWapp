@@ -13,16 +13,12 @@ map <- function(input, output, session) {
   #                     to = as.Date("2021-09-10"))
   # categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme")
   # categories <- data.frame(categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
-  
+
+
 # Guided tour -------------------------------------------------------------
   
   guide <- Cicerone$
     new()$
-    # step(
-    #   ns("date_reactive"),
-    #   "Chose a date",
-    #   "Chose which date to display on the map."
-    # )$
     step(
       el = ns("toggle"),
       title = "Control panel",
@@ -36,11 +32,13 @@ map <- function(input, output, session) {
       "Control panel",
       HTML("Click in the <b>Date</b> box to choose a day to display on the map.
            <hr>
-           Click on the <b>Animate</b> switch to bring up the animation options.
+           Flip the <b>Animate</b> switch to bring up the animation menu.
            <hr>
-           Click on the <b>Map layer</b> button to choose between the different data options.
+           Access the different datasets in the MHW Tracker via the <b>Map layer</b> button.
            <hr>
-           Use the <b>Map data</b> interface to download the global MHW category data. There is a 31 day size limit per download request.
+           Use the <b>Map data</b> menu to download the global MHW category data. There is a 31 day size limit per download request.
+           <hr>
+           Change the map with <b>Background</b>. If the map appears grey on startup that can be changed here.
            <hr>
            Clicking on the <b>Category</b> buttons will filter those pixels from the map.
            <hr>
@@ -73,34 +71,8 @@ map <- function(input, output, session) {
       "About tab",
       "Click here for more detailed information about this app and MHWs.",
       is_id = FALSE, position = "left"
-    )#$
-    # step(
-    #   el = ns("toggle"),
-    #   title = "Control panel",
-    #   description = "This is where all of the controls are contained."
-    # )$
-    # step(
-    #   ns("date_reactive"),
-    #   "Chose a date",
-    #   "Chose which date to display on the map."
-    # )$
-    # step(
-    #   ns("controls"),
-    #   "Control panel",
-    #   "This is where all of the controls are contained.",
-    #   position = "right"
-    # )#$
-    # step(
-    #   ns("map_back_menu"),
-    #   "Chose map layer",
-    #   "This drop down menu allows one to chose which data to visualise on the map.\n[Explanation]"
-    # )$
-    # step(
-    #   ns("check_animate"),
-    #   "Open animation menu",
-    #   "Toggling this switch will open the animation menu."
-    # )
-  
+    )
+
 
 # Reactive UI -------------------------------------------------------------
 
@@ -109,35 +81,9 @@ map <- function(input, output, session) {
   observe({
     query <- parseQueryString(session$clientData$url_search)
     if(length(query) < 1){
-      # req(input$layer)
-      # req(input$extreme_filter)
-      # shinyBS::toggleModal(session, "startupModal", "open")
+      req(input$layer)
       guide$init()$start()
     }
-  })
-  
-  # The content of the welcome window
-  output$uiStartupModal <- renderUI({
-    shinyBS::bsModal(ns('startupModal'), title = strong("Welcome to the Marine Heatwave Tracker!"), trigger = "click2", size = "m",
-                     HTML("This web application shows up to date information on where in the world marine heatwaves (MHWs) are occurring and what category they are.
-                          <hr>
-                          All of the <b>Controls</b> may be found on the left of the screen and can be minimised.
-                          <hr>
-                          Click in the <b>Date</b> box to choose a day to display on the map.
-                          <hr>
-                          Click on the <b>Animate</b> switch to bring up the animation options.
-                          <hr>
-                          Click on the <b>Map layer</b> button to choose between the different data options.
-                          <hr>
-                          Use the <b>Map data</b> interface to download the global MHW category data. There is a 31 day size limit per download request.
-                          <hr>
-                          Clicking on the <b>Category</b> buttons will filter those pixels from the map.
-                          <hr>
-                          After clicking on a pixel of interest, click the <b>Plot pixel</b> button to see more.
-                          <hr>
-                          Additional features may be found in the <b>Comparison</b> and <b>Summary</b> tabs. 
-                          <hr>
-                          For more information please click on the <b>About</b> tab."))
   })
   
   ### Switch the display of the Controls on and off
@@ -173,9 +119,7 @@ map <- function(input, output, session) {
   
   ### Reactive category filters
   categories <- reactiveValues(categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
-  
-  ## Reac
-  
+
   ### Moderate filtering button
   # The base reactive value for clicking
   button_I <- reactiveValues(clicked = FALSE)
@@ -508,8 +452,6 @@ map <- function(input, output, session) {
       req(lubridate::is.Date(input$date))
       sub_dir <- paste0("cat_clim/MCS/",lubridate::year(input$date))
       sub_file <- paste0(sub_dir,"/cat.clim.MCS.",input$date,".Rds")
-      # sub_dir <- paste0("cat_clim/",lubridate::year(input$date))
-      # sub_file <- paste0(sub_dir,"/cat.clim.",input$date,".Rda")
     } else if(input$layer == "MHW Summary"){
       sub_dir <- "../data/annual_summary"
       sub_file <- paste0(sub_dir,"/MHW_cat_pixel_",input$date,".Rds")
@@ -535,8 +477,8 @@ map <- function(input, output, session) {
         baseDataPre <- readRDS(sub_file)
       } else {
         baseDataPre <- empty_date_map
-        # baseDataPre <- readRDS("cat_clim/MCS/1982/cat.clim.MCS.1982-01-01.Rds")
-        # baseDataPre <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda")
+        # baseDataPre <- readRDS("cat_clim/MCS/1982/cat.clim.MCS.1982-01-01.Rds") # For testing
+        # baseDataPre <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") # For testing
       }
     }
     return(baseDataPre)
@@ -626,8 +568,6 @@ map <- function(input, output, session) {
                     thresh_MCS_4x = thresh_MCS_3x + diff_MCS)
     
     # Grab event data
-    # event_files <- dir("event/", full.names = T) %>% threadr::str_filter("MCS", invert = T)
-    # event_file <- MHW_event_files[which(lon_OISST == xy[1])]
     event_data <- readRDS(MHW_event_files[which(lon_OISST == xy[1])]) %>% 
       dplyr::filter(lat == xy[2]) %>%
       mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
@@ -939,7 +879,7 @@ map <- function(input, output, session) {
     if(any(ts_data_sub$temp > ts_data_sub$thresh_4x)){
       p <- p + heatwaveR::geom_flame(aes(y2 = thresh_4x), fill = "#2d0000")
     }
-    # MCSs
+    ## MCSs
     if(any(ts_data_sub$temp < ts_data_sub$thresh_MCS)){
       p <- p + heatwaveR::geom_flame(aes(y = thresh_MCS, y2 = temp), fill = "#C7ECF2", n = 5, n_gap = 2)
     }
