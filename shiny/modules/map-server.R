@@ -660,7 +660,6 @@ map <- function(input, output, session) {
         dplyr::filter(lon == xy[1],
                       lat == xy[2]) 
       content_sub <- paste0("<br>Climatology = ", round(val$seas, 2),
-                            "<br>Threshold = ", round(val$thresh, 2),
                             "<br>Anomaly = ", val$anom)
     } else if(input$layer %in% trend_layers){
       val <- baseDataPre %>% 
