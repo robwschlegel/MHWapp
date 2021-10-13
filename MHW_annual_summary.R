@@ -14,6 +14,7 @@
 # source("MHW_daily_functions.R")
 library(dtplyr)
 
+# Set number of cores
 registerDoParallel(cores = 50)
 
 # Animation libraries
@@ -47,39 +48,50 @@ max_event_date <- function(df){
 # product <- "OISST"
 # chosen_year <- 2020
 # chosen_clim <- "1982-2011"
-# force_calc = T
-# database = F
-MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, database = F){
+# MHW <- F; force_calc <- T; database <- F
+event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force_calc = F, database = F){
   
-  print(paste0("Started run on ",product, "(", 
+  if(MHW){
+    event_type <- "MHW"
+    event_file <- ""
+    event_colours <- MHW_colours
+  } else {
+    event_type <- "MCS"
+    event_file <- "_MCS"
+    event_colours <- MCS_colours
+  }
+  
+  print(paste0("Started run on ",product," ",event_type," (", 
                chosen_clim,"): ", chosen_year," at ",Sys.time()))
   
   ## Find file location
-    # NB: The database files are created in 'MHW_database.R'
-  if(database){
-    MHW_cat_files <- dir(paste0("../data/",product,"_cat/", chosen_year), 
-                         full.names = T, pattern = chosen_clim)
-  } else{
-    MHW_cat_files <- dir(paste0("../data/cat_clim/",chosen_year), full.names = T)
+    # NB: The database files are created in 'event_database.R'
+  if(!MHW){
+    event_cat_files <- dir(paste0("../data/cat_clim/MCS/",chosen_year), full.names = T)
+  } else if(database){
+    event_cat_files <- dir(paste0("../data/",product,"_cat/", chosen_year), 
+                     full.names = T, pattern = chosen_clim)
+  } else {
+    event_cat_files <- dir(paste0("../data/cat_clim/",chosen_year), full.names = T)
   }
 
-  # print(paste0("There are currently ",length(MHW_cat_files)," days of data for ",chosen_year))
+  # print(paste0("There are currently ",length(event_cat_files)," days of data for ",chosen_year))
   
   ## Create figure title
-  if(length(MHW_cat_files) < 365){
+  if(length(event_cat_files) < 365){
     extra_bit <- " (so far)"
   } else{
     extra_bit <- ""
   }
   product_name <- product
   if(product == "OISST") product_name <- "NOAA OISST"
-  fig_title <- paste0("MHW categories of ",chosen_year, extra_bit,
+  fig_title <- paste0(event_type," categories of ",chosen_year, extra_bit,
                       "\n",product_name,"; Climatogy period: ",chosen_clim)
   
   ## Load data
   if(force_calc){
     # system.time(
-    MHW_cat <- plyr::ldply(MHW_cat_files, readRDS, .parallel = T) #%>% 
+    event_cat <- plyr::ldply(event_cat_files, readRDS, .parallel = T) #%>% 
     # right_join(OISST_no_ice_coords, by = c("lon", "lat")) %>%  # Filter out ice if desired
     # na.omit()
     # ) # 12 seconds
@@ -87,47 +99,48 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, 
   
   ## Process data
   # Max category per pixel
-  if(file.exists(paste0("data/annual_summary/",product,"_cat_pixel_",
+  if(file.exists(paste0("data/annual_summary/",product,event_file,"_cat_pixel_",
                         chosen_clim,"_",chosen_year,".Rds")) & !force_calc){
-    MHW_cat_pixel <- readRDS(paste0("data/annual_summary/",product,"_cat_pixel_",
-                                    chosen_clim,"_",chosen_year,".Rds"))
+    event_cat_pixel <- readRDS(paste0("data/annual_summary/",product,event_file,"_cat_pixel_",
+                                chosen_clim,"_",chosen_year,".Rds"))
   } else{
     # print(paste0("Filtering out the max category at each pixel and counting sum of intensity; ~14 seconds"))
     
-    MHW_intensity <- MHW_cat %>% 
+    event_intensity <- event_cat %>% 
       group_by(lon, lat) %>% 
       summarise(intensity_sum = sum(intensity), .groups = "drop")
 
     # system.time(
-    MHW_cat_pixel <- MHW_cat %>% 
+    event_cat_pixel <- event_cat %>% 
       dplyr::select(-event_no) %>% 
       plyr::ddply(., c("lon"), max_event_date, 
                   .parallel = T, .paropts = c(.inorder = FALSE)) %>% 
       unique() %>%
-      left_join(MHW_intensity, by = c("lon", "lat"))
+      left_join(event_intensity, by = c("lon", "lat"))
     # ) # 14 seconds
-    saveRDS(MHW_cat_pixel, file = paste0("data/annual_summary/",product,"_cat_pixel_",
-                                         chosen_clim,"_",chosen_year,".Rds"))
+    saveRDS(event_cat_pixel, file = paste0("data/annual_summary/",product,event_file,"_cat_pixel_",
+                                           chosen_clim,"_",chosen_year,".Rds"))
     if(product == "OISST" & chosen_clim == "1982-2011"){
-      saveRDS(MHW_cat_pixel, file = paste0("data/annual_summary/MHW_cat_pixel_",chosen_year,".Rds"))
+      saveRDS(event_cat_pixel, file = paste0("data/annual_summary/",event_type,"_cat_pixel_",chosen_year,".Rds"))
     }
   }
   
   # Daily count and cumulative count per pixel
-  if(file.exists(paste0("data/annual_summary/",product,"_cat_daily_",
+  if(file.exists(paste0("data/annual_summary/",product,event_file,"_cat_daily_",
                         chosen_clim,"_",chosen_year,".Rds")) & !force_calc){
-    MHW_cat_daily <- readRDS(paste0("data/annual_summary/",product,"_cat_daily_",
-                                    chosen_clim,"_",chosen_year,".Rds"))
+    event_cat_daily <- readRDS(paste0("data/annual_summary/",product,event_file,
+                                      "_cat_daily_",chosen_clim,"_",chosen_year,".Rds"))
   } else{
     # print(paste0("Counting the daily + cumulative categories per day; ~3 seconds"))
     
     # Complete dates by categories data.frame
-    full_grid <- expand_grid(t = seq(as.Date(paste0(chosen_year,"-01-01")), max(MHW_cat$t), by = "day"), 
-                             category = as.factor(levels(MHW_cat$category))) %>% 
-      mutate(category = factor(category, levels = levels(MHW_cat$category)))
+    ## This will need to be changed if the ice category is introduced
+    full_grid <- expand_grid(t = seq(as.Date(paste0(chosen_year,"-01-01")), max(event_cat$t), by = "day"), 
+                             category = as.factor(levels(event_cat$category))) %>% 
+      mutate(category = factor(category, levels = levels(event_cat$category)))
     
     # system.time(
-    MHW_cat_single <- MHW_cat_pixel %>%
+    event_cat_single <- event_cat_pixel %>%
       group_by(t) %>%
       count(category) %>%
       dplyr::rename(first_n = n) %>% 
@@ -141,7 +154,7 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, 
     # ) # 1 second
     
     # system.time(
-    MHW_cat_daily <- MHW_cat %>% 
+    event_cat_daily <- event_cat %>% 
       group_by(t) %>% 
       count(category) %>% 
       ungroup() %>% 
@@ -152,22 +165,22 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, 
       mutate(cat_n_cum = cumsum(cat_n),
              cat_n_prop = round(cat_n_cum/nrow(OISST_ocean_coords), 4)) %>% 
       ungroup() %>% 
-      right_join(MHW_cat_single, by = c("t", "category"))
+      right_join(event_cat_single, by = c("t", "category"))
     # ) # 1 second
-    saveRDS(MHW_cat_daily, file = paste0("data/annual_summary/",product,"_cat_daily_",
+    saveRDS(event_cat_daily, file = paste0("data/annual_summary/",product,event_file,"_cat_daily_",
                                          chosen_clim,"_",chosen_year,".Rds"))
     if(product == "OISST" & chosen_clim == "1982-2011"){
-      saveRDS(MHW_cat_daily, file = paste0("data/annual_summary/MHW_cat_daily_",chosen_year,".Rds"))
+      saveRDS(event_cat_daily, file = paste0("data/annual_summary/",event_type,"_cat_daily_",chosen_year,".Rds"))
     }
   }
   
   # Add prop columns for more accurate plotting
-  MHW_cat_daily <- MHW_cat_daily %>% 
+  event_cat_daily <- event_cat_daily %>% 
     mutate(first_n_cum_prop = round(first_n_cum/nrow(OISST_ocean_coords), 4),
            cat_prop = round(cat_n/nrow(OISST_ocean_coords), 4))
   
   # Extract small data.frame for easier labeling
-  MHW_cat_daily_labels <- MHW_cat_daily %>% 
+  event_cat_daily_labels <- event_cat_daily %>% 
     group_by(category) %>% 
     filter(t == max(t)) %>% 
     ungroup() %>% 
@@ -177,11 +190,11 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, 
   # print("Creating figures")
   
   # Global map of MHW occurrence
-  fig_map <- ggplot(MHW_cat_pixel, aes(x = lon, y = lat)) +
+  fig_map <- ggplot(event_cat_pixel, aes(x = lon, y = lat)) +
     # geom_tile(data = OISST_ice_coords, fill = "powderblue", colour = NA, alpha = 0.5) +
     geom_tile(aes(fill = category), colour = NA) +
     geom_polygon(data = map_base, aes(x = lon, y = lat, group = group)) +
-    scale_fill_manual("Category", values = MHW_colours) +
+    scale_fill_manual("Category", values = event_colours) +
     coord_cartesian(expand = F, ylim = c(min(OISST_ocean_coords$lat),
                                          max(OISST_ocean_coords$lat))) +
     theme_void() +
@@ -194,10 +207,10 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, 
   # fig_map
    
   # Stacked barplot of global daily count of MHWs by category
-  fig_count <- ggplot(MHW_cat_daily, aes(x = t, y = cat_prop)) +
+  fig_count <- ggplot(event_cat_daily, aes(x = t, y = cat_prop)) +
     geom_bar(aes(fill = category), stat = "identity", show.legend = F,
              position = position_stack(reverse = TRUE), width = 1) +
-    scale_fill_manual("Category", values = MHW_colours) +
+    scale_fill_manual("Category", values = event_colours) +
     scale_y_continuous(limits = c(0, 1),
                        breaks = seq(0.2, 0.8, length.out = 4),
                        labels = paste0(seq(20, 80, by = 20), "%")) +
@@ -210,13 +223,13 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, 
   # fig_count
   
   # Stacked barplot of cumulative percent of ocean affected by MHWs
-  fig_cum <- ggplot(MHW_cat_daily, aes(x = t, y = first_n_cum_prop)) +
+  fig_cum <- ggplot(event_cat_daily, aes(x = t, y = first_n_cum_prop)) +
     geom_bar(aes(fill = category), stat = "identity", show.legend = F,
              position = position_stack(reverse = TRUE), width = 1) +
-    geom_hline(data = MHW_cat_daily_labels, show.legend = F,
+    geom_hline(data = event_cat_daily_labels, show.legend = F,
                aes(yintercept = label_first_n_cum, colour = category)) +
-    scale_fill_manual("Category", values = MHW_colours) +
-    scale_colour_manual("Category", values = MHW_colours) +
+    scale_fill_manual("Category", values = event_colours) +
+    scale_colour_manual("Category", values = event_colours) +
     scale_y_continuous(limits = c(0, 1),
                        breaks = seq(0.2, 0.8, length.out = 4),
                        labels = paste0(seq(20, 80, by = 20), "%")) +
@@ -229,12 +242,12 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, 
   # fig_cum
   
   # Stacked barplot of average cumulative MHW days per pixel
-  fig_prop <- ggplot(MHW_cat_daily, aes(x = t, y = cat_n_prop)) +
+  fig_prop <- ggplot(event_cat_daily, aes(x = t, y = cat_n_prop)) +
     geom_bar(aes(fill = category), stat = "identity", show.legend = F,
              position = position_stack(reverse = TRUE), width = 1) +
-    scale_fill_manual("Category", values = MHW_colours) +
-    scale_y_continuous(breaks = round(seq(sum(MHW_cat_daily_labels$cat_n_prop)*0.25,
-                                      sum(MHW_cat_daily_labels$cat_n_prop)*0.75, length.out = 3), 0)) +
+    scale_fill_manual("Category", values = event_colours) +
+    scale_y_continuous(breaks = round(seq(sum(event_cat_daily_labels$cat_n_prop)*0.25,
+                                      sum(event_cat_daily_labels$cat_n_prop)*0.75, length.out = 3), 0)) +
     scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +  
     labs(y = "Average MHW days per pixel\n(cumulative)", x = "Day of the year") +
     coord_cartesian(expand = F) +
@@ -256,7 +269,7 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, 
   
   # print("Saving final figure")
   ggsave(fig_ALL_cap, height = 12, width = 18, 
-         filename = paste0("figures/",product,"_cat_summary_", chosen_clim,"_",chosen_year,".png"))
+         filename = paste0("figures/",product,event_file,"_cat_summary_", chosen_clim,"_",chosen_year,".png"))
   # ggsave(fig_ALL_cap, height = 12, width = 18, 
          # filename = paste0("figures/",product,"_cat_summary_", chosen_clim,"_",chosen_year,".pdf")) # looks bad...
   
@@ -265,17 +278,25 @@ MHW_annual_state <- function(chosen_year, product, chosen_clim, force_calc = F, 
 }
 
 # Run the current year
-MHW_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), 
-                 product = "OISST", chosen_clim = "1982-2011", force_calc = T) # 161 seconds
-# MHW_annual_state(2016, product = "OISST", chosen_clim = "1982-2011", force_calc = F)
+## MHW
+event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), 
+                   product = "OISST", chosen_clim = "1982-2011", force_calc = T) # 161 seconds
+## MCS
+event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
+                   product = "OISST", chosen_clim = "1982-2011", force_calc = T) # 161 seconds
+# event_annual_state(2016, product = "OISST", chosen_clim = "1982-2011", force_calc = F)
 
 # Run ALL years
 # NB: Running this in parallel will cause a proper stack overflow
 # OISST
-# plyr::l_ply(1982:2019, MHW_annual_state, force_calc = T, .parallel = F,
+## MHW
+# plyr::l_ply(1982:2019, event_annual_state, force_calc = T, .parallel = F,
 #             product = "OISST", chosen_clim = "1982-2011") # ~50 seconds for one
-# plyr::l_ply(1982:2019, MHW_annual_state, force_calc = T, .parallel = F,
+# plyr::l_ply(1982:2019, event_annual_state, force_calc = T, .parallel = F,
 #             product = "OISST", chosen_clim = "1992-2018")
+## MCS
+# plyr::l_ply(1982:2020, event_annual_state, MHW = F, force_calc = T, .parallel = F,
+#             product = "OISST", chosen_clim = "1982-2011") # ~50 seconds for one
 
 # CCI
 # plyr::l_ply(1982:2018, MHW_annual_state, force_calc = T, .parallel = F,
@@ -354,11 +375,22 @@ MHW_annual_count <- function(chosen_year, hemisphere){
 # testers...
 # product <- "OISST"
 # chosen_clim <- "1982-2011"
-MHW_total_state <- function(product, chosen_clim){
+# MHW <- F
+event_total_state <- function(product, chosen_clim, MHW = T){
+  
+  if(MHW){
+    event_type <- "MHW"
+    event_file <- ""
+    event_colours <- MHW_colours
+  } else {
+    event_type <- "MCS"
+    event_file <- "_MCS"
+    event_colours <- MCS_colours
+  }
   
   # Create mean values of daily count
   cat_daily_files <- dir("data/annual_summary", full.names = T,
-                         pattern = paste0(product,"_cat_daily_",chosen_clim))
+                         pattern = paste0(product,event_file,"_cat_daily_",chosen_clim))
   cat_daily_files <- cat_daily_files[!grepl("total", cat_daily_files)]
   cat_daily_mean <- map_dfr(cat_daily_files, readRDS) %>%
   # cat_daily_mean <- map_dfr(dir("data/annual_summary/v2.0", pattern = "cat_daily",
@@ -383,50 +415,80 @@ MHW_total_state <- function(product, chosen_clim){
     filter(t <= 2020) # Use this to not include the current partial year
   
   # Save and exit
-  saveRDS(cat_daily, paste0("data/annual_summary/",product,
+  saveRDS(cat_daily, paste0("data/annual_summary/",product,event_file,
                             "_cat_daily_", chosen_clim,"_total.Rds"))
 }
 
 ## Run them all
 # OISST
-# MHW_total_state("OISST", "1982-2011")
-# MHW_total_state("OISST", "1992-2018")
+# event_total_state("OISST", "1982-2011")
+# event_total_state("OISST", "1982-2011", MHW = F)
+# event_total_state("OISST", "1992-2018")
 # CCI
-# MHW_total_state("CCI", "1982-2011")
-# MHW_total_state("CCI", "1992-2018")
+# event_total_state("CCI", "1982-2011")
+# event_total_state("CCI", "1992-2018")
 # CMC
-# MHW_total_state("CMC", "1992-2018")
+# event_total_state("CMC", "1992-2018")
 
-MHW_total_state_fig <- function(df, product, chosen_clim){
+event_total_state_fig <- function(df, product, chosen_clim, MHW = T){
+  
+  if(MHW){
+    event_type <- "MHW"
+    event_file <- ""
+    event_colours <- MHW_colours
+    event_limits <- c(0, 90)
+    event_breaks <- seq(5, 85, by = 5)
+    second_breaks <- c(7.3, 14.6, 21.9, 29.2, 36.5, 43.8, 51.1, 58.4, 65.7, 73.0)
+    second_break_labels <- c("2%", "4%", "6%", "8%", "10%", "12%", "14%", "16%", "18%", "20%")
+  } else {
+    event_type <- "MCS"
+    event_file <- "_MCS"
+    event_colours <- MCS_colours
+    event_limits <- c(0, 40)
+    event_breaks <- seq(5, 35, length.out = 7)
+    second_breaks <- c(7.3, 14.6, 21.9, 29.2)
+    second_break_labels <- c("2%", "4%", "6%", "8%")
+  }
   
   # Stacked barplot of global daily count of MHWs by category
-  fig_count_historic <- ggplot(df, aes(x = t, y = cat_prop_daily_mean)) +
+  fig_count_historic <- ggplot(df, aes(x = t, y = cat_n_prop)) +
     geom_bar(aes(fill = category), stat = "identity", show.legend = T,
              position = position_stack(reverse = TRUE), width = 1) +
-    scale_fill_manual("Category", values = MHW_colours) +
-    scale_y_continuous(limits = c(0, 1),
-                       breaks = seq(0.2, 0.8, length.out = 4),
-                       labels = paste0(seq(20, 80, by = 20), "%")) +
+    # If the ice category is added
+    # geom_bar_pattern(data = MCS_total_ice, stat = "identity", show.legend = F,
+    #                  aes(pattern_colour = hemi, colour = hemi), 
+    #                  pattern = "stripe", pattern_fill = NA, fill = NA, 
+    #                  pattern_density = 1, pattern_size = 0.6) +
+    # scale_colour_manual(values = c("lightpink", "plum")) +
+    # scale_pattern_colour_manual(values = c("lightpink", "plum")) +
+    scale_fill_manual("Category", values = event_colours) +
+    scale_y_continuous(limits = event_limits,
+                       breaks = event_breaks,
+                       sec.axis = sec_axis(name = paste0("Average daily ",event_type," coverage"), 
+                                           trans = ~ . + 0,
+                                           breaks = second_breaks,
+                                           labels = second_break_labels)) +
     scale_x_continuous(breaks = seq(1984, 2019, 7)) +
-    labs(y = "Daily MHW occurrence", x = NULL) +
+    guides(fill = guide_legend(nrow = 1, byrow = TRUE)) +
+    labs(y = paste0("Average ",event_type," days"), x = NULL) +
     coord_cartesian(expand = F) +
     theme(panel.border = element_rect(colour = "black", fill = NA),
-          axis.title = element_text(size = 14),
-          axis.text = element_text(size = 12),
-          legend.title = element_text(size = 18),
-          legend.text = element_text(size = 16))
+          axis.title = element_text(size = 12),
+          axis.text = element_text(size = 10),
+          legend.title = element_text(size = 12),
+          legend.text = element_text(size = 10))
   # fig_count_historic
 
   # Stacked barplot of cumulative percent of ocean affected by MHWs
   fig_cum_historic <- ggplot(df, aes(x = t, y = first_n_cum_prop)) +
     geom_bar(aes(fill = category), stat = "identity", show.legend = T,
              position = position_stack(reverse = TRUE), width = 1) +
-    scale_fill_manual("Category", values = MHW_colours) +
+    scale_fill_manual("Category", values = event_colours) +
     scale_y_continuous(limits = c(0, 1),
                        breaks = seq(0.2, 0.8, length.out = 4),
                        labels = paste0(seq(20, 80, by = 20), "%")) +
     scale_x_continuous(breaks = seq(1984, 2019, 7)) +
-    labs(y = "Total MHW occurrence", x = NULL) +
+    labs(y = paste0("Total ",event_type," coverage"), x = NULL) +
     coord_cartesian(expand = F) +
     theme(panel.border = element_rect(colour = "black", fill = NA),
           axis.title = element_text(size = 14),
@@ -435,56 +497,41 @@ MHW_total_state_fig <- function(df, product, chosen_clim){
           legend.text = element_text(size = 16))
   # fig_cum_historic
 
-  # Stacked barplot of average cumulative MHW days per pixel
-  fig_prop_historic <- ggplot(df, aes(x = t, y = cat_n_prop)) +
-    geom_bar(aes(fill = category), stat = "identity", show.legend = T,
-             position = position_stack(reverse = TRUE), width = 1) +
-    scale_fill_manual("Category", values = MHW_colours) +
-    scale_y_continuous(limits = c(0, 90),
-                       breaks = seq(15, 75, length.out = 3)) +
-    scale_x_continuous(breaks = seq(1984, 2019, 7)) +
-    labs(y = "MHW days/pixel", x = NULL) +
-    coord_cartesian(expand = F) +
-    theme(panel.border = element_rect(colour = "black", fill = NA),
-          axis.title = element_text(size = 14),
-          axis.text = element_text(size = 12),
-          legend.title = element_text(size = 18),
-          legend.text = element_text(size = 16))
-  # fig_prop_historic
-
   # Create the figure title
   product_title <- product
   if(product == "OISST") product_title <- "NOAA OISST"
   min_year <- min(df$t)
   max_year <- max(df$t)
   clim_title <- gsub("-", " - ", chosen_clim)
-  fig_title <- paste0("MHW category summaries: ",min_year," - ",max_year,
+  fig_title <- paste0(event_type," category summaries: ",min_year," - ",max_year,
                       "\n",product_title,"; Climatogy period: ",clim_title)
   
   # Stick them together and save
-  fig_ALL_historic <- ggpubr::ggarrange(fig_count_historic, fig_cum_historic, fig_prop_historic,
-                                        ncol = 3, align = "hv", labels = c("A)", "B)", "C)"), hjust = -0.1,
+  fig_ALL_historic <- ggpubr::ggarrange(fig_count_historic, fig_cum_historic,
+                                        ncol = 2, align = "hv", labels = c("A)", "B)"), #hjust = -0.1,
                                         font.label = list(size = 14), common.legend = T, legend = "bottom")
-  fig_ALL_cap <- grid::textGrob(fig_title, x = 0.01, just = "left", gp = grid::gpar(fontsize = 20))
-  fig_ALL_full <- ggpubr::ggarrange(fig_ALL_cap, fig_ALL_historic, heights = c(0.25, 1), nrow = 2)
-  ggsave(fig_ALL_full, filename = paste0("figures/",product,"_cat_historic_",chosen_clim,".png"), height = 4.25, width = 12)
+  fig_ALL_cap <- grid::textGrob(fig_title, x = 0.01, just = "left", gp = grid::gpar(fontsize = 16))
+  fig_ALL_full <- ggpubr::ggarrange(fig_ALL_cap, fig_ALL_historic, heights = c(0.2, 1), nrow = 2)
+  ggsave(fig_ALL_full, filename = paste0("figures/",product,event_file,"_cat_historic_",chosen_clim,".png"), height = 4.25, width = 8)
   # ggsave(fig_ALL_full, filename = paste0("figures/",product,"_cat_historic_",chosen_clim,".eps"), height = 4.25, width = 12)
 }
 
 ## Run them all
 # OISST
-# OISST_1982_2011 <- readRDS("data/annual_summary/OISST_cat_daily_1982-2011_total.Rds")
-# MHW_total_state_fig(OISST_1982_2011, "OISST", "1982-2011")
+OISST_1982_2011 <- readRDS("data/annual_summary/OISST_cat_daily_1982-2011_total.Rds")
+event_total_state_fig(OISST_1982_2011, "OISST", "1982-2011")
+OISST_MCS_1982_2011 <- readRDS("data/annual_summary/OISST_MCS_cat_daily_1982-2011_total.Rds")
+event_total_state_fig(OISST_MCS_1982_2011, "OISST", "1982-2011", MHW = F)
 # OISST_1992_2018 <- readRDS("data/annual_summary/OISST_cat_daily_1992-2018_total.Rds")
-# MHW_total_state_fig(OISST_1992_2018, "OISST", "1992-2018")
+# event_total_state_fig(OISST_1992_2018, "OISST", "1992-2018")
 # CCI
 # CCI_1982_2011 <- readRDS("data/annual_summary/CCI_cat_daily_1982-2011_total.Rds")
-# MHW_total_state_fig(CCI_1982_2011, "CCI", "1982-2011")
+# event_total_state_fig(CCI_1982_2011, "CCI", "1982-2011")
 # CCI_1992_2018 <- readRDS("data/annual_summary/CCI_cat_daily_1992-2018_total.Rds")
-# MHW_total_state_fig(CCI_1992_2018, "CCI", "1992-2018")
+# event_total_state_fig(CCI_1992_2018, "CCI", "1992-2018")
 # CMC
 # CMC_1992_2018 <- readRDS("data/annual_summary/CMC_cat_daily_1992-2018_total.Rds")
-# MHW_total_state_fig(CMC_1992_2018, "CMC", "1992-2018")
+# event_total_state_fig(CMC_1992_2018, "CMC", "1992-2018")
 
 # Look at a total sum
 # OISST_1982_2011_sum <- OISST_1982_2011 %>%
