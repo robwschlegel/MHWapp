@@ -45,6 +45,9 @@ current_date <- Sys.Date()
 # save(OISST_ocean_coords, file = "metadata/OISST_ocean_coords.Rdata")
 load("metadata/OISST_ocean_coords.Rdata")
 
+# Coordinates with surface area
+load("metadata/lon_lat_OISST_area.RData")
+
 # Visualise ocean pixels
 # ggplot(OISST_ocean_coords, aes(x = lon, y = lat)) + geom_tile()
 
