@@ -83,7 +83,7 @@ menu_panel_left <- 10
 # sidepanel.width <- 400
 
 ### The different layer groupings
-cat_layers <- c("MHW Category", "MCS Category", "MHW Summary")
+cat_layers <- c("MHW Category", "MCS Category", "MHW Summary", "MCS Summary")
 rb_layers <- c("SST Anomaly", "MHW Trend: Count", "MHW Trend: Duration",
                "MHW Trend: Intensity (mean)", "MHW Trend: Intensity (max)")
 trend_layers <- c("MHW Trend: Count", "MHW Trend: Duration",

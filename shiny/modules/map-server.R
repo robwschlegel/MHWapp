@@ -5,6 +5,7 @@ map <- function(input, output, session) {
   # xy <- c(-42.125, 39.875)
   # x <- -42.125
   # y <- 39.875
+  # input <- data.frame(date = 2019,
   # input <- data.frame(date = as.Date("2019-07-19"),
   #                     # layer = "MCS Category",
   #                     layer = "Trend",
@@ -138,7 +139,7 @@ map <- function(input, output, session) {
   # Change button icon upon click
   output$moderate <- renderUI({
     req(input$layer)
-    if(input$layer == "MCS Category"){
+    if(input$layer %in% c("MCS Category", "MCS Summary")){
       style_react <- "color: black; background-color: #C7ECF2; border-color: black; width: 110px"
     } else {
       style_react <- "color: black; background-color: #ffc866; border-color: black; width: 110px"
@@ -170,7 +171,7 @@ map <- function(input, output, session) {
   # Change button icon upon click
   output$strong <- renderUI({
     req(input$layer)
-    if(input$layer == "MCS Category"){
+    if(input$layer %in% c("MCS Category", "MCS Summary")){
       style_react <- "color: black; background-color: #85B7CC; border-color: black; width: 110px"
     } else {
       style_react <- "color: black; background-color: #ff6900; border-color: black; width: 110px"
@@ -202,7 +203,7 @@ map <- function(input, output, session) {
   # Change button icon upon click
   output$severe <- renderUI({
     req(input$layer)
-    if(input$layer == "MCS Category"){
+    if(input$layer %in% c("MCS Category", "MCS Summary")){
       style_react <- "color: black; background-color: #4A6A94; border-color: black; width: 110px"
     } else {
       style_react <- "color: black; background-color: #9e0000; border-color: black; width: 110px"
@@ -234,7 +235,7 @@ map <- function(input, output, session) {
   # Change button icon upon click
   output$extreme <- renderUI({
     req(input$layer)
-    if(input$layer == "MCS Category"){
+    if(input$layer %in% c("MCS Category", "MCS Summary")){
       style_react <- "color: black; background-color: #111433; border-color: black; width: 110px"
     } else {
       style_react <- "color: black; background-color: #2d0000; border-color: black; width: 110px"
@@ -328,7 +329,7 @@ map <- function(input, output, session) {
                   value = date_menu_choice,
                   min = "1982-01-01",
                   max = max(current_dates))
-      } else if(input$layer == "MHW Summary"){
+      } else if(input$layer %in% c("MHW Summary", "MCS Summary")){
         selectInput(inputId = ns("date"), label = NULL,
                     choices = seq(1982, lubridate::year(Sys.time())),
                     selected = lubridate::year(Sys.time()), multiple = F)
@@ -363,9 +364,14 @@ map <- function(input, output, session) {
       sum_type <- NULL
       hem_choice <- NULL
     } else if(input$layer == "MHW Summary"){
-      date_input <- sliderInput(inputId = ns("map_download_date"), sep = "",
-                                label = h5("Date range"), value = c(2020, 2020),
-                                min = 1982, max = lubridate::year(Sys.time()))
+      # date_input <- sliderInput(inputId = ns("map_download_date"), sep = "",
+      #                           label = h5("Date range"), 
+      #                           value = lubridate::year(Sys.time()),
+      #                           min = 1982, max = lubridate::year(Sys.time()))
+      date_input <- selectInput(inputId = ns("map_download_date"), 
+                                label = h5("Date range"), 
+                                choices = seq(1982, lubridate::year(Sys.time())),
+                                selected = lubridate::year(Sys.time()), multiple = F)
       sum_type <- prettyRadioButtons(inputId = ns("summary_type"),
                                      label = h5("Summary"),
                                      choices = list("Max", "Count"),
@@ -376,10 +382,14 @@ map <- function(input, output, session) {
                                        choices = list("Boreal", "Austral"),
                                        selected = "Boreal", inline = TRUE,
                                        status = 'primary', shape = "curve", animation = "tada")
+    } else if(input$layer == "MCS Summary"){
+      date_input <- selectInput(inputId = ns("map_download_date"), 
+                                label = h5("Date range"), 
+                                choices = seq(1982, lubridate::year(Sys.time())),
+                                selected = lubridate::year(Sys.time()), multiple = F)
+      sum_type <- hem_choice <- NULL
     } else {
-      date_input <- NULL
-      sum_type <- NULL
-      hem_choice <- NULL
+      date_input <- sum_type <- hem_choice <- NULL
     }
     
     dropdownButton(
@@ -455,6 +465,9 @@ map <- function(input, output, session) {
     } else if(input$layer == "MHW Summary"){
       sub_dir <- "../data/annual_summary"
       sub_file <- paste0(sub_dir,"/MHW_cat_pixel_",input$date,".Rds")
+    } else if(input$layer == "MCS Summary"){
+      sub_dir <- "../data/annual_summary"
+      sub_file <- paste0(sub_dir,"/MCS_cat_pixel_",input$date,".Rds")
     } else if(input$layer == "SST Anomaly"){
       req(lubridate::is.Date(input$date))
       sub_dir <- paste0("OISST/daily/",lubridate::year(input$date))
@@ -472,9 +485,9 @@ map <- function(input, output, session) {
       baseDataPre <- Oliver_2018 %>% 
         filter(var == "MHW_max_tr")
     }
-    if(input$layer %in% c("MHW Category", "MCS Category", "MHW Summary", "SST Anomaly")){
+    if(input$layer %in% c("MHW Category", "MCS Category", "MHW Summary", "MCS Summary", "SST Anomaly")){
       if(file.exists(sub_file)){
-        baseDataPre <- readRDS(sub_file)
+        baseDataPre <- readRDS(sub_file) %>% ungroup()
       } else {
         baseDataPre <- empty_date_map
         # baseDataPre <- readRDS("cat_clim/MCS/1982/cat.clim.MCS.1982-01-01.Rds") # For testing
@@ -504,7 +517,7 @@ map <- function(input, output, session) {
   ### Non-shiny-projected raster data
   rasterNonProj <- reactive({
     baseData <- baseData()
-    if(input$layer %in% c("MHW Category", "MHW Summary", "MCS Category")){
+    if(input$layer %in% c("MHW Category", "MHW Summary", "MCS Category", "MCS Summary")){
       MHW_raster <- baseData %>%
         dplyr::select(lon, lat, category) 
     } else if(input$layer == "SST Anomaly"){
@@ -707,7 +720,7 @@ map <- function(input, output, session) {
     } else{
       domain_high <- -domain_low
     }
-    if(input$layer == "MCS Category"){
+    if(input$layer %in% c("MCS Category", "MCS Summary")){
       colorNumeric(palette = MCS_colours, domain = c(1,2,3,4), na.color = NA)
     } else if(input$layer %in% cat_layers){
       colorNumeric(palette = MHW_colours, domain = c(1,2,3,4), na.color = NA)
@@ -1279,18 +1292,21 @@ map <- function(input, output, session) {
   downloadMapData <- reactive({
     # req(lubridate::is.Date(input$map_download_date[1]))
     # req(lubridate::is.Date(input$map_download_date[2]))
-    if(input$layer %in% c("MHW Category", "SST Anomaly")){
+    if(input$layer %in% c("MHW Category", "MCS Category", "SST Anomaly")){
       date_filter_from <- as.Date(input$map_download_date[1])
       date_filter_to <- as.Date(input$map_download_date[2])
       date_seq <- seq(date_filter_from, date_filter_to, by = "day")
       date_seq_years <- sapply(strsplit(as.character(date_seq), "-"), "[[", 1)
-    } else if(input$layer == "MHW Summary"){
-      date_seq_years <- input$map_download_date[1]:input$map_download_date[2]
+    } else if(input$layer %in% c("MHW Summary", "MCS Summary")){
+      date_seq_years <- input$map_download_date
     } else{
      # Blank 
     }
     if(input$layer == "MHW Category"){
       date_seq_files <- paste0("cat_clim/",date_seq_years,"/cat.clim.",date_seq,".Rda")
+      map_data <- plyr::ldply(date_seq_files, readRDS_date)
+    } else if(input$layer == "MCS Category"){
+      date_seq_files <- paste0("cat_clim/MCS/",date_seq_years,"/cat.clim.",date_seq,".Rds")
       map_data <- plyr::ldply(date_seq_files, readRDS_date)
     } else if(input$layer == "SST Anomaly") {
       date_seq_files <- paste0("OISST/daily/",date_seq_years,"/daily.",date_seq,".Rda")
@@ -1312,6 +1328,9 @@ map <- function(input, output, session) {
         date_seq_files <- paste0("../data/annual_summary/MHW_cat_pixel_",date_seq_years,".Rds")
         map_data <- plyr::ldply(date_seq_files, readRDS_year)
       }
+    } else if(input$layer == "MCS Summary"){
+      date_seq_files <- paste0("../data/annual_summary/MCS_cat_pixel_",date_seq_years,".Rds")
+      map_data <- plyr::ldply(date_seq_files, readRDS_year)
     } else if(input$layer %in% trend_layers){
       map_data <- baseDataPre()
     }
