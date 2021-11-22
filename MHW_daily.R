@@ -157,7 +157,7 @@ if(ncdf_date > cat_lon_date){
 #   mutate(file_num = as.integer(sapply(strsplit(file_name, "[.]"), "[[", 3))) %>%
 #   filter(ctime < Sys.Date()-1)
 #   #filter(size < 1000000)
-# plyr::l_ply(lon_OISST[file_dates$file_num], .fun = event_cat_update, .parallel = TRUE, full = F)
+# plyr::l_ply(lon_OISST[file_dates$file_num], .fun = event_cat_update, .parallel = TRUE, full = TRUE)
 
 
 # 3: Create daily global files --------------------------------------------
@@ -168,7 +168,7 @@ load("metadata/final_dates.Rdata")
 
 # Get the range of dates that need to be run
   # Manually control dates as desired
-# update_dates <- seq(as.Date("2021-01-01"), as.Date("2021-09-17"), by = "day")
+# update_dates <- seq(as.Date("2021-10-01"), as.Date("2021-11-20"), by = "day")
 update_dates <- time_index[which(time_index >= max(final_dates)-5)]
 if(length(update_dates) > 0) {
   print(paste0("Updating global files from ",min(update_dates)," to ",max(update_dates)))
