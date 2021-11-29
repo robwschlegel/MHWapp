@@ -5,9 +5,7 @@
 
 # Libraries ---------------------------------------------------------------
 
-.libPaths(c("~/R-packages", .libPaths()))
-
-library(tidyverse)
+source("MHW_daily_functions.R")
 library(raster)
 library(gganimate)#, lib.loc = "~/R-packages/")
 doParallel::registerDoParallel(cores = 50)
@@ -182,7 +180,7 @@ munge_lon_steps <- function(lon_steps, lon_files){
 
 # Extract US coastal EEZ for EPA ------------------------------------------
 
-# Saving the files with .Rdds compression is much more efficient
+# Saving the files with .Rds compression is much more efficient
 
 # US west coast
 USWC <- c(-130, -117)
@@ -228,4 +226,57 @@ MHW_global_2011_2021 <- cat_pixel %>%
 # Save as a .RData and .csv for convenience
 save(MHW_global_2011_2021, file = "data/MHW_global_2011_2021.RData")
 write_csv(MHW_global_2011_2021, "data/MHW_global_2011_2021.csv")
+
+
+# Extract bounding boxes around Arctic fjords -----------------------------
+
+# Function for extracting SST only from a given bbox
+## NB: This could easily be adapted to extract other MHW values etc. from a bbox
+sst_bbox <- function(bbox){
+  lon_bbox <- lon_OISST[which(lon_OISST >= bbox[1] & lon_OISST <= bbox[2])]
+  sst_bbox <- plyr::ldply(lon_bbox, sst_seas_thresh_merge, .parallel = T, date_range = as.Date("1982-01-01")) %>% 
+    dplyr::select(lon, lat, t, temp) %>% 
+    dplyr::filter(lat >= bbox[3], lat <= bbox[4])
+  return(sst_bbox)
+}
+
+# Kongsfjorden
+bbox_kong <- c(10, 13.0, 78.5, 79.5)
+sst_kong <- sst_bbox(bbox_kong)
+save(sst_kong, file = "data/sst_kong.RData")
+
+# Isfjorden
+bbox_is <- c(12.0, 18.0, 77.5, 79.0)
+sst_is <- sst_bbox(bbox_is)
+save(sst_is, file = "data/sst_is.RData")
+
+# Storfjorden
+bbox_stor <- c(17.0, 22.0, 77.0, 78.5)
+sst_stor <- sst_bbox(bbox_stor)
+save(sst_stor, file = "data/sst_stor.RData")
+
+# Young sound
+bbox_young <- c(-22.5, -19.0, 74.0, 75.0)
+sst_young <- sst_bbox(bbox_young)
+save(sst_young, file = "data/sst_young.RData")
+
+# Disko Bay
+bbox_disko <- c(-56.0, -49.0, 68.0, 71.0)
+sst_disko <- sst_bbox(bbox_disko)
+save(sst_disko, file = "data/sst_disko.RData")
+
+# Nuup Kangerlua
+bbox_nuup <- c(-53.5, -48.5, 63.5, 65.0)
+sst_nuup <- sst_bbox(bbox_nuup)
+save(sst_nuup, file = "data/sst_nuup.RData")
+
+# Porsangerfjorden
+bbox_por <- c(24.5, 27, 70, 71.5)
+sst_por <- sst_bbox(bbox_por)
+save(sst_por, file = "data/sst_por.RData")
+
+# Tromso
+bbox_trom <- c(17.5, 21.0, 69.0, 70.5)
+sst_trom <- sst_bbox(bbox_trom)
+save(sst_trom, file = "data/sst_trom.RData")
 

@@ -112,7 +112,7 @@ OISST_url_daily_dl <- function(target_URL){
   download.file(url = target_URL, method = "libcurl", destfile = temp_dest)
   temp_dat <- tidync(temp_dest) %>% 
     hyper_tibble() %>% 
-    select(lon, lat, time, sst) %>% 
+    dplyr::select(lon, lat, time, sst) %>% 
     dplyr::rename(t = time, temp = sst) %>% 
     mutate(t = as.Date(t, origin = "1978-01-01"))
   file.remove(temp_dest)
@@ -159,7 +159,7 @@ OISST_temp <- function(df){
     group_by(t2) %>%
     nest() %>%
     mutate(data2 = purrr::map(data, OISST_acast)) %>%
-    select(-data)
+    dplyr::select(-data)
   
   # Final form
   dfa_temp <- abind(dfa$data2, along = 3, hier.names = T)
@@ -266,7 +266,7 @@ sst_seas_thresh_merge <- function(lon_step, date_range){
     mutate(doy = ifelse(!leap_year(year),
                         ifelse(doy > 59, doy+1, doy), doy)) %>% 
     ungroup() %>%
-    select(lon, lat, t, doy, temp)
+    dplyr::select(lon, lat, t, doy, temp)
   
   # Merge to seas/thresh and exit
   sst_seas_thresh <- tidync_OISST %>%
