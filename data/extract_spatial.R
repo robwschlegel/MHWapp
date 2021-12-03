@@ -241,7 +241,7 @@ sst_bbox <- function(bbox){
 }
 
 # Kongsfjorden
-bbox_kong <- c(9, 14.0, 77.5, 80.5)
+bbox_kong <- c(9.5, 14.0, 78.0, 79.5)
 sst_kong <- sst_bbox(bbox_kong)
 save(sst_kong, file = "data/sst_kong.RData")
 
@@ -256,7 +256,7 @@ sst_stor <- sst_bbox(bbox_stor)
 save(sst_stor, file = "data/sst_stor.RData")
 
 # Young sound
-bbox_young <- c(-22.5, -18.0, 73.0, 75.0)
+bbox_young <- c(-22.5, -17.5, 73.0, 75.5)
 sst_young <- sst_bbox(bbox_young)
 save(sst_young, file = "data/sst_young.RData")
 
@@ -271,7 +271,7 @@ sst_nuup <- sst_bbox(bbox_nuup)
 save(sst_nuup, file = "data/sst_nuup.RData")
 
 # Porsangerfjorden
-bbox_por <- c(23.5, 28, 69, 72.5)
+bbox_por <- c(23.5, 28, 69, 72.0)
 sst_por <- sst_bbox(bbox_por)
 save(sst_por, file = "data/sst_por.RData")
 
