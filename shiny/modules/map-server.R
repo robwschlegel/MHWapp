@@ -680,12 +680,17 @@ map <- function(input, output, session) {
                       lat == xy[2]) 
       content_sub <- paste0("<br>",input$layer," = ", round(val$val, 2))
     } 
+    if(input$layer %in% c(trend_layers, "MHW Summary", "MCS Summary")){
+      button_text <- ""
+    } else {
+      button_text <- "<hr><i>Please click the<br><b>Plot pixel</b><br>button in the<br><b>Controls</b> panel<br>for more info</i>"
+    }
     content <- paste0("Lon = ", xy_lon,
                       "<br>Lat = ", xy_lat,
                       content_sub,
                       regional_link,
-                      "<hr>",
-                      "<i>Please click the<br><b>Plot pixel</b><br>button in the<br><b>Controls</b> panel<br>for more info</i>")
+                      # "<hr>",
+                      button_text)
     
     # Update lon lat
     updateNumericInput(session, "lon", value = round(xy_click[1], 2))
