@@ -10,6 +10,12 @@ library(raster)
 library(gganimate)#, lib.loc = "~/R-packages/")
 doParallel::registerDoParallel(cores = 50)
 
+# CCI file location
+CCI_files <- dir("../data/CCI", full.names = T)
+# Remove 1981 data
+CCI_files_sub <- CCI_files[123:length(CCI_files)]; rm(CCI_files)
+# head(CCI_files, 1); tail(CCI_files, 1)
+
 
 # Load data ---------------------------------------------------------------
 
@@ -230,53 +236,91 @@ write_csv(MHW_global_2011_2021, "data/MHW_global_2011_2021.csv")
 
 # Extract bounding boxes around Arctic fjords -----------------------------
 
-# Function for extracting SST only from a given bbox
+# Function for extracting NOAA OISST only from a given bbox
 ## NB: This could easily be adapted to extract other MHW values etc. from a bbox
 sst_bbox <- function(bbox){
   lon_bbox <- lon_OISST[which(lon_OISST >= bbox[1] & lon_OISST <= bbox[2])]
-  sst_bbox <- plyr::ldply(lon_bbox, sst_seas_thresh_merge, .parallel = T, date_range = as.Date("1982-01-01")) %>% 
+  sst_dat <- plyr::ldply(lon_bbox, sst_seas_thresh_merge, .parallel = T, date_range = as.Date("1982-01-01")) %>% 
     dplyr::select(lon, lat, t, temp) %>% 
     dplyr::filter(lat >= bbox[3], lat <= bbox[4])
-  return(sst_bbox)
+  return(sst_dat)
+}
+
+# Function for extracting CCI SST from a given bbox
+sst_CCI_bbox <- function(file_name, bbox){
+  res <- tidync(file_name) %>%
+    hyper_filter(lon = dplyr::between(lon, bbox[1], bbox[2]),
+                 lat = dplyr::between(lat, bbox[3], bbox[4])) %>%
+    hyper_tibble() %>%
+    dplyr::rename(t = time, temp = analysed_sst) %>%
+    na.omit() %>% 
+    mutate(t = as.Date(as.POSIXct(t, origin = '1981-01-01', tz = "GMT")),
+           temp = round(temp-273.15, 2)) %>%
+    dplyr::select(lon, lat, t, temp)
+  return(res)
 }
 
 # Kongsfjorden
 bbox_kong <- c(9.5, 14.0, 78.0, 79.5)
 sst_kong <- sst_bbox(bbox_kong)
 save(sst_kong, file = "data/sst_kong.RData")
+sst_CCI_kong <- plyr::ldply(CCI_files_sub, sst_CCI_bbox, .parallel = T, bbox = bbox_kong)
+save(sst_CCI_kong, file = "data/sst_CCI_kong.RData")
+rm(sst_kong, sst_CCI_kong); gc()
 
 # Isfjorden
 bbox_is <- c(10.0, 18.0, 77.0, 79.0)
 sst_is <- sst_bbox(bbox_is)
 save(sst_is, file = "data/sst_is.RData")
+sst_CCI_is <- plyr::ldply(CCI_files_sub, sst_CCI_bbox, .parallel = T, bbox = bbox_is)
+save(sst_CCI_is, file = "data/sst_CCI_is.RData")
+rm(sst_is, sst_CCI_is); gc()
 
 # Storfjorden
 bbox_stor <- c(17.0, 22.0, 77.0, 78.5)
 sst_stor <- sst_bbox(bbox_stor)
 save(sst_stor, file = "data/sst_stor.RData")
+sst_CCI_stor <- plyr::ldply(CCI_files_sub, sst_CCI_bbox, .parallel = T, bbox = bbox_stor)
+save(sst_CCI_stor, file = "data/sst_CCI_stor.RData")
+rm(sst_stor, sst_CCI_stor); gc()
 
 # Young sound
 bbox_young <- c(-22.5, -17.5, 73.0, 75.5)
 sst_young <- sst_bbox(bbox_young)
 save(sst_young, file = "data/sst_young.RData")
+sst_CCI_young <- plyr::ldply(CCI_files_sub, sst_CCI_bbox, .parallel = T, bbox = bbox_young)
+save(sst_CCI_young, file = "data/sst_CCI_young.RData")
+rm(sst_young, sst_CCI_young); gc()
 
 # Disko Bay
 bbox_disko <- c(-56.0, -49.0, 68.0, 71.0)
 sst_disko <- sst_bbox(bbox_disko)
 save(sst_disko, file = "data/sst_disko.RData")
+sst_CCI_disko <- plyr::ldply(CCI_files_sub, sst_CCI_bbox, .parallel = T, bbox = bbox_disko)
+save(sst_CCI_disko, file = "data/sst_CCI_disko.RData")
+rm(sst_disko, sst_CCI_disko); gc()
 
 # Nuup Kangerlua
 bbox_nuup <- c(-53.5, -48.5, 63.5, 65.0)
 sst_nuup <- sst_bbox(bbox_nuup)
 save(sst_nuup, file = "data/sst_nuup.RData")
+sst_CCI_nuup <- plyr::ldply(CCI_files_sub, sst_CCI_bbox, .parallel = T, bbox = bbox_nuup)
+save(sst_CCI_nuup, file = "data/sst_CCI_nuup.RData")
+rm(sst_nuup, sst_CCI_nuup); gc()
 
 # Porsangerfjorden
 bbox_por <- c(23.5, 28, 69, 72.0)
 sst_por <- sst_bbox(bbox_por)
 save(sst_por, file = "data/sst_por.RData")
+sst_CCI_por <- plyr::ldply(CCI_files_sub, sst_CCI_bbox, .parallel = T, bbox = bbox_por)
+save(sst_CCI_por, file = "data/sst_CCI_por.RData")
+rm(sst_por, sst_CCI_por); gc()
 
 # Tromso
 bbox_trom <- c(17.5, 21.0, 69.0, 70.5)
 sst_trom <- sst_bbox(bbox_trom)
 save(sst_trom, file = "data/sst_trom.RData")
+sst_CCI_trom <- plyr::ldply(CCI_files_sub, sst_CCI_bbox, .parallel = T, bbox = bbox_trom)
+save(sst_CCI_trom, file = "data/sst_CCI_trom.RData")
+rm(sst_trom, sst_CCI_trom); gc()
 
