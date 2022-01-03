@@ -204,7 +204,9 @@ if(length(possible_dates) > length(current_dates)){
 
 # 5: Run annual summary ---------------------------------------------------
 
-source("MHW_annual_summary.R")
+# NB: Disabled for the first month or so of 2022 until there are enough data for this to run correctly.
+# NB: Also run 2021 once all of the final data are available
+# source("MHW_annual_summary.R") 
 
 
 # 6: Push to GitHub -------------------------------------------------------
