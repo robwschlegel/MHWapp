@@ -168,7 +168,7 @@ load("metadata/final_dates.Rdata")
 
 # Get the range of dates that need to be run
   # Manually control dates as desired
-# update_dates <- seq(as.Date("2021-10-01"), as.Date("2021-11-20"), by = "day")
+# update_dates <- seq(as.Date("2021-12-25"), as.Date("2022-01-08"), by = "day")
 update_dates <- time_index[which(time_index >= max(final_dates)-5)]
 if(length(update_dates) > 0) {
   print(paste0("Updating global files from ",min(update_dates)," to ",max(update_dates)))
