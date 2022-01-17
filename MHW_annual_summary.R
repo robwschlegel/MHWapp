@@ -301,12 +301,13 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
 
 # Run the current year
 ## MHW
-event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), 
+event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())),
                    product = "OISST", chosen_clim = "1982-2011", force_calc = T) # 161 seconds
 ## MCS
 event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
                    product = "OISST", chosen_clim = "1982-2011", force_calc = T) # 161 seconds
-# event_annual_state(2020, product = "OISST", chosen_clim = "1982-2011", force_calc = T)
+# event_annual_state(2021, product = "OISST", chosen_clim = "1982-2011", force_calc = T)
+# event_annual_state(2021, MHW = F, product = "OISST", chosen_clim = "1982-2011", force_calc = T)
 
 # Run ALL years
 ### OISST
@@ -436,9 +437,9 @@ event_total_state <- function(product, chosen_clim, MHW = T){
 
 ## Run them all
 # OISST
-# event_total_state("OISST", "1982-2011")
+event_total_state("OISST", "1982-2011")
 # event_total_state("OISST", "1992-2018")
-# event_total_state("OISST", "1982-2011", MHW = F)
+event_total_state("OISST", "1982-2011", MHW = F)
 # CCI
 # event_total_state("CCI", "1982-2011")
 # event_total_state("CCI", "1992-2018")
