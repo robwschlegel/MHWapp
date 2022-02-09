@@ -16,8 +16,12 @@ CCI_files <- dir("../data/CCI", full.names = T)
 CCI_files_sub <- CCI_files[123:length(CCI_files)]; rm(CCI_files)
 # head(CCI_files, 1); tail(CCI_files, 1)
 
+# Global MHW daily clim file locations
+cat_clim_annual_folders <- dir("shiny/cat_clim", full.names = T)
+cat_clim_files <- dir(cat_clim_annual_folders, recursive = T, full.names = T)
 
-# Load data ---------------------------------------------------------------
+
+# Load global data --------------------------------------------------------
 
 # Function for loading file and including date from file name
 readRDS_date <- function(file_name){
@@ -38,6 +42,38 @@ MHW_2017_single <- readRDS_date("shiny/cat_clim/2017/cat.clim.2017-02-25.Rda")
 
 # 2016 data for NZ MHW
 MHW_2016_single <- readRDS_date("shiny/cat_clim/2016/cat.clim.2016-02-01.Rda")
+
+
+# Load regional data ------------------------------------------------------
+
+# Function for loading file, including date from file name, and subsetting by lon/lat
+# file_name <- "shiny/cat_clim/2017/cat.clim.2017-02-25.Rda"
+# lon_min <- -15; lon_max <- 10; lat_min <- 49; lat_max <- 65
+readRDS_date_sub <- function(file_name, lon_min, lon_max, lat_min, lat_max){
+  file_date <- sapply(strsplit(file_name, "/"), "[[", 4)
+  file_date <- sapply(strsplit(file_date, "[.]"), "[[", 3)
+  base <- readRDS(file_name) %>% 
+    mutate(t = as.Date(file_date)) %>% 
+    dplyr::select(t, lon, lat, category) %>% 
+    filter(lon >= lon_min, lon <= lon_max,
+           lat >= lat_min, lat <= lat_max)
+  return(base)
+}
+
+# Get subset of years to upload
+cat_clim_files_sub <- dir(cat_clim_annual_folders[30:41], recursive = T, full.names = T)
+
+# Get single dataframe for UK region
+MHW_UK <- plyr::ldply(cat_clim_files_sub, readRDS_date_sub, .parallel = T,
+                      lon_min = -15, lon_max = 10, lat_min = 49, lat_max = 65)
+write_csv(MHW_UK, file = "data/MHW_UK.csv")
+
+# Test visual
+filter(MHW_UK, t == as.Date("2013-02-19")) %>% 
+  ggplot(aes(x = lon, y = lat)) +
+  geom_raster(aes(fill = category)) +
+  borders() +
+  coord_quickmap(xlim = c(-15, 10), ylim = c(49, 65))
 
 
 # Create rasters ----------------------------------------------------------
