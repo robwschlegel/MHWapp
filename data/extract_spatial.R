@@ -276,7 +276,9 @@ write_csv(MHW_global_2011_2021, "data/MHW_global_2011_2021.csv")
 ## NB: This could easily be adapted to extract other MHW values etc. from a bbox
 sst_bbox <- function(bbox){
   lon_bbox <- lon_OISST[which(lon_OISST >= bbox[1] & lon_OISST <= bbox[2])]
-  sst_dat <- plyr::ldply(lon_bbox, sst_seas_thresh_merge, .parallel = T, date_range = as.Date("1982-01-01")) %>% 
+  lat_bbox <- range(lat_OISST[which(lat_OISST >= bbox[3] & lat_OISST <= bbox[4])])
+  sst_dat <- plyr::ldply(lon_bbox, sst_seas_thresh_merge, .parallel = T, 
+                         date_range = as.Date("1982-01-01"), lat_range = lat_bbox) %>% 
     dplyr::select(lon, lat, t, temp) %>% 
     dplyr::filter(lat >= bbox[3], lat <= bbox[4])
   return(sst_dat)
@@ -359,4 +361,9 @@ save(sst_trom, file = "data/sst_trom.RData")
 sst_CCI_trom <- plyr::ldply(CCI_files_sub, sst_CCI_bbox, .parallel = T, bbox = bbox_trom)
 save(sst_CCI_trom, file = "data/sst_CCI_trom.RData")
 rm(sst_trom, sst_CCI_trom); gc()
+
+# Greenland
+bbox_gland <- c(-77, -9, 58, 84)
+sst_gland <- sst_bbox(bbox_gland)
+save(sst_gland, file = "data/sst_gland.RData")
 

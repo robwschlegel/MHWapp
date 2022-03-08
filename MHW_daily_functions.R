@@ -244,9 +244,10 @@ OISST_merge <- function(lon_step, df){
 
 # Function that loads and merges sst/seas/thresh for a given lon_step
 # lon_step <- lon_OISST[2]
+# lat_range <- c(82.125, 82.875)
 # date_range <- as.Date("2020-01-01")
 # date_range <- c(as.Date("2016-02-01"), as.Date("2017-04-01"))
-sst_seas_thresh_merge <- function(lon_step, date_range){
+sst_seas_thresh_merge <- function(lon_step, date_range, lat_range = NULL){
   
   # Establish lon row number
   lon_row <- which(lon_OISST == lon_step)
@@ -255,9 +256,24 @@ sst_seas_thresh_merge <- function(lon_step, date_range){
   if(length(date_range) == 1) date_range <- c(date_range, Sys.Date())
   
   # OISST data
-  tidync_OISST <- tidync(OISST_files[lon_row]) %>% 
-    hyper_filter(time = between(time, as.integer(date_range[1]), as.integer(date_range[2]))) %>% 
-    hyper_tibble() %>% 
+  ## Base
+  if(is.null(lat_range[1])){
+    tidync_OISST_base <- tidync(OISST_files[lon_row]) %>% 
+      hyper_filter(time = between(time, as.integer(date_range[1]), as.integer(date_range[2]))) %>% 
+      hyper_tibble()
+  } else if(length(lat_range) == 2){
+    lat_row_1 <- which(lat_OISST == lat_range[1])
+    lat_row_2 <- which(lat_OISST == lat_range[2])
+    tidync_OISST_base <- tidync(OISST_files[lon_row]) %>% 
+      hyper_filter(time = between(time, as.integer(date_range[1]), as.integer(date_range[2])),
+                   # lat = between(lat, as.integer(lat_row_1), as.integer(lat_row_2))) %>% 
+                   lat = between(lat, lat_range[1], lat_range[2])) %>% 
+      hyper_tibble()
+  } else {
+    stop()
+  }
+  ## Process
+  tidync_OISST <- tidync_OISST_base %>% 
     mutate(time = as.Date(time, origin = "1970-01-01"),
            year = year(time)) %>% 
     dplyr::rename(t = time, temp = sst) %>%
@@ -277,6 +293,7 @@ sst_seas_thresh_merge <- function(lon_step, date_range){
     dplyr::select(-seas.y) %>% 
     dplyr::rename(seas = seas.x, thresh_MHW = thresh.x, thresh_MCS = thresh.y) %>% 
     mutate(anom = round(temp - seas, 2))
+  rm(tidync_OISST_base, tidync_OISST); gc()
   return(sst_seas_thresh)
 }
 
