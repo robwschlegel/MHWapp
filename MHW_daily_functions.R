@@ -16,6 +16,7 @@ library(tidyverse)
 # library(rerddap)
 library(tidync)
 library(ncdf4)
+library(rerddap)
 library(abind)
 library(padr)
 library(RCurl)
@@ -30,6 +31,13 @@ registerDoParallel(cores = 25)
 
 # Load metadata
 source("metadata/metadata.R")
+
+# The two files missing from the ERDDAP server
+OISST_ERDDAP_miss <- data.frame(files = c("oisst-avhrr-v02r01.20210323.nc", 
+                                          "oisst-avhrr-v02r01.20210907.nc"),
+                                t = c(as.Date("2021-03-23"), as.Date("2021-09-07")),
+                                full_name = c("https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/202103/oisst-avhrr-v02r01.20210323.nc",
+                                              "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/202109/oisst-avhrr-v02r01.20210907.nc"))
 
 
 # 2: Extract MHW results functions ----------------------------------------
@@ -119,8 +127,28 @@ OISST_url_daily_dl <- function(target_URL){
   return(temp_dat)
 }
 
+# Download and prepare data based on user provided start and end dates
+OISST_sub_dl <- function(date_range, lon_range, lat_range){
+  if(length(date_range) == 1) date_range <- c(date_range, date_range)
+  if(length(lon_range) == 1) lon_range <- c(lon_range, lon_range)
+  if(length(lat_range) == 1) lat_range <- c(lat_range, lat_range)
+  OISST_dat <- griddap(x = "ncdcOisst21Agg_LonPM180", 
+                       url = "https://coastwatch.pfeg.noaa.gov/erddap/", 
+                       # time = c(time_df$start, time_df$end), 
+                       time = date_range,
+                       zlev = c(0, 0),
+                       longitude = lon_range,
+                       latitude = lat_range,
+                       fields = "sst")$data %>% 
+    mutate(time = as.Date(stringr::str_remove(time, "T00:00:00Z"))) %>% 
+    dplyr::rename(t = time, temp = sst) %>% 
+    select(lon, lat, t, temp) %>% 
+    na.omit()
+}
+
 # Function for creating arrays from data.frames
 # df <- filter(OISST_step, t == 18413)
+# df <- filter(df_dl, t == "2021-03-23")
 OISST_acast <- function(df){
   
   # Ensure correct grid size
@@ -150,8 +178,8 @@ OISST_temp <- function(df){
   # Filter NA and convert dates to integer
   OISST_step <- df %>% 
     mutate(temp = ifelse(is.na(temp), NA, temp),
-           t = as.integer(t)) %>% 
-    na.omit()
+           t = as.integer(t))# %>% 
+    # na.omit() # Breaks data with missing days
   
   # Acast
   dfa <- OISST_step %>%
@@ -165,6 +193,121 @@ OISST_temp <- function(df){
   dfa_temp <- abind(dfa$data2, along = 3, hier.names = T)
   # dimnames(dfa_temp)
   return(dfa_temp)
+}
+
+# Create new OISST lon slice NetCDF
+OISST_lon_NetCDF <- function(lon_row, date_max){
+  
+  # Determine lon slice
+  lon_val <- lon_OISST[lon_row]
+  lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
+  
+  # Set file name
+  ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
+  
+
+  # Set dates for download
+  date_dl <- c(as.Date("1982-01-01"), as.Date(date_max))
+    
+  # Download data -----------------------------------------------------------
+
+  # Takes a few minutes for ~40 years of data
+  print(paste0("Began downloading data from 1982-01-01 to ",date_max," at ", Sys.time()))
+  df_dl <- OISST_sub_dl(date_range = date_dl, lon_range = c(lon_val, lon_val), lat_range = range(lat_OISST))
+  
+  # The ERDDAP server isn't super reliable...
+  miss_date <- seq(date_dl[1], date_dl[2], by = "day")[which(!seq(date_dl[1], date_dl[2], by = "day") %in% df_dl$t)]
+  # while(length(miss_date) > 0){
+  #   df_dl2 <- plyr::ldply(as.Date(miss_date+1, origin = "1970-01-01"), OISST_sub_dl, .parallel = F, 
+  #                                 lon_range = c(lon_val, lon_val), lat_range = range(lat_OISST))
+  #   df_dl <- rbind(df_dl, df_dl2) %>% distinct()
+  #   miss_date <- seq(date_dl[1], date_dl[2], by = "day")[which(!seq(date_dl[1], date_dl[2], by = "day") %in% df_dl$t)]
+  # }
+  
+  # ERDDAP server appears to be missing a couple of dates
+  if(length(miss_date) > 0){
+    print(paste0("Missing date of ",miss_date," replaced with NA"))
+    df_dl <- as_tibble(df_dl) %>% tidyr::complete(nesting(lon, lat), t = seq(min(t), max(t), by = "day"))
+  }
+  
+  
+  # Define dimensions -------------------------------------------------------
+  
+  # Set the dataframe in question
+  dataset <- df_dl %>% 
+    mutate(t = as.integer(t),
+           lon = ifelse(lon > 180, lon-360, lon))
+  
+  # lon
+  xvals <- unique(dataset$lon)
+  if(length(xvals) > 1) stop("Too many lon values. Should only be one.")
+  # xvals_df <- data.frame(lon = lon_lat_OISST$lon)
+  nx <- length(xvals)
+  lon_def <- ncdim_def("lon", "degrees_east", xvals)
+  
+  # lat
+  yvals <- unique(lon_lat_OISST$lat)
+  # yvals_df <- data.frame(lat = lon_lat_OISST$lat)
+  ny <- length(yvals)
+  lat_def <- ncdim_def("lat", "degrees_north", yvals)
+  
+  # time
+  tunits <- "days since 1970-01-01 00:00:00"
+  tvals <- seq(min(dataset$t), max(dataset$t))
+  nt <- length(tvals)
+  time_def <- ncdim_def("time", tunits, tvals, unlim = TRUE)
+  
+  
+  # Create data arrays ------------------------------------------------------
+  
+  print(paste0("Began creating arrays at ", Sys.time()))
+  dfa_temp <- OISST_temp(df_dl)
+  
+  # dfa <- dataset %>%
+  #   group_by(t) %>%
+  #   nest() %>%
+  #   mutate(data2 = purrr::map(data, OISST_acast)) %>%
+  #   select(-data)
+  # dfa_temp <- abind(dfa$data2, along = 3)
+  
+  
+  # Define variables --------------------------------------------------------
+  
+  temp_def <- ncvar_def(name = "sst", units = "deg_C", 
+                        dim = list(lat_def, lon_def, time_def), 
+                        longname = "Sea Surface Temperature",
+                        missval = -999, prec = "float")
+  
+  
+  # Create NetCDF files -----------------------------------------------------
+  
+  ncout <- nc_create(filename = ncdf_file_name, vars = list(temp_def), force_v4 = T)
+  
+  
+  # Put variables -----------------------------------------------------------
+  
+  ncvar_put(nc = ncout, varid = temp_def, vals = dfa_temp)
+  
+  
+  # Additional attributes ---------------------------------------------------
+  
+  ncatt_put(ncout,"lon","axis","X") #,verbose=FALSE) #,definemode=FALSE)
+  ncatt_put(ncout,"lat","axis","Y")
+  ncatt_put(ncout,"time","axis","T")
+  
+  
+  # Global attributes -------------------------------------------------------
+  
+  # ncatt_put(ncout,0,"title",title$value)
+  # ncatt_put(ncout,0,"institution",institution$value)
+  # ncatt_put(ncout,0,"source",datasource$value)
+  # ncatt_put(ncout,0,"references",references$value)
+  # history <- paste("P.J. Bartlein", date(), sep=", ")
+  # ncatt_put(ncout,0,"history",history)
+  # ncatt_put(ncout,0,"Conventions",Conventions$value)
+  
+  # close the file, writing data to disk
+  nc_close(ncout)
 }
 
 # Function for merging OISST data into existing NetCDF files

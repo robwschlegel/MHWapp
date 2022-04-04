@@ -47,8 +47,9 @@ OISST_months <- data.frame(months = readHTMLTable(OISST_url_month_get, skip.rows
 
 # Check if new data need downloading
 OISST_filenames <- plyr::ldply(OISST_months$months, .fun = OISST_url_daily)
-final_index <- OISST_filenames %>% 
-  filter(!grepl("prelim", files))
+final_index <- OISST_filenames %>% filter(!grepl("prelim", files))
+# Manually add files missing from ERDDAP server. Uncomment only if a new NetCDF file had to be created.
+# final_index <- rbind(final_index, OISST_ERDDAP_miss) %>% arrange(t)
 if(nrow(final_index) == 0){
   print("No new final data to download")
   final_index <- data.frame(files = NA, t = NA, full_name = NA)
@@ -60,8 +61,7 @@ if(nrow(prelim_index) == 0){
   print("No new prelim data to download")
   prelim_index <- data.frame(files = NA, t = NA, full_name = NA)
 }
-OISST_new <- rbind(final_index, prelim_index) %>% 
-  na.omit()
+OISST_new <- rbind(final_index, prelim_index) %>% na.omit()
 
 
 # Download the new data
@@ -120,6 +120,9 @@ if(nrow(OISST_dat) > 2){
 # One then runs source() on this script IN A TERMINAL AND NOT RSTUDIO
 # Check the MHW Tracker in a few minutes after this finishes running again
 # to see if the correction propagated through successfully.
+
+# If a NetCDF file breaks, re-create it with:
+# OISST_lon_NetCDF(1197, "2022-03-19")
 
 
 # 2: Update MHW event and category data -----------------------------------
