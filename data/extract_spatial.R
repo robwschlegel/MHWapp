@@ -298,6 +298,14 @@ sst_CCI_bbox <- function(file_name, bbox){
   return(res)
 }
 
+# Svalbard
+bbox_sval <- c(9, 30, 76, 81)
+sst_sval <- sst_bbox(bbox_sval)
+save(sst_sval, file = "data/sst_sval.RData")
+sst_CCI_sval <- plyr::ldply(CCI_files_sub, sst_CCI_bbox, .parallel = T, bbox = bbox_sval)
+save(sst_CCI_sval, file = "data/sst_CCI_sval.RData")
+rm(sst_sval, sst_CCI_sval); gc()
+
 # Kongsfjorden
 bbox_kong <- c(9.5, 14.0, 78.0, 79.5)
 sst_kong <- sst_bbox(bbox_kong)
