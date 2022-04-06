@@ -23,9 +23,9 @@ source("MHW_daily_functions.R")
 
 # The most up-to-date data downloaded
 # For manually testing
-# final_dates <- seq(as.Date("1982-01-01"), as.Date("2020-05-30"), by = "day")
+# final_dates <- seq(as.Date("1982-01-01"), as.Date("2022-03-18"), by = "day")
 # save(final_dates, file = "metadata/final_dates.Rdata")
-# prelim_dates <- seq(as.Date("2016-01-01"), as.Date("2020-04-19"), by = "day")
+# prelim_dates <- seq(as.Date("2022-03-20"), as.Date("2022-03-20"), by = "day")
 # save(prelim_dates, file = "metadata/prelim_dates.Rdata")
 load("metadata/final_dates.Rdata")
 load("metadata/prelim_dates.Rdata")
@@ -46,8 +46,8 @@ OISST_months <- data.frame(months = readHTMLTable(OISST_url_month_get, skip.rows
 
 
 # Check if new data need downloading
-OISST_filenames <- plyr::ldply(OISST_months$months, .fun = OISST_url_daily)
-final_index <- OISST_filenames %>% filter(!grepl("prelim", files))
+OISST_filenames <- plyr::ldply(OISST_months$months, .fun = OISST_url_daily, final_dates)
+final_index <- filter(OISST_filenames, !grepl("prelim", files))
 # Manually add files missing from ERDDAP server. Uncomment only if a new NetCDF file had to be created.
 # final_index <- rbind(final_index, OISST_ERDDAP_miss) %>% arrange(t)
 if(nrow(final_index) == 0){
@@ -122,7 +122,10 @@ if(nrow(OISST_dat) > 2){
 # to see if the correction propagated through successfully.
 
 # If a NetCDF file breaks, re-create it with:
-# OISST_lon_NetCDF(1197, "2022-03-19")
+# OISST_lon_NetCDF(1197, tail(final_dates)[6])
+# It is then necessary to ensure that all of the final data up to the most recent date are downloaded
+# This will likely require that one manually edits the final_dates object at the start of this section
+# And then re-run the full NetCDF merging process
 
 
 # 2: Update MHW event and category data -----------------------------------
