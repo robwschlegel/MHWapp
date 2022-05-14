@@ -149,13 +149,13 @@ if(ncdf_date > cat_lon_date){
 # This function can fix a specific file
 
 # Run one
-# event_cat_update(lon_OISST[1116], full = FALSE)
+# event_cat_update(lon_OISST[994], full = TRUE)
 
 # Run many
 # plyr::l_ply(lon_OISST[1300:1365], .fun = event_cat_update, .parallel = TRUE, full = TRUE)
 
 # Run ALL
-# plyr::l_ply(lon_OISST, .fun = event_cat_update, .parallel = TRUE, full = TRUE) # ~1.5 hours on 50 cores
+# plyr::l_ply(lon_OISST, .fun = event_cat_update, .parallel = TRUE, full = TRUE) # ~4.5 hours on 50 cores
 
 # Find files that haven't been run since a certain date
 # file_dates <- file.info(dir("../data/cat_lon/MCS", full.names = T)) %>%
