@@ -298,6 +298,20 @@ sst_CCI_bbox <- function(file_name, bbox){
   return(res)
 }
 
+# Arctic circle
+## NB: Too large to extract here
+# doParallel::registerDoParallel(cores = 25)
+# bbox_arctic <- c(-180, 180, 60, 90)
+# sst_arctic <- sst_bbox(bbox_arctic)
+# save(sst_arctic, file = "data/sst_arctic.RData")
+
+# EU Arctic
+## NB: Intentionally not extracting CCI data due to size
+doParallel::registerDoParallel(cores = 25)
+bbox_EU_arctic <- c(-60, 60, 60, 90)
+sst_EU_arctic <- sst_bbox(bbox_EU_arctic)
+save(sst_EU_arctic, file = "data/sst_EU_arctic.RData")
+
 # Svalbard
 bbox_sval <- c(9, 30, 76, 81)
 sst_sval <- sst_bbox(bbox_sval)
