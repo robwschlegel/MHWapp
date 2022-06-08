@@ -522,7 +522,7 @@ event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1982-201
   max_year <- max(df$t)
   clim_title <- gsub("-", " - ", chosen_clim)
   fig_title <- paste0(event_type," category summaries: ",min_year," - ",max_year,
-                      "\n",product_title,"; Climatogy period: ",clim_title)
+                      "\n",product_title,"; Climatology period: ",clim_title)
   
   # Stick them together and save
   fig_ALL_historic <- ggpubr::ggarrange(fig_count_historic, fig_cum_historic,
