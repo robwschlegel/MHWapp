@@ -612,7 +612,8 @@ event_calc <- function(df, sst_seas_thresh, event_data, cat_lon, full, cold_choi
     mutate(event_no = event_no + df$event_no,
            lon = df$lon,
            lat = df$lat,
-           t = as.Date(t)) %>% 
+           t = as.Date(t),
+           category = as.character(category)) %>% 
     dplyr::select(t, lon, lat, event_no, intensity, category) %>% 
     filter(!is.na(category))
   if(cold_choice & nrow(cat_step_1) > 0){
