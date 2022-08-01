@@ -432,9 +432,15 @@ event_total_state <- function(product, chosen_clim, MHW = T){
     left_join(cat_daily_mean, by = c("t", "category"))# %>% 
     # filter(t <= lubridate::year(Sys.Date())) # Use this to not include the current partial year
   
+  # Create a slimmed down dataframe to save as CSV for easier external use
+  cat_daily_slim <- cat_daily %>% 
+    dplyr::select(t, category, cat_n_cum:cat_area_cum_prop, first_n_cum:first_area_cum_prop)
+  
   # Save and exit
   saveRDS(cat_daily, paste0("data/annual_summary/",product,event_file,
                             "_cat_daily_", chosen_clim,"_total.Rds"))
+  write_csv(cat_daily_slim, paste0("data/annual_summary/",product,event_file,
+                                   "_cat_daily_", chosen_clim,"_total.csv"))
 }
 
 ## Run them all
