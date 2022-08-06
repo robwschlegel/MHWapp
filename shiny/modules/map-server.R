@@ -23,8 +23,8 @@ map <- function(input, output, session) {
     step(
       el = ns("toggle"),
       title = "Control panel",
-      description = HTML("This web application shows near-real-time information on where in the world marine heatwaves (MHWs)
-                         and marine cold-spells (MCSs) are occurring and what category they are.
+      description = HTML("This web application shows near-real-time information on where in the world marine heatwaves (MHW)
+                         and marine cold-spells (MCS) are occurring and what category they are.
                          <hr>
                          This is where all of the controls are contained. Click <b>Controls</b> to minimise this panel.")
     )$
@@ -50,27 +50,28 @@ map <- function(input, output, session) {
     step(
       "[data-value='map_tab']",
       "Map tab",
-      HTML("This tab provides an interactive map of global MHWs/MCSs in near-real-time.
+      HTML("This tab provides an interactive map of global MHW/MCS in near-real-time.
            <hr>
            This is the tab that is currently shown."),
       is_id = FALSE, position = "left"
     )$
-    step(
-      "[data-value='comp_tab']",
-      "Comparison tab",
-      "Click here to access a dashboard that allows one to compare MHW results for different remotely sensed products.",
-      is_id = FALSE, position = "left"
-    )$
-    step(
-      "[data-value='sum_tab']",
-      "Summary tab",
-      "Click here to access a dashboard designed for more thoroughly investigating annual MHW summaries.",
-      is_id = FALSE, position = "left"
-    )$
+    # Deactivated primarily for speed, but also because the underlying packages change too often
+    # step(
+    #   "[data-value='comp_tab']",
+    #   "Comparison tab",
+    #   "Click here to access a dashboard that allows one to compare MHW results for different remotely sensed products.",
+    #   is_id = FALSE, position = "left"
+    # )$
+    # step(
+    #   "[data-value='sum_tab']",
+    #   "Summary tab",
+    #   "Click here to access a dashboard designed for more thoroughly investigating annual MHW summaries.",
+    #   is_id = FALSE, position = "left"
+    # )$
     step(
       "[data-value='about_tab']",
       "About tab",
-      "Click here for more detailed information about this app and MHWs.",
+      "Click here for more detailed information about this app.",
       is_id = FALSE, position = "left"
     )
 

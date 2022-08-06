@@ -4,9 +4,9 @@ server <- function(input, output, session){
   
   callModule(map, "map")
   
-  callModule(comparison, "comparison")
-  
-  callModule(summary, "summary")
+  # Deactivated primarily for speed, but also because the underlying packages change too often
+  # callModule(comparison, "comparison")
+  # callModule(summary, "summary")
   
   callModule(about, 'about')
   
