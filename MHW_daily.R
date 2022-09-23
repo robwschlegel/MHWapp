@@ -65,7 +65,7 @@ OISST_new <- rbind(final_index, prelim_index) %>% na.omit()
 
 
 # Download the new data
-if(nrow(OISST_new) > 10) stop("A suspicious amount of new files are attempting to be downloaded.")
+if(nrow(OISST_new) > 50) stop("A suspicious amount of new files are attempting to be downloaded.")
 if(nrow(OISST_new) > 0){
   print(paste0("Downloading new data at ", Sys.time()))
   OISST_dat <- plyr::ldply(OISST_new$full_name, .fun = OISST_url_daily_dl, .parallel = F)
