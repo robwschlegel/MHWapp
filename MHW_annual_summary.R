@@ -292,7 +292,7 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
   # print("Saving final figure")
   ggsave(fig_ALL_cap, height = 12, width = 18, 
          filename = paste0("figures/",product,event_file,"_cat_summary_", chosen_clim,"_",chosen_year,".png"))
-  # ggsave(fig_ALL_cap, height = 12, width = 18, 
+  # ggsave(fig_ALL_cap, height = 12, width = 18,
   #        filename = paste0("figures/",product,event_file,"_cat_summary_", chosen_clim,"_",chosen_year,".eps"))
   # ggsave(fig_ALL_cap, height = 12, width = 18, 
          # filename = paste0("figures/",product,"_cat_summary_", chosen_clim,"_",chosen_year,".pdf")) # looks bad...
