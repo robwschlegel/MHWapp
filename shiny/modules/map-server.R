@@ -8,7 +8,8 @@ map <- function(input, output, session) {
   # input <- data.frame(date = 2019,
   # input <- data.frame(date = as.Date("2019-07-19"),
   #                     # layer = "MCS Category",
-  #                     layer = "Trend",
+  #                     layer = "MHW Summary",
+  #                     # layer = "Trend",
   #                     pixel = "Smooth",
   #                     from = as.Date("2020-09-10"),
   #                     to = as.Date("2021-09-10"))
@@ -464,25 +465,39 @@ map <- function(input, output, session) {
       sub_dir <- paste0("cat_clim/MCS/",lubridate::year(input$date))
       sub_file <- paste0(sub_dir,"/cat.clim.MCS.",input$date,".Rds")
     } else if(input$layer == "MHW Summary"){
+      if(lubridate::is.Date(input$date)){
+        file_year <- lubridate::year(input$date)
+      } else {
+        file_year <- input$date
+      }
       sub_dir <- "../data/annual_summary"
-      sub_file <- paste0(sub_dir,"/MHW_cat_pixel_",input$date,".Rds")
+      sub_file <- paste0(sub_dir,"/MHW_cat_pixel_",file_year,".Rds")
     } else if(input$layer == "MCS Summary"){
+      if(lubridate::is.Date(input$date)){
+        file_year <- lubridate::year(input$date)
+      } else {
+        file_year <- input$date
+      }
       sub_dir <- "../data/annual_summary"
-      sub_file <- paste0(sub_dir,"/MCS_cat_pixel_",input$date,".Rds")
+      sub_file <- paste0(sub_dir,"/MCS_cat_pixel_",file_year,".Rds")
     } else if(input$layer == "SST Anomaly"){
       req(lubridate::is.Date(input$date))
       sub_dir <- paste0("OISST/daily/",lubridate::year(input$date))
       sub_file <- paste0(sub_dir,"/daily.",input$date,".Rda")
     } else if(input$layer == "MHW Trend: Count"){
+      if(!exists("Oliver_2018")) Oliver_2018 <- readRDS("../data/published/Oliver_2018.Rds")
       baseDataPre <- Oliver_2018 %>% 
         filter(var == "MHW_cnt_tr")
     } else if(input$layer == "MHW Trend: Duration"){
+      if(!exists("Oliver_2018")) Oliver_2018 <- readRDS("../data/published/Oliver_2018.Rds")
       baseDataPre <- Oliver_2018 %>% 
         filter(var == "MHW_dur_tr")
     } else if(input$layer == "MHW Trend: Intensity (mean)"){
+      if(!exists("Oliver_2018")) Oliver_2018 <- readRDS("../data/published/Oliver_2018.Rds")
       baseDataPre <- Oliver_2018 %>% 
         filter(var == "MHW_mean_tr")
     } else if(input$layer == "MHW Trend: Intensity (max)"){
+      if(!exists("Oliver_2018")) Oliver_2018 <- readRDS("../data/published/Oliver_2018.Rds")
       baseDataPre <- Oliver_2018 %>% 
         filter(var == "MHW_max_tr")
     }

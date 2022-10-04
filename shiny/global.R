@@ -105,7 +105,8 @@ MCS_seas_thresh_files <- dir("thresh/MCS", pattern = "MCS.seas.thresh.", full.na
 #                                    full.names = TRUE, recursive = TRUE))
 
 ### Oliver et al. 2018 data
-Oliver_2018 <- readRDS("../data/published/Oliver_2018.Rds")
+## NB: To save time on launch this is now loaded in map-server.R when requested
+# Oliver_2018 <- readRDS("../data/published/Oliver_2018.Rds")
 
 ### The empty dataframe for the legend
 MHW_cat_clim_sub <- data.frame(category = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
@@ -160,12 +161,13 @@ empty_date_map <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>%
 #   mutate(category = NA)
 
 ### The base map
+## NB: No longer used after removal of summary tab
 # map_base <- ggplot2::fortify(maps::map(fill = TRUE, col = "grey80", plot = FALSE)) %>%
 #   dplyr::rename(lon = long) %>%
 #   mutate(group = ifelse(lon > 180, group+9999, group),
 #          lon = ifelse(lon > 180, lon-360, lon))
 # save(map_base, file = "metadata/map_base.Rdata")
-load("../metadata/map_base.Rdata")
+# load("../metadata/map_base.Rdata")
 
 ### The OISST ocean coordinates
 load("../metadata/OISST_ocean_coords.Rdata")
