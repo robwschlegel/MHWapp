@@ -210,7 +210,7 @@ if(length(possible_dates) > length(current_dates)){
 
 # 5: Run annual summary ---------------------------------------------------
 
-# source("MHW_annual_summary.R") # NB: Deactivated on 2023-01-02 for a couple weeks until there are enough data for the new year
+source("MHW_annual_summary.R") # NB: Deactivated on 2023-01-02 for a couple weeks until there are enough data for the new year
 
 
 # 6: Push to GitHub -------------------------------------------------------

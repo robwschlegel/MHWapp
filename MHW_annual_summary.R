@@ -194,8 +194,8 @@ event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())),
 ## MCS
 event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
                    product = "OISST", chosen_clim = "1982-2011", force_calc = T) # 161 seconds
-# event_annual_state(2021, product = "OISST", chosen_clim = "1982-2011", force_calc = F)
-# event_annual_state(2021, MHW = F, product = "OISST", chosen_clim = "1982-2011", force_calc = F)
+# event_annual_state(2022, product = "OISST", chosen_clim = "1982-2011", force_calc = F)
+# event_annual_state(2022, MHW = F, product = "OISST", chosen_clim = "1982-2011", force_calc = F)
 
 # Run ALL years
 ### OISST
@@ -523,8 +523,8 @@ event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())),
 ## MCS
 event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
                        product = "OISST", chosen_clim = "1982-2011") # 5 seconds
-# event_annual_state(2021, product = "OISST", chosen_clim = "1982-2011", force_calc = F)
-# event_annual_state(2021, MHW = F, product = "OISST", chosen_clim = "1982-2011", force_calc = F)
+# event_annual_state(2022, product = "OISST", chosen_clim = "1982-2011", force_calc = F)
+# event_annual_state(2022, MHW = F, product = "OISST", chosen_clim = "1982-2011", force_calc = F)
 
 # Run ALL years
 ### OISST
