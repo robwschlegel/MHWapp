@@ -501,7 +501,7 @@ event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
   
   # Standard caption technique
   fig_ALL_cap <- grid::textGrob(fig_title, x = 0.01, just = "left", gp = grid::gpar(fontsize = 20))
-  fig_ALL_cap <- ggpubr::ggarrange(fig_ALL_cap, fig_ALL, heights = c(0.07, 1), nrow = 2)
+  fig_ALL_cap <- ggpubr::ggarrange(fig_ALL_cap, fig_ALL, heights = c(0.07, 1), nrow = 2) + ggpubr::bgcolor("white")
   
   # print("Saving final figure")
   ggsave(fig_ALL_cap, height = 12, width = 18, 
@@ -520,11 +520,11 @@ event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
 ## MHW
 event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())),
                        product = "OISST", chosen_clim = "1982-2011") # 5 seconds
+# event_annual_state_fig(2022, product = "OISST", chosen_clim = "1982-2011")
 ## MCS
 event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
                        product = "OISST", chosen_clim = "1982-2011") # 5 seconds
-# event_annual_state(2022, product = "OISST", chosen_clim = "1982-2011", force_calc = F)
-# event_annual_state(2022, MHW = F, product = "OISST", chosen_clim = "1982-2011", force_calc = F)
+# event_annual_state_fig(2022, MHW = F, product = "OISST", chosen_clim = "1982-2011")
 
 # Run ALL years
 ### OISST
@@ -629,7 +629,7 @@ event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1982-201
                                         ncol = 2, align = "hv", labels = c("A)", "B)"), #hjust = -0.1,
                                         font.label = list(size = 14), common.legend = T, legend = "bottom")
   fig_ALL_cap <- grid::textGrob(fig_title, x = 0.01, just = "left", gp = grid::gpar(fontsize = 16))
-  fig_ALL_full <- ggpubr::ggarrange(fig_ALL_cap, fig_ALL_historic, heights = c(0.2, 1), nrow = 2)
+  fig_ALL_full <- ggpubr::ggarrange(fig_ALL_cap, fig_ALL_historic, heights = c(0.2, 1), nrow = 2) + ggpubr::bgcolor("white")
   ggsave(fig_ALL_full, filename = paste0("figures/",product,event_file,"_cat_historic_",chosen_clim,".png"), height = 4.25, width = 8)
   ggsave(fig_ALL_full, filename = paste0("figures/",product,event_file,"_cat_historic_",chosen_clim,".eps"), height = 4.25, width = 8)
 }
