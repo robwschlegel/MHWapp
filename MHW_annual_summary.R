@@ -648,6 +648,128 @@ event_total_state_fig(readRDS("data/annual_summary/OISST_MCS_cat_daily_1982-2011
 # CMC_1992_2018 <- readRDS("data/annual_summary/CMC_cat_daily_1992-2018_total.Rds")
 # event_total_state_fig(CMC_1992_2018, "CMC", "1992-2018")
 
+# Figures of total time series by year a la format for the annual BAMS report
+BAMS_fig <- function(){
+  
+  # Load data
+  df_MHW <- readRDS("data/annual_summary/OISST_cat_daily_1982-2011_total.Rds")
+  df_MCS <- readRDS("data/annual_summary/OISST_MCS_cat_daily_1982-2011_total.Rds")
+
+  # Set plotting parameters
+  ## MHW
+  event_limits_MHW <- c(0, 65)
+  event_breaks_MHW <- seq(5, 60, by = 5)
+  second_breaks_MHW <- c(7.3, 14.6, 21.9, 29.2, 36.5, 43.8, 51.1, 58.4)
+  second_break_labels_MHW <- c("2%", "4%", "6%", "8%", "10%", "12%", "14%", "16%")
+  ## MCS
+  event_limits_MCS <- c(0, 27)
+  event_breaks_MCS <- seq(5, 25, by = 5)
+  second_breaks_MCS <- c(7.3, 14.6, 21.9)
+  second_break_labels_MCS <- c("2%", "4%", "6%")
+  
+  # Stacked barplot of global daily count of MHW by category
+  fig_count_historic_MHW <- ggplot(df_MHW, aes(x = t, y = cat_area_cum_prop)) +
+    geom_bar(aes(fill = category), stat = "identity", show.legend = T,
+             position = position_stack(reverse = TRUE), width = 1) +
+    scale_fill_manual("Category", values = MHW_colours) +
+    scale_y_continuous(limits = event_limits_MHW, breaks = event_breaks_MHW,
+                       sec.axis = sec_axis(name = paste0("Average daily MHW coverage"), 
+                                           trans = ~ . + 0,
+                                           breaks = second_breaks_MHW,
+                                           labels = second_break_labels_MHW)) +
+    scale_x_continuous(breaks = seq(1984, 2019, 7)) +
+    guides(fill = guide_legend(nrow = 1, byrow = TRUE)) +
+    labs(y = paste0("Average MHW days"), x = NULL) +
+    coord_cartesian(expand = F) +
+    theme(panel.border = element_rect(colour = "black", fill = NA),
+          axis.title = element_text(size = 14),
+          axis.text = element_text(size = 12),
+          legend.title = element_text(size = 14),
+          legend.text = element_text(size = 12))
+  # fig_count_historic_MHW
+  
+  # Stacked barplot of global daily count of MCS by category
+  fig_count_historic_MCS <- ggplot(df_MCS, aes(x = t, y = cat_area_cum_prop)) +
+    geom_bar(aes(fill = category), stat = "identity", show.legend = T,
+             position = position_stack(reverse = TRUE), width = 1) +
+    scale_fill_manual("Category", values = MCS_colours) +
+    scale_y_continuous(limits = event_limits_MCS, breaks = event_breaks_MCS,
+                       sec.axis = sec_axis(name = paste0("Average daily MCS coverage"), 
+                                           trans = ~ . + 0,
+                                           breaks = second_breaks_MCS,
+                                           labels = second_break_labels_MCS)) +
+    scale_x_continuous(breaks = seq(1984, 2019, 7)) +
+    guides(fill = guide_legend(nrow = 1, byrow = TRUE)) +
+    labs(y = paste0("Average MCS days"), x = NULL) +
+    coord_cartesian(expand = F) +
+    theme(panel.border = element_rect(colour = "black", fill = NA),
+          axis.title = element_text(size = 14),
+          axis.text = element_text(size = 12),
+          legend.title = element_text(size = 14),
+          legend.text = element_text(size = 12))
+  # fig_count_historic_MCS
+  
+  # Stacked barplot of cumulative percent of ocean affected by MHW
+  fig_cum_historic_MHW <- ggplot(df_MHW, aes(x = t, y = first_area_cum_prop)) +
+    geom_bar(aes(fill = category), stat = "identity", show.legend = T,
+             position = position_stack(reverse = TRUE), width = 1) +
+    scale_fill_manual("Category", values = MHW_colours) +
+    scale_y_continuous(limits = c(0, 1),
+                       breaks = seq(0.2, 0.8, length.out = 4),
+                       labels = paste0(seq(20, 80, by = 20), "%")) +
+    scale_x_continuous(breaks = seq(1984, 2019, 7)) +
+    labs(y = paste0("Total MHW coverage"), x = NULL) +
+    coord_cartesian(expand = F) +
+    theme(panel.border = element_rect(colour = "black", fill = NA),
+          axis.title = element_text(size = 14),
+          axis.text = element_text(size = 12),
+          legend.title = element_text(size = 14),
+          legend.text = element_text(size = 12))
+  # fig_cum_historic_MHW
+  
+  # Stacked barplot of cumulative percent of ocean affected by MCS
+  fig_cum_historic_MCS <- ggplot(df_MCS, aes(x = t, y = first_area_cum_prop)) +
+    geom_bar(aes(fill = category), stat = "identity", show.legend = T,
+             position = position_stack(reverse = TRUE), width = 1) +
+    scale_fill_manual("Category", values = MCS_colours) +
+    scale_y_continuous(limits = c(0, 1),
+                       breaks = seq(0.2, 0.8, length.out = 4),
+                       labels = paste0(seq(20, 80, by = 20), "%")) +
+    scale_x_continuous(breaks = seq(1984, 2019, 7)) +
+    labs(y = paste0("Total MCS coverage"), x = NULL) +
+    coord_cartesian(expand = F) +
+    theme(panel.border = element_rect(colour = "black", fill = NA),
+          axis.title = element_text(size = 14),
+          axis.text = element_text(size = 12),
+          legend.title = element_text(size = 14),
+          legend.text = element_text(size = 12))
+  # fig_cum_historic_MCS
+  
+  # Create figure titles
+  min_year <- min(df_MHW$t); max_year <- max(df_MHW$t)
+  fig_title_MHW <- paste0("MHW category summaries: ",min_year," - ",max_year)
+  fig_title_MCS <- paste0("MCS category summaries: ",min_year," - ",max_year)
+  
+  # Stick them together and save
+  ## MHW
+  fig_historic_MHW <- ggpubr::ggarrange(fig_count_historic_MHW, fig_cum_historic_MHW, ncol = 2, align = "hv", labels = c("(a)", "(b)"),
+                                        font.label = list(size = 14), common.legend = T, legend = "bottom")
+  fig_cap_MHW <- grid::textGrob(fig_title_MHW, x = 0.01, just = "left", gp = grid::gpar(fontsize = 16))
+  fig_full_MHW <- ggpubr::ggarrange(fig_cap_MHW, fig_historic_MHW, heights = c(0.1, 1), nrow = 2) #+ ggpubr::bgcolor("white")
+  ## MCS
+  fig_historic_MCS <- ggpubr::ggarrange(fig_count_historic_MCS, fig_cum_historic_MCS, ncol = 2, align = "hv", labels = c("(c)", "(d)"),
+                                        font.label = list(size = 14), common.legend = T, legend = "bottom")
+  fig_cap_MCS <- grid::textGrob(fig_title_MCS, x = 0.01, just = "left", gp = grid::gpar(fontsize = 16))
+  fig_full_MCS <- ggpubr::ggarrange(fig_cap_MCS, fig_historic_MCS, heights = c(0.1, 1), nrow = 2) #+ ggpubr::bgcolor("white")
+  ## Final
+  fig_full <- ggpubr::ggarrange(fig_full_MHW, fig_full_MCS, ncol = 1, nrow = 2) + ggpubr::bgcolor("white")
+  ggsave(fig_full, filename = "../tikoraluk/graph/BAMS_summary.png", height = 8, width = 8)
+  # ggsave(fig_full, filename = "../tikoraluk/graph/BAMS_summary.eps", height = 8, width = 8)
+}
+
+# Run the figure
+# BAMS_fig()
+
 
 # 6: Comparisons ----------------------------------------------------------
 
