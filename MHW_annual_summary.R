@@ -434,29 +434,9 @@ event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
          x = "Day of the year") +
     coord_cartesian(expand = F) +
     theme(panel.border = element_rect(colour = "black", fill = NA),
-          axis.title = element_text(size = 15),
-          axis.text = element_text(size = 13))
+          axis.text = element_text(size = 12),
+          axis.title = element_text(size = 14))
   # fig_count
-  
-  # Stacked barplot of cumulative percent of ocean affected by MHWs
-  # fig_cum <- ggplot(event_cat_daily, aes(x = t, y = first_area_cum_prop)) +
-  #   geom_bar(aes(fill = category), stat = "identity", show.legend = F,
-  #            position = position_stack(reverse = TRUE), width = 1) +
-  #   geom_hline(data = event_cat_daily_labels, show.legend = F,
-  #              aes(yintercept = label_first_area_cum, colour = category)) +
-  #   scale_fill_manual("Category", values = event_colours) +
-  #   scale_colour_manual("Category", values = event_colours) +
-  #   scale_y_continuous(limits = c(0, 1),
-  #                      breaks = seq(0.2, 0.8, length.out = 4),
-  #                      labels = paste0(seq(20, 80, by = 20), "%")) +
-  #   scale_x_date(date_breaks = "2 months", date_labels = "%Y-%m") +
-  #   labs(y = paste0("Top ",event_type," category for ocean\n(cumulative)"), 
-  #        x = "Day of first occurrence") +
-  #   coord_cartesian(expand = F) +
-  #   theme(panel.border = element_rect(colour = "black", fill = NA),
-  #         axis.title = element_text(size = 15),
-  #         axis.text = element_text(size = 13))
-  # fig_cum
   
   # Stacked barplot of average cumulative MHW days per pixel
   fig_prop <- ggplot(event_cat_daily, aes(x = t, y = cat_area_cum_prop)) +
@@ -470,8 +450,8 @@ event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
          x = "Day of the year") +
     coord_cartesian(expand = F) +
     theme(panel.border = element_rect(colour = "black", fill = NA),
-          axis.title = element_text(size = 15),
-          axis.text = element_text(size = 13))
+          axis.text = element_text(size = 12),
+          axis.title = element_text(size = 14))
   # fig_prop
   
   # Stacked barplot of cumulative percent of ocean affected by MHWs
@@ -486,10 +466,10 @@ event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
     labs(y = paste0("Total ",event_type," coverage\n(annual)"), x = "Year") +
     coord_cartesian(expand = F) +
     theme(panel.border = element_rect(colour = "black", fill = NA),
-          axis.title = element_text(size = 14),
           axis.text = element_text(size = 12),
-          legend.title = element_text(size = 18),
-          legend.text = element_text(size = 16))
+          axis.title = element_text(size = 14),
+          legend.text = element_text(size = 14),
+          legend.title = element_text(size = 16))
   # fig_cum_historic
   
   # Combine and exit
@@ -501,7 +481,8 @@ event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
   
   # Standard caption technique
   fig_ALL_cap <- grid::textGrob(fig_title, x = 0.01, just = "left", gp = grid::gpar(fontsize = 20))
-  fig_ALL_cap <- ggpubr::ggarrange(fig_ALL_cap, fig_ALL, heights = c(0.07, 1), nrow = 2) + ggpubr::bgcolor("white")
+  fig_ALL_cap <- ggpubr::ggarrange(fig_ALL_cap, fig_ALL, heights = c(0.07, 1), nrow = 2) + 
+    ggpubr::bgcolor("white") + ggpubr::border("white")
   
   # print("Saving final figure")
   ggsave(fig_ALL_cap, height = 12, width = 18, 
@@ -609,17 +590,16 @@ event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1982-201
     labs(y = paste0("Total ",event_type," coverage"), x = NULL) +
     coord_cartesian(expand = F) +
     theme(panel.border = element_rect(colour = "black", fill = NA),
-          axis.title = element_text(size = 14),
-          axis.text = element_text(size = 12),
-          legend.title = element_text(size = 18),
-          legend.text = element_text(size = 16))
+          axis.title = element_text(size = 12),
+          axis.text = element_text(size = 10),
+          legend.title = element_text(size = 12),
+          legend.text = element_text(size = 10))
   # fig_cum_historic
   
   # Create the figure title
   product_title <- product
   if(product == "OISST") product_title <- "NOAA OISST"
-  min_year <- min(df$t)
-  max_year <- max(df$t)
+  min_year <- min(df$t); max_year <- max(df$t)
   clim_title <- gsub("-", " - ", chosen_clim)
   fig_title <- paste0(event_type," category summaries: ",min_year," - ",max_year,
                       "\n",product_title,"; Climatology period: ",clim_title)
@@ -629,9 +609,11 @@ event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1982-201
                                         ncol = 2, align = "hv", labels = c("A)", "B)"), #hjust = -0.1,
                                         font.label = list(size = 14), common.legend = T, legend = "bottom")
   fig_ALL_cap <- grid::textGrob(fig_title, x = 0.01, just = "left", gp = grid::gpar(fontsize = 16))
-  fig_ALL_full <- ggpubr::ggarrange(fig_ALL_cap, fig_ALL_historic, heights = c(0.2, 1), nrow = 2) + ggpubr::bgcolor("white")
+  fig_ALL_full <- ggpubr::ggarrange(fig_ALL_cap, fig_ALL_historic, heights = c(0.2, 1), nrow = 2) + 
+    ggpubr::bgcolor("white") + ggpubr::border("white")
   ggsave(fig_ALL_full, filename = paste0("figures/",product,event_file,"_cat_historic_",chosen_clim,".png"), height = 4.25, width = 8)
   ggsave(fig_ALL_full, filename = paste0("figures/",product,event_file,"_cat_historic_",chosen_clim,".eps"), height = 4.25, width = 8)
+  # require(svglite); ggsave(fig_ALL_full, filename = paste0("figures/",product,event_file,"_cat_historic_",chosen_clim,".svg"), height = 4.25, width = 8)
 }
 
 ## Run them all
