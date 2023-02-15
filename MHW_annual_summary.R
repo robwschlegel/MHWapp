@@ -485,15 +485,11 @@ event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
     ggpubr::bgcolor("white") + ggpubr::border("white")
   
   # print("Saving final figure")
+  # NB: PDF looks terrible...
   ggsave(fig_ALL_cap, height = 12, width = 18, 
          filename = paste0("figures/",product,event_file,"_cat_summary_", chosen_clim,"_",chosen_year,".png"))
   # ggsave(fig_ALL_cap, height = 12, width = 18,
   #        filename = paste0("figures/",product,event_file,"_cat_summary_", chosen_clim,"_",chosen_year,".eps"))
-  # ggsave(fig_ALL_cap, height = 12, width = 18, 
-  # filename = paste0("figures/",product,"_cat_summary_", chosen_clim,"_",chosen_year,".pdf")) # looks bad...
-  
-  # print(paste0("Finished run on ",product, "(", 
-  #              chosen_clim,"): ", chosen_year," at ",Sys.time()))
   
 }
 
@@ -510,13 +506,13 @@ event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())), MH
 # Run ALL years
 ### OISST
 ## MHW
-# plyr::l_ply(1982:2019, event_annual_state, force_calc = T, .parallel = T,
-#             product = "OISST", chosen_clim = "1982-2011") # ~90 seconds for one
+# plyr::l_ply(1982:2022, event_annual_state_fig, .parallel = T,
+#             product = "OISST", chosen_clim = "1982-2011")
 # plyr::l_ply(1982:2019, event_annual_state, force_calc = T, database = T, .parallel = T,
 #             product = "OISST", chosen_clim = "1992-2018")
 ## MCS
-# plyr::l_ply(1982:2020, event_annual_state, MHW = F, force_calc = T, .parallel = T,
-#             product = "OISST", chosen_clim = "1982-2011")
+# plyr::l_ply(1982:2022, event_annual_state_fig, .parallel = T,
+#             product = "OISST", chosen_clim = "1982-2011", MHW = F)
 
 ### CCI
 # plyr::l_ply(1982:2018, MHW_annual_state, force_calc = T, .parallel = F,
