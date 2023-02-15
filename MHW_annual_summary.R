@@ -740,9 +740,10 @@ BAMS_fig <- function(){
   fig_cap_MCS <- grid::textGrob(fig_title_MCS, x = 0.01, just = "left", gp = grid::gpar(fontsize = 16))
   fig_full_MCS <- ggpubr::ggarrange(fig_cap_MCS, fig_historic_MCS, heights = c(0.1, 1), nrow = 2) #+ ggpubr::bgcolor("white")
   ## Final
-  fig_full <- ggpubr::ggarrange(fig_full_MHW, fig_full_MCS, ncol = 1, nrow = 2) + ggpubr::bgcolor("white")
+  fig_full <- ggpubr::ggarrange(fig_full_MHW, fig_full_MCS, ncol = 1, nrow = 2) + 
+    ggpubr::bgcolor("white") + ggpubr::border("white")
   ggsave(fig_full, filename = "../tikoraluk/graph/BAMS_summary.png", height = 8, width = 8)
-  # ggsave(fig_full, filename = "../tikoraluk/graph/BAMS_summary.eps", height = 8, width = 8)
+  ggsave(fig_full, filename = "../tikoraluk/graph/BAMS_summary.eps", height = 8, width = 8)
 }
 
 # Run the figure
