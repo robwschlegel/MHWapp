@@ -6,14 +6,14 @@ map <- function(input, output, session) {
   # x <- -42.125
   # y <- 39.875
   # input <- data.frame(date = 2019,
+  #                     layer = "MHW Summary")
   # input <- data.frame(date = as.Date("2019-07-19"),
-  #                     # layer = "MCS Category",
-  #                     layer = "MHW Summary",
-  #                     # layer = "Trend",
-  #                     pixel = "Smooth",
-  #                     from = as.Date("2020-09-10"),
-  #                     to = as.Date("2021-09-10"))
-  # categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme")
+                      # layer = "MCS Category",
+                      # layer = "Trend",
+                      # pixel = "Smooth",
+                      # from = as.Date("2020-09-10"),
+                      # to = as.Date("2021-09-10"))
+  # categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
   # categories <- data.frame(categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
 
 
@@ -547,10 +547,10 @@ map <- function(input, output, session) {
     }
     colnames(MHW_raster) <- c("X", "Y", "Z")
     MHW_raster$Z <- as.numeric(MHW_raster$Z)
-    suppressWarnings(
+    # suppressWarnings(
     rasterNonProj <- raster::rasterFromXYZ(MHW_raster, res = c(0.25, 0.25),
                                            digits = 3, crs = inputProj)
-    )
+    # )
     return(rasterNonProj)
   })
   
@@ -561,9 +561,9 @@ map <- function(input, output, session) {
     # if(input$pixels == "Smooth"){
     # rasterProj <- projectRasterForLeaflet(rasterNonProj, method = "bilinear")
     # } else {
-    suppressWarnings(
+    # suppressWarnings(
     rasterProj <- projectRasterForLeaflet(rasterNonProj, method = "ngb")
-    )
+    # )
     # }
     return(rasterProj)
   })

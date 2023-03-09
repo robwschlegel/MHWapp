@@ -135,6 +135,7 @@ MCS_colours <- c(
 # pal_anom <- colorNumeric(palette = c("blue", "white", "red"), domain = c(-10, 10), na.color = NA)
 
 ### The two map projections
+# inputProj <- "4326" # NB: This alone is not enough
 inputProj <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
 leafletProj <- "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +towgs84=0,0,0,0,0,0,0 +units=m +nadgrids=@null +wktext +no_defs"
 
