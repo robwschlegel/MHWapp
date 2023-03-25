@@ -488,9 +488,8 @@ event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
   # NB: PDF looks terrible...
   ggsave(fig_ALL_cap, height = 12, width = 18, 
          filename = paste0("figures/",product,event_file,"_cat_summary_", chosen_clim,"_",chosen_year,".png"))
-  ggsave(fig_ALL_cap, height = 12, width = 18,
-         filename = paste0("figures/",product,event_file,"_cat_summary_", chosen_clim,"_",chosen_year,".eps"))
-  
+  # ggsave(fig_ALL_cap, height = 12, width = 18,
+  #        filename = paste0("figures/",product,event_file,"_cat_summary_", chosen_clim,"_",chosen_year,".eps"))
 }
 
 # Run the current year
