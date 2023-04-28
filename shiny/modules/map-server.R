@@ -8,11 +8,12 @@ map <- function(input, output, session) {
   # input <- data.frame(date = 2019,
   #                     layer = "MHW Summary")
   # input <- data.frame(date = as.Date("2019-07-19"),
-                      # layer = "MCS Category",
-                      # layer = "Trend",
-                      # pixel = "Smooth",
-                      # from = as.Date("2020-09-10"),
-                      # to = as.Date("2021-09-10"))
+  # layer = "MCS Category",
+  # layer = "Trend",
+  # pixel = "Smooth",
+  # from = as.Date("2020-09-10"),
+  # to = as.Date("2021-09-10"))
+  # input <- data.frame(from_to = c(as.Date("2011-05-06"), as.Date("2012-05-05")))
   # categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
   # categories <- data.frame(categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
 
@@ -1201,8 +1202,8 @@ map <- function(input, output, session) {
                                    tabPanel(title = "Time series",
                                             br(),
                                             # shinycssloaders::withSpinner(plotlyOutput(ns("lolliPlotly")), 
-                                            shinycssloaders::withSpinner(plotOutput(ns("tsPlot")),
-                                            # shinycssloaders::withSpinner(plotlyOutput(ns("tsPlotly")),
+                                            # shinycssloaders::withSpinner(plotOutput(ns("tsPlot")),
+                                            shinycssloaders::withSpinner(plotlyOutput(ns("tsPlotly")),
                                                                          type = 6, color = "#b0b7be"),
                                             hr()),
                                    tabPanel(title = "Lolliplot",
