@@ -400,6 +400,7 @@ OISST_merge <- function(lon_step, df){
 # lon_step <- lon_OISST[2]
 # lat_range <- c(82.125, 82.875)
 # date_range <- as.Date("2020-01-01")
+# date_range <- as.Date("1982-01-01")
 # date_range <- c(as.Date("2016-02-01"), as.Date("2017-04-01"))
 sst_seas_thresh_merge <- function(lon_step, date_range, lat_range = NULL){
   
@@ -453,7 +454,7 @@ sst_seas_thresh_merge <- function(lon_step, date_range, lat_range = NULL){
 
 # Function for updating the MHW event metric lon slice files
 # tester...
-# lon_step <- lon_OISST[994]
+# lon_step <- lon_OISST[1132]; full = TRUE
 event_cat_update <- function(lon_step, full = F){
   
   # load the final download date
@@ -567,7 +568,7 @@ event_proc <- function(df, sst_seas_thresh, event_data, cat_lon, event_file, cat
 # df <- MHW_previous_event_index[1,]
 # event_data <- MHW_event_data[MHW_event_data$lat == df$lat,]
 # cat_lon <- MHW_cat_lon[MHW_cat_lon$lat == df$lat,]
-# df <- MCS_previous_event_index[92,]
+# df <- MCS_previous_event_index[49,]
 # event_data <- MCS_event_data[MCS_event_data$lat == df$lat,]
 # cat_lon <- MCS_cat_lon[MCS_cat_lon$lat == df$lat,]
 # full <- T; cold_choice <- T
