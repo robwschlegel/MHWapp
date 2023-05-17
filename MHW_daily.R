@@ -18,18 +18,12 @@ source("MHW_daily_functions.R")
 ## NB: My thinking is this somehow confuses the write privileges for the files
 ## NB: This is likely an Rstudio Server issue and it may not occur locally
 
-# Code used to upgrade all data from v2.0 to 
-# file.rename(list.files(path = "../data/OISST/", pattern = "avhrr-only-v2", full.names = T), 
-#             str_replace(list.files(path = "../data/OISST/", pattern = "avhrr-only-v2", full.names = T), pattern = "avhrr-only-v2", "oisst-avhrr-v02r01"))
-# This is the address for the v2.0 data, which are used from 1982-01-01 to 2015-12-31
-# OISST_url_month <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/access/avhrr-only/"
-
 
 # 1: Update OISST data ----------------------------------------------------
 
 # The most up-to-date data downloaded
 # For manually testing
-# final_dates <- seq(as.Date("1982-01-01"), as.Date("2022-03-18"), by = "day")
+# final_dates <- seq(as.Date("1982-01-01"), as.Date("2023-05-01"), by = "day")
 # save(final_dates, file = "metadata/final_dates.Rdata")
 # prelim_dates <- seq(as.Date("2022-03-20"), as.Date("2022-03-20"), by = "day")
 # save(prelim_dates, file = "metadata/prelim_dates.Rdata")
@@ -39,23 +33,43 @@ if(length(final_dates) == 0) stop("Final date indexing has broken.")
 if(length(prelim_dates) == 0) stop("Prelim date indexing has broken.")
 
 
+# Code used to upgrade all data from v2.0 to v2.1
+# file.rename(list.files(path = "../data/OISST/", pattern = "avhrr-only-v2", full.names = T), 
+#             str_replace(list.files(path = "../data/OISST/", pattern = "avhrr-only-v2", full.names = T), pattern = "avhrr-only-v2", "oisst-avhrr-v02r01"))
+# This is the address for the v2.0 data, which are used from 1982-01-01 to 2015-12-31
+# OISST_url_month <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/access/avhrr-only/"
+# NB: Do not run in parallel
+# NB: Didn't run. Faster to overwrite existing data
+# final_dates <- as.Date("2023-05-15")
+# plyr::l_ply(1:1440, OISST_lon_NetCDF, .parallel = F, date_max = as.Date("2023-05-01"))#tail(final_dates)[6])
+# stop()
+
+
 # Get the source index monthly file folders with new data
 print(paste0("Fetching OISST folder names at ",Sys.time()))
-# OISST_url_month <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/"
-# OISST_url_month_get <- getURL(OISST_url_month)
-# OISST_months <- data.frame(months = readHTMLTable(OISST_url_month_get, skip.rows = 1:2)[[1]]$Name) %>% 
-#   mutate(months = lubridate::as_date(str_replace(as.character(months), "/", "01"))) %>%
-#   filter(months >= max(lubridate::floor_date(final_dates, unit = "month"))) %>%
-#   mutate(months = gsub("-", "", substr(months, 1, 7)))
+OISST_url_month <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/"
+OISST_url_month_get <- getURL(OISST_url_month)
+OISST_months <- data.frame(months = readHTMLTable(OISST_url_month_get, skip.rows = 1:2)[[1]]$Name) %>%
+  mutate(months = lubridate::as_date(str_replace(as.character(months), "/", "01"))) %>%
+  filter(months >= max(lubridate::floor_date(final_dates, unit = "month"))) %>%
+  mutate(months = gsub("-", "", substr(months, 1, 7)))
 
-# Manually control downloads
-# Comment out lines 40-45 above to run this faster
-final_dates <- as.Date("1981-12-31")
-OISST_months <- data.frame(months = paste0(1982, stringr::str_pad(seq(1:12), 2, pad = "0")))
+
+# Uncomment to manually control downloads
+# Comment out lines 44-49 above to run this faster
+# final_dates <- as.Date("1981-12-31")
+# OISST_months <- data.frame(months = apply(expand.grid(c(1983, 1984), stringr::str_pad(seq(1:12), 2, pad = "0")), 1, paste, collapse = "")) |> arrange(months)
+
 
 # Check if new data need downloading
 OISST_filenames <- plyr::ldply(OISST_months$months, .fun = OISST_url_daily, final_dates)
 final_index <- filter(OISST_filenames, !grepl("prelim", files))
+
+
+# Download and save files locally 
+plyr::l_ply(OISST_filenames[1], OISST_url_daily_save, .parallel = T)
+
+
 # Manually add files missing from ERDDAP server. Uncomment only if a new NetCDF file had to be created.
 # final_index <- rbind(final_index, OISST_ERDDAP_miss) %>% arrange(t)
 if(nrow(final_index) == 0){
@@ -100,12 +114,12 @@ if(nrow(OISST_dat) > 2){
 if(nrow(OISST_dat) > 2){
   print(paste0("Adding new data to NetCDF files at ", Sys.time()))
   ## NB: 50 cores uses too much RAM if more than a few days are being added
-  doParallel::registerDoParallel(cores = 25)
+  doParallel::registerDoParallel(cores = 50) # NB: Change this back to 25
   plyr::l_ply(lon_OISST, .fun = OISST_merge, .parallel = TRUE, df = OISST_dat)
   print(paste0("Finished at ", Sys.time()))
   
   # Create date indexes
-  ncdf_dates <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transforms$time$time, origin = "1970-01-01")
+  ncdf_dates <- as.Date(tidync("../data/OISST/oisst-avhrr-v02r01.ts.1440.nc")$transforms$time$time, origin = "1970-01-01")
 
   # final_dates index
   if(!is.na(final_index$files[1])){
@@ -142,7 +156,7 @@ stop()
 
 # Prep guide info for this section
 doParallel::registerDoParallel(cores = 25)
-ncdf_date <- max(as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transforms$time$time, origin = "1970-01-01"))
+ncdf_date <- max(as.Date(tidync("../data/OISST/oisst-avhrr-v02r01.ts.1440.nc")$transforms$time$time, origin = "1970-01-01"))
 cat_lon_date <- max(readRDS("../data/cat_lon/MHW.cat.1440.Rda")$t)
 
 # This takes roughly 300 minutes and is by far the largest time requirement
@@ -179,7 +193,7 @@ if(ncdf_date > cat_lon_date){
 # 3: Create daily global files --------------------------------------------
 
 # Get most current processed OISST dates
-time_index <- as.Date(tidync("../data/OISST/avhrr-only-v2.ts.1440.nc")$transforms$time$time, origin = "1970-01-01")
+time_index <- as.Date(tidync("../data/OISST/oisst-avhrr-v02r01.ts.1440.nc")$transforms$time$time, origin = "1970-01-01")
 load("metadata/final_dates.Rdata")
 
 # Get the range of dates that need to be run

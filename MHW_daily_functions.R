@@ -114,6 +114,13 @@ OISST_url_daily <- function(target_month, final_dates){
   return(OISST_table)
 }
 
+# Download any number of desired OISST files and save them locally
+OISST_url_daily_save <- function(target_URL){
+  file_dest <- paste0("../data/OISST/daily/",sapply(strsplit(target_URL, split = "/"), "[[", 10))
+  download.file(url = target_URL, method = "libcurl", destfile = file_dest)
+  return()
+}
+
 # Download all of the outstanding data from the links created above
 OISST_url_daily_dl <- function(target_URL){
   temp_dest <- paste0("data/",sapply(strsplit(target_URL, split = "/"), "[[", 10))
@@ -139,7 +146,7 @@ OISST_sub_dl <- function(date_range, lon_range, lat_range){
   # Account for final data lag on ERDDAP server
   if(date_range[2] > Sys.Date()-18) date_range[2] <- Sys.Date()-18
   # Download data
-  OISST_dat <- griddap(x = "ncdcOisst21Agg_LonPM180", 
+  OISST_dat <- griddap(datasetx = "ncdcOisst21Agg_LonPM180", 
                        url = "https://coastwatch.pfeg.noaa.gov/erddap/", 
                        # time = c(time_df$start, time_df$end), 
                        time = date_range,
@@ -148,7 +155,7 @@ OISST_sub_dl <- function(date_range, lon_range, lat_range){
                        latitude = lat_range,
                        fields = "sst")$data %>% 
     mutate(time = as.Date(stringr::str_remove(time, "T00:00:00Z"))) %>% 
-    dplyr::rename(t = time, temp = sst) %>% 
+    dplyr::rename(t = time, temp = sst, lon = longitude, lat = latitude) %>% 
     select(lon, lat, t, temp) %>% 
     na.omit()
   return(OISST_dat)
@@ -211,19 +218,20 @@ OISST_lon_NetCDF <- function(lon_row, date_max){
   lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
   
   # Set file name
-  ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
+  ncdf_file_name <- paste0("../data/OISST/oisst-avhrr-v02r01.ts.",lon_row_pad,".nc")
 
   # Set dates for download
   date_dl <- seq(as.Date("1982-01-01"), as.Date(date_max), by = "day")
-    
+  
+  
   # Download data -----------------------------------------------------------
 
   # Takes a few minutes for ~40 years of data
-  print(paste0("Began downloading data from 1982-01-01 to ",date_max," at ", Sys.time()))
+  print(paste0("Began downloading data from 1982-01-01 to ",date_max," at ", Sys.time()," for lon ",lon_val))
   # doParallel::registerDoParallel(cores = 50)
   # NB: 1983 throws an error for some reason...
   # system.time(
-  df_dl <- plyr::ldply(unique(lubridate::year(date_dl))[-2], OISST_sub_dl, .parallel = F,
+  df_dl <- plyr::ldply(unique(lubridate::year(date_dl)), OISST_sub_dl, .parallel = F,
                        lon_range = lon_val, lat_range = range(lat_OISST))
   # ) # ~ 8 minutes for ~40 years of data
   
@@ -332,9 +340,9 @@ OISST_merge <- function(lon_step, df){
   lon_row <- which(lon_OISST == lon_step)
   lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
   # Determine file name
-  ncdf_file_name <- paste0("../data/OISST/avhrr-only-v2.ts.",lon_row_pad,".nc")
+  ncdf_file_name <- paste0("../data/OISST/oisst-avhrr-v02r01.ts.",lon_row_pad,".nc")
   # tester...
-  # ncdf_file_name <- paste0("../data/test/avhrr-only-v2.ts.",lon_row_pad,".nc")
+  # ncdf_file_name <- paste0("../data/test/oisst-avhrr-v02r01.ts.",lon_row_pad,".nc")
   
   ### Open NetCDF and determine dates present
   nc <- nc_open(ncdf_file_name, write = T)
