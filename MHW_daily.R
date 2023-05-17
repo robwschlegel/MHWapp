@@ -18,6 +18,12 @@ source("MHW_daily_functions.R")
 ## NB: My thinking is this somehow confuses the write privileges for the files
 ## NB: This is likely an Rstudio Server issue and it may not occur locally
 
+# Code used to upgrade all data from v2.0 to 
+# file.rename(list.files(path = "../data/OISST/", pattern = "avhrr-only-v2", full.names = T), 
+#             str_replace(list.files(path = "../data/OISST/", pattern = "avhrr-only-v2", full.names = T), pattern = "avhrr-only-v2", "oisst-avhrr-v02r01"))
+# This is the address for the v2.0 data, which are used from 1982-01-01 to 2015-12-31
+# OISST_url_month <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/access/avhrr-only/"
+
 
 # 1: Update OISST data ----------------------------------------------------
 
@@ -35,15 +41,17 @@ if(length(prelim_dates) == 0) stop("Prelim date indexing has broken.")
 
 # Get the source index monthly file folders with new data
 print(paste0("Fetching OISST folder names at ",Sys.time()))
-# This is he address for the v2.0 data, which are used from 1982-01-01 to 2015-12-31
-# OISST_url_month <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/access/avhrr-only/"
-OISST_url_month <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/"
-OISST_url_month_get <- getURL(OISST_url_month)
-OISST_months <- data.frame(months = readHTMLTable(OISST_url_month_get, skip.rows = 1:2)[[1]]$Name) %>% 
-  mutate(months = lubridate::as_date(str_replace(as.character(months), "/", "01"))) %>% 
-  filter(months >= max(lubridate::floor_date(final_dates, unit = "month"))) %>%
-  mutate(months = gsub("-", "", substr(months, 1, 7)))
+# OISST_url_month <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/"
+# OISST_url_month_get <- getURL(OISST_url_month)
+# OISST_months <- data.frame(months = readHTMLTable(OISST_url_month_get, skip.rows = 1:2)[[1]]$Name) %>% 
+#   mutate(months = lubridate::as_date(str_replace(as.character(months), "/", "01"))) %>%
+#   filter(months >= max(lubridate::floor_date(final_dates, unit = "month"))) %>%
+#   mutate(months = gsub("-", "", substr(months, 1, 7)))
 
+# Manually control downloads
+# Comment out lines 40-45 above to run this faster
+final_dates <- as.Date("1981-12-31")
+OISST_months <- data.frame(months = paste0(1982, stringr::str_pad(seq(1:12), 2, pad = "0")))
 
 # Check if new data need downloading
 OISST_filenames <- plyr::ldply(OISST_months$months, .fun = OISST_url_daily, final_dates)
@@ -65,7 +73,7 @@ OISST_new <- rbind(final_index, prelim_index) %>% na.omit()
 
 
 # Download the new data
-if(nrow(OISST_new) > 50) stop("A suspicious amount of new files are attempting to be downloaded.")
+# if(nrow(OISST_new) > 50) stop("A suspicious amount of new files are attempting to be downloaded.")
 if(nrow(OISST_new) > 0){
   print(paste0("Downloading new data at ", Sys.time()))
   OISST_dat <- plyr::ldply(OISST_new$full_name, .fun = OISST_url_daily_dl, .parallel = F)
@@ -126,6 +134,8 @@ if(nrow(OISST_dat) > 2){
 # It is then necessary to ensure that all of the final data up to the most recent date are downloaded
 # This will likely require that one manually edits the final_dates object at the start of this section
 # And then re-run the full NetCDF merging process
+
+stop()
 
 
 # 2: Update MHW event and category data -----------------------------------
