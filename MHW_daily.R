@@ -56,20 +56,17 @@ OISST_months <- data.frame(months = readHTMLTable(OISST_url_month_get, skip.rows
 
 
 # Uncomment to manually control downloads
-# Comment out lines 44-49 above to run this faster
 # final_dates <- as.Date("1981-12-31")
-# OISST_months <- data.frame(months = apply(expand.grid(c(1983, 1984), stringr::str_pad(seq(1:12), 2, pad = "0")), 1, paste, collapse = "")) |> arrange(months)
+# OISST_months <- data.frame(months = apply(expand.grid(2023, stringr::str_pad(seq(1:5), 2, pad = "0")), 1, paste, collapse = "")) |> arrange(months)
 
 
 # Check if new data need downloading
-OISST_filenames <- plyr::ldply(OISST_months$months, .fun = OISST_url_daily, final_dates)
-final_index <- filter(OISST_filenames, !grepl("prelim", files))
-
-
+# final_dates <- as.Date("1981-12-31") # tester...
+OISST_filenames <- plyr::ldply(OISST_months$months, .fun = OISST_url_daily, final_dates, .parallel = T)
 # Download and save files locally 
-plyr::l_ply(OISST_filenames[1], OISST_url_daily_save, .parallel = T)
-
-
+plyr::l_ply(OISST_filenames$full_name, OISST_url_daily_save, .parallel = T)
+# Get list of final files
+final_index <- filter(OISST_filenames, !grepl("prelim", files))
 # Manually add files missing from ERDDAP server. Uncomment only if a new NetCDF file had to be created.
 # final_index <- rbind(final_index, OISST_ERDDAP_miss) %>% arrange(t)
 if(nrow(final_index) == 0){
@@ -148,8 +145,6 @@ if(nrow(OISST_dat) > 2){
 # It is then necessary to ensure that all of the final data up to the most recent date are downloaded
 # This will likely require that one manually edits the final_dates object at the start of this section
 # And then re-run the full NetCDF merging process
-
-stop()
 
 
 # 2: Update MHW event and category data -----------------------------------

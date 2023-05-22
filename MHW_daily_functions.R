@@ -116,7 +116,9 @@ OISST_url_daily <- function(target_month, final_dates){
 
 # Download any number of desired OISST files and save them locally
 OISST_url_daily_save <- function(target_URL){
-  file_dest <- paste0("../data/OISST/daily/",sapply(strsplit(target_URL, split = "/"), "[[", 10))
+  file_dest <- paste0("../data/OISST/daily/", 
+                      substr(sapply(strsplit(target_URL, split = "/"), "[[", 9), 1, 4), "/", 
+                      sapply(strsplit(target_URL, split = "/"), "[[", 10))
   download.file(url = target_URL, method = "libcurl", destfile = file_dest)
   return()
 }
