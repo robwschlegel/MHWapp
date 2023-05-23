@@ -425,3 +425,4 @@ Sys.sleep(10); gc()
 #   borders() +
 #   geom_tile(aes(fill = category)) +
 #   scale_fill_manual(values = MHW_colours)
+

@@ -64,6 +64,7 @@ OISST_months <- data.frame(months = readHTMLTable(OISST_url_month_get, skip.rows
 # final_dates <- as.Date("1981-12-31") # tester...
 OISST_filenames <- plyr::ldply(OISST_months$months, .fun = OISST_url_daily, final_dates, .parallel = T)
 # Download and save files locally 
+print(paste0("Saving new data locally at ", Sys.time()))
 plyr::l_ply(OISST_filenames$full_name, OISST_url_daily_save, .parallel = T)
 # Get list of final files
 final_index <- filter(OISST_filenames, !grepl("prelim", files))
@@ -86,11 +87,11 @@ OISST_new <- rbind(final_index, prelim_index) %>% na.omit()
 # Download the new data
 # if(nrow(OISST_new) > 50) stop("A suspicious amount of new files are attempting to be downloaded.")
 if(nrow(OISST_new) > 0){
-  print(paste0("Downloading new data at ", Sys.time()))
+  print(paste0("Prepping new data at ", Sys.time()))
   OISST_dat <- plyr::ldply(OISST_new$full_name, .fun = OISST_url_daily_dl, .parallel = F)
   OISST_dat$lon <- ifelse(OISST_dat$lon > 180, OISST_dat$lon-360, OISST_dat$lon)
 } else {
-  print("No new data to download")
+  print("No new data to prep")
   OISST_dat <- data.frame(lon = NA, lat = NA, t = NA, temp = NA)
 }
 
@@ -217,7 +218,7 @@ if(length(update_dates) > 0) {
 # 4: Check current dates --------------------------------------------------
 
 # Indexes all files throughout the OISST/daily sub-folders to create the current_dates index
-current_dates <- as.Date(sapply(str_split(list.files("../data/OISST/daily/", recursive = T), "[.]"), "[[", 2))
+current_dates <- as.Date(sapply(str_split(list.files("../data/OISST/daily/", recursive = T, pattern = "daily"), "[.]"), "[[", 2))
 
 # Check that no days are missing
 possible_dates <- seq(as.Date("1982-01-01"), max(current_dates), by = "day")

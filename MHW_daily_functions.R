@@ -119,6 +119,7 @@ OISST_url_daily_save <- function(target_URL){
   file_dest <- paste0("../data/OISST/daily/", 
                       substr(sapply(strsplit(target_URL, split = "/"), "[[", 9), 1, 4), "/", 
                       sapply(strsplit(target_URL, split = "/"), "[[", 10))
+  if(file.exists(file_dest)) return()
   download.file(url = target_URL, method = "libcurl", destfile = file_dest)
   return()
 }

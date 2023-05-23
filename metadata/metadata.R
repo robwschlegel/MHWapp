@@ -22,7 +22,7 @@ lon_lat_OISST <- base::expand.grid(lon_OISST, lat_OISST) %>%
   data.frame()
 
 # File locations
-OISST_files <- dir("../data/OISST", pattern = "avhrr-only", full.names = T)
+OISST_files <- dir("../data/OISST", pattern = "oisst-avhrr", full.names = T)
 MHW_event_files <- dir("../data/event", pattern = "MHW.event.", full.names = T) %>% str_filter("MCS", invert = T)
 MCS_event_files <- dir("../data/event/MCS", pattern = "MCS.event.", full.names = T)
 MHW_seas_thresh_files <- dir("../data/thresh", pattern = "MHW.seas.thresh.", full.names = T)
