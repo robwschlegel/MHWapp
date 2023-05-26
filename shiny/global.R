@@ -16,6 +16,7 @@ library(shinyWidgets)
 library(shinydashboard)
 library(dplyr)
 library(shinyBS)
+# library(shinyjs) # Potentially necessary for sessionInfo text popup
 library(leaflet)
 library(plotly)
 library(DT)

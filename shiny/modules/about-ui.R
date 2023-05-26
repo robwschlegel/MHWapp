@@ -2,6 +2,7 @@ aboutUI <- function(id, label = 'About') {
   ns <- NS(id)
   
   fluidPage(
+    # useShinyjs(),
     column(1,
            HTML("")),
     column(10,
@@ -239,9 +240,21 @@ aboutUI <- function(id, label = 'About') {
            p("Oliver, E. C., Donat, M. G., Burrows, M. T., Moore, P. J., Smale, D. A., Alexander, L. V., ... & Holbrook, N. J. (2018). 
              Longer and more frequent marine heatwaves over the past century. Nature communications, 9(1), 1-12."),
            br(),
+           # br()
+           # h2(tags$b("Session info")),
+           # # p(textOutput(ns("sessionInfo")))
+           # actionButton(ns("button"), "don't press the button"),
+           # hidden(
+           #   div(id=ns('text_div'),
+           #       verbatimTextOutput(ns("text"))
+           #   )
+           # ),
+           # br(),
            br()
     ),
-    column(1, HTML(""))
+    column(1, HTML("")),
+    # p("Session Info:"),
+    # textOutput(ns("sessionInfo"))
   )
 }
 
