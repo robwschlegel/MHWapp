@@ -17,7 +17,7 @@ library(bsicons)
 library(shinyWidgets)
 library(shinydashboard)
 library(dplyr)
-library(shinyBS)
+# library(shinyBS)
 # library(shinyjs) # Potentially necessary for sessionInfo text popup
 library(leaflet)
 library(plotly)
@@ -77,12 +77,15 @@ current_dates <- dir("cat_clim", recursive = T, pattern = "cat.clim", full.names
 current_dates <- sapply(strsplit(current_dates, split = "cat.clim."), "[[", 3)
 current_dates <- as.Date(sapply(strsplit(current_dates, split = ".Rda"), "[[", 1))
 
+# Testing...
+date_menu_choice <- max(current_dates)
+
 ### Starting values
 initial_lat <- 45
 initial_lon <- -60
 initial_zoom <- 4
-menu_panel_top <- 60
-menu_panel_left <- 10
+# menu_panel_top <- 60
+# menu_panel_left <- 10
 # date_menu_choice <- max(current_dates)
 # sidepanel.width <- 400
 
