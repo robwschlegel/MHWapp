@@ -1,33 +1,36 @@
-ui <- tagList(shinyjs::useShinyjs(),  
-              # CSS
-              tags$head(includeCSS("style.css")),
-              # Loading message
-              div(id = "loading-content",
-                  br(), br(),
-                  h2("Loading"),
-                  br(), br(), br(),
-                  h5("If this screen lasts for more than 10 seconds please try Firefox."),
-                  br(),
-                  h5("If Firefox doesn't work you may be experiencing a Mac OS Javascript bug."),
-                  br(),
-                  h5("Please consult the 'Bugs?' section on the 'About' page for more information.")),
-              # Nav bar tabs
-              navbarPage(title = "Marine Heatwave Tracker",
-                         selected = 'map_tab',
-                         header = list(cicerone::use_cicerone()), # Start guided tour
-                         tabPanel(title = 'Map',
-                                  value = 'map_tab',
-                                  mapUI('map')),
-                         # Deactivated primarily for speed, but also because the underlying packages change too often
-                         # tabPanel(title = 'Comparison',
-                         #          value = 'comp_tab',
-                         #          comparisonUI('comparison')),
-                         # tabPanel(title = 'Summary',
-                         #          value = 'sum_tab',
-                         #          summaryUI('summary')),
-                         tabPanel(title = 'About',
-                                  value = 'about_tab',
-                                  aboutUI('about')),
-                         collapsible = TRUE, fluid = TRUE)
+ui <- page_fillable(
+  # title = "Marine Heatwave Tracker",
+  h1("Marine Heatwave Tracker"),
+  # header = list(cicerone::use_cicerone()), # Start guided tour
+  value_box(title = "Percent cover", value = "...", showcase = bs_icon("percent")),
+  # selected = "map_tab",
+  # sidebar = NULL,
+  # nav_panel(title = "Map", value = "map_tab", mapUI("map")),
+  # nav_panel(title = 'About', value = 'about_tab', aboutUI('about')),
+  # nav_spacer(),
+  # nav_item(tags$a("GitHub", href = "https://github.com/robwschlegel/MHWapp"))
+  card(full_screen = TRUE,
+       layout_sidebar(
+         class = "p-0",
+         sidebar = sidebar(
+           title = "Earthquakes off Fiji",
+           bg = "#1E1E1E",
+           width = "35%",
+           class = "fw-bold font-monospace",
+           accordion(
+             accordion_panel(
+               "Dropdowns", icon = bsicons::bs_icon("menu-app")
+               # !!!filters
+             ),
+             accordion_panel(
+               "Numerical", icon = bsicons::bs_icon("sliders")
+               # filter_slider("depth", "Depth", dat, ~depth),
+               # filter_slider("table", "Table", dat, ~table)
+             )
+           )
+         ),
+         leaflet() |> addTiles()
+       )
+       ),
+  card()
 )
-

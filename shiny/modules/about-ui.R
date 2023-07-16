@@ -1,4 +1,4 @@
-aboutUI <- function(id, label = 'About') {
+aboutUI <- function(id, label = "about") {
   ns <- NS(id)
   
   fluidPage(
@@ -204,7 +204,7 @@ aboutUI <- function(id, label = 'About') {
                href = "https://github.com/robwschlegel/MHWapp/blob/master/LICENSE.md","MIT License"), ". For questions about the 
              use or adaptation of the source code please contact the developer at: robert.schlegel@imev-mer.fr"),
            br(),
-           h2(tags$b("Press release")),
+           h2(tags$b("In the press")),
            br(),
            p("A press release was issued for the Marine Heatwave Tracker on May 27th, 2019. A link to the initial release on 
              the Ocean Frontier Institute (OFI) page may be found ", 

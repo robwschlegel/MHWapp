@@ -12,6 +12,8 @@
 # Required up front
 .libPaths(c("~/R-packages", .libPaths()))
 suppressPackageStartupMessages({
+library(bslib)
+library(bsicons)
 library(shinyWidgets)
 library(shinydashboard)
 library(dplyr)
@@ -140,7 +142,7 @@ MCS_colours <- c(
 inputProj <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
 leafletProj <- "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +towgs84=0,0,0,0,0,0,0 +units=m +nadgrids=@null +wktext +no_defs"
 
-### The shiny server instance beng run
+### The shiny server instance being run
 server_instance <- Sys.getenv("R_SHNYSRVINST")
 
 ### Regional website URLs
@@ -152,15 +154,9 @@ regional_North_Sea <- "https://fishforecasts.dtu.dk/heatwaves/north_sea"
 regional_European_Northwest_Shelf <- "https://fishforecasts.dtu.dk/heatwaves/nw_shelf"
 
 ### Placeholders when invalid dates are typed into date selectors
-empty_date_map <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") %>% 
-  slice(1) %>% 
-  mutate(category = NA)
-# empty_summary_map <- readRDS("../data/annual_summary/MHW_cat_pixel_1982.Rds") %>% 
-#   slice(1) %>% 
-#   mutate(category = NA)
-# empty_summary_ts <- readRDS("../data/annual_summary/MHW_cat_daily_1982.Rds") %>% 
-#   slice(1) %>% 
-#   mutate(category = NA)
+empty_date_map <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") |> slice(1) |> mutate(category = NA)
+# empty_summary_map <- readRDS("../data/annual_summary/MHW_cat_pixel_1982.Rds") |> slice(1) |> mutate(category = NA)
+# empty_summary_ts <- readRDS("../data/annual_summary/MHW_cat_daily_1982.Rds") |> slice(1) |> mutate(category = NA)
 
 ### The base map
 ## NB: No longer used after removal of summary tab
