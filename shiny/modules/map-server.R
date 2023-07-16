@@ -16,9 +16,9 @@ map <- function(input, output, session) {
   # input <- data.frame(from_to = c(as.Date("2011-05-06"), as.Date("2012-05-05")))
   # categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
   # categories <- data.frame(categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
-
-
-# Guided tour -------------------------------------------------------------
+  
+  
+  # Guided tour -------------------------------------------------------------
   
   guide <- Cicerone$
     new()$
@@ -68,18 +68,18 @@ map <- function(input, output, session) {
     #   "[data-value='sum_tab']",
     #   "Summary tab",
     #   "Click here to access a dashboard designed for more thoroughly investigating annual MHW summaries.",
-    #   is_id = FALSE, position = "left"
-    # )$
-    step(
-      "[data-value='about_tab']",
-      "About tab",
-      "Click here for more detailed information about this app.",
-      is_id = FALSE, position = "left"
-    )
-
-
-# Reactive UI -------------------------------------------------------------
-
+  #   is_id = FALSE, position = "left"
+  # )$
+  step(
+    "[data-value='about_tab']",
+    "About tab",
+    "Click here for more detailed information about this app.",
+    is_id = FALSE, position = "left"
+  )
+  
+  
+  # Reactive UI -------------------------------------------------------------
+  
   ### The popup modal when starting the app
   # Open on startup
   observe({
@@ -93,7 +93,7 @@ map <- function(input, output, session) {
   ### Switch the display of the Controls on and off
   observeEvent(input$toggle, {
     shinyjs::toggle("control_menu", anim = TRUE)
-    })
+  })
   
   ### Toggle animation switch on and off
   output$check_animate_UI <- renderUI({
@@ -123,7 +123,7 @@ map <- function(input, output, session) {
   
   ### Reactive category filters
   categories <- reactiveValues(categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
-
+  
   ### Moderate filtering button
   # The base reactive value for clicking
   button_I <- reactiveValues(clicked = FALSE)
@@ -327,21 +327,21 @@ map <- function(input, output, session) {
       # date_menu_choice <- as.Date("2019-12-31") # For testing
     }
     if(input$layer %in% c("MHW Category", "SST Anomaly", "MCS Category")){
-        dateInput(inputId = ns("date"),
-                  label = NULL, width = '100%',
-                  value = date_menu_choice,
-                  min = "1982-01-01",
-                  max = max(current_dates))
-      } else if(input$layer %in% c("MHW Summary", "MCS Summary")){
-        selectInput(inputId = ns("date"), label = NULL,
-                    choices = seq(1982, lubridate::year(Sys.time())),
-                    selected = lubridate::year(Sys.time()), multiple = F)
-      } else{
-        selectInput(inputId = ns("date"),
-                    label = NULL, choices = "NA",
-                    selected = "NA", multiple = F)
-      }
-
+      dateInput(inputId = ns("date"),
+                label = NULL, width = '100%',
+                value = date_menu_choice,
+                min = "1982-01-01",
+                max = max(current_dates))
+    } else if(input$layer %in% c("MHW Summary", "MCS Summary")){
+      selectInput(inputId = ns("date"), label = NULL,
+                  choices = seq(1982, lubridate::year(Sys.time())),
+                  selected = lubridate::year(Sys.time()), multiple = F)
+    } else{
+      selectInput(inputId = ns("date"),
+                  label = NULL, choices = "NA",
+                  selected = "NA", multiple = F)
+    }
+    
   })
   
   ### Observe the changing of dates in the animation slider
@@ -413,7 +413,7 @@ map <- function(input, output, session) {
                h5("Data"), # Putting the label in the button looks bad
                downloadButton(outputId = ns("download_map"),
                               label = NULL, class = 'small-dl'))
-        ),
+      ),
       circle = FALSE, status = "primary",
       icon = icon("download"), width = "300px",
       right = FALSE, up = FALSE, 
@@ -424,9 +424,9 @@ map <- function(input, output, session) {
   observe({
     shinyjs::toggleState(id = "download_map", 
                          condition = input$map_download_date[1] <= input$map_download_date[2] & (as.integer(input$map_download_date[2]) - as.integer(input$map_download_date[1])) <= 31) 
-
+    
   })
-
+  
   ### Observe the changing of date, lon, lat, zoom, in the URL
   observe({
     query <- parseQueryString(session$clientData$url_search)
@@ -448,11 +448,11 @@ map <- function(input, output, session) {
   
   ### Update zoom level when user zooms
   observe({
-      if(!is.null(input$map_zoom)) updateNumericInput(session, "zoom", value = input$map_zoom)
+    if(!is.null(input$map_zoom)) updateNumericInput(session, "zoom", value = input$map_zoom)
   })
   
   
-# Map projection data -----------------------------------------------------
+  # Map projection data -----------------------------------------------------
   
   ### Base map data before screening categories
   baseDataPre <- reactive({
@@ -570,7 +570,7 @@ map <- function(input, output, session) {
   })
   
   
-# Time series data --------------------------------------------------------
+  # Time series data --------------------------------------------------------
   
   ### Pixel data
   pixelData <- reactive({
@@ -578,10 +578,10 @@ map <- function(input, output, session) {
     xy <- input$map_click
     while(xy$lng > 180){
       xy$lng <- xy$lng - 360
-      }
+    }
     while(xy$lng < -180){
       xy$lng <- xy$lng + 360
-      }
+    }
     rasterNonProj <- rasterNonProj()
     cell <- raster::cellFromXY(rasterNonProj, c(xy$lng, xy$lat))
     xy <- raster::xyFromCell(rasterNonProj, cell)
@@ -619,7 +619,7 @@ map <- function(input, output, session) {
   })
   
   
-# Pop-ups -----------------------------------------------------------------
+  # Pop-ups -----------------------------------------------------------------
   
   ### Observer to show pop-ups on click
   observeEvent(c(input$map_click, input$open_modal), {
@@ -637,7 +637,7 @@ map <- function(input, output, session) {
     xy_click <- c(x,y)
     xy_wrap <- lon_wrap(xy_click)
     # Translate lon/lat to cell number using the unprojected raster
-      # This is done because the projected raster is not in degrees
+    # This is done because the projected raster is not in degrees
     cell <- raster::cellFromXY(rasterNonProj, c(xy_wrap))
     # If the click is inside the raster...
     xy <- raster::xyFromCell(rasterNonProj, cell) # Get the center of the cell
@@ -721,7 +721,7 @@ map <- function(input, output, session) {
   }
   
   
-# Leaflet -----------------------------------------------------------------
+  # Leaflet -----------------------------------------------------------------
   
   ### Observer to change colour palette accordingly
   pal_react <- reactive({
@@ -779,7 +779,7 @@ map <- function(input, output, session) {
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) %>%
       addScaleBar(position = "bottomright")
   })
-
+  
   ### The raster layer
   observeEvent(c(input$layer, input$date,
                  input$moderate_filter, input$strong_filter,
@@ -787,14 +787,14 @@ map <- function(input, output, session) {
                    leafletProxy("map") %>%
                      addRasterImage(rasterProj(), colors = pal_react(), layerId = ns("map_raster"),
                                     project = FALSE, opacity = 0.8)
-  })
+                 })
   
   ### Shift when new lon/lat are entered
   observeEvent(c(input$lon, input$lat), {
     leafletProxy("map") %>%
       setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F))
-    })
+  })
   
   ### Change map background
   observeEvent(input$map_back, {
@@ -858,7 +858,7 @@ map <- function(input, output, session) {
   })
   
   
-# Figures/tables ----------------------------------------------------------
+  # Figures/tables ----------------------------------------------------------
   
   ### Create static time series plot
   tsPlot <- reactive({
@@ -903,13 +903,13 @@ map <- function(input, output, session) {
     ## MHWs
     if(any(ts_data_sub$temp > ts_data_sub$thresh)){
       p <- p + heatwaveR::geom_flame(aes(y2 = thresh), fill = "#ffc866", n = 5, n_gap = 2)
-      }
+    }
     if(any(ts_data_sub$temp > ts_data_sub$thresh_2x)){
       p <- p + heatwaveR::geom_flame(aes(y2 = thresh_2x), fill = "#ff6900")
-      }
+    }
     if(any(ts_data_sub$temp > ts_data_sub$thresh_3x)){
       p <- p + heatwaveR::geom_flame(aes(y2 = thresh_3x), fill = "#9e0000")
-      }
+    }
     if(any(ts_data_sub$temp > ts_data_sub$thresh_4x)){
       p <- p + heatwaveR::geom_flame(aes(y2 = thresh_4x), fill = "#2d0000")
     }
@@ -947,16 +947,16 @@ map <- function(input, output, session) {
     # Add rug as needed
     if(length(event_data_sub$date_start) > 0){
       suppressWarnings( # text aes plotly
-      p <- p + geom_rug(data = event_data_sub, sides = "b", colour = "salmon", size = 2,
-                        aes(x = date_peak, y = min(ts_data_sub$temp),
-                            text = paste0("Event: ",event_no,
-                                          "<br>Duration: ",duration," days",
-                                          "<br>Start Date: ", date_start,
-                                          "<br>Peak Date: ", date_peak,
-                                          "<br>End Date: ", date_end,
-                                          "<br>Mean Intensity: ",intensity_mean,"°C",
-                                          "<br>Max. Intensity: ",intensity_max,"°C",
-                                          "<br>Cum. Intensity: ",intensity_cumulative,"°C")))
+        p <- p + geom_rug(data = event_data_sub, sides = "b", colour = "salmon", size = 2,
+                          aes(x = date_peak, y = min(ts_data_sub$temp),
+                              text = paste0("Event: ",event_no,
+                                            "<br>Duration: ",duration," days",
+                                            "<br>Start Date: ", date_start,
+                                            "<br>Peak Date: ", date_peak,
+                                            "<br>End Date: ", date_end,
+                                            "<br>Mean Intensity: ",intensity_mean,"°C",
+                                            "<br>Max. Intensity: ",intensity_max,"°C",
+                                            "<br>Cum. Intensity: ",intensity_cumulative,"°C")))
       )
     }
     if(length(event_MCS_data_sub$date_start) > 0){
@@ -975,20 +975,20 @@ map <- function(input, output, session) {
     }
     p
   })
-    
+  
   ### Create interactive time series plot
   tsPlotly <- reactive({
     
     # Grab static plot
     p <- tsPlot()
     suppressWarnings( # text aes plotly
-    p <- p +
-      geom_segment(aes(x = input$date[1], 
-                       xend = input$date[1],
-                       y = min(temp), 
-                       yend = max(temp),
-                       text = "Date shown"), 
-                   colour = "limegreen")
+      p <- p +
+        geom_segment(aes(x = input$date[1], 
+                         xend = input$date[1],
+                         y = min(temp), 
+                         yend = max(temp),
+                         text = "Date shown"), 
+                     colour = "limegreen")
     )
     
     # Convert to plotly
@@ -1019,7 +1019,7 @@ map <- function(input, output, session) {
     if(length(event_data_sub$date_start) > 0) y_lims[2] <- max(event_data_sub$intensity_max)*1.1
     if(length(event_MCS_data_sub$date_start) > 0) y_lims[1] <- min(event_MCS_data_sub$intensity_max)*1.1
     if(length(event_MCS_data_sub$date_start) > 0 & length(event_data_sub$date_start) == 0) y_lims[2] <- 0
-      
+    
     # The base figure
     p <- ggplot() +
       labs(x = "", y = "Max. Intensity (°C)") +
@@ -1076,7 +1076,7 @@ map <- function(input, output, session) {
     # p <- lollilot()
     p <- lolliPlot()
     pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) #%>%
-      # style(hoverinfo = "none", traces = c(3, 4))
+    # style(hoverinfo = "none", traces = c(3, 4))
     pp
   })
   
@@ -1114,7 +1114,7 @@ map <- function(input, output, session) {
   })
   
   
-# Modal panel -------------------------------------------------------------
+  # Modal panel -------------------------------------------------------------
   
   ### Label/title for modal panel
   pixelLabel <- reactive({
@@ -1216,31 +1216,31 @@ map <- function(input, output, session) {
                                             shinycssloaders::withSpinner(DT::dataTableOutput(ns('table')), 
                                                                          type = 6, color = "#b0b7be"),
                                             hr())
-                                   ),
-                                   fluidRow(
-                                     column(width = 4,
-                                            dateRangeInput(
-                                              inputId = ns("from_to"),
-                                              label = h3("Date range"),
-                                              start = from_date, end = to_date,
-                                              min = "1982-01-01", max = max(current_dates))),
-                                     column(width = 8,
-                                            h3("Downloads"),
-                                            downloadButton(outputId = ns("download_TS"),
-                                                           label = "Time series (png)", class = 'small-dl'),
-                                            downloadButton(outputId = ns("download_lolli"),
-                                                           label = "Lolliplot (png)", class = 'small-dl'),
-                                            downloadButton(outputId = ns("download_clim"),
-                                                           label = "Climatology & Threshold (csv)", class = 'small-dl'),
-                                            downloadButton(outputId = ns("download_event"),
-                                                           label = "Event data (csv)", class = 'small-dl'))
-                                     )
+                       ),
+                       fluidRow(
+                         column(width = 4,
+                                dateRangeInput(
+                                  inputId = ns("from_to"),
+                                  label = h3("Date range"),
+                                  start = from_date, end = to_date,
+                                  min = "1982-01-01", max = max(current_dates))),
+                         column(width = 8,
+                                h3("Downloads"),
+                                downloadButton(outputId = ns("download_TS"),
+                                               label = "Time series (png)", class = 'small-dl'),
+                                downloadButton(outputId = ns("download_lolli"),
+                                               label = "Lolliplot (png)", class = 'small-dl'),
+                                downloadButton(outputId = ns("download_clim"),
+                                               label = "Climatology & Threshold (csv)", class = 'small-dl'),
+                                downloadButton(outputId = ns("download_event"),
+                                               label = "Event data (csv)", class = 'small-dl'))
                        )
+                     )
     )
   })
   
   
-# Downloads ---------------------------------------------------------------
+  # Downloads ---------------------------------------------------------------
   
   ### Download time series figure
   output$download_TS <- downloadHandler(
@@ -1324,7 +1324,7 @@ map <- function(input, output, session) {
     } else if(input$layer %in% c("MHW Summary", "MCS Summary")){
       date_seq_years <- input$map_download_date
     } else{
-     # Blank 
+      # Blank 
     }
     if(input$layer == "MHW Category"){
       date_seq_files <- paste0("cat_clim/",date_seq_years,"/cat.clim.",date_seq,".Rda")
