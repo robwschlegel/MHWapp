@@ -106,11 +106,11 @@ tst1 <- tidync::tidync("../data/OISST/test.v02r01.nc") |> hyper_tibble()
 tst2 <- tidync::tidync("../data/OISST/test2.v02r01.nc") |> hyper_tibble()
 
 
-# Download the new data
+# Prep data for merging with existing files
 # if(nrow(OISST_new) > 50) stop("A suspicious amount of new files are attempting to be downloaded.")
 if(nrow(OISST_new) > 0){
   print(paste0("Prepping new data at ", Sys.time()))
-  OISST_dat <- plyr::ldply(OISST_new$full_name, .fun = OISST_url_daily_dl, .parallel = F)
+  OISST_dat <- plyr::ldply(OISST_new$full_name, .fun = OISST_prep, .parallel = F)
   OISST_dat$lon <- ifelse(OISST_dat$lon > 180, OISST_dat$lon-360, OISST_dat$lon)
 } else {
   print("No new data to prep")

@@ -115,6 +115,20 @@ OISST_url_daily <- function(target_month, final_dates){
   return(OISST_table)
 }
 
+# Download all of the outstanding data from the links created above
+# NB: Legacy code. No longer used in favour of OISST_url_daily_save() and OISST_prep()
+OISST_url_daily_dl <- function(target_URL){
+  temp_dest <- paste0("data/",sapply(strsplit(target_URL, split = "/"), "[[", 10))
+  download.file(url = target_URL, method = "libcurl", destfile = temp_dest)
+  temp_dat <- tidync(temp_dest) %>% 
+    hyper_tibble() %>% 
+    dplyr::select(lon, lat, time, sst) %>% 
+    dplyr::rename(t = time, temp = sst) %>% 
+    mutate(t = as.Date(t, origin = "1978-01-01"))
+  file.remove(temp_dest)
+  return(temp_dat)
+}
+
 # Download any number of desired OISST files and save them locally
 OISST_url_daily_save <- function(target_URL){
   
@@ -141,16 +155,13 @@ OISST_url_daily_save <- function(target_URL){
   # rm(target_URL, file_year, file_name, file_dest, file_date, file_folder, dup_file)
 }
 
-# Download all of the outstanding data from the links created above
-OISST_url_daily_dl <- function(target_URL){
-  temp_dest <- paste0("data/",sapply(strsplit(target_URL, split = "/"), "[[", 10))
-  download.file(url = target_URL, method = "libcurl", destfile = temp_dest)
-  temp_dat <- tidync(temp_dest) %>% 
+# Prepares downloaded OISST data for merging with larger files
+OISST_prep <- function(file_name){
+  temp_dat <- tidync(file_name) %>% 
     hyper_tibble() %>% 
     dplyr::select(lon, lat, time, sst) %>% 
     dplyr::rename(t = time, temp = sst) %>% 
     mutate(t = as.Date(t, origin = "1978-01-01"))
-  file.remove(temp_dest)
   return(temp_dat)
 }
 
