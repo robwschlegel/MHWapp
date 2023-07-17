@@ -2,7 +2,7 @@ ui <- page_sidebar(
   
   # Main info
   title = "Marine Heatwave Tracker",
-  theme = bs_theme(version = 5, bootswatch = "spacelab"),
+  theme = bs_theme(version = 5, bootswatch = "yeti"),
   fillable = FALSE,
   # h1("Marine Heatwave Tracker"),
   # header = list(cicerone::use_cicerone()), # Start guided tour
@@ -20,8 +20,9 @@ ui <- page_sidebar(
 
 
   # Map card
-  card(full_screen = TRUE,
+  card(full_screen = TRUE, fill = TRUE,
        layout_sidebar(
+         fillable = TRUE,
          class = "p-0",
          sidebar = sidebar(
            title = "Map controls",
@@ -47,7 +48,8 @@ ui <- page_sidebar(
              accordion_panel(
                "Map layer", icon = bsicons::bs_icon("map"),
                prettyRadioButtons(inputId = "layer", label = NULL,
-                                  choices = c(cat_layers, rb_layers),
+                                  # choices = c(cat_layers, rb_layers),
+                                  choices = c("MHW Category", "MCS Category"),
                                   selected = "MHW Category",
                                   # selected = "MCS Category", # For testing
                                   status = "primary",
@@ -63,35 +65,42 @@ ui <- page_sidebar(
   ),
 
   # Time series card
-  card(full_screen = TRUE, selected = "ts",
-                  title = "Selected pixel",
-                  layout_sidebar(
-                    sidebar = sidebar(
-                      title = "Controls",
-                      bg = "grey",
-                      width = "15%",
-                      class = "fw-bold font-monospace",
-                      open = "open",
-                      accordion(
-                        multiple = FALSE,
-                        open = "open",
-                        # Date selector
-                        accordion_panel(
-                          "Date range", icon = bsicons::bs_icon("menu-app"),
-                          dateRangeInput(
-                            label = NULL, inputId = "from_to",
-                            start = max(current_dates)-365, end = max(current_dates),
-                            min = "1982-01-01", max = max(current_dates)))
-                      )
-                    ),
-                    withSpinner(plotlyOutput("tsPlotly"), type = 6, color = "#b0b7be")
-                    # nav_panel(title = "Time series", value = "ts", withSpinner(plotlyOutput("tsPlotly"), type = 6, color = "#b0b7be")),
-                    # nav_panel(title = "Lolliplot", value = "lolli", withSpinner(plotlyOutput("tsPlotly"), type = 6, color = "#b0b7be"))
-                  )
+  # card(full_screen = TRUE,
+  # nav_menu(full_screen = TRUE, selected = "ts",
+  navset_card_tab(full_screen = TRUE,
+                  # navset_card_pill(
+                  # navset_tab(
+                  # full_screen = TRUE,
+                  # title = "Selected pixel",
+                  # layout_sidebar(
+                  sidebar = sidebar(
+                    title = "Controls",
+                    # bg = "grey",
+                    # width = "15%",
+                    # class = "fw-bold font-monospace",
+                    # open = "open",
+                    # accordion(
+                    #   multiple = FALSE,
+                    #   open = "open",
+                    #   # Date selector
+                    #   accordion_panel(
+                    #     "Date range", icon = bsicons::bs_icon("menu-app"),
+                    dateRangeInput(
+                      label = NULL, inputId = "from_to",
+                      start = max(current_dates)-365, end = max(current_dates),
+                      min = "1982-01-01", max = max(current_dates))
+                  ),
+                  #   )
+                  # ),
+                  # withSpinner(plotlyOutput("tsPlotly"), type = 6, color = "#b0b7be")
+                  nav_panel(title = "Time series", value = "ts", withSpinner(plotlyOutput("tsPlotly"), type = 6, color = "#b0b7be")),
+                  nav_panel(title = "Lolliplot", value = "lolli", withSpinner(plotlyOutput("lolliPlotly"), type = 6, color = "#b0b7be"))#,
+                  # nav_panel(title = "Table", value = "table", withSpinner(DT::dataTableOutput("tsTable"),type = 6, color = "#b0b7be"))
+                  # )
   ),
   
   # About info served as a sidebar
-  sidebar = sidebar(open = "closed", width = "75%",
+  sidebar = sidebar(open = "closed", width = "75%", position = "right",
                     h2(tags$b("Welcome!")),
                     br(),
                     p("You have arrived at the Marine Heatwave (MHW) Tracker. This web application shows the occurrence of MHWs 

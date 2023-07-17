@@ -113,6 +113,7 @@ server <- function(input, output, session){
     return(pixelData)
   })
   
+  
   # Figures/tables ----------------------------------------------------------
   
   ### Create static time series plot
@@ -253,6 +254,122 @@ server <- function(input, output, session){
     pp
   })
   
+  ### Create lolliplot
+  lolliPlot <- reactive({
+    
+    # Filter time series based on dates
+    ts_data <- pixelData()$ts
+    ts_data_sub <- ts_data %>%
+      dplyr::filter(t >= input$from_to[1], t <= input$from_to[2])
+    
+    # Prep data
+    event_data <- pixelData()$event
+    event_data_sub <- event_data %>%
+      dplyr::filter(date_peak >= input$from_to[1], date_peak <= input$from_to[2])
+    event_MCS_data <- pixelData()$event_MCS
+    event_MCS_data_sub <- event_MCS_data %>%
+      dplyr::filter(date_peak >= input$from_to[1], date_peak <= input$from_to[2])
+    
+    # Get y_lims
+    y_lims <- c(0, 1)
+    if(length(event_data_sub$date_start) > 0) y_lims[2] <- max(event_data_sub$intensity_max)*1.1
+    if(length(event_MCS_data_sub$date_start) > 0) y_lims[1] <- min(event_MCS_data_sub$intensity_max)*1.1
+    if(length(event_MCS_data_sub$date_start) > 0 & length(event_data_sub$date_start) == 0) y_lims[2] <- 0
+    
+    # The base figure
+    p <- ggplot() +
+      labs(x = "", y = "Max. Intensity (°C)") +
+      scale_y_continuous(limits = y_lims, expand = c(0, 0)) +
+      scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(input$from_to[1], input$from_to[2])) +
+      theme(panel.border = element_rect(colour = "black", fill = NA))
+    
+    # Add lollis as necessary
+    if(length(event_data_sub$date_start) > 0){
+      suppressWarnings(
+        p <- p + geom_segment(data = event_data_sub,
+                              aes(x = date_peak, xend = date_peak, y = intensity_max, yend = 0)) +
+          geom_hline(yintercept = 0) +
+          geom_point(data = event_data_sub, fill = "salmon", shape = 21, size = 4,
+                     aes(x = date_peak, y = intensity_max,
+                         text = paste0("Event: ",event_no,
+                                       "<br>Duration: ",duration," days",
+                                       "<br>Start Date: ", date_start,
+                                       "<br>Peak Date: ", date_peak,
+                                       "<br>End Date: ", date_end,
+                                       "<br>Mean Intensity: ",intensity_mean,"°C",
+                                       "<br>Max. Intensity: ",intensity_max,"°C",
+                                       "<br>Cum. Intensity: ",intensity_cumulative,"°C")))
+      )
+    }
+    if(length(event_MCS_data_sub$date_start) > 0){
+      suppressWarnings(
+        p <- p + geom_segment(data = event_MCS_data_sub,
+                              aes(x = date_peak, xend = date_peak, y = intensity_max, yend = 0)) +
+          geom_hline(yintercept = 0) +
+          geom_point(data = event_MCS_data_sub, fill = "steelblue1", shape = 21, size = 4,
+                     aes(x = date_peak, y = intensity_max,
+                         text = paste0("Event: ",event_no,
+                                       "<br>Duration: ",duration," days",
+                                       "<br>Start Date: ", date_start,
+                                       "<br>Peak Date: ", date_peak,
+                                       "<br>End Date: ", date_end,
+                                       "<br>Mean Intensity: ",intensity_mean,"°C",
+                                       "<br>Max. Intensity: ",intensity_max,"°C",
+                                       "<br>Cum. Intensity: ",intensity_cumulative,"°C")))
+      )
+    }
+    if(length(event_data_sub$date_start) == 0 & length(event_MCS_data_sub$date_start) == 0){
+      suppressWarnings(
+        p <- p + geom_text(aes(x = input$from_to[1] + ((input$from_to[2] - input$from_to[1])/2),
+                               y = 0.5, label = "?", text = "No marine heatwaves or marine cold-spells detected in date range."))
+      )
+    }
+    p
+  })
+  
+  ### Interactive lolliplot
+  lolliPlotly <- reactive({
+    # p <- lollilot()
+    p <- lolliPlot()
+    pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) #%>%
+    # style(hoverinfo = "none", traces = c(3, 4))
+    pp
+  })
+  
+  ### Create data table
+  tsTable <- reactive({
+    event_data <- pixelData()$event %>% 
+      dplyr::filter(date_start >= input$from_to[1], date_start <= input$from_to[2]) %>% 
+      mutate(Event = "MHW") %>% 
+      dplyr::rename(Lon = lon,
+                    Lat = lat,
+                    '#' = event_no,
+                    Duration = duration,
+                    'Start Date' = date_start,
+                    'Peak Date' = date_peak,
+                    'End Date' = date_end,
+                    'Mean Intensity' = intensity_mean,
+                    'Max. Intensity' = intensity_max,
+                    'Cum. Intensity' = intensity_cumulative)
+    event_MCS_data <- pixelData()$event_MCS %>% 
+      dplyr::filter(date_start >= input$from_to[1], date_start <= input$from_to[2]) %>% 
+      mutate(Event = "MCS") %>% 
+      dplyr::rename(Lon = lon,
+                    Lat = lat,
+                    '#' = event_no,
+                    Duration = duration,
+                    'Start Date' = date_start,
+                    'Peak Date' = date_peak,
+                    'End Date' = date_end,
+                    'Mean Intensity' = intensity_mean,
+                    'Max. Intensity' = intensity_max,
+                    'Cum. Intensity' = intensity_cumulative)
+    event_res <- rbind(event_data, event_MCS_data) %>% 
+      dplyr::arrange(`Peak Date`) %>% 
+      dplyr::select(Event, everything())
+    event_res
+  })
+  
   ### Static time series plot
   output$tsPlot <- renderPlot({
     tsPlot()
@@ -261,6 +378,17 @@ server <- function(input, output, session){
   ### Interactive time series plot
   output$tsPlotly <- renderPlotly({
     tsPlotly()
+  })
+  
+  ### Lolli plot
+  output$lolliPlotly <- renderPlotly({
+    lolliPlotly()
+  })
+  
+  ### Event metrics table
+  output$tsTable <- renderDataTable({
+    DT::datatable(tsTable(),
+                  options = list(pageLength = 10))
   })
   
   # During testing...
