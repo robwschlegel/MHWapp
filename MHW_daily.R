@@ -61,19 +61,21 @@ OISST_months <- data.frame(months = readHTMLTable(OISST_url_month_get, skip.rows
 
 
 # Check if new data need downloading
-# final_dates <- as.Date("1981-12-31") # tester...
+# final_dates <- as.Date("2023-04-01") # tester...
 OISST_filenames <- plyr::ldply(OISST_months$months, .fun = OISST_url_daily, final_dates, .parallel = T)
+
 # Download and save files locally 
 print(paste0("Saving new data locally at ", Sys.time()))
 plyr::l_ply(OISST_filenames$full_name, OISST_url_daily_save, .parallel = T)
+
 # Get list of final files
 final_index <- filter(OISST_filenames, !grepl("prelim", files))
-# Manually add files missing from ERDDAP server. Uncomment only if a new NetCDF file had to be created.
-# final_index <- rbind(final_index, OISST_ERDDAP_miss) %>% arrange(t)
 if(nrow(final_index) == 0){
   print("No new final data to download")
   final_index <- data.frame(files = NA, t = NA, full_name = NA)
 }
+
+# Get list of preliminary files
 prelim_index <- OISST_filenames %>% 
   filter(grepl("prelim", files),
          t > max(prelim_dates))
@@ -81,7 +83,27 @@ if(nrow(prelim_index) == 0){
   print("No new prelim data to download")
   prelim_index <- data.frame(files = NA, t = NA, full_name = NA)
 }
+
+# Bind lists and add to mega file
 OISST_new <- rbind(final_index, prelim_index) %>% na.omit()
+
+# Add newly downloaded data to full NetCDF file
+mergeNC(c("../data/OISST/test.v02r01.nc", OISST_daily_nc_files[9:11]), "../data/OISST/test2.v02r01.nc")
+
+# Merge all existing OISST v2.1 files
+for(i in 1:length(OISST_daily_nc_files)/1000){
+  start_index
+  end_index
+  mergeNC(OISST_daily_nc_files[1:1000], "../data/OISST/all1.v02r01.nc")
+}
+mergeNC(OISST_daily_nc_files[1:1000], "../data/OISST/all1.v02r01.nc")
+mergeNC(OISST_daily_nc_files[1001:2000], "../data/OISST/all2.v02r01.nc")
+
+# Testing new NetCDF creation method
+ncdump::NetCDF("../data/OISST/test.v02r01.nc")$dimension
+
+tst1 <- tidync::tidync("../data/OISST/test.v02r01.nc") |> hyper_tibble()
+tst2 <- tidync::tidync("../data/OISST/test2.v02r01.nc") |> hyper_tibble()
 
 
 # Download the new data
@@ -112,7 +134,7 @@ if(nrow(OISST_dat) > 2){
 if(nrow(OISST_dat) > 2){
   print(paste0("Adding new data to NetCDF files at ", Sys.time()))
   ## NB: 50 cores uses too much RAM if more than a few days are being added
-  doParallel::registerDoParallel(cores = 50) # NB: Change this back to 25
+  doParallel::registerDoParallel(cores = 25) # NB: Change this back to 25
   plyr::l_ply(lon_OISST, .fun = OISST_merge, .parallel = TRUE, df = OISST_dat)
   print(paste0("Finished at ", Sys.time()))
   

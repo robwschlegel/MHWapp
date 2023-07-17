@@ -24,6 +24,7 @@ library(XML)
 library(threadr)
 library(heatwaveR)
 library(doParallel)
+library(processNC)
 })
 
 print(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))
@@ -116,12 +117,28 @@ OISST_url_daily <- function(target_month, final_dates){
 
 # Download any number of desired OISST files and save them locally
 OISST_url_daily_save <- function(target_URL){
-  file_dest <- paste0("../data/OISST/daily/", 
-                      substr(sapply(strsplit(target_URL, split = "/"), "[[", 9), 1, 4), "/", 
-                      sapply(strsplit(target_URL, split = "/"), "[[", 10))
-  if(file.exists(file_dest)) return()
-  download.file(url = target_URL, method = "libcurl", destfile = file_dest)
+  
+  # Set file destination
+  file_year <- substr(sapply(strsplit(target_URL, split = "/"), "[[", 9), 1, 4)
+  file_name <- sapply(strsplit(target_URL, split = "/"), "[[", 10)
+  file_dest <- paste0("../data/OISST/daily/",file_year,"/",file_name)
+  
+  # Check if file already exists and download if needed
+  if(file.exists(file_dest)){
+    # Intentionally blank
+  } else {
+    download.file(url = target_URL, method = "libcurl", destfile = file_dest)
+  }
+  
+  # Check if there is a duplicate preliminary data file and remove it if needed
+  file_date <- str_remove(sapply(strsplit(file_name, "\\."), "[[", 2), "_preliminary")
+  file_folder <- dir(paste0("../data/OISST/daily/",file_year), full.names = T)
+  dup_file <- file_folder[grepl(file_date, file_folder)]
+  if(length(dup_file) > 1){
+    file.remove(dup_file[grepl("preliminary", dup_file)])
+  }
   return()
+  # rm(target_URL, file_year, file_name, file_dest, file_date, file_folder, dup_file)
 }
 
 # Download all of the outstanding data from the links created above
