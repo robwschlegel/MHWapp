@@ -84,39 +84,22 @@ if(nrow(prelim_index) == 0){
   prelim_index <- data.frame(files = NA, t = NA, full_name = NA)
 }
 
-# Bind lists and add to mega file
-OISST_new <- rbind(final_index, prelim_index) %>% na.omit()
-
-# Add newly downloaded data to full NetCDF file
-mergeNC(c("../data/OISST/test.v02r01.nc", OISST_daily_nc_files[9:11]), "../data/OISST/test2.v02r01.nc")
-
-# Merge all existing OISST v2.1 files
-for(i in 1:length(OISST_daily_nc_files)/1000){
-  start_index
-  end_index
-  mergeNC(OISST_daily_nc_files[1:1000], "../data/OISST/all1.v02r01.nc")
-}
-mergeNC(OISST_daily_nc_files[1:1000], "../data/OISST/all1.v02r01.nc")
-mergeNC(OISST_daily_nc_files[1001:2000], "../data/OISST/all2.v02r01.nc")
-
-# Testing new NetCDF creation method
-ncdump::NetCDF("../data/OISST/test.v02r01.nc")$dimension
-
-tst1 <- tidync::tidync("../data/OISST/test.v02r01.nc") |> hyper_tibble()
-tst2 <- tidync::tidync("../data/OISST/test2.v02r01.nc") |> hyper_tibble()
-
+# Bind lists
+OISST_new <- na.omit(rbind(final_index, prelim_index)) |> 
+  mutate(file_year = substr(sapply(strsplit(full_name, split = "/"), "[[", 9), 1, 4),
+         file_stub = sapply(strsplit(full_name, split = "/"), "[[", 10),
+         file_name = paste0("../data/OISST/daily/",file_year,"/",file_stub))
 
 # Prep data for merging with existing files
 # if(nrow(OISST_new) > 50) stop("A suspicious amount of new files are attempting to be downloaded.")
 if(nrow(OISST_new) > 0){
   print(paste0("Prepping new data at ", Sys.time()))
-  OISST_dat <- plyr::ldply(OISST_new$full_name, .fun = OISST_prep, .parallel = F)
+  OISST_dat <- plyr::ldply(OISST_new$file_name, .fun = OISST_prep, .parallel = F)
   OISST_dat$lon <- ifelse(OISST_dat$lon > 180, OISST_dat$lon-360, OISST_dat$lon)
 } else {
   print("No new data to prep")
   OISST_dat <- data.frame(lon = NA, lat = NA, t = NA, temp = NA)
 }
-
 
 # Catch the dates when the data may be incorrect and remove anything from there forward
 if(nrow(OISST_dat) > 2){
