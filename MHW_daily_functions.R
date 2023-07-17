@@ -735,21 +735,11 @@ save_sub_cat_clim <- function(date_choice, df, event_type){
                                          digits = 3, crs = "EPSG:4326")
   # The next step in for the future. Requires new leaflet workflow...
   # rasterNonProj <- terra::rast(MHW_raster, digits = 3, crs = inputProj)
-  rasterProj <- leaflet::projectRasterForLeaflet(rasterNonProj, method = "ngb")
-  raster::writeRaster(rasterProj, datatype = 'INT4S', overwrite = TRUE,
-                      filename = paste0(cat_clim_dir,"/",cat_rast_name))
+  suppressWarnings(
+    rasterProj <- leaflet::projectRasterForLeaflet(rasterNonProj, method = "ngb")
+  )
   raster::writeRaster(rasterProj, format = "GTiff", overwrite = TRUE,
               filename = paste0(cat_clim_dir,"/",cat_rast_name))
-  
-  # Testing
-  rast_load <- raster::raster("../data/cat_clim/2020/cat.clim.2020-01-01.grd")
-  rast_load <- raster::raster("../data/cat_clim/2020/cat.clim.2020-01-01.tif")
-  
-  leaflet(options = leafletOptions(zoomControl = FALSE)) |> addTiles() |> 
-    addRasterImage(raster::raster("../data/cat_clim/2020/cat.clim.2020-01-01.tif"), 
-                   # addRasterImage(rasterProj(), 
-                   # colors = pal_react(), layerId = "map_raster",
-                   project = FALSE, opacity = 0.8)
 }
 
 # Function for loading, prepping, and saving the daily global category slices

@@ -12,13 +12,13 @@ server <- function(input, output, session){
   # Map projection data -----------------------------------------------------
   
   ### Base map data before screening categories
-  baseDataPre <- reactive({
-    req(input$date)
-    sub_dir <- paste0("cat_clim/",lubridate::year(input$date))
-    sub_file <- paste0(sub_dir,"/cat.clim.",input$date,".Rda")
-    baseDataPre <- readRDS(sub_file)
-    return(baseDataPre)
-  })
+  # baseDataPre <- reactive({
+  #   req(input$date)
+  #   sub_dir <- paste0("cat_clim/",lubridate::year(input$date))
+  #   sub_file <- paste0(sub_dir,"/cat.clim.",input$date,".Rda")
+  #   baseDataPre <- readRDS(sub_file)
+  #   return(baseDataPre)
+  # })
   
   ### Base map data after screening categories
   # baseData <- reactive({
@@ -68,7 +68,7 @@ server <- function(input, output, session){
   
   ### Observer to change colour palette accordingly
   pal_react <- reactive({
-    baseDataPre <- baseDataPre()
+    # baseDataPre <- baseDataPre()
     colorNumeric(palette = MHW_colours, domain = c(1,2,3,4), na.color = NA)
     })
   
@@ -76,7 +76,7 @@ server <- function(input, output, session){
   output$leaf_map <- renderLeaflet({
     
     # The base 
-    leaflet(data = MHW_cat_clim_sub, options = leafletOptions(zoomControl = FALSE)) |> 
+    leaflet(options = leafletOptions(zoomControl = FALSE)) |> 
       setView(lng = initial_lon, lat = initial_lat, zoom = map_zoom,
       # setView(lng = map_lon, lat = map_lat, zoom = map_zoom,
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) |> 
