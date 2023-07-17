@@ -25,8 +25,8 @@ ui <- page_sidebar(
          class = "p-0",
          sidebar = sidebar(
            title = "Map controls",
-           bg = "#1E1E1E",
-           width = "35%",
+           bg = "grey",
+           width = "15%",
            class = "fw-bold font-monospace", 
            open = "closed",
            accordion(
@@ -39,59 +39,56 @@ ui <- page_sidebar(
                dateInput(inputId = "date",
                          label = NULL, width = '100%',
                          # value = date_menu_choice,
-                         value = as.Date("2023-07-01"),
+                         value = as.Date("2023-07-15"),
                          min = "1982-01-01",
                          max = max(current_dates))
                ),
              # Map layer selector
-             # accordion_panel(
-             #   "Map layer", icon = bsicons::bs_icon("map"),
-             #   prettyRadioButtons(inputId = "layer", label = NULL,
-             #                      choices = c(cat_layers, rb_layers),
-             #                      selected = "MHW Category",
-             #                      # selected = "MCS Category", # For testing
-             #                      status = "primary",
-             #                      shape = "curve",
-             #                      inline = F)
-             # )
+             accordion_panel(
+               "Map layer", icon = bsicons::bs_icon("map"),
+               prettyRadioButtons(inputId = "layer", label = NULL,
+                                  choices = c(cat_layers, rb_layers),
+                                  selected = "MHW Category",
+                                  # selected = "MCS Category", # For testing
+                                  status = "primary",
+                                  shape = "curve",
+                                  inline = F)
+             )
            )
          ),
-         leafletOutput("leaf_map")
-       ),
+         # TODO: Change colour based on selected later/colour palette
+         # leafletOutput("leaf_map")
+         withSpinner(leafletOutput("leaf_map"), type = 6, color = "#b0b7be")
+       )
   ),
-               # # Animation UI
-               # h5(""),
-               # uiOutput(outputId = ns("check_animate_UI")),
-               # # Map data download
-               # h5(""),
-               # uiOutput(outputId = ns("download_map_UI")),
-               # # The lon/lat/zoom controls
-               # h5(""),
-               # shinyWidgets::dropdownButton(inputId = ns("coords"),
-               #                              # div(id = ns("coords"),
-               #                              numericInput(inputId = ns("lon"), label = "Lon", value = initial_lon, step = 10),
-               #                              numericInput(inputId = ns("lat"), label = "Lat", value = initial_lat, step = 10),
-               #                              numericInput(inputId = ns("zoom"), label = "Zoom", value = initial_zoom),
-               #                              circle = FALSE, status = "primary",
-               #                              right = FALSE, up = FALSE,
-               #                              label = "Coordinates", tooltip = FALSE),
-               # # )
-               # # The category filtering buttons
-               # # h5("Categories"),
-               # h5(""),
-               # uiOutput(outputId = ns("moderate")),
-               # uiOutput(outputId = ns("strong")),
-               # uiOutput(outputId = ns("severe")),
-               # uiOutput(outputId = ns("extreme")),
-               # # The time series button
-               # h5(""),
-               # uiOutput(outputId = ns("button_ts"))#,
-               # # The shiny server instance info
-               # # hr(),
-               # # h5(paste0("Instance: ",Sys.getenv("R_SHNYSRVINST")))
 
   # Time series card
-  card(),
+  card(full_screen = TRUE, selected = "ts",
+                  title = "Selected pixel",
+                  layout_sidebar(
+                    sidebar = sidebar(
+                      title = "Controls",
+                      bg = "grey",
+                      width = "15%",
+                      class = "fw-bold font-monospace",
+                      open = "open",
+                      accordion(
+                        multiple = FALSE,
+                        open = "open",
+                        # Date selector
+                        accordion_panel(
+                          "Date range", icon = bsicons::bs_icon("menu-app"),
+                          dateRangeInput(
+                            label = NULL, inputId = "from_to",
+                            start = max(current_dates)-365, end = max(current_dates),
+                            min = "1982-01-01", max = max(current_dates)))
+                      )
+                    ),
+                    withSpinner(plotlyOutput("tsPlotly"), type = 6, color = "#b0b7be")
+                    # nav_panel(title = "Time series", value = "ts", withSpinner(plotlyOutput("tsPlotly"), type = 6, color = "#b0b7be")),
+                    # nav_panel(title = "Lolliplot", value = "lolli", withSpinner(plotlyOutput("tsPlotly"), type = 6, color = "#b0b7be"))
+                  )
+  ),
   
   # About info served as a sidebar
   sidebar = sidebar(open = "closed", width = "75%",
@@ -329,6 +326,7 @@ ui <- page_sidebar(
                     p("Oliver, E. C., Donat, M. G., Burrows, M. T., Moore, P. J., Smale, D. A., Alexander, L. V., ... & Holbrook, N. J. (2018). 
              Longer and more frequent marine heatwaves over the past century. Nature communications, 9(1), 1-12."),
                     br(),
+                    h5(paste0("Instance: ",Sys.getenv("R_SHNYSRVINST"))),
                     # br()
                     # h2(tags$b("Session info")),
                     # # p(textOutput(ns("sessionInfo")))

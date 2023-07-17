@@ -1,7 +1,8 @@
 server <- function(input, output, session){
   
   # Testing...
-  # input <- data.frame(date = as.Date("2023-07-01"))
+  # input <- data.frame(date = as.Date("2023-07-15"),
+  #                     layer = "MHW Category")
 
   # Reactive UI -------------------------------------------------------------
 
@@ -11,65 +12,33 @@ server <- function(input, output, session){
   
   # Map projection data -----------------------------------------------------
   
-  ### Base map data before screening categories
-  # baseDataPre <- reactive({
-  #   req(input$date)
-  #   sub_dir <- paste0("cat_clim/",lubridate::year(input$date))
-  #   sub_file <- paste0(sub_dir,"/cat.clim.",input$date,".Rda")
-  #   baseDataPre <- readRDS(sub_file)
-  #   return(baseDataPre)
-  # })
-  
-  ### Base map data after screening categories
-  # baseData <- reactive({
-  #   baseDataPre <- baseDataPre()
-  #   if(input$layer %in% cat_layers){
-  #     baseData <- baseDataPre %>%
-  #       dplyr::filter(category %in% categories$categories)
-  #     # Fix for the issue caused by de-selecting all of the categories
-  #     if(length(baseData$category) == 0){
-  #       baseData <- empty_date_map
-  #     }
-  #   }
-  #   if(input$layer %in% rb_layers){
-  #     baseData <- baseDataPre()
-  #   }
-  #   return(baseData)
-  # })
-  
-  ### Non-shiny-projected raster data
-  # rasterNonProj <- reactive({
-  #   # baseData <- baseData()
-  #   baseData <- baseDataPre()
-  #   MHW_raster <- dplyr::select(baseData, lon, lat, category)
-  #   colnames(MHW_raster) <- c("X", "Y", "Z")
-  #   MHW_raster$Z <- as.numeric(MHW_raster$Z)
-  #   # suppressWarnings(
-  #   # rasterNonProj <- raster::rasterFromXYZ(MHW_raster, res = c(0.25, 0.25),
-  #   #                                        digits = 3, crs = inputProj)
-  #   # )
-  #   rasterNonProj <- terra::rast(MHW_raster, digits = 3, crs = inputProj)
-  #   # rasterProj <- raster::projectRaster(rasterNonProj, crs = "EPSG:3857")
-  #   return(rasterNonProj)
-  # })
-  
   ### Shiny-projected raster data
-  # rasterProj <- reactive({
-  #   rasterNonProj <- rasterNonProj()
-  #   rasterProj <- projectRasterForLeaflet(rasterNonProj, method = "ngb")
-  #   return(rasterProj)
-  # })
-  
-  ## Pre-rendered map
-  
-  
+  rasterProj <- reactive({
+    req(input$date, input$layer)
+    if(input$layer == "MCS Category"){
+      rast_dir <- paste0("cat_clim/MCS/")
+      rast_name <- paste0("/cat.clim.MCS.",input$date,".tif")
+    } else {
+      rast_dir <- paste0("cat_clim/")
+      rast_name <- paste0("/cat.clim.",input$date,".tif")
+    }
+    rasterProj <- raster::raster(paste0(rast_dir, substr(input$date, 1, 4), rast_name))
+    return(rasterProj)
+  })
+
   
   # Leaflet -----------------------------------------------------------------
   
   ### Observer to change colour palette accordingly
+  # TODO: This could potentially be bundled up into rasterProj()
   pal_react <- reactive({
-    # baseDataPre <- baseDataPre()
-    colorNumeric(palette = MHW_colours, domain = c(1,2,3,4), na.color = NA)
+    req(input$layer)
+    if(input$layer == "MCS Category"){
+      event_palette <- MCS_colours
+    } else {
+      event_palette <- MHW_colours
+    }
+    colorNumeric(palette = event_palette, domain = c(1,2,3,4), na.color = NA)
     })
   
   ### The leaflet base
@@ -77,63 +46,222 @@ server <- function(input, output, session){
     
     # The base 
     leaflet(options = leafletOptions(zoomControl = FALSE)) |> 
-      setView(lng = initial_lon, lat = initial_lat, zoom = map_zoom,
-      # setView(lng = map_lon, lat = map_lat, zoom = map_zoom,
+      setView(lng = initial_lon, lat = initial_lat, zoom = initial_zoom,
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) |> 
-      addScaleBar(position = "topright") |> addTiles() |> 
-      addRasterImage(rasterNonProj, 
-      # addRasterImage(rasterProj(), 
-                     # colors = pal_react(), layerId = "map_raster",
-                     project = FALSE, opacity = 0.8)
+      addScaleBar(position = "topright") |> addTiles()
   })
   
   ### The raster layer
-  # observeEvent(c(input$layer, input$date,
-  #                input$moderate_filter, input$strong_filter,
-  #                input$severe_filter, input$extreme_filter), {
-  #                  leafletProxy("map") %>%
-  #                    addRasterImage(rasterProj(), colors = pal_react(), layerId = "map_raster",
-  #                                   project = FALSE, opacity = 0.8)
-  #                })
+  observeEvent(c(input$layer, input$date,
+                 input$moderate_filter, input$strong_filter,
+                 input$severe_filter, input$extreme_filter), {
+                   leafletProxy("leaf_map") %>%
+                     addRasterImage(rasterProj(), 
+                                    colors = pal_react(), layerId = "map_raster",
+                                    project = FALSE, opacity = 0.8)
+                 })
   
-  ### Shift when new lon/lat are entered
-  # observeEvent(c(input$lon, input$lat), {
-  #   leafletProxy("map") %>%
-  #     setView(lng = input$lon, lat = input$lat, zoom = input$zoom,
-  #             options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F))
-  # })
   
-  ### Recreate the legend as needed
-  # observe({
-  #   baseDataPre <- baseDataPre()
-  #   if(input$layer %in% cat_layers){
-  #     leafletProxy("map", data = MHW_cat_clim_sub) |> clearControls()
-  #   } else if(input$layer %in% c(rb_layers)){
-  #     if(input$layer == "SST Anomaly"){
-  #       domain_low <- min(baseDataPre$anom, na.rm = T)
-  #       domain_high <- max(baseDataPre$anom, na.rm = T)
-  #       domain_label <- "SST Anomaly"
-  #     } else if(input$layer %in% trend_layers){
-  #       domain_low <- min(baseDataPre$val, na.rm = T)
-  #       domain_high <- max(baseDataPre$val, na.rm = T)
-  #       domain_label <- "Annual\nTrend"
-  #     }
-  #     if(abs(domain_high) > abs(domain_low)){
-  #       domain_low <- -domain_high
-  #     } else {
-  #       domain_high <- -domain_low
-  #     }
-  #     domain_low_high <- data.frame(domain = seq(domain_low, domain_high, length.out = 10))
-  #     pal_rev <- colorNumeric(palette = c("red", "white", "blue"), na.color = NA,
-  #                             domain = domain_low_high)
-  #     leafletProxy("map", data = domain_low_high) %>%
-  #       clearControls() %>%
-  #       addLegend(position = "bottomright",  pal = pal_rev,
-  #                 bins = 5, values = ~domain,
-  #                 title = domain_label,
-  #                 labFormat = labelFormat(transform = function(x) sort(x, decreasing = TRUE)))
-  #   }
-  # })
+  # Time series data --------------------------------------------------------
+  
+  ### Pixel data
+  pixelData <- reactive({
+    # req(input$map_click)
+    # xy <- input$map_click
+    # while(xy$lng > 180){
+    #   xy$lng <- xy$lng - 360
+    # }
+    # while(xy$lng < -180){
+    #   xy$lng <- xy$lng + 360
+    # }
+    # rasterNonProj <- rasterNonProj()
+    # cell <- raster::cellFromXY(rasterNonProj, c(xy$lng, xy$lat))
+    # xy <- raster::xyFromCell(rasterNonProj, cell)
+    
+    # Testing...
+    xy <- c(OISST_ocean_coords$lon[20], OISST_ocean_coords$lat[200])
+    
+    # Grab time series data
+    ts_data <- sst_seas_thresh_ts(lon_step = xy[1], lat_step = xy[2]) %>% 
+      dplyr::mutate(diff = thresh - seas,
+                    thresh_2x = thresh + diff,
+                    thresh_3x = thresh_2x + diff,
+                    thresh_4x = thresh_3x + diff,
+                    diff_MCS = thresh_MCS - seas,
+                    thresh_MCS_2x = thresh_MCS + diff_MCS,
+                    thresh_MCS_3x = thresh_MCS_2x + diff_MCS,
+                    thresh_MCS_4x = thresh_MCS_3x + diff_MCS)
+    
+    # Grab event data
+    event_data <- readRDS(MHW_event_files[which(lon_OISST == xy[1])]) %>% 
+      dplyr::filter(lat == xy[2]) %>%
+      mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
+             date_peak = as.Date(date_peak, origin = "1970-01-01"),
+             date_end = as.Date(date_end, origin = "1970-01-01"))
+    event_MCS_data <- readRDS(MCS_event_files[which(lon_OISST == xy[1])]) %>% 
+      dplyr::filter(lat == xy[2]) %>%
+      mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
+             date_peak = as.Date(date_peak, origin = "1970-01-01"),
+             date_end = as.Date(date_end, origin = "1970-01-01"))
+    
+    # Return the pixel data
+    pixelData <- list(ts = ts_data,
+                      event = event_data,
+                      event_MCS = event_MCS_data,
+                      lon = xy[1],
+                      lat = xy[2])
+    return(pixelData)
+  })
+  
+  # Figures/tables ----------------------------------------------------------
+  
+  ### Create static time series plot
+  tsPlot <- reactive({
+    req(input$from_to[1]); req(input$from_to[2])
+    
+    # Get time series
+    ts_data <- pixelData()$ts
+    
+    # Check that it's not empty
+    if(length(ts_data$temp) == 1){
+      p <- ggplot() + geom_text(aes(x = 0, y = 0,label = "Please select an ocean pixel.")) +
+        labs(x = "", y = "Temperature (°C)")
+      return(p)
+    }
+    
+    # Check that date selection isn't wonky
+    if(!input$from_to[2] %in% current_dates | !input$from_to[1] %in% current_dates | input$from_to[1] >= input$from_to[2] | is.null(input$from_to[1]) | is.null(input$from_to[2])){
+      p <- ggplot() + geom_text(aes(x = 0, y = 0,label = "Please select a valid date range below.")) +
+        labs(x = "", y = "Temperature (°C)")
+      return(p)
+    }
+    
+    # Filter time series based on dates
+    ts_data_sub <- ts_data %>%
+      dplyr::filter(t >= input$from_to[1], t <= input$from_to[2])
+    
+    # Event data prep
+    event_data <- pixelData()$event
+    event_data_sub <- event_data %>%
+      dplyr::filter(date_peak >= input$from_to[1], date_peak <= input$from_to[2])
+    event_MCS_data <- pixelData()$event_MCS
+    event_MCS_data_sub <- event_MCS_data %>%
+      dplyr::filter(date_peak >= input$from_to[1], date_peak <= input$from_to[2])
+    
+    # The base
+    p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
+      labs(x = "", y = "Temperature (°C)") +
+      scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(input$from_to[1], input$from_to[2])) +
+      theme(panel.border = element_rect(colour = "black", fill = NA))
+    
+    # Add flame categories as needed
+    ## MHWs
+    if(any(ts_data_sub$temp > ts_data_sub$thresh)){
+      p <- p + heatwaveR::geom_flame(aes(y2 = thresh), fill = "#ffc866", n = 5, n_gap = 2)
+    }
+    if(any(ts_data_sub$temp > ts_data_sub$thresh_2x)){
+      p <- p + heatwaveR::geom_flame(aes(y2 = thresh_2x), fill = "#ff6900")
+    }
+    if(any(ts_data_sub$temp > ts_data_sub$thresh_3x)){
+      p <- p + heatwaveR::geom_flame(aes(y2 = thresh_3x), fill = "#9e0000")
+    }
+    if(any(ts_data_sub$temp > ts_data_sub$thresh_4x)){
+      p <- p + heatwaveR::geom_flame(aes(y2 = thresh_4x), fill = "#2d0000")
+    }
+    ## MCSs
+    if(any(ts_data_sub$temp < ts_data_sub$thresh_MCS)){
+      p <- p + heatwaveR::geom_flame(aes(y = thresh_MCS, y2 = temp), fill = "#C7ECF2", n = 5, n_gap = 2)
+    }
+    if(any(ts_data_sub$temp < ts_data_sub$thresh_MCS_2x)){
+      p <- p + heatwaveR::geom_flame(aes(y = thresh_MCS_2x, y2 = temp), fill = "#85B7CC")
+    }
+    if(any(ts_data_sub$temp < ts_data_sub$thresh_MCS_3x)){
+      p <- p + heatwaveR::geom_flame(aes(y = thresh_MCS_3x, y2 = temp), fill = "#4A6A94")
+    }
+    if(any(ts_data_sub$temp < ts_data_sub$thresh_MCS_4x)){
+      p <- p + heatwaveR::geom_flame(aes(y = thresh_MCS_4x, y2 = temp), fill = "#111433")
+    }
+    # Add SST, seas, clim lines
+    suppressWarnings( # text aes plotly
+      p <- p + geom_line(colour = "grey20",
+                         aes(group = 1, text = paste0("Date: ",t,
+                                                      "<br>Temperature: ",temp,"°C"))) +
+        geom_line(linetype = "dashed", colour = "forestgreen",
+                  aes(x = t, y = seas, group = 1,
+                      text = paste0("Date: ",t,
+                                    "<br>Climatology: ",seas,"°C"))) +
+        geom_line(linetype = "dotted", colour = "tomato3",
+                  aes(x = t, y = thresh, group = 1,
+                      text = paste0("Date: ",t,
+                                    "<br>Threshold: ",thresh,"°C"))) +
+        geom_line(linetype = "dotted", colour = "darkorchid",
+                  aes(x = t, y = thresh_MCS, group = 1,
+                      text = paste0("Date: ",t,
+                                    "<br>Threshold: ",thresh_MCS,"°C")))
+    )
+    # Add rug as needed
+    if(length(event_data_sub$date_start) > 0){
+      suppressWarnings( # text aes plotly
+        p <- p + geom_rug(data = event_data_sub, sides = "b", colour = "salmon", size = 2,
+                          aes(x = date_peak, y = min(ts_data_sub$temp),
+                              text = paste0("Event: ",event_no,
+                                            "<br>Duration: ",duration," days",
+                                            "<br>Start Date: ", date_start,
+                                            "<br>Peak Date: ", date_peak,
+                                            "<br>End Date: ", date_end,
+                                            "<br>Mean Intensity: ",intensity_mean,"°C",
+                                            "<br>Max. Intensity: ",intensity_max,"°C",
+                                            "<br>Cum. Intensity: ",intensity_cumulative,"°C")))
+      )
+    }
+    if(length(event_MCS_data_sub$date_start) > 0){
+      suppressWarnings( # text aes plotly
+        p <- p + geom_rug(data = event_MCS_data_sub, sides = "b", colour = "steelblue1", size = 2,
+                          aes(x = date_peak, y = min(ts_data_sub$temp),
+                              text = paste0("Event: ",event_no,
+                                            "<br>Duration: ",duration," days",
+                                            "<br>Start Date: ", date_start,
+                                            "<br>Peak Date: ", date_peak,
+                                            "<br>End Date: ", date_end,
+                                            "<br>Mean Intensity: ",intensity_mean,"°C",
+                                            "<br>Max. Intensity: ",intensity_max,"°C",
+                                            "<br>Cum. Intensity: ",intensity_cumulative,"°C")))
+      )
+    }
+    p
+  })
+  
+  ### Create interactive time series plot
+  tsPlotly <- reactive({
+    
+    # Grab static plot
+    p <- tsPlot()
+    suppressWarnings( # text aes plotly
+      p <- p +
+        geom_segment(aes(x = input$date[1], 
+                         xend = input$date[1],
+                         y = min(temp), 
+                         yend = max(temp),
+                         text = "Date shown"), 
+                     colour = "limegreen")
+    )
+    
+    # Convert to plotly
+    # NB: Setting dynamicTicks = T causes the flames to be rendered incorrectly
+    pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) %>% 
+      layout(hovermode = 'compare') 
+    pp
+  })
+  
+  ### Static time series plot
+  output$tsPlot <- renderPlot({
+    tsPlot()
+  })
+  
+  ### Interactive time series plot
+  output$tsPlotly <- renderPlotly({
+    tsPlotly()
+  })
   
   # During testing...
   session$onSessionEnded(stopApp)

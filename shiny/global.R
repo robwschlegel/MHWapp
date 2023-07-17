@@ -15,7 +15,7 @@ suppressPackageStartupMessages({
 library(bslib)
 library(bsicons)
 library(shinyWidgets)
-library(shinydashboard)
+library(shinycssloaders)
 library(dplyr)
 # library(shinyBS)
 # library(shinyjs) # Potentially necessary for sessionInfo text popup
