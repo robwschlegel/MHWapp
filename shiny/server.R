@@ -38,27 +38,30 @@ server <- function(input, output, session){
   # })
   
   ### Non-shiny-projected raster data
-  rasterNonProj <- reactive({
-    # baseData <- baseData()
-    baseData <- baseDataPre()
-    MHW_raster <- dplyr::select(baseData, lon, lat, category)
-    colnames(MHW_raster) <- c("X", "Y", "Z")
-    MHW_raster$Z <- as.numeric(MHW_raster$Z)
-    # suppressWarnings(
-    # rasterNonProj <- raster::rasterFromXYZ(MHW_raster, res = c(0.25, 0.25),
-    #                                        digits = 3, crs = inputProj)
-    # )
-    rasterNonProj <- terra::rast(MHW_raster, digits = 3, crs = inputProj)
-    # rasterProj <- raster::projectRaster(rasterNonProj, crs = "EPSG:3857")
-    return(rasterNonProj)
-  })
+  # rasterNonProj <- reactive({
+  #   # baseData <- baseData()
+  #   baseData <- baseDataPre()
+  #   MHW_raster <- dplyr::select(baseData, lon, lat, category)
+  #   colnames(MHW_raster) <- c("X", "Y", "Z")
+  #   MHW_raster$Z <- as.numeric(MHW_raster$Z)
+  #   # suppressWarnings(
+  #   # rasterNonProj <- raster::rasterFromXYZ(MHW_raster, res = c(0.25, 0.25),
+  #   #                                        digits = 3, crs = inputProj)
+  #   # )
+  #   rasterNonProj <- terra::rast(MHW_raster, digits = 3, crs = inputProj)
+  #   # rasterProj <- raster::projectRaster(rasterNonProj, crs = "EPSG:3857")
+  #   return(rasterNonProj)
+  # })
   
   ### Shiny-projected raster data
-  rasterProj <- reactive({
-    rasterNonProj <- rasterNonProj()
-    rasterProj <- projectRasterForLeaflet(rasterNonProj, method = "ngb")
-    return(rasterProj)
-  })
+  # rasterProj <- reactive({
+  #   rasterNonProj <- rasterNonProj()
+  #   rasterProj <- projectRasterForLeaflet(rasterNonProj, method = "ngb")
+  #   return(rasterProj)
+  # })
+  
+  ## Pre-rendered map
+  
   
   
   # Leaflet -----------------------------------------------------------------
@@ -72,27 +75,10 @@ server <- function(input, output, session){
   ### The leaflet base
   output$leaf_map <- renderLeaflet({
     
-    # Check HTML string for startup coords
-    query <- parseQueryString(session$clientData$url_search)
-    if(!is.null(query[['lat']])){
-      map_lat <- query[['lat']]
-    } else {
-      map_lat <- initial_lat
-    }
-    if(!is.null(query[['lon']])){
-      map_lon <-  query[['lon']]
-    } else {
-      map_lon <- initial_lon
-    }
-    if(!is.null(query[['zoom']])){
-      map_zoom <-  query[['zoom']]
-    } else {
-      map_zoom <- initial_zoom
-    }
-    
     # The base 
     leaflet(data = MHW_cat_clim_sub, options = leafletOptions(zoomControl = FALSE)) |> 
-      setView(lng = map_lon, lat = map_lat, zoom = map_zoom,
+      setView(lng = initial_lon, lat = initial_lat, zoom = map_zoom,
+      # setView(lng = map_lon, lat = map_lat, zoom = map_zoom,
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) |> 
       addScaleBar(position = "topright") |> addTiles() |> 
       addRasterImage(rasterNonProj, 

@@ -40,6 +40,9 @@ OISST_ERDDAP_miss <- data.frame(files = c("oisst-avhrr-v02r01.20210323.nc",
                                 full_name = c("https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/202103/oisst-avhrr-v02r01.20210323.nc",
                                               "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/202109/oisst-avhrr-v02r01.20210907.nc"))
 
+# OISST projection
+# OISST_proj <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+
 
 # 2: Extract MHW results functions ----------------------------------------
 
@@ -704,7 +707,7 @@ load_sub_cat_clim <- function(cat_lon_file, date_range){
 
 # Function for saving daily global cat files
 # date_choice <- max(current_dates)+1
-# date_choice <- as.Date("2019-11-01")
+# date_choice <- as.Date("2020-01-01")
 save_sub_cat_clim <- function(date_choice, df, event_type){
   
   # Establish file name and save location
@@ -712,16 +715,36 @@ save_sub_cat_clim <- function(date_choice, df, event_type){
   if(event_type == "MCS"){
     cat_clim_dir <- paste0("../data/cat_clim/MCS/",cat_clim_year)
     cat_clim_name <- paste0("cat.clim.MCS.",date_choice,".Rds")
+    cat_rast_name <- paste0("cat.clim.MCS.",date_choice,".grd")
   } else {
     cat_clim_dir <- paste0("../data/cat_clim/",cat_clim_year)
     cat_clim_name <- paste0("cat.clim.",date_choice,".Rda")
+    cat_rast_name <- paste0("cat.clim.",date_choice,".grd")
   }
   dir.create(as.character(cat_clim_dir), showWarnings = F)
   
   # Extract data and save
-  df_sub <- df %>% 
-    filter(t == date_choice)
+  df_sub <- filter(df, t == date_choice)
   saveRDS(df_sub, file = paste0(cat_clim_dir,"/",cat_clim_name))
+  
+  # Project raster to EPSG:3857 (shiny/leaflet) and save
+  df_rast <- dplyr::select(df_sub, lon, lat, category)
+  colnames(df_rast) <- c("X", "Y", "Z")
+  df_rast$Z <- as.integer(df_rast$Z)
+  rasterNonProj <- raster::rasterFromXYZ(df_rast, res = c(0.25, 0.25),
+                                         digits = 3, crs = "EPSG:4326")
+  # The next step in for the future. Requires new leaflet workflow...
+  # rasterNonProj <- terra::rast(MHW_raster, digits = 3, crs = inputProj)
+  # rasterProj <- raster::projectRaster(rasterNonProj, crs = "EPSG:3857")
+  rasterProj <- leaflet::projectRasterForLeaflet(rasterNonProj, method = "ngb")
+  writeRaster(rasterProj, filename=file.path(tmp, "allint.grd"), datatype='INT4S', overwrite=TRUE)
+    
+    leaflet() |> addTiles() |> 
+      addRasterImage(rasterProj, 
+                     # addRasterImage(rasterProj(), 
+                     # colors = pal_react(), layerId = "map_raster",
+                     project = FALSE, opacity = 0.8)
+    
 }
 
 # Function for loading, prepping, and saving the daily global category slices
@@ -731,13 +754,13 @@ cat_clim_global_daily <- function(date_range){
   # cat_clim_daily <- plyr::ldply(dir("../data/test/", pattern = "MHW.cat", full.names = T), 
   MHW_cat_clim_daily <- plyr::ldply(MHW_cat_lon_files,
                                     load_sub_cat_clim,
-                                    .parallel = T, date_range = date_range) %>% 
+                                    .parallel = T, date_range = date_range) |> 
     mutate(category = factor(category, levels = c("I Moderate", "II Strong",
-                                                  "III Severe", "IV Extreme"))) %>%
+                                                  "III Severe", "IV Extreme"))) |> 
     na.omit()
   MCS_cat_clim_daily <- plyr::ldply(MCS_cat_lon_files,
                                     load_sub_cat_clim,
-                                    .parallel = T, date_range = date_range) %>% 
+                                    .parallel = T, date_range = date_range) |> 
     mutate(category = factor(category, 
                              levels = c("I Moderate", "II Strong",
                                         "III Severe", "IV Extreme")),
@@ -746,9 +769,10 @@ cat_clim_global_daily <- function(date_range){
                                                 "III Severe", "IV Extreme")),
            category_ice = factor(category_ice,
                                  levels = c("I Moderate", "II Strong",
-                                            "III Severe", "IV Extreme", "V Ice"))) %>% 
+                                            "III Severe", "IV Extreme", "V Ice"))) |> 
     na.omit()
   
+  # Save data as .Rda and as rasters projected to the shiny EPSG:3857
   # NB: Running this on too many cores may cause RAM issues
   doParallel::registerDoParallel(cores = 20)
   plyr::l_ply(seq(min(MHW_cat_clim_daily$t), max(MHW_cat_clim_daily$t), by = "day"), 

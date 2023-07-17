@@ -50,10 +50,11 @@ library(cicerone)
 # Modules -----------------------------------------------------------------
 
 source("functions.R", local = TRUE)
-source("modules/about-server.R", local = TRUE)
-source("modules/about-ui.R", local = TRUE)
-source("modules/map-server.R", local = TRUE)
-source("modules/map-ui.R", local = TRUE)
+# Legacy code
+# source("modules/about-server.R", local = TRUE)
+# source("modules/about-ui.R", local = TRUE)
+# source("modules/map-server.R", local = TRUE)
+# source("modules/map-ui.R", local = TRUE)
 # Deactivated primarily for speed, but also because the underlying packages change too often
 # source("modules/summary-server.R", local = TRUE)
 # source("modules/summary-ui.R", local = TRUE)

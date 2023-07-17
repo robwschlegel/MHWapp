@@ -90,6 +90,12 @@ OISST_new <- na.omit(rbind(final_index, prelim_index)) |>
          file_stub = sapply(strsplit(full_name, split = "/"), "[[", 10),
          file_name = paste0("../data/OISST/daily/",file_year,"/",file_stub))
 
+
+# Or manually control which data are added to the NetCDF database
+# OISST_new <- data.frame(file_name = dir("../data/OISST/daily/2014", 
+#                                         pattern = ".nc",full.names = TRUE, recursive = TRUE))
+
+
 # Prep data for merging with existing files
 # if(nrow(OISST_new) > 50) stop("A suspicious amount of new files are attempting to be downloaded.")
 if(nrow(OISST_new) > 0){
@@ -136,7 +142,7 @@ if(nrow(OISST_dat) > 2){
     save(prelim_dates, file = "metadata/prelim_dates.Rdata")
   }
 }
-
+# return()
 
 # Fix files that didn't run correctly:
 # This happens every few months, usually due to a core slipping
