@@ -68,12 +68,12 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
   ## Find file location
     # NB: The database files are created in 'event_database.R'
   if(!MHW){
-    event_cat_files <- dir(paste0("../data/cat_clim/MCS/",chosen_year), full.names = T)
+    event_cat_files <- dir(paste0("../data/cat_clim/MCS/",chosen_year), pattern = ".Rds", full.names = T)
   } else if(database){
     event_cat_files <- dir(paste0("../data/",product,"_cat/", chosen_year), 
                            full.names = T, pattern = chosen_clim)
   } else {
-    event_cat_files <- dir(paste0("../data/cat_clim/",chosen_year), full.names = T)
+    event_cat_files <- dir(paste0("../data/cat_clim/",chosen_year), pattern = ".Rda", full.names = T)
   }
 
   # print(paste0("There are currently ",length(event_cat_files)," days of data for ",chosen_year))
@@ -364,9 +364,9 @@ event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
   
   ## Get daily file count for title
   if(!MHW){
-    event_cat_files <- dir(paste0("../data/cat_clim/MCS/",chosen_year), full.names = T)
+    event_cat_files <- dir(paste0("../data/cat_clim/MCS/",chosen_year), pattern = ".Rds", full.names = T)
   } else {
-    event_cat_files <- dir(paste0("../data/cat_clim/",chosen_year), full.names = T)
+    event_cat_files <- dir(paste0("../data/cat_clim/",chosen_year), pattern = ".Rda", full.names = T)
   }
   
   ## Create figure title

@@ -205,7 +205,7 @@ load("metadata/final_dates.Rdata")
 
 # Get the range of dates that need to be run
   # Manually control dates as desired
-# update_dates <- seq(as.Date("2023-07-10"), as.Date("2023-07-15"), by = "day")
+# update_dates <- seq(as.Date("2009-01-01"), as.Date("2009-06-30"), by = "day")
 update_dates <- time_index[which(time_index >= max(final_dates)-5)]
 if(length(update_dates) > 0) {
   print(paste0("Updating global files from ",min(update_dates)," to ",max(update_dates)))
@@ -225,6 +225,21 @@ if(length(update_dates) > 0) {
 # If any of the files created in this section break for any reason,
 # simply change the 'update_dates' object manually and re-run the section.
 
+# For loop to reprocess large sets of data one year at a time in 6 month batches
+doParallel::registerDoParallel(cores = 50) # Don't update more than 6 months at once on 50 cores
+for(i in 1984:2008){
+  update_dates <- seq(as.Date(paste0(i,"-01-01")), as.Date(paste0(i,"-06-30")), by = "day")
+  print(paste0("Updating from ",min(update_dates)," to ",max(update_dates)," at ", Sys.time()))
+  cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)))
+  print(paste0("Finished at ", Sys.time()))
+  gc(); Sys.sleep(10)
+  update_dates <- seq(as.Date(paste0(i,"-07-01")), as.Date(paste0(i,"-12-31")), by = "day")
+  print(paste0("Updating from ",min(update_dates)," to ",max(update_dates)," at ", Sys.time()))
+  cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)))
+  print(paste0("Finished at ", Sys.time()))
+  gc(); Sys.sleep(10)
+}
+
 
 # 4: Check current dates --------------------------------------------------
 
@@ -241,7 +256,7 @@ if(length(possible_dates) > length(current_dates)){
 
 # 5: Run annual summary ---------------------------------------------------
 
-source("MHW_annual_summary.R") # NB: Deactivated on 2023-01-02 for a couple weeks until there are enough data for the new year
+source("MHW_annual_summary.R")
 
 
 # 6: Push to GitHub -------------------------------------------------------

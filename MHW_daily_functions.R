@@ -715,7 +715,7 @@ save_sub_cat_clim <- function(date_choice, df, event_type){
   if(event_type == "MCS"){
     cat_clim_dir <- paste0("../data/cat_clim/MCS/",cat_clim_year)
     cat_clim_name <- paste0("cat.clim.MCS.",date_choice,".Rds")
-    cat_rast_name <- paste0("cat.clim.MCS.",date_choice,".grd")
+    cat_rast_name <- paste0("cat.clim.MCS.",date_choice,".tif")
   } else {
     cat_clim_dir <- paste0("../data/cat_clim/",cat_clim_year)
     cat_clim_name <- paste0("cat.clim.",date_choice,".Rda")
@@ -745,13 +745,11 @@ save_sub_cat_clim <- function(date_choice, df, event_type){
 # Function for loading, prepping, and saving the daily global category slices
 # date_range <- c(as.Date("2020-01-01"), as.Date("2020-01-01"))
 cat_clim_global_daily <- function(date_range){
-  # tester...
-  # cat_clim_daily <- plyr::ldply(dir("../data/test/", pattern = "MHW.cat", full.names = T), 
   MHW_cat_clim_daily <- plyr::ldply(MHW_cat_lon_files,
                                     load_sub_cat_clim,
-                                    .parallel = T, date_range = date_range) |> 
+                                    .parallel = T, date_range = date_range) |>
     mutate(category = factor(category, levels = c("I Moderate", "II Strong",
-                                                  "III Severe", "IV Extreme"))) |> 
+                                                  "III Severe", "IV Extreme"))) |>
     na.omit()
   MCS_cat_clim_daily <- plyr::ldply(MCS_cat_lon_files,
                                     load_sub_cat_clim,
@@ -769,8 +767,8 @@ cat_clim_global_daily <- function(date_range){
   
   # Save data as .Rda and as rasters projected to the shiny EPSG:3857
   # NB: Running this on too many cores may cause RAM issues
-  doParallel::registerDoParallel(cores = 20)
-  plyr::l_ply(seq(min(MHW_cat_clim_daily$t), max(MHW_cat_clim_daily$t), by = "day"), 
+  # doParallel::registerDoParallel(cores = 20)
+  plyr::l_ply(seq(min(MHW_cat_clim_daily$t), max(MHW_cat_clim_daily$t), by = "day"),
               save_sub_cat_clim, .parallel = T, df = MHW_cat_clim_daily, event_type = "MHW")
   rm(MHW_cat_clim_daily); gc()
   plyr::l_ply(seq(min(MCS_cat_clim_daily$t), max(MCS_cat_clim_daily$t), by = "day"), 
