@@ -261,7 +261,8 @@ source("MHW_annual_summary.R")
 
 # 6: Push to GitHub -------------------------------------------------------
 
-system("git commit -a -m 'Daily run'")
-system("git pull")
-system("git push")
+# Pausing until 
+# system("git commit -a -m 'Daily run'")
+# system("git pull")
+# system("git push")
 
