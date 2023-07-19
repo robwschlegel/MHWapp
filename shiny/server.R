@@ -1,3 +1,5 @@
+# MHWapp/shiny/server.R
+
 server <- function(input, output, session){
   
   # Testing...
@@ -62,24 +64,32 @@ server <- function(input, output, session){
                  })
   
   
+  # Pop-ups -----------------------------------------------------------------
+  
+  ### Observer to show pop-ups on click
+  observeEvent(c(input$leaf_map_click), {
+    req(input$leaf_map_click)
+    click <- input$leaf_map_click
+    showpos(x = click$lng, y = click$lat)
+  })
+  
+  
   # Time series data --------------------------------------------------------
   
   ### Pixel data
   pixelData <- reactive({
-    # req(input$map_click)
-    # xy <- input$map_click
-    # while(xy$lng > 180){
-    #   xy$lng <- xy$lng - 360
-    # }
-    # while(xy$lng < -180){
-    #   xy$lng <- xy$lng + 360
-    # }
-    # rasterNonProj <- rasterNonProj()
-    # cell <- raster::cellFromXY(rasterNonProj, c(xy$lng, xy$lat))
-    # xy <- raster::xyFromCell(rasterNonProj, cell)
+    req(input$leaf_map_click)
     
-    # Testing...
-    xy <- c(OISST_ocean_coords$lon[20], OISST_ocean_coords$lat[200])
+    # tester...
+    # x <- 10; y <- -5
+    
+    # Get OISST pixel coords
+    click <- input$leaf_map_click
+    x <- click$lng; y <- click$lat
+    xy_click <- c(x, y)
+    xy_wrap <- lon_wrap(xy_click)
+    xy <- c(lon_OISST[which(abs(lon_OISST - xy_wrap[1]) == min(abs(lon_OISST - xy_wrap[1])))][1],
+            lat_OISST[which(abs(lat_OISST - xy_wrap[2]) == min(abs(lat_OISST - xy_wrap[2])))][1])
     
     # Grab time series data
     ts_data <- sst_seas_thresh_ts(lon_step = xy[1], lat_step = xy[2]) %>% 
@@ -108,8 +118,8 @@ server <- function(input, output, session){
     pixelData <- list(ts = ts_data,
                       event = event_data,
                       event_MCS = event_MCS_data,
-                      lon = xy[1],
-                      lat = xy[2])
+                      lon = xy_wrap[1],
+                      lat = xy_wrap[2])
     return(pixelData)
   })
   
@@ -249,8 +259,7 @@ server <- function(input, output, session){
     
     # Convert to plotly
     # NB: Setting dynamicTicks = T causes the flames to be rendered incorrectly
-    pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) %>% 
-      layout(hovermode = 'compare') 
+    pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) |> plotly::layout(hovermode = "x")
     pp
   })
   

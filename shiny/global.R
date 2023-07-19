@@ -1,3 +1,4 @@
+# MHWapp/shiny/global.R
 # This script is run when the server is called and is designed to house
 # all of the static information that is used by the app
 
@@ -12,17 +13,18 @@
 # Required up front
 .libPaths(c("~/R-packages", .libPaths()))
 suppressPackageStartupMessages({
+# library(shinyjs) # Potentially necessary for sessionInfo text popup
+# library(shinyBS)
 library(bslib)
 library(bsicons)
 library(shinyWidgets)
 library(shinycssloaders)
 library(dplyr)
-# library(shinyBS)
-# library(shinyjs) # Potentially necessary for sessionInfo text popup
+library(ggplot2)
 library(leaflet)
 library(plotly)
 library(DT)
-library(cicerone)
+# library(cicerone)
 })
 
 # Dependencies that are called explicitly
@@ -47,21 +49,10 @@ library(cicerone)
 # cat(packageDescription("heatwaveR")$Version)
 
 
-# Modules -----------------------------------------------------------------
+
+# Functions ---------------------------------------------------------------
 
 source("functions.R", local = TRUE)
-# Legacy code
-# source("modules/about-server.R", local = TRUE)
-# source("modules/about-ui.R", local = TRUE)
-# source("modules/map-server.R", local = TRUE)
-# source("modules/map-ui.R", local = TRUE)
-# Deactivated primarily for speed, but also because the underlying packages change too often
-# source("modules/summary-server.R", local = TRUE)
-# source("modules/summary-ui.R", local = TRUE)
-# source("modules/comparison-server.R", local = TRUE)
-# source("modules/comparison-ui.R", local = TRUE)
-
-# mapbox_moon <- "https://api.mapbox.com/styles/v1/..."
 
 
 # Meta-data ---------------------------------------------------------------
@@ -79,7 +70,7 @@ current_dates <- sapply(strsplit(current_dates, split = "cat.clim."), "[[", 3)
 current_dates <- as.Date(sapply(strsplit(current_dates, split = ".Rda"), "[[", 1))
 
 # Testing...
-date_menu_choice <- max(current_dates)
+# date_menu_choice <- max(current_dates)
 
 ### Starting values
 initial_lat <- 45
@@ -97,10 +88,15 @@ rb_layers <- c("SST Anomaly", "MHW Trend: Count", "MHW Trend: Duration",
 trend_layers <- c("MHW Trend: Count", "MHW Trend: Duration",
                   "MHW Trend: Intensity (mean)", "MHW Trend: Intensity (max)")
 
-### The lon/lat steps
+### The lon/lat steps as vectors
 # load("lon_OISST.RData")
 lon_OISST <- c(seq(0.125, 179.875, by = 0.25), seq(-179.875, -0.125, by = 0.25))
 lat_OISST <- seq(-89.875, 89.875, by = 0.25)
+
+### Various OISST coordinates
+load("../metadata/OISST_ocean_coords.Rdata")
+load("../metadata/OISST_leaf_coords.Rdata")
+load("../metadata/lon_lat_OISST_area.RData")
 
 ### The file locations
 OISST_files <- dir("OISST", pattern = "oisst-avhrr", full.names = T)
@@ -143,8 +139,8 @@ MCS_colours <- c(
 
 ### The two map projections
 # inputProj <- "4326" # NB: This alone is not enough
-inputProj <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
-leafletProj <- "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +towgs84=0,0,0,0,0,0,0 +units=m +nadgrids=@null +wktext +no_defs"
+# inputProj <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+# leafletProj <- "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +towgs84=0,0,0,0,0,0,0 +units=m +nadgrids=@null +wktext +no_defs"
 
 ### The shiny server instance being run
 server_instance <- Sys.getenv("R_SHNYSRVINST")
@@ -170,9 +166,6 @@ empty_date_map <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") |> slice(1) |
 #          lon = ifelse(lon > 180, lon-360, lon))
 # save(map_base, file = "metadata/map_base.Rdata")
 # load("../metadata/map_base.Rdata")
-
-### The OISST ocean coordinates
-load("../metadata/OISST_ocean_coords.Rdata")
 
 # cat("\nglobal.R finished")
 

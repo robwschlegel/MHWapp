@@ -21,7 +21,7 @@ sst_seas_thresh_ts <- function(lon_step, lat_step){
   # OISST data
   tidync_OISST <- tidync::tidync(OISST_files[lon_row]) %>% 
     tidync::hyper_filter(lat = lat == lat_step) %>%
-    tidync::hyper_tibble() %>% 
+    tidync::hyper_tibble() %>%
     mutate(time = as.Date(time, origin = "1970-01-01"),
            year = lubridate::year(time)) %>% 
     dplyr::rename(t = time, temp = sst) %>%
@@ -53,6 +53,9 @@ sst_seas_thresh_ts <- function(lon_step, lat_step){
   return(sst_seas_thresh)
 }
 
+
+# Popups and map coords ---------------------------------------------------
+
 # Function for correcting the map wrap-around lon issue
 # NB: This function assumes lon is the first value and lat is the second
 lon_wrap <- function(xy){
@@ -63,6 +66,53 @@ lon_wrap <- function(xy){
       xy[1] <- xy[1] + 360
     }
   return(xy)
+}
+
+# The same as lon_wrap() but for leaflet projection
+# NB: This function assumes lon is the first value and lat is the second
+leaf_lon_wrap <- function(xy){
+  while(xy[1] > 20023593){
+    xy[1] <- xy[1] - 40047186
+  }
+  while(xy[1] < -20023593){
+    xy[1] <- xy[1] + 40047186
+  }
+  return(xy)
+}
+
+### Show popup on clicks
+showpos <- function(x = NULL, y = NULL){
+  
+  # tester...
+  # x <- 10, y <- 31.3
+  
+  # Process click info into pretty OISST coords
+  xy_click <- c(x,y)
+  xy_wrap <- lon_wrap(xy_click)
+  xy <- c(lon_OISST[which(abs(lon_OISST - xy_wrap[1]) == min(abs(lon_OISST - xy_wrap[1])))][1],
+          lat_OISST[which(abs(lat_OISST - xy_wrap[2]) == min(abs(lat_OISST - xy_wrap[2])))][1])
+  if(xy[1] >= 0) xy_lon <- paste0(abs(xy[1]),"°E")
+  if(xy[1] < 0) xy_lon <- paste0(abs(xy[1]),"°W")
+  if(xy[2] >= 0) xy_lat <- paste0(abs(xy[2]),"°N")
+  if(xy[2] < 0) xy_lat <- paste0(abs(xy[2]),"°S")
+  content <- paste0("Lon = ", xy_lon,
+                    "<br>Lat = ", xy_lat,
+                    "<br> See time series below.")#,
+  # content_sub,
+  # regional_link,
+  # "<hr>",
+  # button_text)
+  # content <- xy_wrap
+  
+  # Update lon lat
+  # updateNumericInput(session, "lon", value = round(xy_click[1], 2))
+  # updateNumericInput(session, "lat", value = round(xy_click[2], 2))
+  
+  # Add Popup to leaflet
+  leafletProxy("leaf_map") %>%
+    clearPopups() %>%
+    addPopups(lng = xy_click[1], lat = xy_click[2],
+              popup = paste(content))
 }
 
 

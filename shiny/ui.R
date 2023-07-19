@@ -1,12 +1,19 @@
+# MHWapp/shiny/ui.R
+
 ui <- page_sidebar(
   
-  # Main info
+
+  # Main info ---------------------------------------------------------------
+
   title = "Marine Heatwave Tracker",
   theme = bs_theme(version = 5, bootswatch = "yeti"),
   fillable = TRUE,
   # h1("Marine Heatwave Tracker"),
   # header = list(cicerone::use_cicerone()), # Start guided tour
   
+
+  # Summary boxes -----------------------------------------------------------
+
   # Summary boxes
   layout_column_wrap(
     width = "250px",
@@ -19,7 +26,8 @@ ui <- page_sidebar(
   ),
 
 
-  # Map card
+  # Map card ----------------------------------------------------------------
+
   card(full_screen = TRUE, fill = TRUE,
        layout_sidebar(
          fillable = TRUE,
@@ -40,7 +48,7 @@ ui <- page_sidebar(
                dateInput(inputId = "date",
                          label = NULL, width = '100%',
                          # value = date_menu_choice,
-                         value = as.Date("2023-07-15"),
+                         value = max(current_dates),
                          min = "1982-01-01",
                          max = max(current_dates))
                ),
@@ -64,7 +72,9 @@ ui <- page_sidebar(
        )
   ),
 
-  # Time series card
+
+  # Time series card --------------------------------------------------------
+
   # card(full_screen = TRUE,
   # nav_menu(full_screen = TRUE, selected = "ts",
   navset_card_tab(full_screen = TRUE,
@@ -94,11 +104,14 @@ ui <- page_sidebar(
                   # ),
                   # withSpinner(plotlyOutput("tsPlotly"), type = 6, color = "#b0b7be")
                   nav_panel(title = "Time series", value = "ts", withSpinner(plotlyOutput("tsPlotly"), type = 6, color = "#b0b7be")),
-                  nav_panel(title = "Lolliplot", value = "lolli", withSpinner(plotlyOutput("lolliPlotly"), type = 6, color = "#b0b7be"))#,
-                  # nav_panel(title = "Table", value = "table", withSpinner(DT::dataTableOutput("tsTable"),type = 6, color = "#b0b7be"))
+                  nav_panel(title = "Lolliplot", value = "lolli", withSpinner(plotlyOutput("lolliPlotly"), type = 6, color = "#b0b7be")),
+                  nav_panel(title = "Table", value = "table", withSpinner(DT::dataTableOutput("tsTable"),type = 6, color = "#b0b7be"))
                   # )
   ),
   
+
+  # About sidebar -----------------------------------------------------------
+
   # About info served as a sidebar
   sidebar = sidebar(open = "closed", width = "75%", position = "right",
                     h2(tags$b("Welcome!")),
