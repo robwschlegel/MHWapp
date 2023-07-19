@@ -156,6 +156,17 @@ X_OISST_coords <- function(file_name){
 # CMC0.1_OISST_coords <- X_OISST_coords(CMC_files[10000])
 # saveRDS(CMC0.1_OISST_coords, "metadata/CMC0.1_OISST_coords.Rds")
 
+# Get coords between EPSG:4326 (OISST) and EPSG:leaflet
+# lon_lat_OISST_XY <- mutate(lon_lat_OISST) |> dplyr::rename(X = lon, Y = lat)
+# coords_non_proj <- raster::rasterFromXYZ(lon_lat_OISST_XY, res = c(0.25, 0.25),
+#                                          digits = 3, crs = "EPSG:4326")
+# coords_proj <- leaflet::projectRasterForLeaflet(coords_non_proj, method = "ngb")
+# OISST_leaf_coords <- raster::as.data.frame(coords_proj, xy = TRUE) |>
+#   cbind(lon_lat_OISST) |> dplyr::select(lon, lat, x, y) |>
+#   dplyr::rename(lon_leaf = x, lat_leaf = y)
+# save(OISST_leaf_coords, file = "metadata/OISST_leaf_coords.Rdata")
+load("metadata/OISST_leaf_coords.Rdata")
+
 
 # 3: Load metadata --------------------------------------------------------
 
