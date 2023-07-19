@@ -270,6 +270,42 @@ save(MHW_global_2011_2021, file = "data/MHW_global_2011_2021.RData")
 write_csv(MHW_global_2011_2021, "data/MHW_global_2011_2021.csv")
 
 
+# Extract global cat_clim data --------------------------------------------
+
+# Locate files
+# NB: This is ALL of the data
+# Filter this down first if desired
+cat_clim_rds_files <- dir("../data/cat_clim", full.names = T, 
+                          recursive = T, pattern = ".Rda")
+cat_clim_tif_files <- dir("../data/cat_clim", full.names = T, 
+                          recursive = T, pattern = ".tif")
+cat_clim_tif_files <- cat_clim_tif_files[!grepl("MCS", cat_clim_tif_files)]
+
+# Load them into one brick
+# NB: Surprisingly this only takes a few minutes
+cat_clim_ALL <- map_dfr(cat_clim_rds_files, readRDS)
+cat_clim_ALL_tif <- lapply(cat_clim_tif_files, raster)
+# cat_clim_ALL_tif_stack <- stack(cat_clim_tif_files) # Files don't have same extent...
+
+# Filter as desired
+# ...
+
+# Save stacked .tif file
+# raster::stackSave(cat_clim_ALL_tif, "data/cat_clim_ALL.tif") # Files don't have same extent...
+save(cat_clim_ALL_tif, file = "data/cat_clim_ALL.RData")
+
+# Save as zipped .csv per year
+zip_by_year <- function(year, df, file_stub){
+  # Subset data
+  df_sub <- df |> 
+    filter(t >= paste0(year,"-01-01"), t <= paste0(year,"-12-31"))
+  # Save file
+  write_csv(df_sub, paste0("data/",file_stub,"_",year,".csv.gz"))
+}
+doParallel::registerDoParallel(cores = 10)
+plyr::l_ply(1982:2022, zip_by_year, df = cat_clim_ALL, file_stub = "cat_clim")
+
+
 # Extract bounding boxes around Arctic fjords -----------------------------
 
 # Function for extracting NOAA OISST only from a given bbox
