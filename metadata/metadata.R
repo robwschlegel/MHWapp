@@ -14,6 +14,7 @@ library(FNN)
 
 # 2: Create metadata ------------------------------------------------------
 
+# NOAA OISST lon/lat coords
 lon_OISST <- c(seq(0.125, 179.875, by = 0.25), seq(-179.875, -0.125, by = 0.25))
 lat_OISST <- seq(-89.875, 89.875, by = 0.25)
 lon_lat_OISST <- base::expand.grid(lon_OISST, lat_OISST) %>% 

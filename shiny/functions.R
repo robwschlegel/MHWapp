@@ -146,7 +146,7 @@ value_box_cat <- function(layer_choice, cat_choice, mapCover){
 readRDS_date <- function(file_name){
   file_segments <- length(strsplit(file_name, "/")[[1]])
   file_date <- sapply(strsplit(file_name, "/"), "[[", file_segments)
-  file_date <- as.Date(stringr::str_remove_all(file_date, "[daily.cat.clim.Rda]"))
+  file_date <- as.Date(stringr::str_remove_all(file_date, "[daily.cat.clim.Rda.Rds.MCS]"))
   res <- readRDS(file_name) %>% 
     mutate(t = file_date) %>% 
     dplyr::select(t, lon, lat, everything())

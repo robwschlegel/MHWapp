@@ -13,8 +13,6 @@
 # Required up front
 .libPaths(c("~/R-packages", .libPaths()))
 suppressPackageStartupMessages({
-# library(shinyjs) # Potentially necessary for sessionInfo text popup
-# library(shinyBS)
 library(bslib)
 library(bsicons)
 library(shinyWidgets)
@@ -28,26 +26,19 @@ library(DT)
 })
 
 # Dependencies that are called explicitly
-# library(ncdf4)
 # library(shiny)
-# library(shinyjs)
-# library(shinycssloaders)
 # library(maps)
 # library(readr)
 # library(tidyr)
 # library(threadr)
 # library(stringr)
 # library(lubridate)
-# library(magrittr)
-# library(leaflet.extras)
 # library(raster)
-# library(rgdal)
-# library(heatwaveR)
-# library(ggpubr)
 # library(tidync)
-# library(plyr)
+# library(purrr)
+# library(daterangepicker)
+# library(heatwaveR)
 # cat(packageDescription("heatwaveR")$Version)
-
 
 
 # Functions ---------------------------------------------------------------
@@ -64,6 +55,15 @@ if(!dir.exists("modules")) stop("The 'modules' folder is missing.")
 if(!dir.exists("OISST")) stop("The 'OISST' folder is missing.")
 if(!dir.exists("thresh")) stop("The 'thresh' folder is missing.")
 
+### The file locations
+OISST_files <- dir("OISST", pattern = "oisst-avhrr", full.names = T)
+MHW_event_files <- dir("event", pattern = "MHW.event.", full.names = T)
+MCS_event_files <- dir("event/MCS", pattern = "MCS.event.", full.names = T)
+MHW_seas_thresh_files <- dir("thresh", pattern = "MHW.seas.thresh.", full.names = T)
+MCS_seas_thresh_files <- dir("thresh/MCS", pattern = "MCS.seas.thresh.", full.names = T)
+# cat_clim_files <- as.character(dir(path = "cat_clim", pattern = "cat.clim",
+#                                    full.names = TRUE, recursive = TRUE))
+
 ### The dates currently processed
 current_dates <- dir("cat_clim", recursive = T, pattern = "cat.clim", full.names = T) %>% threadr::str_filter("MCS", invert = T)
 current_dates <- sapply(strsplit(current_dates, split = "cat.clim."), "[[", 3)
@@ -76,10 +76,6 @@ current_dates <- as.Date(sapply(strsplit(current_dates, split = ".Rda"), "[[", 1
 initial_lat <- 45
 initial_lon <- -60
 initial_zoom <- 4
-# menu_panel_top <- 60
-# menu_panel_left <- 10
-# date_menu_choice <- max(current_dates)
-# sidepanel.width <- 400
 
 ### The different layer groupings
 cat_layers <- c("MHW Category", "MCS Category", "MHW Summary", "MCS Summary")
@@ -97,15 +93,6 @@ lat_OISST <- seq(-89.875, 89.875, by = 0.25)
 load("../metadata/OISST_ocean_coords.Rdata")
 load("../metadata/OISST_leaf_coords.Rdata")
 load("../metadata/lon_lat_OISST_area.RData")
-
-### The file locations
-OISST_files <- dir("OISST", pattern = "oisst-avhrr", full.names = T)
-MHW_event_files <- dir("event", pattern = "MHW.event.", full.names = T)
-MCS_event_files <- dir("event/MCS", pattern = "MCS.event.", full.names = T)
-MHW_seas_thresh_files <- dir("thresh", pattern = "MHW.seas.thresh.", full.names = T)
-MCS_seas_thresh_files <- dir("thresh/MCS", pattern = "MCS.seas.thresh.", full.names = T)
-# cat_clim_files <- as.character(dir(path = "cat_clim", pattern = "cat.clim",
-#                                    full.names = TRUE, recursive = TRUE))
 
 ### Oliver et al. 2018 data
 ## NB: To save time on launch this is now loaded in map-server.R when requested
@@ -151,24 +138,12 @@ server_instance <- Sys.getenv("R_SHNYSRVINST")
 ### Regional website URLs
 regional_NOAA <- "https://www.integratedecosystemassessment.noaa.gov/regions/california-current/cc-projects-blobtracker"
 regional_TMEDNET <- "http://t-mednet.org/t-resources/marine-heatwaves"
-regional_Danish_Archepelago <- "https://fishforecasts.dtu.dk/heatwaves/denmark"
-regional_Baltic_Sea <- "https://fishforecasts.dtu.dk/heatwaves/baltic"
-regional_North_Sea <- "https://fishforecasts.dtu.dk/heatwaves/north_sea"
 regional_European_Northwest_Shelf <- "https://fishforecasts.dtu.dk/heatwaves/nw_shelf"
 
 ### Placeholders when invalid dates are typed into date selectors
 empty_date_map <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") |> slice(1) |> mutate(category = NA)
 # empty_summary_map <- readRDS("../data/annual_summary/MHW_cat_pixel_1982.Rds") |> slice(1) |> mutate(category = NA)
 # empty_summary_ts <- readRDS("../data/annual_summary/MHW_cat_daily_1982.Rds") |> slice(1) |> mutate(category = NA)
-
-### The base map
-## NB: No longer used after removal of summary tab
-# map_base <- ggplot2::fortify(maps::map(fill = TRUE, col = "grey80", plot = FALSE)) %>%
-#   dplyr::rename(lon = long) %>%
-#   mutate(group = ifelse(lon > 180, group+9999, group),
-#          lon = ifelse(lon > 180, lon-360, lon))
-# save(map_base, file = "metadata/map_base.Rdata")
-# load("../metadata/map_base.Rdata")
 
 # cat("\nglobal.R finished")
 

@@ -66,7 +66,27 @@ ui <- page_sidebar(
                                   status = "primary",
                                   shape = "curve",
                                   inline = F)
-             )
+             ),
+             # TODO: Get this on the right
+             accordion_panel(
+               "Download", icon = bsicons::bs_icon("save"),
+               # Pick date range
+               daterangepicker::daterangepicker(
+                     inputId = "map_download_date",
+                     label = "Date range",
+                     options = daterangepicker::daterangepickerOptions(maxSpan = list("days" = 62)),
+                     start = max(current_dates), end = max(current_dates),
+                     min = "1982-01-01", max = max(current_dates)),
+               # Choose download type
+               prettyRadioButtons(inputId = "map_download_type",
+                                  label = "File type",
+                                  choiceNames = list(".csv", ".Rds"),
+                                  choiceValues = list("csv", "Rds"),
+                                  selected = "csv", inline = TRUE,
+                                  status = 'primary', shape = "curve", animation = "tada"),
+               downloadButton(outputId = "download_map",
+                              label = "Download", class = 'small-dl')
+               )
            )
          ),
          # TODO: Change colour based on selected later/colour palette
@@ -89,14 +109,21 @@ ui <- page_sidebar(
                     open = "open",
                     accordion(
                       multiple = TRUE,
-                      open = "open",
-                      # Date selector
+                      open = NULL,
                       accordion_panel(
                         "Date range", icon = bsicons::bs_icon("menu-app"),
                         dateRangeInput(
                           label = NULL, inputId = "from_to",
                           start = max(current_dates)-365, end = max(current_dates),
                           min = "1982-01-01", max = max(current_dates))
+                      ),
+                      # TODO: Get these to be in a right sidebar
+                      accordion_panel(
+                        "Download", icon = bsicons::bs_icon("save"), 
+                        downloadButton(outputId = "download_clim",
+                                       label = "Climatology & Threshold (csv)", class = 'small-dl'),
+                        downloadButton(outputId = "download_event",
+                                       label = "Event data (csv)", class = 'small-dl')
                       )
                     )
                   ),

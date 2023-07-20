@@ -443,6 +443,92 @@ server <- function(input, output, session){
                   options = list(pageLength = 10))
   })
   
+
+  # Downloads ---------------------------------------------------------------
+
+  ### Prep event data
+  downloadEventData <- reactive({
+    data <- pixelData()$event %>% mutate(event = "MHW")
+    data_MCS <- pixelData()$event_MCS  %>% mutate(event = "MCS")
+    lon <- pixelData()$lon[1]
+    lat <- pixelData()$lat[1]
+    data_sub <- rbind(data, data_MCS) %>% 
+      mutate(lon = lon, lat = lat) %>% 
+      dplyr::select(event, lon, lat, event_no, date_start, date_peak, date_end, everything()) %>% 
+      dplyr::arrange(date_peak)
+    return(data_sub)
+  })
+  
+  ### Download event data
+  output$download_event <- downloadHandler(
+    filename = function() {
+      paste0("event_lon_",downloadEventData()$lon[1],"_lat_",downloadEventData()$lat[1],".csv")
+    },
+    content <- function(file) {
+      readr::write_csv(downloadEventData(), file)
+    }
+  )
+  
+  ### Prep clim/thresh data
+  downloadClimData <- reactive({
+    data <- pixelData()$ts
+    lon <- pixelData()$lon[1]
+    lat <- pixelData()$lat[1]
+    data_sub <- data %>% 
+      mutate(lon = lon,
+             lat = lat) %>% 
+      dplyr::select(lon, lat, doy, seas, thresh, thresh_MCS) %>% 
+      dplyr::distinct() %>% 
+      arrange(doy)
+    return(data_sub)
+  })
+  
+  ### Download clim/thresh data
+  output$download_clim <- downloadHandler(
+    filename = function() {
+      paste0("clim_lon_",downloadClimData()$lon[1],"_lat_",downloadClimData()$lat[1],".csv")
+    },
+    content <- function(file) {
+      readr::write_csv(downloadClimData(), file)
+    }
+  )
+  
+  ### Prep map data
+  # tester...
+  # date_filter_from <- as.Date("2023-07-16"); date_filter_to <- as.Date("2023-07-16")
+  downloadMapData <- reactive({
+    date_filter_from <- as.Date(input$map_download_date[1])
+    date_filter_to <- as.Date(input$map_download_date[2])
+    date_seq <- seq(date_filter_from, date_filter_to, by = "day")
+    date_seq_years <- sapply(strsplit(as.character(date_seq), "-"), "[[", 1)
+    if(input$layer == "MHW Category"){
+      date_seq_files <- paste0("cat_clim/",date_seq_years,"/cat.clim.",date_seq,".Rda")
+      map_data <- purrr::map_dfr(date_seq_files, readRDS_date)
+    } else if(input$layer == "MCS Category"){
+      date_seq_files <- paste0("cat_clim/MCS/",date_seq_years,"/cat.clim.MCS.",date_seq,".Rds")
+      map_data <- purrr::map_dfr(date_seq_files, readRDS_date)
+    }
+    return(map_data)
+  })
+  
+  ### Download map data
+  output$download_map <- downloadHandler(
+    filename = function() {
+      if(input$map_download_type == "Rds"){
+        paste0("MHW_map_data.Rds")
+      } else if(input$map_download_type == "csv"){
+        paste0("MHW_map_data.csv")
+      }
+    },
+    content <- function(file) {
+      if(input$map_download_type == "Rds"){
+        saveRDS(downloadMapData(), file = file)
+      } else if(input$map_download_type == "csv"){
+        readr::write_csv(downloadMapData(), file)
+      }
+    }
+  )
+  
   # During testing...
   session$onSessionEnded(stopApp)
 }
