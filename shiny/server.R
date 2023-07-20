@@ -15,6 +15,23 @@ server <- function(input, output, session){
   #### This is meant to help avoid loading data unnecessarily
   yearReact <- reactiveValues(year = 1)#lubridate::year(Sys.Date()))
   
+  # Reactive value boxes
+  output$percT <- renderUI({
+    value_box_cat(input$layer, "Total cover", mapCover())
+  })
+  output$percI <- renderUI({
+    value_box_cat(input$layer, "I Moderate", mapCover())
+  })
+  output$percII <- renderUI({
+    value_box_cat(input$layer, "II Strong", mapCover())
+  })
+  output$percIII <- renderUI({
+    value_box_cat(input$layer, "III Severe", mapCover())
+  })
+  output$percIV <- renderUI({
+    value_box_cat(input$layer, "IV Extreme", mapCover())
+  })
+  
   
   # Map data ----------------------------------------------------------------
   
@@ -36,18 +53,19 @@ server <- function(input, output, session){
   mapCover <- reactive({
     req(input$date, input$layer)
     if(input$layer == "MCS Category"){
-      df_dir <- paste0("cat_clim/MCS/")
-      df_name <- paste0("/cat.clim.MCS.",input$date,".Rds")
+      event_type <- "MCS"
     } else {
-      df_dir <- paste0("cat_clim/")
-      df_name <- paste0("/cat.clim.",input$date,".Rda")
+      event_type <- "MHW"
     }
     # if( != yearReact$year)
-    df_map <- readRDS(paste0(df_dir, substr(input$date, 1, 4), df_name))
-    df_perc_cat <- df_map |> 
-      left_join(lon_lat_OISST_area, by = c("lon", "lat")) |> 
-      summarise(sum_area = sum(sq_area, na.rm = T), .by = "category") |> 
-      mutate(perc_area = round(sum_area/511208164, 3)*100)
+    mapCoverAll <- readRDS(paste0("../data/annual_summary/",event_type,"_cat_daily_",
+                             lubridate::year(input$date),".Rds"))
+    mapCover <- mapCoverAll |> 
+      filter(t == input$date) |> 
+      dplyr::select(t, category, cat_area_prop) |>
+      rbind(data.frame(t = input$date, category = "Total cover",
+                       cat_area_prop = sum(filter(mapCoverAll, t == input$date)$cat_area_prop)))
+    return(mapCover)
   })
   
   

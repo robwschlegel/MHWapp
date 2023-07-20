@@ -80,11 +80,10 @@ leaf_lon_wrap <- function(xy){
   return(xy)
 }
 
-### Show popup on clicks
+# Show popup on clicks
+# tester...
+# x <- 10; y <- 31.3
 showpos <- function(x = NULL, y = NULL){
-  
-  # tester...
-  # x <- 10, y <- 31.3
   
   # Process click info into pretty OISST coords
   xy_click <- c(x,y)
@@ -115,6 +114,31 @@ showpos <- function(x = NULL, y = NULL){
               popup = paste(content))
 }
 
+
+# Value boxes -------------------------------------------------------------
+
+# Reacts to map layers and displays coloured percent summaries
+# testers...
+# event_type <- "MHW"; cat_choice <- "I Moderate"
+value_box_cat <- function(layer_choice, cat_choice, mapCover){
+  
+  # Set colour palette
+  if(layer_choice == "MCS Category"){
+    event_colours <- c(base_colours[2], MCS_colours)
+  } else {
+    event_colours <- c(base_colours[1], MHW_colours)
+  }
+  names(event_colours)[1] <- "Total cover"
+  
+  # Get values
+  event_col <- event_colours[names(event_colours) == cat_choice]
+  mapCover$text_class = c("text-dark", "text-dark", "text-light", "text-light", "text-dark")
+  mapVal <- filter(mapCover, category == cat_choice)
+  
+  # Create box
+  value_box(title = mapVal$category, value = mapVal$cat_area_prop*100, showcase = bs_icon("percent"),
+            style = paste0("background-color: ",event_col,"!important;"), class = mapVal$text_class)
+}
 
 # Load MHW cat file and include the date ----------------------------------
 

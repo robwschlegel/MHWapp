@@ -7,7 +7,7 @@ ui <- page_sidebar(
 
   title = "Marine Heatwave Tracker",
   theme = bs_theme(version = 5, bootswatch = "yeti"),
-  fillable = TRUE,
+  fillable = FALSE, 
   # h1("Marine Heatwave Tracker"),
   # header = list(cicerone::use_cicerone()), # Start guided tour
   
@@ -16,32 +16,27 @@ ui <- page_sidebar(
 
   # Summary boxes
   layout_column_wrap(
-    width = "250px",
-    fill = FALSE,
-    value_box(title = "Total cover", value = "...", showcase = bs_icon("percent"),
-              style = paste0("background-color: ",base_colours[1],"!important;")),
-    value_box(title = "I Moderate", value = "...", showcase = bs_icon("percent"),
-              style = paste0("background-color: ",MHW_colours[1],"!important;")),
-    value_box(title = "II Strong", value = "...", showcase = bs_icon("percent"),
-              style = paste0("background-color: ",MHW_colours[2],"!important;")),
-    value_box(title = "III Severe", value = "...", showcase = bs_icon("percent"),
-              style = paste0("background-color: ",MHW_colours[3],"!important;")),
-    value_box(title = "IV Extreme", value = "...", showcase = bs_icon("percent"),
-              style = paste0("background-color: ",MHW_colours[4],"!important;"))
+    width = "200px",
+    height = "130px",
+    height_mobile = "100px",
+    fill = FALSE, fillable = TRUE,
+    uiOutput("percT"), uiOutput("percI"), uiOutput("percII"), uiOutput("percIII"), uiOutput("percIV")
   ),
 
 
   # Map card ----------------------------------------------------------------
 
-  card(full_screen = TRUE, fill = TRUE,
+  card(fill = FALSE, 
+       full_screen = FALSE, # It doesn't appear that leaflet likes to play nice with full_screen
+       min_height = "600px",
        layout_sidebar(
-         fillable = TRUE,
+         # fillable = FALSE,
          class = "p-0",
          sidebar = sidebar(
-           title = "Map controls",
+           title = "Controls",
            bg = "grey",
            width = "15%",
-           class = "fw-bold font-monospace", 
+           # class = "fw-bold font-monospace", 
            open = "closed",
            accordion(
              multiple = TRUE, 
@@ -58,6 +53,9 @@ ui <- page_sidebar(
                          max = max(current_dates))
                ),
              # Map layer selector
+             # TODO: Consider rather having a MHW/MCS switch (colour changing appropriately)
+             # And then the map layer selector was for daily, annual, etc.
+             # Or anomalies , trends etc. (other) as a third option
              accordion_panel(
                "Map layer", icon = bsicons::bs_icon("map"),
                prettyRadioButtons(inputId = "layer", label = NULL,
@@ -72,8 +70,7 @@ ui <- page_sidebar(
            )
          ),
          # TODO: Change colour based on selected later/colour palette
-         # leafletOutput("leaf_map")
-         withSpinner(leafletOutput("leaf_map"), type = 6, color = "#b0b7be")
+         withSpinner(leafletOutput("leaf_map", height = "598px"), type = 6, color = "#b0b7be")
        )
   ),
 
@@ -81,37 +78,35 @@ ui <- page_sidebar(
   # Time series card --------------------------------------------------------
 
   # card(full_screen = TRUE,
-  # nav_menu(full_screen = TRUE, selected = "ts",
-  navset_card_tab(full_screen = TRUE,
-                  # navset_card_pill(
-                  # navset_tab(
-                  # full_screen = TRUE,
-                  # title = "Selected pixel",
-                  # layout_sidebar(
+  navset_card_tab(full_screen = FALSE,
+                  height = "600px", 
+                  title = "Pixel data",
                   sidebar = sidebar(
                     title = "Controls",
-                    # bg = "grey",
-                    # width = "15%",
+                    bg = "grey",
+                    width = "15%",
                     # class = "fw-bold font-monospace",
-                    # open = "open",
-                    # accordion(
-                    #   multiple = FALSE,
-                    #   open = "open",
-                    #   # Date selector
-                    #   accordion_panel(
-                    #     "Date range", icon = bsicons::bs_icon("menu-app"),
-                    dateRangeInput(
-                      label = NULL, inputId = "from_to",
-                      start = max(current_dates)-365, end = max(current_dates),
-                      min = "1982-01-01", max = max(current_dates))
+                    open = "open",
+                    accordion(
+                      multiple = TRUE,
+                      open = "open",
+                      # Date selector
+                      accordion_panel(
+                        "Date range", icon = bsicons::bs_icon("menu-app"),
+                        dateRangeInput(
+                          label = NULL, inputId = "from_to",
+                          start = max(current_dates)-365, end = max(current_dates),
+                          min = "1982-01-01", max = max(current_dates))
+                      )
+                    )
                   ),
-                  #   )
-                  # ),
-                  # withSpinner(plotlyOutput("tsPlotly"), type = 6, color = "#b0b7be")
-                  nav_panel(title = "Time series", value = "ts", withSpinner(plotlyOutput("tsPlotly"), type = 6, color = "#b0b7be")),
-                  nav_panel(title = "Lolliplot", value = "lolli", withSpinner(plotlyOutput("lolliPlotly"), type = 6, color = "#b0b7be")),
-                  nav_panel(title = "Table", value = "table", withSpinner(DT::dataTableOutput("tsTable"),type = 6, color = "#b0b7be"))
-                  # )
+                  nav_panel(title = "Time series", value = "ts", 
+                            withSpinner(plotlyOutput("tsPlotly", height = "465px"), type = 6, color = "#b0b7be")),
+                  # TODO: Add y-axis control for lolliplot
+                  nav_panel(title = "Lolliplot", value = "lolli", 
+                            withSpinner(plotlyOutput("lolliPlotly", height = "465px"), type = 6, color = "#b0b7be")),
+                  nav_panel(title = "Table", value = "table", 
+                            withSpinner(DT::dataTableOutput("tsTable", height = "465px"),type = 6, color = "#b0b7be"))
   ),
   
 
