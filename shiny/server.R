@@ -11,8 +11,12 @@ server <- function(input, output, session){
   ### Reactive category filters
   categories <- reactiveValues(categories = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
   
+  ### Reactive value to track which year has been selected
+  #### This is meant to help avoid loading data unnecessarily
+  yearReact <- reactiveValues(year = 1)#lubridate::year(Sys.Date()))
   
-  # Map projection data -----------------------------------------------------
+  
+  # Map data ----------------------------------------------------------------
   
   ### Shiny-projected raster data
   rasterProj <- reactive({
@@ -28,6 +32,24 @@ server <- function(input, output, session){
     return(rasterProj)
   })
 
+  ### Percent ocean coverage
+  mapCover <- reactive({
+    req(input$date, input$layer)
+    if(input$layer == "MCS Category"){
+      df_dir <- paste0("cat_clim/MCS/")
+      df_name <- paste0("/cat.clim.MCS.",input$date,".Rds")
+    } else {
+      df_dir <- paste0("cat_clim/")
+      df_name <- paste0("/cat.clim.",input$date,".Rda")
+    }
+    # if( != yearReact$year)
+    df_map <- readRDS(paste0(df_dir, substr(input$date, 1, 4), df_name))
+    df_perc_cat <- df_map |> 
+      left_join(lon_lat_OISST_area, by = c("lon", "lat")) |> 
+      summarise(sum_area = sum(sq_area, na.rm = T), .by = "category") |> 
+      mutate(perc_area = round(sum_area/511208164, 3)*100)
+  })
+  
   
   # Leaflet -----------------------------------------------------------------
   
@@ -79,48 +101,51 @@ server <- function(input, output, session){
   ### Pixel data
   pixelData <- reactive({
     req(input$leaf_map_click)
-    
-    # tester...
-    # x <- 10; y <- -5
-    
-    # Get OISST pixel coords
-    click <- input$leaf_map_click
-    x <- click$lng; y <- click$lat
-    xy_click <- c(x, y)
-    xy_wrap <- lon_wrap(xy_click)
-    xy <- c(lon_OISST[which(abs(lon_OISST - xy_wrap[1]) == min(abs(lon_OISST - xy_wrap[1])))][1],
-            lat_OISST[which(abs(lat_OISST - xy_wrap[2]) == min(abs(lat_OISST - xy_wrap[2])))][1])
-    
-    # Grab time series data
-    ts_data <- sst_seas_thresh_ts(lon_step = xy[1], lat_step = xy[2]) %>% 
-      dplyr::mutate(diff = thresh - seas,
-                    thresh_2x = thresh + diff,
-                    thresh_3x = thresh_2x + diff,
-                    thresh_4x = thresh_3x + diff,
-                    diff_MCS = thresh_MCS - seas,
-                    thresh_MCS_2x = thresh_MCS + diff_MCS,
-                    thresh_MCS_3x = thresh_MCS_2x + diff_MCS,
-                    thresh_MCS_4x = thresh_MCS_3x + diff_MCS)
-    
-    # Grab event data
-    event_data <- readRDS(MHW_event_files[which(lon_OISST == xy[1])]) %>% 
-      dplyr::filter(lat == xy[2]) %>%
-      mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
-             date_peak = as.Date(date_peak, origin = "1970-01-01"),
-             date_end = as.Date(date_end, origin = "1970-01-01"))
-    event_MCS_data <- readRDS(MCS_event_files[which(lon_OISST == xy[1])]) %>% 
-      dplyr::filter(lat == xy[2]) %>%
-      mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
-             date_peak = as.Date(date_peak, origin = "1970-01-01"),
-             date_end = as.Date(date_end, origin = "1970-01-01"))
-    
-    # Return the pixel data
-    pixelData <- list(ts = ts_data,
-                      event = event_data,
-                      event_MCS = event_MCS_data,
-                      lon = xy_wrap[1],
-                      lat = xy_wrap[2])
-    return(pixelData)
+    if(is.null(input$leaf_map_click)){
+      return()
+    } else {
+      # tester...
+      # x <- 10; y <- -5
+      
+      # Get OISST pixel coords
+      click <- input$leaf_map_click
+      x <- click$lng; y <- click$lat
+      xy_click <- c(x, y)
+      xy_wrap <- lon_wrap(xy_click)
+      xy <- c(lon_OISST[which(abs(lon_OISST - xy_wrap[1]) == min(abs(lon_OISST - xy_wrap[1])))][1],
+              lat_OISST[which(abs(lat_OISST - xy_wrap[2]) == min(abs(lat_OISST - xy_wrap[2])))][1])
+      
+      # Grab time series data
+      ts_data <- sst_seas_thresh_ts(lon_step = xy[1], lat_step = xy[2]) %>% 
+        dplyr::mutate(diff = thresh - seas,
+                      thresh_2x = thresh + diff,
+                      thresh_3x = thresh_2x + diff,
+                      thresh_4x = thresh_3x + diff,
+                      diff_MCS = thresh_MCS - seas,
+                      thresh_MCS_2x = thresh_MCS + diff_MCS,
+                      thresh_MCS_3x = thresh_MCS_2x + diff_MCS,
+                      thresh_MCS_4x = thresh_MCS_3x + diff_MCS)
+      
+      # Grab event data
+      event_data <- readRDS(MHW_event_files[which(lon_OISST == xy[1])]) %>% 
+        dplyr::filter(lat == xy[2]) %>%
+        mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
+               date_peak = as.Date(date_peak, origin = "1970-01-01"),
+               date_end = as.Date(date_end, origin = "1970-01-01"))
+      event_MCS_data <- readRDS(MCS_event_files[which(lon_OISST == xy[1])]) %>% 
+        dplyr::filter(lat == xy[2]) %>%
+        mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
+               date_peak = as.Date(date_peak, origin = "1970-01-01"),
+               date_end = as.Date(date_end, origin = "1970-01-01"))
+      
+      # Return the pixel data
+      pixelData <- list(ts = ts_data,
+                        event = event_data,
+                        event_MCS = event_MCS_data,
+                        lon = xy_wrap[1],
+                        lat = xy_wrap[2])
+      return(pixelData)
+    }
   })
   
   

@@ -115,14 +115,17 @@ MCS_seas_thresh_files <- dir("thresh/MCS", pattern = "MCS.seas.thresh.", full.na
 MHW_cat_clim_sub <- data.frame(category = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
 
 ### The category colour palettes
+base_colours <- c(
+  "MHW" = "salmon",
+  "MCS" = "steelblue"
+)
+
 MHW_colours <- c(
   "I Moderate" = "#ffc866",
   "II Strong" = "#ff6900",
   "III Severe" = "#9e0000",
   "IV Extreme" = "#2d0000"
 )
-# MHW_colours <- data.frame(val = c("#ffc866", "#ff6900", "#9e0000", "#2d0000"),
-#                           label = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
 
 MCS_colours <- c(
   "I Moderate" = "#C7ECF2",

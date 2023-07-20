@@ -18,11 +18,16 @@ ui <- page_sidebar(
   layout_column_wrap(
     width = "250px",
     fill = FALSE,
-    value_box(title = "Total cover", value = "...", showcase = bs_icon("percent")),
-    value_box(title = "I Moderate", value = "...", showcase = bs_icon("percent")),
-    value_box(title = "II Strong", value = "...", showcase = bs_icon("percent")),
-    value_box(title = "III Severe", value = "...", showcase = bs_icon("percent")),
-    value_box(title = "IV Extreme", value = "...", showcase = bs_icon("percent"))
+    value_box(title = "Total cover", value = "...", showcase = bs_icon("percent"),
+              style = paste0("background-color: ",base_colours[1],"!important;")),
+    value_box(title = "I Moderate", value = "...", showcase = bs_icon("percent"),
+              style = paste0("background-color: ",MHW_colours[1],"!important;")),
+    value_box(title = "II Strong", value = "...", showcase = bs_icon("percent"),
+              style = paste0("background-color: ",MHW_colours[2],"!important;")),
+    value_box(title = "III Severe", value = "...", showcase = bs_icon("percent"),
+              style = paste0("background-color: ",MHW_colours[3],"!important;")),
+    value_box(title = "IV Extreme", value = "...", showcase = bs_icon("percent"),
+              style = paste0("background-color: ",MHW_colours[4],"!important;"))
   ),
 
 
