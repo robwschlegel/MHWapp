@@ -33,18 +33,6 @@ if(length(final_dates) == 0) stop("Final date indexing has broken.")
 if(length(prelim_dates) == 0) stop("Prelim date indexing has broken.")
 
 
-# Code used to upgrade all data from v2.0 to v2.1
-# file.rename(list.files(path = "../data/OISST/", pattern = "avhrr-only-v2", full.names = T), 
-#             str_replace(list.files(path = "../data/OISST/", pattern = "avhrr-only-v2", full.names = T), pattern = "avhrr-only-v2", "oisst-avhrr-v02r01"))
-# This is the address for the v2.0 data, which are used from 1982-01-01 to 2015-12-31
-# OISST_url_month <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/access/avhrr-only/"
-# NB: Do not run in parallel
-# NB: Didn't run. Faster to overwrite existing data
-# final_dates <- as.Date("2023-05-15")
-# plyr::l_ply(1:1440, OISST_lon_NetCDF, .parallel = F, date_max = as.Date("2023-05-01"))#tail(final_dates)[6])
-# stop()
-
-
 # Get the source index monthly file folders with new data
 print(paste0("Fetching OISST folder names at ",Sys.time()))
 OISST_url_month <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/"
@@ -57,7 +45,8 @@ OISST_months <- data.frame(months = readHTMLTable(OISST_url_month_get, skip.rows
 
 # Uncomment to manually control downloads
 # final_dates <- as.Date("1981-12-31")
-# OISST_months <- data.frame(months = apply(expand.grid(2023, stringr::str_pad(seq(1:5), 2, pad = "0")), 1, paste, collapse = "")) |> arrange(months)
+# OISST_months <- data.frame(months = apply(expand.grid(2023, stringr::str_pad(seq(1:5), 2, pad = "0")), 
+#                                           1, paste, collapse = "")) |> arrange(months)
 
 
 # Check if new data need downloading
@@ -76,9 +65,7 @@ if(nrow(final_index) == 0){
 }
 
 # Get list of preliminary files
-prelim_index <- OISST_filenames %>% 
-  filter(grepl("prelim", files),
-         t > max(prelim_dates))
+prelim_index <- filter(OISST_filenames, grepl("prelim", files), t > max(prelim_dates))
 if(nrow(prelim_index) == 0){
   print("No new prelim data to download")
   prelim_index <- data.frame(files = NA, t = NA, full_name = NA)
@@ -97,7 +84,7 @@ OISST_new <- na.omit(rbind(final_index, prelim_index)) |>
 
 
 # Prep data for merging with existing files
-# if(nrow(OISST_new) > 50) stop("A suspicious amount of new files are attempting to be downloaded.")
+if(nrow(OISST_new) > 50) stop("A suspicious amount of new files are attempting to be downloaded.")
 if(nrow(OISST_new) > 0){
   print(paste0("Prepping new data at ", Sys.time()))
   OISST_dat <- plyr::ldply(OISST_new$file_name, .fun = OISST_prep, .parallel = F)
@@ -226,19 +213,19 @@ if(length(update_dates) > 0) {
 # simply change the 'update_dates' object manually and re-run the section.
 
 # For loop to reprocess large sets of data one year at a time in 6 month batches
-doParallel::registerDoParallel(cores = 50) # Don't update more than 6 months at once on 50 cores
-for(i in 1984:2008){
-  update_dates <- seq(as.Date(paste0(i,"-01-01")), as.Date(paste0(i,"-06-30")), by = "day")
-  print(paste0("Updating from ",min(update_dates)," to ",max(update_dates)," at ", Sys.time()))
-  cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)))
-  print(paste0("Finished at ", Sys.time()))
-  gc(); Sys.sleep(10)
-  update_dates <- seq(as.Date(paste0(i,"-07-01")), as.Date(paste0(i,"-12-31")), by = "day")
-  print(paste0("Updating from ",min(update_dates)," to ",max(update_dates)," at ", Sys.time()))
-  cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)))
-  print(paste0("Finished at ", Sys.time()))
-  gc(); Sys.sleep(10)
-}
+# doParallel::registerDoParallel(cores = 50) # Don't update more than 6 months at once on 50 cores
+# for(i in 1984:2008){
+#   update_dates <- seq(as.Date(paste0(i,"-01-01")), as.Date(paste0(i,"-06-30")), by = "day")
+#   print(paste0("Updating from ",min(update_dates)," to ",max(update_dates)," at ", Sys.time()))
+#   cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)))
+#   print(paste0("Finished at ", Sys.time()))
+#   gc(); Sys.sleep(10)
+#   update_dates <- seq(as.Date(paste0(i,"-07-01")), as.Date(paste0(i,"-12-31")), by = "day")
+#   print(paste0("Updating from ",min(update_dates)," to ",max(update_dates)," at ", Sys.time()))
+#   cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)))
+#   print(paste0("Finished at ", Sys.time()))
+#   gc(); Sys.sleep(10)
+# }
 
 
 # 4: Check current dates --------------------------------------------------
@@ -261,8 +248,7 @@ source("MHW_annual_summary.R")
 
 # 6: Push to GitHub -------------------------------------------------------
 
-# Pausing until 
-# system("git commit -a -m 'Daily run'")
-# system("git pull")
-# system("git push")
+system("git commit -a -m 'Daily run'")
+system("git pull")
+system("git push")
 
