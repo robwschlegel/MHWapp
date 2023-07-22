@@ -530,6 +530,6 @@ server <- function(input, output, session){
   )
   
   # During testing...
-  session$onSessionEnded(stopApp)
+  # session$onSessionEnded(stopApp)
 }
 

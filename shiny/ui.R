@@ -90,7 +90,8 @@ ui <- page_sidebar(
            )
          ),
          # TODO: Change colour based on selected later/colour palette
-         withSpinner(leafletOutput("leaf_map", height = "598px"), type = 6, color = "#b0b7be")
+         leafletOutput("leaf_map")
+         # withSpinner(leafletOutput("leaf_map", height = "598px"), type = 6, color = "#b0b7be")
        )
   ),
 
@@ -99,7 +100,7 @@ ui <- page_sidebar(
 
   # card(full_screen = TRUE,
   navset_card_tab(full_screen = FALSE,
-                  height = "600px", 
+                  height = "600px",
                   title = "Pixel data",
                   sidebar = sidebar(
                     title = "Controls",
@@ -128,7 +129,9 @@ ui <- page_sidebar(
                     )
                   ),
                   nav_panel(title = "Time series", value = "ts", 
-                            withSpinner(plotlyOutput("tsPlotly", height = "465px"), type = 6, color = "#b0b7be")),
+                            withSpinner(plotOutput("tsPlot", height = "465px"), type = 6, color = "#b0b7be")),
+                  # NB: plotly is misbehaving itself again
+                            # withSpinner(plotlyOutput("tsPlotly", height = "465px"), type = 6, color = "#b0b7be")),
                   # TODO: Add y-axis control for lolliplot
                   nav_panel(title = "Lolliplot", value = "lolli", 
                             withSpinner(plotlyOutput("lolliPlotly", height = "465px"), type = 6, color = "#b0b7be")),
