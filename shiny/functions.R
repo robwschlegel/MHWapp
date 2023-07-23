@@ -122,6 +122,8 @@ showpos <- function(x = NULL, y = NULL){
 # event_type <- "MHW"; cat_choice <- "I Moderate"
 value_box_cat <- function(layer_choice, cat_choice, mapCover){
   
+  if(nrow(mapCover) < 2) return()
+  
   # Set colour palette
   if(layer_choice == "MCS Category"){
     event_colours <- c(base_colours[2], MCS_colours)

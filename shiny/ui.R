@@ -27,7 +27,7 @@ ui <- page_sidebar(
   # Map card ----------------------------------------------------------------
 
   card(fill = FALSE, 
-       full_screen = FALSE, # It doesn't appear that leaflet likes to play nice with full_screen
+       full_screen = TRUE,
        min_height = "600px",
        layout_sidebar(
          # fillable = FALSE,
@@ -99,7 +99,7 @@ ui <- page_sidebar(
   # Time series card --------------------------------------------------------
 
   # card(full_screen = TRUE,
-  navset_card_tab(full_screen = FALSE,
+  navset_card_tab(full_screen = TRUE,
                   height = "600px",
                   title = "Pixel data",
                   sidebar = sidebar(
@@ -129,14 +129,17 @@ ui <- page_sidebar(
                     )
                   ),
                   nav_panel(title = "Time series", value = "ts", 
-                            withSpinner(plotOutput("tsPlot", height = "465px"), type = 6, color = "#b0b7be")),
+                            plotOutput("tsPlot"), type = 6, color = "#b0b7be"),
+                            # withSpinner(plotOutput("tsPlot", height = "465px"), type = 6, color = "#b0b7be")),
                   # NB: plotly is misbehaving itself again
                             # withSpinner(plotlyOutput("tsPlotly", height = "465px"), type = 6, color = "#b0b7be")),
                   # TODO: Add y-axis control for lolliplot
                   nav_panel(title = "Lolliplot", value = "lolli", 
-                            withSpinner(plotlyOutput("lolliPlotly", height = "465px"), type = 6, color = "#b0b7be")),
+                            plotlyOutput("lolliPlotly"), type = 6, color = "#b0b7be"),
+                            # withSpinner(plotlyOutput("lolliPlotly", height = "465px"), type = 6, color = "#b0b7be")),
                   nav_panel(title = "Table", value = "table", 
-                            withSpinner(DT::dataTableOutput("tsTable", height = "465px"),type = 6, color = "#b0b7be"))
+                            DT::dataTableOutput("tsTable"),type = 6, color = "#b0b7be")
+                            # withSpinner(DT::dataTableOutput("tsTable", height = "465px"), type = 6, color = "#b0b7be"))
   ),
   
 
