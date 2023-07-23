@@ -65,9 +65,12 @@ MCS_seas_thresh_files <- dir("thresh/MCS", pattern = "MCS.seas.thresh.", full.na
 #                                    full.names = TRUE, recursive = TRUE))
 
 ### The dates currently processed
-current_dates <- dir("cat_clim", recursive = T, pattern = "cat.clim", full.names = T) %>% threadr::str_filter("MCS", invert = T)
+# TODO: Make this an output of MHW_daily.R to be simply loaded here
+# Rather base this on the annual statisitcs value as this is the final calculation
+# If there have been any errors along the way it will be felt there
+current_dates <- dir("cat_clim", recursive = T, pattern = ".tif", full.names = T) %>% threadr::str_filter("MCS", invert = T)
 current_dates <- sapply(strsplit(current_dates, split = "cat.clim."), "[[", 3)
-current_dates <- as.Date(sapply(strsplit(current_dates, split = ".Rda"), "[[", 1))
+current_dates <- as.Date(sapply(strsplit(current_dates, split = ".tif"), "[[", 1))
 
 # Testing...
 # date_menu_choice <- max(current_dates)

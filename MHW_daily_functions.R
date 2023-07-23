@@ -13,9 +13,11 @@
 .libPaths(c("~/R-packages", .libPaths()))
 suppressPackageStartupMessages({
 library(tidyverse)
+library(terra)
+library(raster)
+library(leaflet)
 library(tidync)
 library(ncdf4)
-library(rerddap)
 library(abind)
 library(padr)
 library(RCurl)
@@ -23,7 +25,8 @@ library(XML)
 library(threadr)
 library(heatwaveR)
 library(doParallel)
-# library(processNC)
+# library(rerddap) # No longer used in daily workflow
+# library(processNC) # Not used, but could be useful
 })
 
 print(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))
