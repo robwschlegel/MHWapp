@@ -13,6 +13,8 @@
 
 # source("MHW_daily_functions.R")
 library(dtplyr)
+library(raster)
+library(leaflet)
 
 # Set number of cores
 registerDoParallel(cores = 50)
