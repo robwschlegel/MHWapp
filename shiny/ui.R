@@ -15,6 +15,9 @@ ui <- page_sidebar(
   # Summary boxes -----------------------------------------------------------
 
   # Summary boxes
+  # TODO: Dropdown within total box to allow for choice of different base statistics
+    # Could also allow choice of time period.
+  # Can these show two colours at once? That is probably a bad use of time to figure out.
   layout_column_wrap(
     width = "200px",
     height = "130px",
@@ -26,6 +29,13 @@ ui <- page_sidebar(
 
   # Map card ----------------------------------------------------------------
 
+  # TODO: Make sidebar tab button larger
+  # TODO: Consider calculating monthly values
+  # TODO: Get annual summaries back in
+  # TODO: Allow downloading annual summary PDF figures with a text caption explaining the panels
+  # TODO: Could show MCS and MHW at the same time
+    # This could get tricky.. I suppose that is what the anomaly layer is for
+    # Or rather just have MHW stats etc. dominate when both layers are shown.
   card(fill = FALSE, 
        full_screen = TRUE,
        min_height = "600px",
@@ -99,6 +109,7 @@ ui <- page_sidebar(
   # Time series card --------------------------------------------------------
 
   # card(full_screen = TRUE,
+  # TODO: Add title to ts plots to show pixel lon/lat etc.
   navset_card_tab(full_screen = TRUE,
                   height = "600px",
                   title = "Pixel data",
@@ -111,6 +122,7 @@ ui <- page_sidebar(
                     accordion(
                       multiple = TRUE,
                       open = NULL,
+                      # TODO: Make this the new style of daterange selector
                       accordion_panel(
                         "Date range", icon = bsicons::bs_icon("menu-app"),
                         dateRangeInput(
