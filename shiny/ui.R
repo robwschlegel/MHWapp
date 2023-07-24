@@ -47,7 +47,7 @@ ui <- page_sidebar(
            bg = "grey",
            width = "15%",
            # class = "fw-bold font-monospace", 
-           open = "closed",
+           open = "open",
            accordion(
              multiple = TRUE, 
              open = "closed",

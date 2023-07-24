@@ -4,6 +4,7 @@
 
 # Merge sst/seas/thresh for a given lon/lat -------------------------------
 
+# TODO: Consider combining all of these data into one file to avoid the processing step
 # testers...
 # lon_step <- lon_OISST[721]
 # lon_step <- lat_OISST[132]

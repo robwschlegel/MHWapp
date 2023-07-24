@@ -87,6 +87,8 @@ server <- function(input, output, session){
   output$leaf_map <- renderLeaflet({
     
     # The base 
+    # TODO: Consider adding a hover to wake scroll functionality to prevent accidental scroll zooming
+    # https://bhaskarvk.github.io/leaflet.extras/reference/sleep.html
     leaflet(options = leafletOptions(zoomControl = FALSE)) |> 
       setView(lng = initial_lon, lat = initial_lat, zoom = initial_zoom,
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) |> 
