@@ -72,10 +72,13 @@ if(nrow(prelim_index) == 0){
 }
 
 # Bind lists
-OISST_new <- na.omit(rbind(final_index, prelim_index)) |> 
-  mutate(file_year = substr(sapply(strsplit(full_name, split = "/"), "[[", 9), 1, 4),
-         file_stub = sapply(strsplit(full_name, split = "/"), "[[", 10),
-         file_name = paste0("../data/OISST/daily/",file_year,"/",file_stub))
+OISST_new <- na.omit(rbind(final_index, prelim_index))
+if(nrow(OISST_new) > 0){
+  OISST_new <- OISST_new |> 
+    mutate(file_year = substr(sapply(strsplit(full_name, split = "/"), "[[", 9), 1, 4),
+           file_stub = sapply(strsplit(full_name, split = "/"), "[[", 10),
+           file_name = paste0("../data/OISST/daily/",file_year,"/",file_stub))
+}
 
 
 # Or manually control which data are added to the NetCDF database
@@ -214,7 +217,7 @@ if(length(update_dates) > 0) {
 
 # For loop to reprocess large sets of data one year at a time in 6 month batches
 # doParallel::registerDoParallel(cores = 50) # Don't update more than 6 months at once on 50 cores
-# for(i in 1984:2008){
+# for(i in 1982:2023){
 #   update_dates <- seq(as.Date(paste0(i,"-01-01")), as.Date(paste0(i,"-06-30")), by = "day")
 #   print(paste0("Updating from ",min(update_dates)," to ",max(update_dates)," at ", Sys.time()))
 #   cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)))
