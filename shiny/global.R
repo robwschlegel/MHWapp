@@ -51,7 +51,7 @@ source("functions.R", local = TRUE)
 ### Check that main data folders exist
 if(!dir.exists("cat_clim")) stop("The 'cast_clim' folder is missing.")
 if(!dir.exists("event")) stop("The 'event' folder is missing.")
-if(!dir.exists("modules")) stop("The 'modules' folder is missing.")
+# if(!dir.exists("modules")) stop("The 'modules' folder is missing.")
 if(!dir.exists("OISST")) stop("The 'OISST' folder is missing.")
 if(!dir.exists("thresh")) stop("The 'thresh' folder is missing.")
 
@@ -97,6 +97,9 @@ load("../metadata/OISST_ocean_coords.Rdata")
 load("../metadata/OISST_leaf_coords.Rdata")
 load("../metadata/lon_lat_OISST_area.RData")
 
+### Ice coords
+ice_proj <- raster::raster("../metadata/OISST_ice_coords.tif")
+
 ### Oliver et al. 2018 data
 ## NB: To save time on launch this is now loaded in map-server.R when requested
 # Oliver_2018 <- readRDS("../data/published/Oliver_2018.Rds")
@@ -121,8 +124,8 @@ MCS_colours <- c(
   "I Moderate" = "#C7ECF2",
   "II Strong" = "#85B7CC",
   "III Severe" = "#4A6A94",
-  "IV Extreme" = "#111433"#,
-  # "V Ice" = "thistle1" # Not added yet as this adds quite a lot of complexity
+  "IV Extreme" = "#111433",
+  "V Ice" = "thistle1" # Not added yet as this adds quite a lot of complexity
 )
 
 ### Colour palettes for leaflet

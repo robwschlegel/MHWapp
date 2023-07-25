@@ -99,10 +99,11 @@ server <- function(input, output, session){
   observeEvent(c(input$layer, input$date,
                  input$moderate_filter, input$strong_filter,
                  input$severe_filter, input$extreme_filter), {
-                   leafletProxy("leaf_map") %>%
+                   leafletProxy("leaf_map") |> 
                      addRasterImage(rasterProj(), 
                                     colors = pal_react(), layerId = "map_raster",
-                                    project = FALSE, opacity = 0.8)
+                                    project = FALSE, opacity = 0.8) |> 
+                     addRasterImage(ice_proj, colors = "snow", layerId = "ice", project = FALSE, opacity = 0.7)
                  })
   
   
