@@ -99,7 +99,7 @@ load("../metadata/OISST_leaf_coords.Rdata")
 load("../metadata/lon_lat_OISST_area.RData")
 
 ### Ice coords
-ice_proj <- raster::raster("../data/OISST/ice_proj.tif")
+ice_proj <- raster::raster("OISST/ice_proj.tif")
 
 ### Oliver et al. 2018 data
 ## NB: To save time on launch this is now loaded in map-server.R when requested

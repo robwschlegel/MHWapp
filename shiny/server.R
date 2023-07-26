@@ -83,8 +83,22 @@ server <- function(input, output, session){
     colorNumeric(palette = event_palette, domain = c(1,2,3,4), na.color = NA)
     })
   
+  ### Ice mask
+  # ice_react <- reactive({
+  #   req(input$layer)
+  #   if(input$iceMask){
+  #     ice_react <- ice_proj
+  #   } else {
+  #     ice_react <- data.frame(X = 1:4, Y = 4:1, Z = 1)
+  #     ice_react <- raster::rasterFromXYZ(ice_react, crs = "EPSG:4326")
+  #     ice_react <- leaflet::projectRasterForLeaflet(ice_react, method = "ngb")
+  #   }
+  #   ice_react
+  # })
+  
   ### The leaflet base
   output$leaf_map <- renderLeaflet({
+    req(input$layer)
     
     # The base 
     # TODO: Consider adding a hover to wake scroll functionality to prevent accidental scroll zooming
@@ -96,15 +110,36 @@ server <- function(input, output, session){
   })
   
   ### The raster layer
-  observeEvent(c(input$layer, input$date,
+  observeEvent(c(input$layer, input$date, input$iceMask,
                  input$moderate_filter, input$strong_filter,
                  input$severe_filter, input$extreme_filter), {
                    leafletProxy("leaf_map") |> 
                      addRasterImage(rasterProj(), 
                                     colors = pal_react(), layerId = "map_raster",
                                     project = FALSE, opacity = 0.8) |> 
-                     addRasterImage(ice_proj, colors = "snow", layerId = "ice", project = FALSE, opacity = 0.7)
+                 removeImage("ice")
+                 # addRasterImage(ice_proj, colors = "snow", layerId = "ice", project = FALSE, opacity = 0.7)
+                   if(input$iceMask){
+                     leafletProxy("leaf_map") |>
+                       addRasterImage(ice_proj, colors = "snow", layerId = "ice", project = FALSE, opacity = 0.7)
+                   }
                  })
+  
+  ### The ice mask layer
+  # observeEvent(c(input$iceMask), {
+  #   req(input$iceMask)
+  #   # if(input$iceMask){
+  #     leafletProxy("leaf_map") |>
+  #       addRasterImage(ice_react(), colors = "snow", layerId = "ice", project = FALSE, opacity = 0.7)
+  #   # } else if(!input$iceMask) {
+  #   #   leafletProxy("leaf_map") |>
+  #   #     addRasterImage(ice_proj, colors = "snow", layerId = "ice", project = FALSE, opacity = 0.7) |> 
+  #   #     removeImage(layerId = "ice")
+  #   #     # addRasterImage(x = empty_date_map, colors = "snow", layerId = "ice", project = FALSE, opacity = 0.7)
+  #   # } else {
+  #   #   
+  #   # }
+  # })
   
   
   # Pop-ups -----------------------------------------------------------------
@@ -533,6 +568,6 @@ server <- function(input, output, session){
   )
   
   # During testing...
-  # session$onSessionEnded(stopApp)
+  session$onSessionEnded(stopApp)
 }
 

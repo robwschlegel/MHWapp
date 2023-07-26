@@ -50,10 +50,16 @@ ui <- page_sidebar(
            open = "open",
            accordion(
              multiple = TRUE, 
-             open = "closed",
+             open = "datePanel",
+             # Ice mask
+             accordion_panel(
+               "Ice mask", icon = bsicons::bs_icon("snow2"),
+               shinyWidgets::prettySwitch(inputId = "iceMask", label = NULL, value = TRUE, 
+                                          status = "info", fill = TRUE)
+             ),
              # Date selector
              accordion_panel(
-               "Date", icon = bsicons::bs_icon("menu-app"),
+               "Date", icon = bsicons::bs_icon("menu-app"), value = "datePanel",
                # uiOutput(outputId = "date_reactive")
                dateInput(inputId = "date",
                          label = NULL, width = '100%',
