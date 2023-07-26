@@ -491,7 +491,8 @@ server <- function(input, output, session){
                     'Cum. Intensity' = intensity_cumulative)
     event_res <- rbind(event_data, event_MCS_data) %>% 
       dplyr::arrange(`Peak Date`) %>% 
-      dplyr::select(Event, everything())
+      dplyr::select(Event, Lon, Lat, `#`, Duration, `Start Date`, `Peak Date`, `End Date`, 
+                    `Mean Intensity`, `Max. Intensity`, `Cum. Intensity`)
     event_res
   })
   
@@ -603,6 +604,6 @@ server <- function(input, output, session){
   )
   
   # During testing...
-  session$onSessionEnded(stopApp)
+  # session$onSessionEnded(stopApp)
 }
 
