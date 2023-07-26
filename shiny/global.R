@@ -16,7 +16,7 @@ suppressPackageStartupMessages({
 library(bslib)
 library(bsicons)
 library(shinyWidgets)
-library(shinycssloaders)
+# library(shinycssloaders) # Not currently used
 library(dplyr)
 library(ggplot2)
 library(leaflet)
@@ -65,13 +65,8 @@ MCS_seas_thresh_files <- dir("thresh/MCS", pattern = "MCS.seas.thresh.", full.na
 # cat_clim_files <- as.character(dir(path = "cat_clim", pattern = "cat.clim",
 #                                    full.names = TRUE, recursive = TRUE))
 
-### The dates currently processed
-# TODO: Make this an output of MHW_daily.R to be simply loaded here
-# Rather base this on the annual statistics value as this is the final calculation
-# If there have been any errors along the way it will be felt there
-current_dates <- dir("cat_clim", recursive = T, pattern = ".tif", full.names = T) %>% threadr::str_filter("MCS", invert = T)
-current_dates <- sapply(strsplit(current_dates, split = "cat.clim."), "[[", 3)
-current_dates <- as.Date(sapply(strsplit(current_dates, split = ".tif"), "[[", 1))
+### The present year of dates currently processed
+current_dates <- readRDS(paste0("OISST/annual_summary/MCS_cat_daily_", lubridate::year(Sys.Date()),".Rds"))$t
 
 # Testing...
 # date_menu_choice <- max(current_dates)
@@ -94,9 +89,9 @@ lon_OISST <- c(seq(0.125, 179.875, by = 0.25), seq(-179.875, -0.125, by = 0.25))
 lat_OISST <- seq(-89.875, 89.875, by = 0.25)
 
 ### Various OISST coordinates
-load("../metadata/OISST_ocean_coords.Rdata")
-load("../metadata/OISST_leaf_coords.Rdata")
-load("../metadata/lon_lat_OISST_area.RData")
+# load("../metadata/OISST_ocean_coords.Rdata")
+# load("../metadata/OISST_leaf_coords.Rdata")
+# load("../metadata/lon_lat_OISST_area.RData")
 
 ### Ice coords
 ice_proj <- raster::raster("OISST/ice_proj.tif")
@@ -148,7 +143,7 @@ regional_TMEDNET <- "http://t-mednet.org/t-resources/marine-heatwaves"
 regional_European_Northwest_Shelf <- "https://fishforecasts.dtu.dk/heatwaves/nw_shelf"
 
 ### Placeholders when invalid dates are typed into date selectors
-empty_date_map <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") |> slice(1) |> mutate(category = NA)
+# empty_date_map <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") |> slice(1) |> mutate(category = NA)
 # empty_summary_map <- readRDS("../data/annual_summary/MHW_cat_pixel_1982.Rds") |> slice(1) |> mutate(category = NA)
 # empty_summary_ts <- readRDS("../data/annual_summary/MHW_cat_daily_1982.Rds") |> slice(1) |> mutate(category = NA)
 

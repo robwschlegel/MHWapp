@@ -76,7 +76,6 @@ ui <- page_sidebar(
                                   shape = "curve",
                                   inline = F)
              ),
-             # TODO: Get this on the right
              accordion_panel(
                "Download", icon = bsicons::bs_icon("save"),
                # Pick date range
@@ -98,7 +97,6 @@ ui <- page_sidebar(
                )
            )
          ),
-         # TODO: Change colour based on selected later/colour palette
          leafletOutput("leaf_map")
          # withSpinner(leafletOutput("leaf_map", height = "598px"), type = 6, color = "#b0b7be")
        )
@@ -140,12 +138,17 @@ ui <- page_sidebar(
                       )
                     )
                   ),
-                  nav_panel(title = "Time series", value = "ts", 
+                  nav_panel(title = "Time series", value = "ts",
+                            # NB: plotly is misbehaving itself again
                             # plotOutput("tsPlot"), type = 6, color = "#b0b7be"),
-                            plotlyOutput("tsPlotly")),
                             # withSpinner(plotOutput("tsPlot"), type = 6, color = "#b0b7be")),
-                  # NB: plotly is misbehaving itself again
                             # withSpinner(plotlyOutput("tsPlotly", height = "465px"), type = 6, color = "#b0b7be")),
+                            plotlyOutput("tsPlotly"),
+                            # sidebar = sidebar(position = "right", open = FALSE, title = "Select Y axis value",
+                            #                   selectInput(inputId = "lolliY", label = NULL,
+                            #                               choices = c("Max. Intensity (°C)", "Cum. Intensity (°C)"),
+                            #                               selected = "Max. Intensity (°C)", multiple = FALSE))
+                            ),
                   # TODO: Add y-axis control for lolliplot
                   nav_panel(title = "Lolliplot", value = "lolli", 
                             plotlyOutput("lolliPlotly"), type = 6, color = "#b0b7be"),

@@ -3,7 +3,7 @@
 server <- function(input, output, session){
   
   # Testing...
-  # input <- data.frame(date = as.Date("2023-07-15"),
+  # input <- data.frame(date = as.Date("1989-07-15"),
   #                     layer = "MHW Category")
 
   # Reactive UI -------------------------------------------------------------
@@ -15,7 +15,7 @@ server <- function(input, output, session){
   #### This is meant to help avoid loading data unnecessarily
   yearReact <- reactiveValues(year = 1)#lubridate::year(Sys.Date()))
   
-  # Reactive value boxes
+  ### Reactive value boxes
   output$percT <- renderUI({
     value_box_cat("Total cover", input$layer, mapCover())
   })
@@ -39,6 +39,7 @@ server <- function(input, output, session){
     }
   })
 
+  ### React to the reaction
   output$valueBoxes <- renderUI({
     req(input$layer)
     if(input$layer == "MCS Category"){
@@ -56,16 +57,7 @@ server <- function(input, output, session){
           fill = FALSE, fillable = TRUE,
           uiOutput("percT"), uiOutput("percI"), uiOutput("percII"), uiOutput("percIII"), uiOutput("percIV"))
     }
-
   })
-  
-  # value_boxes <- list(
-  #   value_box_cat(input$layer, "Total cover", mapCover()),
-  #   value_box_cat(input$layer, "I Moderate", mapCover()),
-  #   value_box_cat(input$layer, "II Strong", mapCover()),
-  #   value_box_cat(input$layer, "III Severe", mapCover()),
-  #   value_box_cat(input$layer, "IV Extreme", mapCover())
-  # )
   
   
   # Map data ----------------------------------------------------------------
@@ -93,7 +85,7 @@ server <- function(input, output, session){
       event_type <- "MHW"
     }
     # if( != yearReact$year)
-    mapCoverAll <- readRDS(paste0("../data/annual_summary/",event_type,"_cat_daily_",
+    mapCoverAll <- readRDS(paste0("OISST/annual_summary/",event_type,"_cat_daily_",
                              lubridate::year(input$date),".Rds"))
     mapCover <- mapCoverAll |> 
       filter(t == input$date) |> 
@@ -107,7 +99,6 @@ server <- function(input, output, session){
   # Leaflet -----------------------------------------------------------------
   
   ### Observer to change colour palette accordingly
-  # TODO: This could potentially be bundled up into rasterProj()
   pal_react <- reactive({
     req(input$layer)
     if(input$layer == "MCS Category"){
@@ -117,19 +108,6 @@ server <- function(input, output, session){
     }
     colorNumeric(palette = event_palette, domain = c(1,2,3,4), na.color = NA)
     })
-  
-  ### Ice mask
-  # ice_react <- reactive({
-  #   req(input$layer)
-  #   if(input$iceMask){
-  #     ice_react <- ice_proj
-  #   } else {
-  #     ice_react <- data.frame(X = 1:4, Y = 4:1, Z = 1)
-  #     ice_react <- raster::rasterFromXYZ(ice_react, crs = "EPSG:4326")
-  #     ice_react <- leaflet::projectRasterForLeaflet(ice_react, method = "ngb")
-  #   }
-  #   ice_react
-  # })
   
   ### The leaflet base
   output$leaf_map <- renderLeaflet({
@@ -153,29 +131,12 @@ server <- function(input, output, session){
                                     colors = pal_react(), layerId = "map_raster",
                                     project = FALSE, opacity = 0.8) |> 
                  removeImage("ice")
-                 # addRasterImage(ice_proj, colors = "snow", layerId = "ice", project = FALSE, opacity = 0.7)
                    if(input$iceMask){
                      leafletProxy("leaf_map") |>
                        addRasterImage(ice_proj, colors = "snow", layerId = "ice", project = FALSE, opacity = 0.7)
                    }
                  })
-  
-  ### The ice mask layer
-  # observeEvent(c(input$iceMask), {
-  #   req(input$iceMask)
-  #   # if(input$iceMask){
-  #     leafletProxy("leaf_map") |>
-  #       addRasterImage(ice_react(), colors = "snow", layerId = "ice", project = FALSE, opacity = 0.7)
-  #   # } else if(!input$iceMask) {
-  #   #   leafletProxy("leaf_map") |>
-  #   #     addRasterImage(ice_proj, colors = "snow", layerId = "ice", project = FALSE, opacity = 0.7) |> 
-  #   #     removeImage(layerId = "ice")
-  #   #     # addRasterImage(x = empty_date_map, colors = "snow", layerId = "ice", project = FALSE, opacity = 0.7)
-  #   # } else {
-  #   #   
-  #   # }
-  # })
-  
+
   
   # Pop-ups -----------------------------------------------------------------
   
@@ -233,8 +194,8 @@ server <- function(input, output, session){
       pixelData <- list(ts = ts_data,
                         event = event_data,
                         event_MCS = event_MCS_data,
-                        lon = xy_wrap[1],
-                        lat = xy_wrap[2])
+                        lon = xy[1],
+                        lat = xy[2])
       return(pixelData)
     }
   })
@@ -249,17 +210,20 @@ server <- function(input, output, session){
     # Get time series
     ts_data <- pixelData()$ts
     
+    # Get coordinates
+    xy <- c(pixelData()$lon, pixelData()$lat)
+    if(xy[1] >= 0) xy_lon <- paste0(abs(xy[1]),"°E")
+    if(xy[1] < 0) xy_lon <- paste0(abs(xy[1]),"°W")
+    if(xy[2] >= 0) xy_lat <- paste0(abs(xy[2]),"°N")
+    if(xy[2] < 0) xy_lat <- paste0(abs(xy[2]),"°S")
+    
+    # Labels
+    x_lab <- NULL; y_lab <- "Temperature (°C)"; title_lab <- paste0("Lon: ",xy_lon,"   Lat: ",xy_lat)
+    
     # Check that it's not empty
     if(length(ts_data$temp) == 1){
       p <- ggplot() + geom_text(aes(x = 0, y = 0,label = "Please select an ocean pixel.")) +
-        labs(x = "", y = "Temperature (°C)")
-      return(p)
-    }
-    
-    # Check that date selection isn't wonky
-    if(!input$from_to[2] %in% current_dates | !input$from_to[1] %in% current_dates | input$from_to[1] >= input$from_to[2] | is.null(input$from_to[1]) | is.null(input$from_to[2])){
-      p <- ggplot() + geom_text(aes(x = 0, y = 0,label = "Please select a valid date range below.")) +
-        labs(x = "", y = "Temperature (°C)")
+        labs(x = x_lab, y = y_lab, title = title_lab)
       return(p)
     }
     
@@ -277,7 +241,7 @@ server <- function(input, output, session){
     
     # The base
     p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
-      labs(x = "", y = "Temperature (°C)") +
+      labs(x = x_lab, y = y_lab, title = title_lab) +
       scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(input$from_to[1], input$from_to[2])) +
       theme(panel.border = element_rect(colour = "black", fill = NA))
     
@@ -365,11 +329,11 @@ server <- function(input, output, session){
     p <- tsPlot()
     suppressWarnings( # text aes plotly
       p <- p +
-        geom_segment(aes(x = input$date[1], 
+        geom_segment(aes(x = input$date[1],
                          xend = input$date[1],
-                         y = min(temp), 
+                         y = min(temp),
                          yend = max(temp),
-                         text = "Date shown"), 
+                         text = "Date shown"),
                      colour = "limegreen")
     )
     
@@ -387,13 +351,32 @@ server <- function(input, output, session){
     ts_data_sub <- ts_data %>%
       dplyr::filter(t >= input$from_to[1], t <= input$from_to[2])
     
+    # Get coordinates
+    xy <- c(pixelData()$lon, pixelData()$lat)
+    if(xy[1] >= 0) xy_lon <- paste0(abs(xy[1]),"°E")
+    if(xy[1] < 0) xy_lon <- paste0(abs(xy[1]),"°W")
+    if(xy[2] >= 0) xy_lat <- paste0(abs(xy[2]),"°N")
+    if(xy[2] < 0) xy_lat <- paste0(abs(xy[2]),"°S")
+    
+    # Labels
+    x_lab <- NULL; y_lab <- "Temperature (°C)"; title_lab <- paste0("Lon: ",xy_lon,"   Lat: ",xy_lat)
+    
     # Prep data
     event_data <- pixelData()$event
-    event_data_sub <- event_data %>%
+    event_data_sub <- event_data |> 
+      mutate(category = paste0("MHW_",category)) |> 
       dplyr::filter(date_peak >= input$from_to[1], date_peak <= input$from_to[2])
     event_MCS_data <- pixelData()$event_MCS
-    event_MCS_data_sub <- event_MCS_data %>%
+    event_MCS_data_sub <- event_MCS_data |> 
+      mutate(category = paste0("MCS_",category)) |> 
       dplyr::filter(date_peak >= input$from_to[1], date_peak <= input$from_to[2])
+    
+    # Create double colour palette
+    MHW_colours_double <- MHW_colours
+    names(MHW_colours_double) <- paste0("MHW_",names(MHW_colours_double))
+    MCS_colours_double <- MCS_colours
+    names(MCS_colours_double) <- paste0("MCS_",names(MCS_colours_double))
+    colours_double <- c(MHW_colours_double, MCS_colours_double)
     
     # Get y_lims
     y_lims <- c(0, 1)
@@ -403,10 +386,11 @@ server <- function(input, output, session){
     
     # The base figure
     p <- ggplot() +
-      labs(x = "", y = "Max. Intensity (°C)") +
+      labs(x = x_lab, y = "Max. Intensity (°C)", title = title_lab) +
+      scale_fill_manual(values = colours_double) +
       scale_y_continuous(limits = y_lims, expand = c(0, 0)) +
       scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(input$from_to[1], input$from_to[2])) +
-      theme(panel.border = element_rect(colour = "black", fill = NA))
+      theme(panel.border = element_rect(colour = "black", fill = NA), legend.position = "none")
     
     # Add lollis as necessary
     if(length(event_data_sub$date_start) > 0){
@@ -414,9 +398,10 @@ server <- function(input, output, session){
         p <- p + geom_segment(data = event_data_sub,
                               aes(x = date_peak, xend = date_peak, y = intensity_max, yend = 0)) +
           geom_hline(yintercept = 0) +
-          geom_point(data = event_data_sub, fill = "salmon", shape = 21, size = 4,
-                     aes(x = date_peak, y = intensity_max,
+          geom_point(data = event_data_sub, shape = 21, size = 4, #fill = "salmon",
+                     aes(x = date_peak, y = intensity_max, fill = category,
                          text = paste0("Event: ",event_no,
+                                       "<br>Category: ",gsub("MHW_", "", category),
                                        "<br>Duration: ",duration," days",
                                        "<br>Start Date: ", date_start,
                                        "<br>Peak Date: ", date_peak,
@@ -431,9 +416,10 @@ server <- function(input, output, session){
         p <- p + geom_segment(data = event_MCS_data_sub,
                               aes(x = date_peak, xend = date_peak, y = intensity_max, yend = 0)) +
           geom_hline(yintercept = 0) +
-          geom_point(data = event_MCS_data_sub, fill = "steelblue1", shape = 21, size = 4,
-                     aes(x = date_peak, y = intensity_max,
+          geom_point(data = event_MCS_data_sub, shape = 21, size = 4, #fill = "steelblue1",
+                     aes(x = date_peak, y = intensity_max, fill = category,
                          text = paste0("Event: ",event_no,
+                                       "<br>Category: ",gsub("MCS_", "", category),
                                        "<br>Duration: ",duration," days",
                                        "<br>Start Date: ", date_start,
                                        "<br>Peak Date: ", date_peak,
@@ -454,6 +440,91 @@ server <- function(input, output, session){
   
   ### Interactive lolliplot
   lolliPlotly <- reactive({
+    geom2trace.GeomFlame <- function(data, params, p){
+      
+      x <- y <- y2 <- NULL
+      
+      # Create data.frame for ease of use
+      data1 <- data.frame(x = data[["x"]],
+                          y = data[["y"]],
+                          y2 = data[["y2"]])
+      
+      # Grab parameters
+      n <- params[["n"]]
+      n_gap <- params[["n_gap"]]
+      
+      # Find events that meet minimum length requirement
+      data_event <- heatwaveR::detect_event(data1, x = x, y = y,
+                                            seasClim = y,
+                                            threshClim = y2,
+                                            minDuration = n,
+                                            maxGap = n_gap,
+                                            protoEvents = T)
+      
+      # Detect spikes
+      data_event$screen <- base::ifelse(data_event$threshCriterion == FALSE, FALSE,
+                                        ifelse(data_event$event == FALSE, TRUE, FALSE))
+      
+      # Screen out spikes
+      data1 <- data1[data_event$screen != TRUE,]
+      
+      # Prepare to find the polygon corners
+      x1 <- data1$y
+      x2 <- data1$y2
+      
+      # # Find points where x1 is above x2.
+      above <- x1 > x2
+      above[above == TRUE] <- 1
+      above[is.na(above)] <- 0
+      
+      # Points always intersect when above=TRUE, then FALSE or reverse
+      intersect.points <- which(diff(above) != 0)
+      
+      # Find the slopes for each line segment.
+      x1.slopes <- x1[intersect.points + 1] - x1[intersect.points]
+      x2.slopes <- x2[intersect.points + 1] - x2[intersect.points]
+      
+      # # Find the intersection for each segment.
+      x.points <- intersect.points + ((x2[intersect.points] - x1[intersect.points]) / (x1.slopes - x2.slopes))
+      y.points <- x1[intersect.points] + (x1.slopes * (x.points - intersect.points))
+      
+      # Coerce x.points to the same scale as x
+      x_gap <- data1$x[2] - data1$x[1]
+      x.points <- data1$x[intersect.points] + (x_gap*(x.points - intersect.points))
+      
+      # Create new data frame and merge to introduce new rows of data
+      data2 <- data.frame(y = c(data1$y, y.points), x = c(data1$x, x.points))
+      data2 <- data2[order(data2$x),]
+      data3 <- base::merge(data1, data2, by = c("x","y"), all.y = T)
+      data3$y2[is.na(data3$y2)] <- data3$y[is.na(data3$y2)]
+      
+      # Remove missing values for better plotting
+      data3$y[data3$y < data3$y2] <- NA
+      missing_pos <- !stats::complete.cases(data3[c("x", "y", "y2")])
+      ids <- cumsum(missing_pos) + 1
+      ids[missing_pos] <- NA
+      
+      # Get the correct positions
+      positions <- data.frame(x = c(data3$x, rev(data3$x)),
+                              y = c(data3$y, rev(data3$y2)),
+                              ids = c(ids, rev(ids)))
+      
+      # Convert to a format geom2trace is happy with
+      positions <- plotly::group2NA(positions, groupNames = "ids")
+      positions <- positions[stats::complete.cases(positions$ids),]
+      positions <- dplyr::left_join(positions, data[,-c(2,3)], by = "x")
+      if(length(stats::complete.cases(positions$PANEL)) > 1) 
+        positions$PANEL <- positions$PANEL[stats::complete.cases(positions$PANEL)][1]
+      if(length(stats::complete.cases(positions$group)) > 1) 
+        positions$group <- positions$group[stats::complete.cases(positions$group)][1]
+      
+      # Run the plotly polygon code
+      if(length(unique(positions$PANEL)) == 1){
+        getFromNamespace("geom2trace.GeomPolygon", asNamespace("plotly"))(positions)
+      } else{
+        return()
+      }
+    }
     # p <- lollilot()
     p <- lolliPlot()
     pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) #%>%
@@ -463,35 +534,26 @@ server <- function(input, output, session){
   
   ### Create data table
   tsTable <- reactive({
-    event_data <- pixelData()$event %>% 
-      dplyr::filter(date_start >= input$from_to[1], date_start <= input$from_to[2]) %>% 
-      mutate(Event = "MHW") %>% 
+    event_data <- pixelData()$event |> 
+      dplyr::filter(date_start >= input$from_to[1], date_start <= input$from_to[2]) |> 
+      mutate(Event = "MHW")
+    event_MCS_data <- pixelData()$event_MCS |> 
+      dplyr::filter(date_start >= input$from_to[1], date_start <= input$from_to[2]) |> 
+      mutate(Event = "MCS")
+    event_res <- rbind(event_data, event_MCS_data) |> 
       dplyr::rename(Lon = lon,
                     Lat = lat,
                     '#' = event_no,
+                    Category = category,
                     Duration = duration,
                     'Start Date' = date_start,
                     'Peak Date' = date_peak,
                     'End Date' = date_end,
                     'Mean Intensity' = intensity_mean,
                     'Max. Intensity' = intensity_max,
-                    'Cum. Intensity' = intensity_cumulative)
-    event_MCS_data <- pixelData()$event_MCS %>% 
-      dplyr::filter(date_start >= input$from_to[1], date_start <= input$from_to[2]) %>% 
-      mutate(Event = "MCS") %>% 
-      dplyr::rename(Lon = lon,
-                    Lat = lat,
-                    '#' = event_no,
-                    Duration = duration,
-                    'Start Date' = date_start,
-                    'Peak Date' = date_peak,
-                    'End Date' = date_end,
-                    'Mean Intensity' = intensity_mean,
-                    'Max. Intensity' = intensity_max,
-                    'Cum. Intensity' = intensity_cumulative)
-    event_res <- rbind(event_data, event_MCS_data) %>% 
-      dplyr::arrange(`Peak Date`) %>% 
-      dplyr::select(Event, Lon, Lat, `#`, Duration, `Start Date`, `Peak Date`, `End Date`, 
+                    'Cum. Intensity' = intensity_cumulative) |> 
+      dplyr::arrange(`Peak Date`) |> 
+      dplyr::select(Event, Lon, Lat, `#`, Category, Duration, `Start Date`, `Peak Date`, `End Date`, 
                     `Mean Intensity`, `Max. Intensity`, `Cum. Intensity`)
     event_res
   })
