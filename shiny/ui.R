@@ -141,7 +141,8 @@ ui <- page_sidebar(
                     )
                   ),
                   nav_panel(title = "Time series", value = "ts", 
-                            plotOutput("tsPlot"), type = 6, color = "#b0b7be"),
+                            # plotOutput("tsPlot"), type = 6, color = "#b0b7be"),
+                            plotlyOutput("tsPlotly")),
                             # withSpinner(plotOutput("tsPlot", height = "465px"), type = 6, color = "#b0b7be")),
                   # NB: plotly is misbehaving itself again
                             # withSpinner(plotlyOutput("tsPlotly", height = "465px"), type = 6, color = "#b0b7be")),

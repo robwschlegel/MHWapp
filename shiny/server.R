@@ -47,18 +47,14 @@ server <- function(input, output, session){
         height = "130px",
         height_mobile = "100px",
         fill = FALSE, fillable = TRUE,
-        uiOutput("percT"), uiOutput("percI"), uiOutput("percII"), uiOutput("percIII"), uiOutput("percIV"), uiOutput("percV")
-      )
+        uiOutput("percT"), uiOutput("percI"), uiOutput("percII"), uiOutput("percIII"), uiOutput("percIV"), uiOutput("percV"))
       } else {
         layout_column_wrap(
           width = "200px",
           height = "130px",
           height_mobile = "100px",
           fill = FALSE, fillable = TRUE,
-          uiOutput("percT"), uiOutput("percI"), uiOutput("percII"), uiOutput("percIII"), uiOutput("percIV")
-          # uiOutput("valueBoxes", fill = FALSE, inline = TRUE)#[[1:4]]
-          # value_boxes
-        )
+          uiOutput("percT"), uiOutput("percI"), uiOutput("percII"), uiOutput("percIII"), uiOutput("percIV"))
     }
 
   })
