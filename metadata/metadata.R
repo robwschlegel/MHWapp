@@ -102,19 +102,21 @@ load("metadata/lon_lat_OISST_area.RData")
 load("metadata/OISST_no_ice_coords.Rdata")
 
 # Create ice only layer
-OISST_no_ice_coords$index <- paste(OISST_no_ice_coords$lon, OISST_no_ice_coords$lat)
-OISST_ocean_coords$index <- paste(OISST_ocean_coords$lon, OISST_ocean_coords$lat)
-OISST_ice_coords <- OISST_ocean_coords |> 
-  filter(!(index %in% OISST_no_ice_coords$index)) |> 
-  dplyr::select(-index)
+# OISST_no_ice_coords$index <- paste(OISST_no_ice_coords$lon, OISST_no_ice_coords$lat)
+# OISST_ocean_coords$index <- paste(OISST_ocean_coords$lon, OISST_ocean_coords$lat)
+# OISST_ice_coords <- OISST_ocean_coords |> 
+#   filter(!(index %in% OISST_no_ice_coords$index)) |> 
+#   dplyr::select(-index)
 
 # Project between EPSG:4326 (OISST) and EPSG:leaflet
-OISST_ice_coords_XY <- mutate(OISST_ice_coords, Z = 1) |> dplyr::rename(X = lon, Y = lat) |> dplyr::select(X, Y, Z)
-OISST_ice_coords_non_proj <- raster::rasterFromXYZ(OISST_ice_coords_XY, res = c(0.25, 0.25),
-                                                   digits = 3, crs = "EPSG:4326")
-OISST_ice_coords_proj <- leaflet::projectRasterForLeaflet(OISST_ice_coords_non_proj, method = "ngb")
-raster::writeRaster(OISST_ice_coords_proj, format = "GTiff", overwrite = TRUE,
-                    filename = "metadata/OISST_ice_coords.tif")
+# OISST_ice_coords_XY <- mutate(OISST_ice_coords, Z = 1) |> dplyr::rename(X = lon, Y = lat) |> dplyr::select(X, Y, Z)
+# OISST_ice_coords_non_proj <- raster::rasterFromXYZ(OISST_ice_coords_XY, res = c(0.25, 0.25),
+#                                                    digits = 3, crs = "EPSG:4326")
+# OISST_ice_coords_proj <- leaflet::projectRasterForLeaflet(OISST_ice_coords_non_proj, method = "ngb")
+# raster::writeRaster(OISST_ice_coords_proj, format = "GTiff", overwrite = TRUE,
+#                     filename = "metadata/OISST_ice_coords.tif")
+# raster::writeRaster(OISST_ice_coords_proj, format = "GTiff", overwrite = TRUE,
+#                     filename = "../data/OISST/ice_proj.tif")
 
 # The base map
 map_base <- ggplot2::fortify(maps::map(fill = TRUE, col = "grey80", plot = FALSE)) %>%

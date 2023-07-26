@@ -49,11 +49,12 @@ source("functions.R", local = TRUE)
 # Meta-data ---------------------------------------------------------------
 
 ### Check that main data folders exist
+# NB: These are the folders that are connected to whalemap via rsync
 if(!dir.exists("cat_clim")) stop("The 'cast_clim' folder is missing.")
 if(!dir.exists("event")) stop("The 'event' folder is missing.")
-# if(!dir.exists("modules")) stop("The 'modules' folder is missing.")
 if(!dir.exists("OISST")) stop("The 'OISST' folder is missing.")
 if(!dir.exists("thresh")) stop("The 'thresh' folder is missing.")
+# if(!dir.exists("modules")) stop("The 'modules' folder is missing.")
 
 ### The file locations
 OISST_files <- dir("OISST", pattern = "oisst-avhrr", full.names = T)
@@ -66,7 +67,7 @@ MCS_seas_thresh_files <- dir("thresh/MCS", pattern = "MCS.seas.thresh.", full.na
 
 ### The dates currently processed
 # TODO: Make this an output of MHW_daily.R to be simply loaded here
-# Rather base this on the annual statisitcs value as this is the final calculation
+# Rather base this on the annual statistics value as this is the final calculation
 # If there have been any errors along the way it will be felt there
 current_dates <- dir("cat_clim", recursive = T, pattern = ".tif", full.names = T) %>% threadr::str_filter("MCS", invert = T)
 current_dates <- sapply(strsplit(current_dates, split = "cat.clim."), "[[", 3)
@@ -98,7 +99,7 @@ load("../metadata/OISST_leaf_coords.Rdata")
 load("../metadata/lon_lat_OISST_area.RData")
 
 ### Ice coords
-ice_proj <- raster::raster("../metadata/OISST_ice_coords.tif")
+ice_proj <- raster::raster("../data/OISST/ice_proj.tif")
 
 ### Oliver et al. 2018 data
 ## NB: To save time on launch this is now loaded in map-server.R when requested

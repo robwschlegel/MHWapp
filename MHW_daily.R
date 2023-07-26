@@ -152,7 +152,7 @@ if(nrow(OISST_dat) > 2){
 # 2: Update MHW event and category data -----------------------------------
 
 # Prep guide info for this section
-doParallel::registerDoParallel(cores = 50)
+doParallel::registerDoParallel(cores = 25)
 ncdf_date <- max(as.Date(tidync("../data/OISST/oisst-avhrr-v02r01.ts.1440.nc")$transforms$time$time, origin = "1970-01-01"))
 cat_lon_date <- max(readRDS("../data/cat_lon/MHW.cat.1440.Rda")$t)
 

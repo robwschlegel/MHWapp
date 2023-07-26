@@ -609,14 +609,14 @@ event_proc <- function(df, sst_seas_thresh, event_data, cat_lon, event_file, cat
 
 # Function for extracting correct SST data based on pre-determined subsets
 # It also calculates and returns corrected MHW metric results
-# df <- MHW_previous_event_index[200,]
+# df <- MHW_previous_event_index[1,]
 # event_data <- MHW_event_data[MHW_event_data$lat == df$lat,]
 # cat_lon <- MHW_cat_lon[MHW_cat_lon$lat == df$lat,]
-# full <- T; cold_choice <- F
+# full <- F; cold_choice <- F
 # df <- MCS_previous_event_index[49,]
 # event_data <- MCS_event_data[MCS_event_data$lat == df$lat,]
 # cat_lon <- MCS_cat_lon[MCS_cat_lon$lat == df$lat,]
-# full <- T; cold_choice <- T
+# full <- F; cold_choice <- T
 event_calc <- function(df, sst_seas_thresh, event_data, cat_lon, full, cold_choice){
   
   # Extract necessary SST
@@ -746,13 +746,7 @@ cat_clim_global_daily <- function(date_range){
                                     .parallel = T, date_range = date_range) |> 
     mutate(category = factor(category, 
                              levels = c("I Moderate", "II Strong",
-                                        "III Severe", "IV Extreme")),
-           category_correct = factor(category_correct, 
-                                     levels = c("I Moderate", "II Strong",
-                                                "III Severe", "IV Extreme")),
-           category_ice = factor(category_ice,
-                                 levels = c("I Moderate", "II Strong",
-                                            "III Severe", "IV Extreme", "V Ice"))) |> 
+                                        "III Severe", "IV Extreme", "V Ice"))) |> 
     na.omit()
   
   # Save data as .Rda and as rasters projected to the shiny EPSG:3857

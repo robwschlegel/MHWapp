@@ -115,6 +115,7 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
                                            chosen_clim,"_",chosen_year,".Rds"))
     if(product == "OISST" & chosen_clim == "1982-2011"){
       saveRDS(event_cat_pixel, file = paste0("data/annual_summary/",event_type,"_cat_pixel_",chosen_year,".Rds"))
+      saveRDS(event_cat_pixel, file = paste0("../data/OISST/annual_summary/",event_type,"_cat_pixel_",chosen_year,".Rds"))
     }
   }
   
@@ -183,6 +184,7 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
                                            chosen_clim,"_",chosen_year,".Rds"))
     if(product == "OISST" & chosen_clim == "1982-2011"){
       saveRDS(event_cat_daily, file = paste0("data/annual_summary/",event_type,"_cat_daily_",chosen_year,".Rds"))
+      saveRDS(event_cat_daily, file = paste0("../data/OISST/annual_summary/",event_type,"_cat_daily_",chosen_year,".Rds"))
     }
   }
 }
@@ -333,6 +335,7 @@ MHW_annual_count <- function(chosen_year, hemisphere){
            lat = as.numeric(as.character(lat)))
   # ) # 16 seconds
   saveRDS(MHW_cat_count, paste0("data/annual_summary/MHW_cat_count_",hemisphere,"_", chosen_year,".Rds"))
+  saveRDS(MHW_cat_count, paste0("../data/OISST/annual_summary/MHW_cat_count_",hemisphere,"_", chosen_year,".Rds"))
   # write_csv(MHW_cat_count, paste0("data/annual_summary/MHW_cat_sum_",hemisphere,"_", chosen_year,".csv"))
 }
 
