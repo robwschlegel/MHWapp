@@ -23,10 +23,22 @@ ui <- page_sidebar(
     height = "130px",
     height_mobile = "100px",
     fill = FALSE, fillable = TRUE,
-    uiOutput("percT"), uiOutput("percI"), uiOutput("percII"), uiOutput("percIII"), uiOutput("percIV")
+    uiOutput("percT"), uiOutput("percI"), uiOutput("percII"), uiOutput("percIII"), uiOutput("percIV"), uiOutput("percV")
+  # uiOutput("valueBoxes", fill = FALSE, inline = TRUE)#[[1:4]]
+    # value_boxes
   ),
+  # fluidRow(uiOutput("valueBoxes", fill = TRUE, inline = TRUE)),
 
-
+  # tags$div(class = "row",
+  #          tags$div(class = "span4",
+                    # uiOutput("valueBoxes", inline = TRUE),
+  # p('Would like this',uiOutput("valueBoxes", inline = TRUE),'to be all on one line.'),
+           # )
+           # ),
+  # layout_columns(uiOutput("valueBoxes", inline = TRUE)),
+  # fluidRow(column(width=12, uiOutput("valueBoxes"))),
+  
+  
   # Map card ----------------------------------------------------------------
 
   # TODO: Make sidebar tab button larger

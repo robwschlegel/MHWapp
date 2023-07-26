@@ -121,27 +121,30 @@ showpos <- function(x = NULL, y = NULL){
 # Reacts to map layers and displays coloured percent summaries
 # testers...
 # event_type <- "MHW"; cat_choice <- "I Moderate"
-value_box_cat <- function(layer_choice, cat_choice, mapCover){
+# value_box_cat <- function(layer_choice, cat_choice, mapCover){
+value_box_cat <- function(cat_choice, layer_choice, mapCover){
   
   if(nrow(mapCover) < 2) return()
   
   # Set colour palette
   if(layer_choice == "MCS Category"){
     event_colours <- c(base_colours[2], MCS_colours)
+    mapCover$text_class = c("text-dark", "text-dark", "text-dark", "text-light", "text-light", "text-dark")
   } else {
     event_colours <- c(base_colours[1], MHW_colours)
+    mapCover$text_class = c("text-dark", "text-dark", "text-dark", "text-light", "text-light")
   }
   names(event_colours)[1] <- "Total cover"
   
   # Get values
   event_col <- event_colours[names(event_colours) == cat_choice]
-  mapCover$text_class = c("text-dark", "text-dark", "text-light", "text-light", "text-dark")
   mapVal <- filter(mapCover, category == cat_choice)
   
   # Create box
   value_box(title = mapVal$category, value = mapVal$cat_area_prop*100, showcase = bs_icon("percent"),
             style = paste0("background-color: ",event_col,"!important;"), class = mapVal$text_class)
 }
+
 
 # Load MHW cat file and include the date ----------------------------------
 
