@@ -129,10 +129,10 @@ value_box_cat <- function(cat_choice, layer_choice, mapCover){
   # Set colour palette
   if(layer_choice == "MCS Category"){
     event_colours <- c(base_colours[2], MCS_colours)
-    mapCover$text_class = c("text-dark", "text-dark", "text-dark", "text-light", "text-light", "text-dark")
+    mapCover$text_class = c("text-dark", "text-dark", "text-light", "text-light", "text-dark", "text-dark")
   } else {
     event_colours <- c(base_colours[1], MHW_colours)
-    mapCover$text_class = c("text-dark", "text-dark", "text-dark", "text-light", "text-light")
+    mapCover$text_class = c("text-dark", "text-dark", "text-light", "text-light", "text-dark")
   }
   names(event_colours)[1] <- "Total cover"
   

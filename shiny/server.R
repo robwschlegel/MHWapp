@@ -38,28 +38,29 @@ server <- function(input, output, session){
       NULL
     }
   })
+
   output$valueBoxes <- renderUI({
-    req(mapCover())
+    req(input$layer)
     if(input$layer == "MCS Category"){
-      event_names <- names(c(base_colours[2], MCS_colours))
-    } else {
-      event_names <- names(c(base_colours[2], MHW_colours))
+      layout_column_wrap(
+        width = "200px",
+        height = "130px",
+        height_mobile = "100px",
+        fill = FALSE, fillable = TRUE,
+        uiOutput("percT"), uiOutput("percI"), uiOutput("percII"), uiOutput("percIII"), uiOutput("percIV"), uiOutput("percV")
+      )
+      } else {
+        layout_column_wrap(
+          width = "200px",
+          height = "130px",
+          height_mobile = "100px",
+          fill = FALSE, fillable = TRUE,
+          uiOutput("percT"), uiOutput("percI"), uiOutput("percII"), uiOutput("percIII"), uiOutput("percIV")
+          # uiOutput("valueBoxes", fill = FALSE, inline = TRUE)#[[1:4]]
+          # value_boxes
+        )
     }
-    event_names[1] <- "Total cover"
-    # mapCover <- mapCover()
-    # layer_choice <- input$layer
-    # value_boxes <- tagList(
-    # value_box_cat("Total cover", input$layer, mapCover()),
-    # value_box_cat("I Moderate", input$layer, mapCover()),
-    # value_box_cat("II Strong", input$layer, mapCover()),
-    # value_box_cat("III Severe", input$layer, mapCover()),
-    # value_box_cat("IV Extreme", input$layer, mapCover())
-    # )
-    value_boxes <- lapply(event_names, value_box_cat, layer_choice = input$layer, mapCover = mapCover())
-    # value_boxes <- tagList(lapply(event_names, value_box_cat, layer_choice = input$layer, mapCover = mapCover()))
-    # do.call(tagList, unlist(value_boxes, recursive = FALSE))
-    # unlist(value_boxes, recursive = FALSE)
-    return(value_boxes)
+
   })
   
   # value_boxes <- list(

@@ -17,26 +17,7 @@ ui <- page_sidebar(
   # Summary boxes
   # TODO: Dropdown within total box to allow for choice of different base statistics
     # Could also allow choice of time period.
-  # Can these show two colours at once? That is probably a bad use of time to figure out.
-  layout_column_wrap(
-    width = "200px",
-    height = "130px",
-    height_mobile = "100px",
-    fill = FALSE, fillable = TRUE,
-    uiOutput("percT"), uiOutput("percI"), uiOutput("percII"), uiOutput("percIII"), uiOutput("percIV"), uiOutput("percV")
-  # uiOutput("valueBoxes", fill = FALSE, inline = TRUE)#[[1:4]]
-    # value_boxes
-  ),
-  # fluidRow(uiOutput("valueBoxes", fill = TRUE, inline = TRUE)),
-
-  # tags$div(class = "row",
-  #          tags$div(class = "span4",
-                    # uiOutput("valueBoxes", inline = TRUE),
-  # p('Would like this',uiOutput("valueBoxes", inline = TRUE),'to be all on one line.'),
-           # )
-           # ),
-  # layout_columns(uiOutput("valueBoxes", inline = TRUE)),
-  # fluidRow(column(width=12, uiOutput("valueBoxes"))),
+  uiOutput("valueBoxes"),
   
   
   # Map card ----------------------------------------------------------------
@@ -67,7 +48,7 @@ ui <- page_sidebar(
              accordion_panel(
                "Ice mask", icon = bsicons::bs_icon("snow2"),
                shinyWidgets::prettySwitch(inputId = "iceMask", label = NULL, value = TRUE, 
-                                          status = "info", fill = TRUE)
+                                          status = "info", fill = TRUE, bigger = TRUE)
              ),
              # Date selector
              accordion_panel(
@@ -143,8 +124,9 @@ ui <- page_sidebar(
                       # TODO: Make this the new style of daterange selector
                       accordion_panel(
                         "Date range", icon = bsicons::bs_icon("menu-app"),
-                        dateRangeInput(
+                        daterangepicker::daterangepicker(
                           label = NULL, inputId = "from_to",
+                          options = daterangepicker::daterangepickerOptions(linkedCalendars = FALSE),
                           start = max(current_dates)-365, end = max(current_dates),
                           min = "1982-01-01", max = max(current_dates))
                       ),
