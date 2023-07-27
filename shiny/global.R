@@ -124,6 +124,14 @@ MCS_colours <- c(
   "V Ice" = "#D8BFD8"
 )
 
+#### Create double colour palette
+MHW_colours_double <- MHW_colours
+names(MHW_colours_double) <- paste0("MHW_",names(MHW_colours_double))
+MCS_colours_double <- MCS_colours
+names(MCS_colours_double) <- paste0("MCS_",names(MCS_colours_double))
+colours_double <- c(MHW_colours_double, MCS_colours_double)
+rm(MHW_colours_double, MCS_colours_double)
+
 ### Colour palettes for leaflet
 # pal_factor <- colorFactor(palette = MHW_colours, levels = levels(MHW_cat_clim_sub$category))
 # pal_cat <- colorNumeric(palette = MHW_colours, domain = c(1,2,3,4), na.color = NA)

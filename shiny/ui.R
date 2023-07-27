@@ -8,7 +8,6 @@ ui <- page_sidebar(
   title = "Marine Heatwave Tracker",
   theme = bs_theme(version = 5, bootswatch = "yeti"),
   fillable = FALSE, 
-  # h1("Marine Heatwave Tracker"),
   # header = list(cicerone::use_cicerone()), # Start guided tour
   
 
@@ -23,7 +22,6 @@ ui <- page_sidebar(
   # Map card ----------------------------------------------------------------
 
   # TODO: Make sidebar tab button larger
-  # TODO: Consider calculating monthly values
   # TODO: Get annual summaries back in
   # TODO: Allow downloading annual summary PDF figures with a text caption explaining the panels
   # TODO: Could show MCS and MHW at the same time
@@ -105,8 +103,6 @@ ui <- page_sidebar(
 
   # Time series card --------------------------------------------------------
 
-  # card(full_screen = TRUE,
-  # TODO: Add title to ts plots to show pixel lon/lat etc.
   navset_card_tab(full_screen = TRUE,
                   height = "600px",
                   title = "Pixel data",
@@ -136,25 +132,25 @@ ui <- page_sidebar(
                         downloadButton(outputId = "download_event",
                                        label = "Event data (csv)", class = 'small-dl')
                       )
-                    )
+                    )#,
+                    # sidebar = sidebar(position = "right", open = FALSE, title = "Select Y axis value",
+                    #                   selectInput(inputId = "lolliY", label = NULL,
+                    #                               choices = c("Max. Intensity (°C)", "Cum. Intensity (°C)"),
+                    #                               selected = "Max. Intensity (°C)", multiple = FALSE))
                   ),
                   nav_panel(title = "Time series", value = "ts",
                             # NB: plotly is misbehaving itself again
-                            # plotOutput("tsPlot"), type = 6, color = "#b0b7be"),
+                            plotOutput("tsPlot")
                             # withSpinner(plotOutput("tsPlot"), type = 6, color = "#b0b7be")),
                             # withSpinner(plotlyOutput("tsPlotly", height = "465px"), type = 6, color = "#b0b7be")),
-                            plotlyOutput("tsPlotly"),
-                            # sidebar = sidebar(position = "right", open = FALSE, title = "Select Y axis value",
-                            #                   selectInput(inputId = "lolliY", label = NULL,
-                            #                               choices = c("Max. Intensity (°C)", "Cum. Intensity (°C)"),
-                            #                               selected = "Max. Intensity (°C)", multiple = FALSE))
+                            # plotlyOutput("tsPlotly")
                             ),
                   # TODO: Add y-axis control for lolliplot
                   nav_panel(title = "Lolliplot", value = "lolli", 
-                            plotlyOutput("lolliPlotly"), type = 6, color = "#b0b7be"),
+                            plotlyOutput("lolliPlotly")),
                             # withSpinner(plotlyOutput("lolliPlotly", height = "465px"), type = 6, color = "#b0b7be")),
                   nav_panel(title = "Table", value = "table", 
-                            DT::dataTableOutput("tsTable"),type = 6, color = "#b0b7be")
+                            DT::dataTableOutput("tsTable"))
                             # withSpinner(DT::dataTableOutput("tsTable", height = "465px"), type = 6, color = "#b0b7be"))
   ),
   

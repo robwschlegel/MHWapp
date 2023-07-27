@@ -216,7 +216,7 @@ if(length(update_dates) > 0) {
 # simply change the 'update_dates' object manually and re-run the section.
 
 # For loop to reprocess large sets of data one year at a time in 6 month batches
-# doParallel::registerDoParallel(cores = 50) # Don't update more than 6 months at once on 50 cores
+# doParallel::registerDoParallel(cores = 25) # Don't update more than 6 months at once on 40 cores
 # for(i in 1982:2023){
 #   update_dates <- seq(as.Date(paste0(i,"-01-01")), as.Date(paste0(i,"-06-30")), by = "day")
 #   print(paste0("Updating from ",min(update_dates)," to ",max(update_dates)," at ", Sys.time()))

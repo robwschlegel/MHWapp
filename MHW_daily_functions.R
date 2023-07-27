@@ -733,7 +733,7 @@ save_sub_cat_clim <- function(date_choice, df, event_type){
 }
 
 # Function for loading, prepping, and saving the daily global category slices
-# date_range <- c(as.Date("2020-01-01"), as.Date("2020-01-01"))
+# date_range <- c(as.Date("1982-01-01"), as.Date("1982-01-01"))
 cat_clim_global_daily <- function(date_range){
   MHW_cat_clim_daily <- plyr::ldply(MHW_cat_lon_files,
                                     load_sub_cat_clim,

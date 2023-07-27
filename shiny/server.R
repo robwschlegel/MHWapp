@@ -17,21 +17,27 @@ server <- function(input, output, session){
   
   ### Reactive value boxes
   output$percT <- renderUI({
+    req(input$layer)
     value_box_cat("Total cover", input$layer, mapCover())
   })
   output$percI <- renderUI({
+    req(input$layer)
     value_box_cat("I Moderate", input$layer, mapCover())
   })
   output$percII <- renderUI({
+    req(input$layer)
     value_box_cat("II Strong", input$layer, mapCover())
   })
   output$percIII <- renderUI({
+    req(input$layer)
     value_box_cat("III Severe", input$layer, mapCover())
   })
   output$percIV <- renderUI({
+    req(input$layer)
     value_box_cat("IV Extreme", input$layer, mapCover())
   })
   output$percV <- renderUI({
+    req(input$layer)
     if(input$layer == "MCS Category"){
       value_box_cat("V Ice", input$layer, mapCover())
     } else {
@@ -239,6 +245,14 @@ server <- function(input, output, session){
     event_MCS_data_sub <- event_MCS_data %>%
       dplyr::filter(date_peak >= input$from_to[1], date_peak <= input$from_to[2])
     
+    # Get days during MHW/MCS
+    # ts_data_MHW <- plyr::ddply(event_data_sub, c("event_no"), ts_event_join, ts_data_sub, .parallel = F)
+    # ts_data_MCS <- plyr::ddply(event_MCS_data_sub, c("event_no"), ts_event_join, ts_data_sub, .parallel = F)
+    
+    # Get constant y-axis values
+    # ts_y_min <- min(ts_data_sub$temp, na.rm = T)
+    # ts_y_max <- max(ts_data_sub$temp, na.rm = T)
+    
     # The base
     p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
       labs(x = x_lab, y = y_lab, title = title_lab) +
@@ -247,31 +261,53 @@ server <- function(input, output, session){
     
     # Add flame categories as needed
     ## MHWs
+    # if(any(ts_data_sub$temp > ts_data_sub$thresh)){
     if(any(ts_data_sub$temp > ts_data_sub$thresh)){
       p <- p + heatwaveR::geom_flame(aes(y2 = thresh), fill = "#ffc866", n = 5, n_gap = 2)
+      # p <- p + geom_segment(data = ts_data_sub, linewidth = 1,
+      #                   aes(x = t, xend = t, y = ts_y_min, yend = ts_y_max), colour = "#ffc866")
     }
     if(any(ts_data_sub$temp > ts_data_sub$thresh_2x)){
       p <- p + heatwaveR::geom_flame(aes(y2 = thresh_2x), fill = "#ff6900")
+      # p <- p + geom_segment(data = filter(ts_data_sub, temp > thresh_2x),
+      #                       aes(x = t, xend = t, y = ts_y_min, yend = ts_y_max), colour = "#ff6900")
     }
     if(any(ts_data_sub$temp > ts_data_sub$thresh_3x)){
       p <- p + heatwaveR::geom_flame(aes(y2 = thresh_3x), fill = "#9e0000")
+      # p <- p + geom_segment(data = filter(ts_data_sub, temp > thresh_3x),
+      #                       aes(x = t, xend = t, y = ts_y_min, yend = ts_y_max), colour = "#9e0000")
     }
     if(any(ts_data_sub$temp > ts_data_sub$thresh_4x)){
       p <- p + heatwaveR::geom_flame(aes(y2 = thresh_4x), fill = "#2d0000")
+      # p <- p + geom_segment(data = filter(ts_data_sub, temp > thresh_4x),
+      #                       aes(x = t, xend = t, y = ts_y_min, yend = ts_y_max), colour = "#2d0000")
     }
     ## MCSs
     if(any(ts_data_sub$temp < ts_data_sub$thresh_MCS)){
       p <- p + heatwaveR::geom_flame(aes(y = thresh_MCS, y2 = temp), fill = "#C7ECF2", n = 5, n_gap = 2)
+      # p <- p + geom_segment(data = ts_data_sub,
+      #                       aes(x = t, xend = t, y = ts_y_min, yend = ts_y_max), colour = "#C7ECF2")
     }
     if(any(ts_data_sub$temp < ts_data_sub$thresh_MCS_2x)){
       p <- p + heatwaveR::geom_flame(aes(y = thresh_MCS_2x, y2 = temp), fill = "#85B7CC")
+      # p <- p + geom_segment(data = filter(ts_data_sub, temp < thresh_MCS_2x),
+      #                       aes(x = t, xend = t, y = ts_y_min, yend = ts_y_max), colour = "#85B7CC")
     }
     if(any(ts_data_sub$temp < ts_data_sub$thresh_MCS_3x)){
       p <- p + heatwaveR::geom_flame(aes(y = thresh_MCS_3x, y2 = temp), fill = "#4A6A94")
+      # p <- p + geom_segment(data = filter(ts_data_sub, temp < thresh_MCS_3x),
+      #                       aes(x = t, xend = t, y = ts_y_min, yend = ts_y_max), colour = "#4A6A94")
     }
     if(any(ts_data_sub$temp < ts_data_sub$thresh_MCS_4x)){
       p <- p + heatwaveR::geom_flame(aes(y = thresh_MCS_4x, y2 = temp), fill = "#111433")
+      # p <- p + geom_segment(data = filter(ts_data_sub, temp < thresh_MCS_4x),
+      #                       aes(x = t, xend = t, y = ts_y_min, yend = ts_y_max), colour = "#111433")
     }
+    # if(any(ts_data_sub$category == "V Ice")){
+    #   p <- p + geom_segment(data = filter(ts_data_sub, category == "V Ice"),
+    #                         aes(x = t, xend = t, y = ts_y_min, yend = ts_y_max), colour = "#D8BFD8")
+    # }
+    
     # Add SST, seas, clim lines
     suppressWarnings( # text aes plotly
       p <- p + geom_line(colour = "grey20",
@@ -371,13 +407,6 @@ server <- function(input, output, session){
       mutate(category = paste0("MCS_",category)) |> 
       dplyr::filter(date_peak >= input$from_to[1], date_peak <= input$from_to[2])
     
-    # Create double colour palette
-    MHW_colours_double <- MHW_colours
-    names(MHW_colours_double) <- paste0("MHW_",names(MHW_colours_double))
-    MCS_colours_double <- MCS_colours
-    names(MCS_colours_double) <- paste0("MCS_",names(MCS_colours_double))
-    colours_double <- c(MHW_colours_double, MCS_colours_double)
-    
     # Get y_lims
     y_lims <- c(0, 1)
     if(length(event_data_sub$date_start) > 0) y_lims[2] <- max(event_data_sub$intensity_max)*1.1
@@ -440,91 +469,6 @@ server <- function(input, output, session){
   
   ### Interactive lolliplot
   lolliPlotly <- reactive({
-    geom2trace.GeomFlame <- function(data, params, p){
-      
-      x <- y <- y2 <- NULL
-      
-      # Create data.frame for ease of use
-      data1 <- data.frame(x = data[["x"]],
-                          y = data[["y"]],
-                          y2 = data[["y2"]])
-      
-      # Grab parameters
-      n <- params[["n"]]
-      n_gap <- params[["n_gap"]]
-      
-      # Find events that meet minimum length requirement
-      data_event <- heatwaveR::detect_event(data1, x = x, y = y,
-                                            seasClim = y,
-                                            threshClim = y2,
-                                            minDuration = n,
-                                            maxGap = n_gap,
-                                            protoEvents = T)
-      
-      # Detect spikes
-      data_event$screen <- base::ifelse(data_event$threshCriterion == FALSE, FALSE,
-                                        ifelse(data_event$event == FALSE, TRUE, FALSE))
-      
-      # Screen out spikes
-      data1 <- data1[data_event$screen != TRUE,]
-      
-      # Prepare to find the polygon corners
-      x1 <- data1$y
-      x2 <- data1$y2
-      
-      # # Find points where x1 is above x2.
-      above <- x1 > x2
-      above[above == TRUE] <- 1
-      above[is.na(above)] <- 0
-      
-      # Points always intersect when above=TRUE, then FALSE or reverse
-      intersect.points <- which(diff(above) != 0)
-      
-      # Find the slopes for each line segment.
-      x1.slopes <- x1[intersect.points + 1] - x1[intersect.points]
-      x2.slopes <- x2[intersect.points + 1] - x2[intersect.points]
-      
-      # # Find the intersection for each segment.
-      x.points <- intersect.points + ((x2[intersect.points] - x1[intersect.points]) / (x1.slopes - x2.slopes))
-      y.points <- x1[intersect.points] + (x1.slopes * (x.points - intersect.points))
-      
-      # Coerce x.points to the same scale as x
-      x_gap <- data1$x[2] - data1$x[1]
-      x.points <- data1$x[intersect.points] + (x_gap*(x.points - intersect.points))
-      
-      # Create new data frame and merge to introduce new rows of data
-      data2 <- data.frame(y = c(data1$y, y.points), x = c(data1$x, x.points))
-      data2 <- data2[order(data2$x),]
-      data3 <- base::merge(data1, data2, by = c("x","y"), all.y = T)
-      data3$y2[is.na(data3$y2)] <- data3$y[is.na(data3$y2)]
-      
-      # Remove missing values for better plotting
-      data3$y[data3$y < data3$y2] <- NA
-      missing_pos <- !stats::complete.cases(data3[c("x", "y", "y2")])
-      ids <- cumsum(missing_pos) + 1
-      ids[missing_pos] <- NA
-      
-      # Get the correct positions
-      positions <- data.frame(x = c(data3$x, rev(data3$x)),
-                              y = c(data3$y, rev(data3$y2)),
-                              ids = c(ids, rev(ids)))
-      
-      # Convert to a format geom2trace is happy with
-      positions <- plotly::group2NA(positions, groupNames = "ids")
-      positions <- positions[stats::complete.cases(positions$ids),]
-      positions <- dplyr::left_join(positions, data[,-c(2,3)], by = "x")
-      if(length(stats::complete.cases(positions$PANEL)) > 1) 
-        positions$PANEL <- positions$PANEL[stats::complete.cases(positions$PANEL)][1]
-      if(length(stats::complete.cases(positions$group)) > 1) 
-        positions$group <- positions$group[stats::complete.cases(positions$group)][1]
-      
-      # Run the plotly polygon code
-      if(length(unique(positions$PANEL)) == 1){
-        getFromNamespace("geom2trace.GeomPolygon", asNamespace("plotly"))(positions)
-      } else{
-        return()
-      }
-    }
     # p <- lollilot()
     p <- lolliPlot()
     pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) #%>%

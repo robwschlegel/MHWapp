@@ -171,6 +171,18 @@ readRDS_year <- function(file_name){
 }
 
 
+# Join ts and event -------------------------------------------------------
+
+# Conveninece wrapper to add daily event info
+ts_event_join <- function(event_df, ts_df){
+  ts_res <- ts_df |> 
+    filter(t >= event_df$date_start[1], t <= event_df$date_end[1]) |> 
+    mutate(event_no = event_df$event_no[1],
+           category = event_df$category[1])
+  return(ts_res)
+}
+
+
 # Plotly flames function --------------------------------------------------
 # NB: This used to be in the heatwaveR package but needed to be removed
 # when the plotly package was orphaned around Christmas time of 2020... 

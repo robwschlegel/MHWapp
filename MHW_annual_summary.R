@@ -46,7 +46,7 @@ max_event_date <- function(df){
 
 # testers...
 # product <- "OISST"
-# chosen_year <- 2020
+# chosen_year <- 1983
 # chosen_clim <- "1982-2011"
 # chosen_clim <- "1992-2018"
 # MHW <- F; force_calc <- T; database <- F
@@ -202,12 +202,12 @@ event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = 
 # Run ALL years
 ### OISST
 ## MHW
-# plyr::l_ply(1982:2019, event_annual_state, force_calc = T, .parallel = T,
+# plyr::l_ply(1982:2023, event_annual_state, force_calc = T, .parallel = T,
 #             product = "OISST", chosen_clim = "1982-2011") # ~90 seconds for one
 # plyr::l_ply(1982:2019, event_annual_state, force_calc = T, database = T, .parallel = T,
 #             product = "OISST", chosen_clim = "1992-2018")
 ## MCS
-# plyr::l_ply(1982:2020, event_annual_state, MHW = F, force_calc = T, .parallel = T,
+# plyr::l_ply(1982:2023, event_annual_state, MHW = F, force_calc = T, .parallel = T,
 #             product = "OISST", chosen_clim = "1982-2011")
 
 ### CCI
@@ -252,16 +252,11 @@ event_total_state <- function(product, chosen_clim, MHW = T){
   
   # Extract only values from December 31st
   cat_daily <- map_dfr(cat_daily_files, readRDS) %>%
-    # cat_daily <- map_dfr(dir("data/annual_summary/v2.0", pattern = "cat_daily",
-    # full.names = T), readRDS) %>% # The old v2.0 OISST data
-    # group_by(lubridate::year(t)) %>% 
-    # filter(t == max(t)) %>% 
-    # filter(lubridate::month(t) == 12, lubridate::day(t) == 31) %>%
     filter(lubridate::month(t) == 12, lubridate::day(t) == 31) %>%
     mutate(t = lubridate::year(t)) %>% #,
     # first_n_cum_prop = round(first_n_cum/nrow(OISST_ocean_coords), 4)) %>% 
     left_join(cat_daily_mean, by = c("t", "category"))# %>% 
-  # filter(t <= lubridate::year(Sys.Date())) # Use this to not include the current partial year
+    # filter(t <= lubridate::year(Sys.Date())) # Use this to not include the current partial year
   
   # Create a slimmed down dataframe to save as CSV for easier external use
   cat_daily_slim <- cat_daily %>% 
