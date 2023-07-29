@@ -108,11 +108,12 @@ server <- function(input, output, session){
   pal_react <- reactive({
     req(input$layer)
     if(input$layer == "MCS Category"){
-      event_palette <- MCS_colours
+      # event_palette <- MCS_colours
+      colorNumeric(palette = MCS_colours, domain = c(1,2,3,4,5), na.color = NA)
     } else {
-      event_palette <- MHW_colours
+      # event_palette <- MHW_colours
+      colorNumeric(palette = MHW_colours, domain = c(1,2,3,4), na.color = NA)
     }
-    colorNumeric(palette = event_palette, domain = c(1,2,3,4), na.color = NA)
     })
   
   ### The leaflet base
@@ -504,7 +505,13 @@ server <- function(input, output, session){
   
   ### Static time series plot
   output$tsPlot <- renderPlot({
-    tsPlot()
+    if(is.null(input$leaf_map_click)){
+      ggplot() +
+        geom_text(aes(x = 1, y = 1,
+                      label = "Please click a pixel on the map to visualise data.")) + theme_void()
+    } else {
+      tsPlot()
+    }
   })
   
   ### Interactive time series plot

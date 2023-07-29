@@ -170,7 +170,7 @@ if(ncdf_date > cat_lon_date){
 # This function can fix a specific file
 
 # Run one
-# event_cat_update(lon_OISST[1116], full = TRUE)
+# event_cat_update(lon_OISST[1287], full = TRUE)
 
 # Run many
 # plyr::l_ply(lon_OISST[1300:1365], .fun = event_cat_update, .parallel = TRUE, full = TRUE)

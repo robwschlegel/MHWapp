@@ -209,23 +209,26 @@ ui <- page_sidebar(
                     h2(tags$b("How do I use this?")),
                     br(),
                     p("This site works similarly to the Google maps we use in day-to-day life. Click and drag to move 
-             around the world. Use the mouse scroll to zoom in or out. The 'Date' box in the 'Controls' panel tells us which 
-             date is being shown on the map. Clicking in this box we can choose any date from the near present back to January 1st, 1982. 
-             We can also choose to filter out the different categories of MHWs by clicking on the corresponding category 
-             buttons near the bottom of the vontrol panel. If one of the pixels on the map catches your eye, clicking on it creates a popup that shows the 
-             longitude, latitude, and category of the MHW there. To get more information click on the 'Plot pixel' button
-             underneath the 'Category' buttons. This will bring up a new window with more detailed information. 
-             This window contains three tabs: 'Time series', 'Lolliplot', and 'Table'."),
-                    p("We can hover over the figure in the 'Time series' tab to get immediate feedback on what the temperature, climatology, and 
-             threshold were on any given day. At the peak date of every MHW is a small red tick mark on the bottom of the figure. If we 
-             hover over this tick mark it will show us summary values for that MHW. We can also select any range of 
-             dates we want to look at from the date selection boxes in the bottom left of the panel. The 'Lolliplot' tab shows the MHWs
-             with no adtional information, allowing us to focus on the events themselves. The 'Table' tab shows a spreadsheet
-             of all of the MHWs that have ever occurred at the chosen longitude/latitude. We can sort the events by clicking on the 
-             different columns. This event information may be downloaded by clicking the button in the bottom left corner of the panel.
-             We can download the figures, climatology & threshold data, and the MHW data for the chosen pixel with the 
-             download buttons at the bottom of the window. To download the temperature data please go to the", 
+                    around the world. Use the mouse scroll to zoom in or out. The 'Date' box in the 'Controls' panel tells us which 
+                    date is being shown on the map. Clicking in this box we can choose any date from the near present back to January 1st, 1982.
+                    If one of the pixels on the map catches your eye, clicking on it will give more information in the window below the map. 
+                    There we can find three panels. The first, 'Time series', shows the daily data for the pixel. Using the date selector
+                    we can chose as wide of a period as we like. The second tab, 'Lolliplot', shows all of the MHW/MCS in the selected
+                    date range, but focuses on just the events. This plot is interactive. Lastly, the 'Table' tab shows the metrics for all
+                    of the events in the chosen date range. We can sort the events by clicking on the different columns. We can download the, 
+                    climatology & threshold data, and the MHW data for the chosen pixel with the download buttons at the bottom of the 
+                    control panel. To download the temperature data please go to the", 
                       a(target = '_blank', rel = 'noopener noreferrer', href = "https://www.ncdc.noaa.gov/oisst", "NOAA website"),"."),
+             #        p("We can hover over the figure in the 'Time series' tab to get immediate feedback on what the temperature, climatology, and 
+             # threshold were on any given day. At the peak date of every MHW is a small red tick mark on the bottom of the figure. If we 
+             # hover over this tick mark it will show us summary values for that MHW. We can also select any range of 
+             # dates we want to look at from the date selection boxes in the bottom left of the panel. The 'Lolliplot' tab shows the MHWs
+             # with no adtional information, allowing us to focus on the events themselves. The 'Table' tab shows a spreadsheet
+             # of all of the MHWs that have ever occurred at the chosen longitude/latitude. We can sort the events by clicking on the 
+             # different columns. This event information may be downloaded by clicking the button in the bottom left corner of the panel.
+             # We can download the figures, climatology & threshold data, and the MHW data for the chosen pixel with the 
+             # download buttons at the bottom of the window. To download the temperature data please go to the", 
+             #          a(target = '_blank', rel = 'noopener noreferrer', href = "https://www.ncdc.noaa.gov/oisst", "NOAA website"),"."),
                     p("Going back to the main map we see that there are also 'Map layer', 'Map data', 'Background', and 'Coordinates' buttons.
              Clicking on the 'Map layer' button will bring up several options for which type of data to visualise. Please see the 
              'What are these different map layers?' section below for more detail. If one clicks on the
