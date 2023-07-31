@@ -178,7 +178,7 @@ ui <- page_sidebar(
                       ". For a more detailed explanation with visuals please follow this ", 
                       a(target = '_blank', rel = 'noopener noreferrer',
                         href = "http://www.marineheatwaves.org/all-about-mhws.html", "link"), 
-                      ". An iteractive demo of how a MHW is detected is available at this ",
+                      ". An interactive demo for how to detect a MHW is available at this ",
                       a(target = '_blank', rel = 'noopener noreferrer',
                         href = "http://193.50.85.71:3838/demoMHW/", "link"),"."),
                     br(),
@@ -197,7 +197,7 @@ ui <- page_sidebar(
                       addition to the category naming convention from ",
                       a(target = '_blank', rel = 'noopener noreferrer', 
                         href = "https://www.sciencedirect.com/science/article/abs/pii/S0079661121001683", "Schlegel et al. (2021)"),".
-                      This category shows when a cold event is being detected when the threshold is below -1.7°C. This basically means we are 
+                      This category shows when a cold event is being detected at a threshold below -1.7°C. This basically means we are 
                       just looking at ice that is a bit colder than normal. Not really a proper MCS by the intended spirit of the definition."),
                     br(),
                     h2(tags$b("Why should I care?")),
