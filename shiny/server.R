@@ -15,6 +15,12 @@ server <- function(input, output, session){
   #### This is meant to help avoid loading data unnecessarily
   yearReact <- reactiveValues(year = 1)#lubridate::year(Sys.Date()))
   
+  observeEvent(c(input$date), {
+    daterangepicker::updateDaterangepicker(session, "from_to", 
+                                           start = as.Date(input$date)-182, 
+                                           end = as.Date(input$date)+182)
+  })
+  
   ### Reactive value boxes
   output$percT <- renderUI({
     req(input$layer)
@@ -123,7 +129,7 @@ server <- function(input, output, session){
     # The base 
     # TODO: Consider adding a hover to wake scroll functionality to prevent accidental scroll zooming
     # https://bhaskarvk.github.io/leaflet.extras/reference/sleep.html
-    leaflet(options = leafletOptions(zoomControl = FALSE)) |> 
+    leaflet(options = leafletOptions(zoomControl = TRUE)) |> 
       setView(lng = initial_lon, lat = initial_lat, zoom = initial_zoom,
               options = tileOptions(minZoom = 0, maxZoom = 8, noWrap = F)) |> 
       addScaleBar(position = "topright") |> addTiles()
@@ -147,10 +153,24 @@ server <- function(input, output, session){
   
   # Pop-ups -----------------------------------------------------------------
   
+  ### Map click
+  click <- reactive({
+    if(is.null(input$leaf_map_click)){
+      click <- data.frame(lng = NA, lat = NA)
+    } else {
+      click <- data.frame(lng = input$leaf_map_click$lng,
+                          lat = input$leaf_map_click$lat)
+    }
+    })
+  ### Attempted throttling not behaving as expected
+  # click_d <- click |> debounce(1000)
+  # click_t <- click |> throttle(1000)
+  
   ### Observer to show pop-ups on click
   observeEvent(c(input$leaf_map_click), {
     req(input$leaf_map_click)
-    click <- input$leaf_map_click
+    # click <- input$leaf_map_click
+    click <- click()
     showpos(x = click$lng, y = click$lat)
   })
   
@@ -230,7 +250,7 @@ server <- function(input, output, session){
     # Check that it's not empty
     if(length(ts_data$temp) == 1){
       p <- ggplot() + geom_text(aes(x = 0, y = 0,label = "Please select an ocean pixel.")) +
-        labs(x = x_lab, y = y_lab, title = title_lab)
+        labs(x = x_lab, y = y_lab, title = title_lab) + theme_grey(base_size = 20)
       return(p)
     }
     
@@ -257,7 +277,8 @@ server <- function(input, output, session){
     # The base
     p <- ggplot(data = ts_data_sub, aes(x = t, y = temp)) +
       labs(x = x_lab, y = y_lab, title = title_lab) +
-      scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(input$from_to[1], input$from_to[2])) +
+      scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(input$from_to[1], input$from_to[2])) + 
+      theme_grey(base_size = 20) +
       theme(panel.border = element_rect(colour = "black", fill = NA))
     
     # Add flame categories as needed
@@ -419,7 +440,8 @@ server <- function(input, output, session){
       labs(x = x_lab, y = "Max. Intensity (°C)", title = title_lab) +
       scale_fill_manual(values = colours_double) +
       scale_y_continuous(limits = y_lims, expand = c(0, 0)) +
-      scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(input$from_to[1], input$from_to[2])) +
+      scale_x_date(expand = c(0, 0), date_labels = "%b %Y", limits = c(input$from_to[1], input$from_to[2])) + 
+      theme_grey(base_size = 15) +
       theme(panel.border = element_rect(colour = "black", fill = NA), legend.position = "none")
     
     # Add lollis as necessary
@@ -472,6 +494,7 @@ server <- function(input, output, session){
   lolliPlotly <- reactive({
     # p <- lollilot()
     p <- lolliPlot()
+    # p <- p + theme_gray(base_size = 16)
     pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) #%>%
     # style(hoverinfo = "none", traces = c(3, 4))
     pp
@@ -508,7 +531,7 @@ server <- function(input, output, session){
     if(is.null(input$leaf_map_click)){
       ggplot() +
         geom_text(aes(x = 1, y = 1,
-                      label = "Please click a pixel on the map to visualise data.")) + theme_void()
+                      label = "Please click a pixel on the map to visualise data.")) + theme_void(base_size = 20)
     } else {
       tsPlot()
     }

@@ -72,8 +72,8 @@ current_dates <- readRDS(paste0("OISST/annual_summary/MCS_cat_daily_", lubridate
 # date_menu_choice <- max(current_dates)
 
 ### Starting values
-initial_lat <- 45
-initial_lon <- -60
+initial_lat <- 30
+initial_lon <- 0
 initial_zoom <- 4
 
 ### The different layer groupings
@@ -101,7 +101,7 @@ ice_proj <- raster::raster("OISST/ice_proj.tif")
 # Oliver_2018 <- readRDS("../data/published/Oliver_2018.Rds")
 
 ### The empty dataframe for the legend
-MHW_cat_clim_sub <- data.frame(category = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
+# MHW_cat_clim_sub <- data.frame(category = c("I Moderate", "II Strong", "III Severe", "IV Extreme"))
 
 ### The category colour palettes
 base_colours <- c(
@@ -146,9 +146,9 @@ rm(MHW_colours_double, MCS_colours_double)
 server_instance <- Sys.getenv("R_SHNYSRVINST")
 
 ### Regional website URLs
-regional_NOAA <- "https://www.integratedecosystemassessment.noaa.gov/regions/california-current/cc-projects-blobtracker"
-regional_TMEDNET <- "http://t-mednet.org/t-resources/marine-heatwaves"
-regional_European_Northwest_Shelf <- "https://fishforecasts.dtu.dk/heatwaves/nw_shelf"
+# regional_NOAA <- "https://www.integratedecosystemassessment.noaa.gov/regions/california-current/cc-projects-blobtracker"
+# regional_TMEDNET <- "http://t-mednet.org/t-resources/marine-heatwaves"
+# regional_European_Northwest_Shelf <- "https://fishforecasts.dtu.dk/heatwaves/nw_shelf"
 
 ### Placeholders when invalid dates are typed into date selectors
 # empty_date_map <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") |> slice(1) |> mutate(category = NA)
