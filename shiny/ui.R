@@ -2,7 +2,8 @@
 
 ui <- page_sidebar(
   
-
+  autoWaiter(html = spin_pixel(), color = "grey"),
+  
   # Main info ---------------------------------------------------------------
 
   title = "Marine Heatwave Tracker",

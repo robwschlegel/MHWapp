@@ -22,6 +22,7 @@ library(ggplot2)
 library(leaflet)
 library(plotly)
 library(DT)
+library(waiter)
 # library(cicerone)
 })
 
