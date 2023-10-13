@@ -310,13 +310,17 @@ plyr::l_ply(1982:2022, zip_by_year, df = cat_clim_ALL, file_stub = "cat_clim")
 
 # Function for extracting NOAA OISST only from a given bbox
 ## NB: This could easily be adapted to extract other MHW values etc. from a bbox
-sst_bbox <- function(bbox){
+sst_bbox <- function(bbox, filter_full_year = TRUE){
   lon_bbox <- lon_OISST[which(lon_OISST >= bbox[1] & lon_OISST <= bbox[2])]
   lat_bbox <- range(lat_OISST[which(lat_OISST >= bbox[3] & lat_OISST <= bbox[4])])
   sst_dat <- plyr::ldply(lon_bbox, sst_seas_thresh_merge, .parallel = T, 
                          date_range = as.Date("1982-01-01"), lat_range = lat_bbox) %>% 
     dplyr::select(lon, lat, t, temp) %>% 
     dplyr::filter(lat >= bbox[3], lat <= bbox[4])
+  if(filter_full_year){
+    full_year <- as.Date(paste0(year(Sys.Date())-1,"-12-31"))
+    sst_dat <- filter(sst_dat, t <= full_year)
+  }
   return(sst_dat)
 }
 
@@ -342,19 +346,20 @@ sst_CCI_bbox <- function(file_name, bbox){
 # save(sst_arctic, file = "data/sst_arctic.RData")
 
 # EU Arctic
-## NB: Intentionally not extracting CCI data due to size
-doParallel::registerDoParallel(cores = 25)
-bbox_EU_arctic <- c(-60, 60, 60, 90)
-sst_EU_arctic <- sst_bbox(bbox_EU_arctic)
-save(sst_EU_arctic, file = "data/sst_EU_arctic.RData")
+## NB: Not run due to size
+# doParallel::registerDoParallel(cores = 25)
+# bbox_EU_arctic <- c(-60, 60, 60, 90)
+# sst_EU_arctic <- sst_bbox(bbox_EU_arctic)
+# save(sst_EU_arctic, file = "data/sst_EU_arctic.RData")
 
 # Svalbard
 bbox_sval <- c(9, 30, 76, 81)
 sst_sval <- sst_bbox(bbox_sval)
 save(sst_sval, file = "data/sst_sval.RData")
-sst_CCI_sval <- plyr::ldply(CCI_files_sub, sst_CCI_bbox, .parallel = T, bbox = bbox_sval)
-save(sst_CCI_sval, file = "data/sst_CCI_sval.RData")
-rm(sst_sval, sst_CCI_sval); gc()
+## NB: Not run due to size
+# sst_CCI_sval <- plyr::ldply(CCI_files_sub, sst_CCI_bbox, .parallel = T, bbox = bbox_sval)
+# save(sst_CCI_sval, file = "data/sst_CCI_sval.RData")
+# rm(sst_sval, sst_CCI_sval); gc()
 
 # Kongsfjorden
 bbox_kong <- c(9.5, 14.0, 78.0, 79.5)
@@ -421,7 +426,8 @@ save(sst_CCI_trom, file = "data/sst_CCI_trom.RData")
 rm(sst_trom, sst_CCI_trom); gc()
 
 # Greenland
-bbox_gland <- c(-77, -9, 58, 84)
-sst_gland <- sst_bbox(bbox_gland)
-save(sst_gland, file = "data/sst_gland.RData")
+## NB: Not run due to size
+# bbox_gland <- c(-77, -9, 58, 84)
+# sst_gland <- sst_bbox(bbox_gland)
+# save(sst_gland, file = "data/sst_gland.RData")
 
