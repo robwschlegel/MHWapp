@@ -369,9 +369,8 @@ ui <- page_sidebar(
                     p("Any use of the NOAA OISST data should be accompanied by the following two reference:"),
                     p("Reynolds, R. W., Smith, T. M., Liu, C., Chelton, D. B., Casey, K. S., and Schlax, M. G. (2007). 
                       Daily high-resolution-blended analyses for sea surface temperature. J. Clim. 20, 5473–5496. doi: 10.1175/2007JCLI1824.1"),
-                    p("Banzon, V., Smith, T. M., Steele, M., Huang, B., & Zhang, H. M. (2020). 
-                    Improved Estimation of Proxy Sea Surface Temperature in the Arctic.
-                    Journal of Atmospheric and Oceanic Technology, 37(2), 341-349. doi: 10.1175/JTECH-D-19-0177.1"),
+                    p("Huang, B., Liu, C., Freeman, E., Graham, G., Smith, T., & Zhang, H. M. (2021). Assessment and intercomparison of 
+                      NOAA daily optimum interpolation sea surface temperature (DOISST) version 2.1. Journal of Climate, 34(18), 7421-7441."),
                     br(),
                     p("The marine heatwave data displayed in this app were calculated in R with the package heatwaveR. To cite
                       heatwaveR in publications please use:"),
