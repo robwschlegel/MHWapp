@@ -343,6 +343,26 @@ MHW_annual_count <- function(chosen_year, hemisphere){
 # ggplot(data = MHW_cat_count, aes(x = lon, y = lat, fill = `I Moderate`)) +
 #   geom_tile()
 
+# Load all and combine
+# cat_count_files <- dir("data/annual_summary", pattern = "MHW_cat_count_N", full.names = TRUE)
+# MHW_cat_count_all <- map_dfr(cat_count_files, read_rds)
+# MHW_cat_count_sum <- MHW_cat_count_all |> 
+#   group_by(lon, lat) |> summarise_all(sum) |> ungroup()
+# MHW_cat_count_oce <- right_join(MHW_cat_count_sum, lon_lat_OISST_area, by = c("lon", "lat")) |> 
+#   right_join(OISST_ocean_coords, by = c("lon", "lat"))
+# ggplot(data = MHW_cat_count_oce, aes(x = lon, y = lat, fill = `I Moderate`)) +
+#   geom_tile() + scale_fill_viridis_c(limit = c(1, 140))
+
+# Get oceans pixels that have never had a MHW of any category
+# MHW_cat_count_miss <- MHW_cat_count_oce |> 
+#   dplyr::select(-index) |> 
+#   pivot_longer(`I Moderate`:`IV Extreme`, names_to = "Category", values_to = "Count") |> 
+#   summarise(cat_sum = sum(Count), .by = c("lon", "lat", "sq_area")) |> 
+#   filter(cat_sum == 0)
+# ggplot(data = OISST_ocean_coords, aes(x = lon, y = lat)) +
+#   geom_tile(fill = "grey") + geom_point(data = MHW_cat_count_miss, colour = "red", size = 5) +
+#   ggtitle("Red dots show the pixels that have never had a MHW", subtitle = "86 of 691,150 pixels (0.01%)")
+
 
 # 6: Summary figures ------------------------------------------------------
 
