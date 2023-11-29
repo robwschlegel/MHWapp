@@ -431,3 +431,90 @@ rm(sst_trom, sst_CCI_trom); gc()
 # sst_gland <- sst_bbox(bbox_gland)
 # save(sst_gland, file = "data/sst_gland.RData")
 
+
+# Summary analyses --------------------------------------------------------
+
+## Load all data to filter by event duration to get count of events etc. per pixel
+
+# Load all and combine
+OISST_ocean_coords$index <- NULL
+cat_count_files <- dir("data/annual_summary", pattern = "MHW_cat_count_N", full.names = TRUE)
+MHW_cat_count_all <- map_dfr(cat_count_files, readRDS)
+MHW_cat_count_sum <- MHW_cat_count_all |>
+  group_by(lon, lat) |> summarise_all(sum) |> ungroup()
+MHW_cat_count_oce <- right_join(MHW_cat_count_sum, OISST_ocean_coords, by = c("lon", "lat"))
+ggplot(data = MHW_cat_count_oce, aes(x = lon, y = lat, fill = `I Moderate`)) +
+  geom_tile() + scale_fill_viridis_c(limit = c(1, 140))
+
+# Get oceans pixels that have never had a MHW of any category
+MHW_cat_count_miss <- MHW_cat_count_oce |>
+  pivot_longer(`I Moderate`:`IV Extreme`, names_to = "Category", values_to = "Count") |>
+  summarise(cat_sum = sum(Count), .by = c("lon", "lat")) |>
+  filter(cat_sum == 0)
+ggplot(data = OISST_ocean_coords, aes(x = lon, y = lat)) +
+  geom_tile(fill = "grey") + geom_point(data = MHW_cat_count_miss, colour = "red", size = 5) +
+  ggtitle("Red dots show the pixels that have never had a MHW", subtitle = "86 of 691,150 pixels (0.01%)")
+
+# Load and filter
+event_dur_filter <- function(file_name, dur_filt){
+  file_filter <- readRDS(file_name) |> 
+    filter(duration >= dur_filt) |> 
+    summarise(count = n(), .by = c("lon", "lat")) |> 
+    mutate(dur_limit = dur_filt)
+}
+
+# Test
+test_1 <- readRDS(MHW_event_files[2]) |> filter(lat > -45, lat < -40)
+test_1 <- event_dur_filter(MHW_event_files[2], dur_filt = 5)
+
+# Run it
+global_dur_05 <- plyr::ldply(MHW_event_files, event_dur_filter, .parallel = TRUE, dur_filt = 5) |> 
+  right_join(OISST_ocean_coords, by = c("lon", "lat")) |> mutate(dur_limit = 5)
+global_dur_10 <- plyr::ldply(MHW_event_files, event_dur_filter, .parallel = TRUE, dur_filt = 10) |> 
+  right_join(OISST_ocean_coords, by = c("lon", "lat")) |> mutate(dur_limit = 10)
+global_dur_15 <- plyr::ldply(MHW_event_files, event_dur_filter, .parallel = TRUE, dur_filt = 15) |> 
+  right_join(OISST_ocean_coords, by = c("lon", "lat")) |> mutate(dur_limit = 15)
+global_dur_20 <- plyr::ldply(MHW_event_files, event_dur_filter, .parallel = TRUE, dur_filt = 20) |> 
+  right_join(OISST_ocean_coords, by = c("lon", "lat")) |> mutate(dur_limit = 20)
+global_dur_25 <- plyr::ldply(MHW_event_files, event_dur_filter, .parallel = TRUE, dur_filt = 25) |> 
+  right_join(OISST_ocean_coords, by = c("lon", "lat")) |> mutate(dur_limit = 25)
+global_dur_30 <- plyr::ldply(MHW_event_files, event_dur_filter, .parallel = TRUE, dur_filt = 30) |> 
+  right_join(OISST_ocean_coords, by = c("lon", "lat")) |> mutate(dur_limit = 30)
+
+# Combine
+global_dur <- rbind(global_dur_05, global_dur_10, global_dur_15, global_dur_20, global_dur_25, global_dur_30) |> 
+  replace_na(list(count = 0))
+global_dur_0 <- filter(global_dur, count == 0)
+
+# Plot
+ggplot(data = global_dur, aes(x = lon, y = lat, fill = count)) +
+  geom_tile() + geom_point(data = global_dur_0, size = 0.01, colour = "red") +
+  scale_fill_viridis_c() + facet_wrap(~dur_limit)
+
+# Just 30 day events
+ggplot(data = filter(global_dur, dur_limit == 30), aes(x = lon, y = lat, fill = count)) +
+  geom_tile() + #geom_point(data = global_dur_0, size = 0.01, colour = "red") +
+  scale_fill_viridis_c(limit = c(1, 45))
+
+global_dur |>
+  filter(dur_limit == 30,
+         lon >= -7, lon <= 36, lat >= 30, lat <= 48) |> 
+    ggplot(aes(x = lon, y = lat, fill = count)) +
+  geom_tile() + #geom_point(data = global_dur_0, size = 0.01, colour = "red") +
+  scale_fill_viridis_c()
+
+med_dur_30 <- global_dur |>
+  filter(dur_limit == 30,
+         lon >= -7, lon <= 36, lat >= 30, lat <= 48)
+
+# Peak year during longest event
+# Load and filter
+event_max_filter <- function(file_name, dur_filt){
+  file_filter <- readRDS(file_name) |> 
+    group_by(lon, lat) |> 
+    filter(duration == max(duration)) |> 
+    ungroup()
+  if(nrow(file_filter) > 1) file_filter <- file_filter[1,]
+  return(file_filter)
+}
+# Longest event

@@ -300,19 +300,19 @@ MHW_annual_count <- function(chosen_year, hemisphere){
   
   ## Decide on files based on hemisphere
   if(hemisphere == "N"){
-    MHW_cat_files <- dir(paste0("../data/cat_clim/", chosen_year), full.names = T)
+    MHW_cat_files <- dir(paste0("../data/cat_clim/", chosen_year), pattern = "Rda", full.names = T)
   } else if(hemisphere == "S"){
     MHW_cat_files <- c(dir(paste0("../data/cat_clim/", chosen_year), full.names = T),
                        dir(paste0("../data/cat_clim/", chosen_year+1), full.names = T))
-    if(chosen_year == 2019){ # This will need to be updated once July 1st, 2020 data are available
-      MHW_cat_files <- MHW_cat_files[grep("07-01", MHW_cat_files)[1]:length(MHW_cat_files)]
-    } else {
-      MHW_cat_files <- MHW_cat_files[grep("07-01", MHW_cat_files)[1]:grep("06-30", MHW_cat_files)[2]]
-    }
+    # if(chosen_year == 2019){ # This will need to be updated once July 1st, 2020 data are available
+    #   MHW_cat_files <- MHW_cat_files[grep("07-01", MHW_cat_files)[1]:length(MHW_cat_files)]
+    # } else {
+    #   MHW_cat_files <- MHW_cat_files[grep("07-01", MHW_cat_files)[1]:grep("06-30", MHW_cat_files)[2]]
+    # }
   }
   
   ## Load data
-  MHW_cat <- plyr::ldply(MHW_cat_files, readRDS_date, .parallel = T) 
+  MHW_cat <- plyr::ldply(MHW_cat_files, readRDS, .parallel = T) 
   
   ## Summarise
   # system.time(
@@ -342,26 +342,6 @@ MHW_annual_count <- function(chosen_year, hemisphere){
 # MHW_cat_count <- readRDS("data/annual_summary/MHW_cat_count_S_2014.Rds")
 # ggplot(data = MHW_cat_count, aes(x = lon, y = lat, fill = `I Moderate`)) +
 #   geom_tile()
-
-# Load all and combine
-# cat_count_files <- dir("data/annual_summary", pattern = "MHW_cat_count_N", full.names = TRUE)
-# MHW_cat_count_all <- map_dfr(cat_count_files, read_rds)
-# MHW_cat_count_sum <- MHW_cat_count_all |> 
-#   group_by(lon, lat) |> summarise_all(sum) |> ungroup()
-# MHW_cat_count_oce <- right_join(MHW_cat_count_sum, lon_lat_OISST_area, by = c("lon", "lat")) |> 
-#   right_join(OISST_ocean_coords, by = c("lon", "lat"))
-# ggplot(data = MHW_cat_count_oce, aes(x = lon, y = lat, fill = `I Moderate`)) +
-#   geom_tile() + scale_fill_viridis_c(limit = c(1, 140))
-
-# Get oceans pixels that have never had a MHW of any category
-# MHW_cat_count_miss <- MHW_cat_count_oce |> 
-#   dplyr::select(-index) |> 
-#   pivot_longer(`I Moderate`:`IV Extreme`, names_to = "Category", values_to = "Count") |> 
-#   summarise(cat_sum = sum(Count), .by = c("lon", "lat", "sq_area")) |> 
-#   filter(cat_sum == 0)
-# ggplot(data = OISST_ocean_coords, aes(x = lon, y = lat)) +
-#   geom_tile(fill = "grey") + geom_point(data = MHW_cat_count_miss, colour = "red", size = 5) +
-#   ggtitle("Red dots show the pixels that have never had a MHW", subtitle = "86 of 691,150 pixels (0.01%)")
 
 
 # 6: Summary figures ------------------------------------------------------
