@@ -507,14 +507,35 @@ med_dur_30 <- global_dur |>
   filter(dur_limit == 30,
          lon >= -7, lon <= 36, lat >= 30, lat <= 48)
 
-# Peak year during longest event
-# Load and filter
-event_max_filter <- function(file_name, dur_filt){
+# Load and filter by max duration
+event_max_filter <- function(file_name){
   file_filter <- readRDS(file_name) |> 
     group_by(lon, lat) |> 
     filter(duration == max(duration)) |> 
+    filter(date_peak == max(date_peak)) |> 
     ungroup()
-  if(nrow(file_filter) > 1) file_filter <- file_filter[1,]
   return(file_filter)
 }
-# Longest event
+
+# Run it
+global_dur_max <- plyr::ldply(MHW_event_files, event_max_filter, .parallel = TRUE) |> 
+  right_join(OISST_ocean_coords, by = c("lon", "lat"))
+
+# Plot the durations
+ggplot(data = global_dur_max, aes(x = lon, y = lat, fill = duration)) +
+  geom_tile() + scale_fill_viridis_c()
+
+# Crop to 1000 days
+ggplot(data = global_dur_max, aes(x = lon, y = lat, fill = duration)) +
+  geom_tile() + scale_fill_viridis_c(limit = c(60, 1000))
+
+# Crop to 365 days
+ggplot(data = global_dur_max, aes(x = lon, y = lat, fill = duration)) +
+  geom_tile() + scale_fill_viridis_c(limit = c(60, 365))
+
+# Peak year during longest event
+global_dur_max |> 
+  mutate(year = year(date_peak)) |> 
+  ggplot(aes(x = lon, y = lat, fill = year)) + 
+  geom_tile() + scale_fill_viridis_c(option = "B")
+
