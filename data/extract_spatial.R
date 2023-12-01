@@ -526,12 +526,16 @@ ggplot(data = global_dur_max, aes(x = lon, y = lat, fill = duration)) +
   geom_tile() + scale_fill_viridis_c()
 
 # Crop to 1000 days
-ggplot(data = global_dur_max, aes(x = lon, y = lat, fill = duration)) +
-  geom_tile() + scale_fill_viridis_c(limit = c(60, 1000))
+global_dur_max |> 
+  filter(duration <= 1000) |> 
+  ggplot(aes(x = lon, y = lat, fill = duration)) +
+  geom_tile() + scale_fill_viridis_c()
 
 # Crop to 365 days
-ggplot(data = global_dur_max, aes(x = lon, y = lat, fill = duration)) +
-  geom_tile() + scale_fill_viridis_c(limit = c(60, 365))
+global_dur_max |> 
+  filter(duration <= 365) |> 
+  ggplot(aes(x = lon, y = lat, fill = duration)) +
+  geom_tile() + scale_fill_viridis_c()
 
 # Peak year during longest event
 global_dur_max |> 
