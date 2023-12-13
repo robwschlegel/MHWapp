@@ -3,7 +3,7 @@
 # These data may then be converted to raster format for those that request it
 
 
-# Libraries ---------------------------------------------------------------
+# Setup -------------------------------------------------------------------
 
 source("MHW_daily_functions.R")
 library(raster)
@@ -19,6 +19,9 @@ CCI_files_sub <- CCI_files[123:length(CCI_files)]; rm(CCI_files)
 # Global MHW daily clim file locations
 cat_clim_annual_folders <- dir("shiny/cat_clim", full.names = T)
 cat_clim_files <- dir(cat_clim_annual_folders, recursive = T, full.names = T)
+
+# The base map for plotting
+load("metadata/map_base.Rdata")
 
 
 # Load global data --------------------------------------------------------
@@ -507,6 +510,52 @@ med_dur_30 <- global_dur |>
   filter(dur_limit == 30,
          lon >= -7, lon <= 36, lat >= 30, lat <= 48)
 
+# Set them for panels
+theme_panel <- function(){
+  theme(legend.position = "bottom",
+        legend.key.width = unit(1.2, "cm"),
+        legend.text = element_text(size = 8),
+        legend.title = element_text(size = 10, hjust = 1),
+        panel.border = element_rect(fill = NA, colour = "black"),
+        panel.background = element_rect(fill = "grey10"))
+}
+
+## A) Average annual MHW days at each pixel
+# Calculate annual sum of MHW days per pixel
+event_annual_sum_dur <- function(file_name){
+  file_filter <- readRDS(file_name) |> 
+    mutate(year = year(date_peak)) |> 
+    summarise(annual_sum_duration = sum(duration, na.rm = TRUE), .by = c(lon, lat, year))
+  return(file_filter)
+}
+# Run it
+global_annual_sum_dur <- plyr::ldply(MHW_event_files, event_annual_sum_dur, .parallel = TRUE) |> 
+  right_join(OISST_ocean_coords, by = c("lon", "lat"))
+# Get global average
+global_mean_sum_dur <- global_annual_sum_dur |> 
+  summarise(mean_sum_duration = mean(annual_sum_duration, na.rm = TRUE), .by = c(lon, lat))
+# Plot it
+panel_A <- global_mean_sum_dur |> 
+  # NB: Filter out several funny Arctic pixels
+  mutate(mean_sum_duration = case_when(mean_sum_duration > 160 ~ 160, TRUE ~ mean_sum_duration)) |> 
+  ggplot(aes(x = lon, y = lat)) +
+  geom_raster(aes(fill = mean_sum_duration), show.legend = TRUE) +
+  geom_polygon(data = map_base, aes(x = lon, y = lat, group = group), 
+               fill = "grey70", colour = "black") +
+  scale_fill_viridis_c(breaks = c(30, 60, 90, 120, 150)) +
+  scale_x_continuous(breaks = c(-100, 0, 100),
+                     labels = c("100°W", "0", "100°E")) +
+  scale_y_continuous(breaks = c(-45, 0, 45),
+                     labels = c("45°S", "0", "45°N")) +
+  coord_cartesian(expand = F,
+                  ylim = c(min(OISST_ocean_coords$lat), max(OISST_ocean_coords$lat))) +
+  # theme_void() +
+  labs(x = NULL, y = NULL, fill = "MHW\ndays",
+       title = "Mean annual sum of MHW days") +
+  theme_panel()
+panel_A
+
+## B) Longest duration MHW
 # Load and filter by max duration
 event_max_filter <- function(file_name){
   file_filter <- readRDS(file_name) |> 
@@ -516,30 +565,93 @@ event_max_filter <- function(file_name){
     ungroup()
   return(file_filter)
 }
-
 # Run it
 global_dur_max <- plyr::ldply(MHW_event_files, event_max_filter, .parallel = TRUE) |> 
   right_join(OISST_ocean_coords, by = c("lon", "lat"))
+# Plot it
+panel_B <- global_dur_max |> 
+  # NB: Filter out several funny Arctic pixels
+  mutate(duration = case_when(duration > 365 ~ 365, TRUE ~ duration)) |> 
+  ggplot(aes(x = lon, y = lat)) +
+  geom_raster(aes(fill = duration), show.legend = TRUE) +
+  geom_polygon(data = map_base, aes(x = lon, y = lat, group = group), 
+               fill = "grey70", colour = "black") +
+  scale_fill_viridis_c(option = "A") +
+  scale_x_continuous(breaks = c(-100, 0, 100),
+                     labels = c("100°W", "0", "100°E")) +
+  scale_y_continuous(breaks = c(-45, 0, 45),
+                     labels = c("45°S", "0", "45°N")) +
+  coord_cartesian(expand = F,
+                  ylim = c(min(OISST_ocean_coords$lat), max(OISST_ocean_coords$lat))) +
+  # theme_void() +
+  labs(x = NULL, y = NULL, fill = "Duration", 
+       title = "Longest duration MHW") +
+  theme_panel()
+panel_B
 
-# Plot the durations
-ggplot(data = global_dur_max, aes(x = lon, y = lat, fill = duration)) +
-  geom_tile() + scale_fill_viridis_c()
-
-# Crop to 1000 days
-global_dur_max |> 
-  filter(duration <= 1000) |> 
-  ggplot(aes(x = lon, y = lat, fill = duration)) +
-  geom_tile() + scale_fill_viridis_c()
-
-# Crop to 365 days
-global_dur_max |> 
-  filter(duration <= 365) |> 
-  ggplot(aes(x = lon, y = lat, fill = duration)) +
-  geom_tile() + scale_fill_viridis_c()
-
-# Peak year during longest event
-global_dur_max |> 
+## C) Year of occurrence of longest event
+# Plot it
+panel_C <- global_dur_max |> 
+  # NB: Filter out several funny Arctic pixels
   mutate(year = year(date_peak)) |> 
-  ggplot(aes(x = lon, y = lat, fill = year)) + 
-  geom_tile() + scale_fill_viridis_c(option = "B")
+  ggplot(aes(x = lon, y = lat)) +
+  geom_raster(aes(fill = year), show.legend = TRUE) +
+  geom_polygon(data = map_base, aes(x = lon, y = lat, group = group), 
+               fill = "grey70", colour = "black") +
+  scale_fill_viridis_c(option = "C") +
+  scale_x_continuous(breaks = c(-100, 0, 100),
+                     labels = c("100°W", "0", "100°E")) +
+  scale_y_continuous(breaks = c(-45, 0, 45),
+                     labels = c("45°S", "0", "45°N")) +
+  coord_cartesian(expand = F,
+                  ylim = c(min(OISST_ocean_coords$lat), max(OISST_ocean_coords$lat))) +
+  # theme_void() +
+  labs(x = NULL, y = NULL, fill = "Year", 
+       title = "Year of occurrence of longest MHW") +
+  theme_panel()
+panel_C
 
+# D) Decadal trend in MHW days 
+# Calculate linear trends
+lm__annual_sum_dur <- function(df){
+  # Decadal trend
+  if(length(unique(df$annual_sum_duration)) >3){
+    dec_trend <- broom::tidy(lm(annual_sum_duration ~ year, df)) |>  
+      slice(2) |> 
+      mutate(dec_trend = round(estimate*10, 3),
+             p.value = round(p.value, 4)) %>%
+      dplyr::select(dec_trend, p.value)
+  }
+}
+# Run it
+# NB: This takes a few minutes
+global_annual_sum_dur_trend <- plyr::ddply(global_annual_sum_dur, c("lon", "lat"), lm__annual_sum_dur, .parallel = T)
+# Filter for stipple plotting
+global_annual_sum_dur_stipple <- filter(global_annual_sum_dur_trend, p.value <= 0.05) |> 
+  mutate(lon = plyr::round_any(lon, 5), lat = plyr::round_any(lat, 5)) |> dplyr::select(lon, lat) |> distinct()
+# Plot it
+panel_D <- global_annual_sum_dur_trend |> 
+  mutate(dec_trend = case_when(dec_trend > 80 ~ 80, dec_trend < -80 ~ -80, TRUE ~ dec_trend)) |> 
+  ggplot(aes(x = lon, y = lat)) +
+  geom_raster(aes(fill = dec_trend/10), show.legend = TRUE) +
+  geom_point(data = global_annual_sum_dur_stipple,
+             colour = "black", alpha = 0.1, show.legend = FALSE) +
+  geom_polygon(data = map_base, aes(x = lon, y = lat, group = group), 
+               fill = "grey70", colour = "black") +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
+  scale_x_continuous(breaks = c(-100, 0, 100),
+                     labels = c("100°W", "0", "100°E")) +
+  scale_y_continuous(breaks = c(-45, 0, 45),
+                     labels = c("45°S", "0", "45°N")) +
+  coord_cartesian(expand = F,
+                  ylim = c(min(OISST_ocean_coords$lat), max(OISST_ocean_coords$lat))) +
+  # theme_void() +
+  labs(x = NULL, y = NULL, fill = "MHW\ndays/year",
+       title = "Trend of total MHW days per year") +
+  theme_panel()
+panel_D
+
+# Stitch it together
+global_MHW_summary_plot <- ggpubr::ggarrange(panel_A, panel_B, panel_C, panel_D, nrow = 2, ncol = 2, 
+                                             labels = c("A)", "B)", "C)", "D)"))
+ggsave("figures/global_MHW_summary_plot.png", global_MHW_summary_plot, width = 12, height = 8)
