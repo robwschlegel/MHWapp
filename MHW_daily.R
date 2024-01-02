@@ -247,7 +247,8 @@ if(length(possible_dates) > length(current_dates)){
 
 # 5: Run annual summary ---------------------------------------------------
 
-source("MHW_annual_summary.R")
+# NB: Need a couple of weeks of data into the new year before processing stats
+if(lubridate::yday(Sys.Date()) > 15) source("MHW_annual_summary.R")
 
 
 # 6: Push to GitHub -------------------------------------------------------
