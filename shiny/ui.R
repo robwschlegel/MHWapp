@@ -116,13 +116,12 @@ ui <- page_sidebar(
                     accordion(
                       multiple = TRUE,
                       open = NULL,
-                      # TODO: Make this the new style of daterange selector
                       accordion_panel(
                         "Date range", icon = bsicons::bs_icon("menu-app"),
                         daterangepicker::daterangepicker(
                           label = NULL, inputId = "from_to",
                           options = daterangepicker::daterangepickerOptions(linkedCalendars = FALSE),
-                          start = max(current_dates)-365, end = max(current_dates),
+                          start = max(current_dates)-730, end = max(current_dates),
                           min = "1982-01-01", max = max(current_dates))
                       ),
                       # TODO: Get these to be in a right sidebar

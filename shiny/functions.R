@@ -31,7 +31,7 @@ sst_seas_thresh_ts <- function(lon_step, lat_step){
     mutate(doy = ifelse(!lubridate::leap_year(year),
                         ifelse(doy > 59, doy+1, doy), doy)) %>% 
     ungroup() %>%
-    select(lon, lat, t, doy, temp)
+    dplyr::select(lon, lat, t, doy, temp)
   
   if(length(na.omit(tidync_OISST)) == 0){
     sst_seas_thresh <- data.frame(doy = NA, t = NA, temp = NA,

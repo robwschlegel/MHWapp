@@ -68,7 +68,7 @@ MCS_seas_thresh_files <- dir("thresh/MCS", pattern = "MCS.seas.thresh.", full.na
 
 ### The present year of dates currently processed
 ## NB: Need a few days of data into the new year before progressing
-if(lubridate::yday(Sys.Date()) > 5){
+if(lubridate::yday(Sys.Date()) > 7){
   current_dates <- unique(readRDS(paste0("OISST/annual_summary/MCS_cat_daily_", lubridate::year(Sys.Date()),".Rds"))$t)
 } else {
   current_dates <- unique(readRDS(paste0("OISST/annual_summary/MCS_cat_daily_", lubridate::year(Sys.Date())-1,".Rds"))$t)

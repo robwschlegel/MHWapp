@@ -5,6 +5,8 @@ server <- function(input, output, session){
   # Testing...
   # input <- data.frame(date = as.Date("1989-07-15"),
   #                     layer = "MHW Category")
+  # input <- data.frame(from_to = c(max(current_dates)-365, max(current_dates)))
+  
 
   # Reactive UI -------------------------------------------------------------
 
@@ -16,9 +18,11 @@ server <- function(input, output, session){
   yearReact <- reactiveValues(year = 1)#lubridate::year(Sys.Date()))
   
   observeEvent(c(input$date), {
-    daterangepicker::updateDaterangepicker(session, "from_to", 
-                                           start = as.Date(input$date)-182, 
-                                           end = as.Date(input$date)+182)
+    if(input$date+365 < max(current_dates)){
+      daterangepicker::updateDaterangepicker(session, "from_to",
+                                             start = as.Date(input$date)-365,
+                                             end = as.Date(input$date)+365)
+    }
   })
   
   ### Reactive value boxes
@@ -183,8 +187,9 @@ server <- function(input, output, session){
     if(is.null(input$leaf_map_click)){
       return()
     } else {
-      # tester...
+      # testers...
       # x <- 10; y <- -5
+      # x <- -27.125; y <- 25.625
       
       # Get OISST pixel coords
       click <- input$leaf_map_click
@@ -349,34 +354,35 @@ server <- function(input, output, session){
                                     "<br>Threshold: ",thresh_MCS,"°C")))
     )
     # Add rug as needed
-    if(length(event_data_sub$date_start) > 0){
-      suppressWarnings( # text aes plotly
-        p <- p + geom_rug(data = event_data_sub, sides = "b", colour = "salmon", size = 2,
-                          aes(x = date_peak, y = min(ts_data_sub$temp),
-                              text = paste0("Event: ",event_no,
-                                            "<br>Duration: ",duration," days",
-                                            "<br>Start Date: ", date_start,
-                                            "<br>Peak Date: ", date_peak,
-                                            "<br>End Date: ", date_end,
-                                            "<br>Mean Intensity: ",intensity_mean,"°C",
-                                            "<br>Max. Intensity: ",intensity_max,"°C",
-                                            "<br>Cum. Intensity: ",intensity_cumulative,"°C")))
-      )
-    }
-    if(length(event_MCS_data_sub$date_start) > 0){
-      suppressWarnings( # text aes plotly
-        p <- p + geom_rug(data = event_MCS_data_sub, sides = "b", colour = "steelblue1", size = 2,
-                          aes(x = date_peak, y = min(ts_data_sub$temp),
-                              text = paste0("Event: ",event_no,
-                                            "<br>Duration: ",duration," days",
-                                            "<br>Start Date: ", date_start,
-                                            "<br>Peak Date: ", date_peak,
-                                            "<br>End Date: ", date_end,
-                                            "<br>Mean Intensity: ",intensity_mean,"°C",
-                                            "<br>Max. Intensity: ",intensity_max,"°C",
-                                            "<br>Cum. Intensity: ",intensity_cumulative,"°C")))
-      )
-    }
+    # NB: Removed for now as these are most interesting with plotly
+    # if(length(event_data_sub$date_start) > 0){
+    #   suppressWarnings( # text aes plotly
+    #     p <- p + geom_rug(data = event_data_sub, sides = "b", colour = "salmon", size = 2,
+    #                       aes(x = date_peak, y = min(ts_data_sub$temp),
+    #                           text = paste0("Event: ",event_no,
+    #                                         "<br>Duration: ",duration," days",
+    #                                         "<br>Start Date: ", date_start,
+    #                                         "<br>Peak Date: ", date_peak,
+    #                                         "<br>End Date: ", date_end,
+    #                                         "<br>Mean Intensity: ",intensity_mean,"°C",
+    #                                         "<br>Max. Intensity: ",intensity_max,"°C",
+    #                                         "<br>Cum. Intensity: ",intensity_cumulative,"°C")))
+    #   )
+    # }
+    # if(length(event_MCS_data_sub$date_start) > 0){
+    #   suppressWarnings( # text aes plotly
+    #     p <- p + geom_rug(data = event_MCS_data_sub, sides = "b", colour = "steelblue1", size = 2,
+    #                       aes(x = date_peak, y = min(ts_data_sub$temp),
+    #                           text = paste0("Event: ",event_no,
+    #                                         "<br>Duration: ",duration," days",
+    #                                         "<br>Start Date: ", date_start,
+    #                                         "<br>Peak Date: ", date_peak,
+    #                                         "<br>End Date: ", date_end,
+    #                                         "<br>Mean Intensity: ",intensity_mean,"°C",
+    #                                         "<br>Max. Intensity: ",intensity_max,"°C",
+    #                                         "<br>Cum. Intensity: ",intensity_cumulative,"°C")))
+    #   )
+    # }
     p
   })
   
