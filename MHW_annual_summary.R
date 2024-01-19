@@ -196,8 +196,8 @@ event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())),
 ## MCS
 event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
                    product = "OISST", chosen_clim = "1982-2011", force_calc = T) # 161 seconds
-# event_annual_state(2022, product = "OISST", chosen_clim = "1982-2011", force_calc = F)
-# event_annual_state(2022, MHW = F, product = "OISST", chosen_clim = "1982-2011", force_calc = F)
+# event_annual_state(2023, product = "OISST", chosen_clim = "1982-2011", force_calc = T)
+# event_annual_state(2023, MHW = F, product = "OISST", chosen_clim = "1982-2011", force_calc = T)
 
 # Run ALL years
 ### OISST
@@ -248,7 +248,7 @@ event_total_state <- function(product, chosen_clim, MHW = T){
     mutate(t = lubridate::year(t)) %>%
     group_by(t, category) %>% 
     summarise(cat_area_prop_mean = mean(cat_area_prop, na.rm = T), .groups = "drop") %>% 
-    filter(t <= lubridate::year(Sys.Date())) # Use this to not include the current partial year
+    filter(t < lubridate::year(Sys.Date())) # Use this to not include the current partial year
   
   # Extract only values from December 31st
   cat_daily <- map_dfr(cat_daily_files, readRDS) %>%
@@ -494,11 +494,11 @@ event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
 ## MHW
 event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())),
                        product = "OISST", chosen_clim = "1982-2011") # 5 seconds
-# event_annual_state_fig(2022, product = "OISST", chosen_clim = "1982-2011")
+# event_annual_state_fig(2023, product = "OISST", chosen_clim = "1982-2011")
 ## MCS
 event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
                        product = "OISST", chosen_clim = "1982-2011") # 5 seconds
-# event_annual_state_fig(2022, MHW = F, product = "OISST", chosen_clim = "1982-2011")
+# event_annual_state_fig(2023, MHW = F, product = "OISST", chosen_clim = "1982-2011")
 
 # Run ALL years
 ### OISST
@@ -524,22 +524,27 @@ event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())), MH
 # Figures of total time series by year
 event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1982-2011", MHW = T){
   
+  # Get the range needed for the y-axis
+  df_sum <- df |> summarise(y_height = sum(cat_area_cum_prop), .by = "t")
+  df_y_height <- plyr::round_any(df_sum$y_height[df_sum$y_height == max(df_sum$y_height)], 5)
+  df_y_height_365 <- plyr::round_any(round(df_y_height/365, 2), 0.02)
+  
   if(MHW){
     event_type <- "MHW"
     event_file <- ""
     event_colours <- MHW_colours
-    event_limits <- c(0, 65)
-    event_breaks <- seq(5, 60, by = 5)
-    second_breaks <- c(7.3, 14.6, 21.9, 29.2, 36.5, 43.8, 51.1, 58.4)
-    second_break_labels <- c("2%", "4%", "6%", "8%", "10%", "12%", "14%", "16%")
+    event_limits <- c(0, round(df_y_height+1, -1))
+    event_breaks <- seq(10, event_limits[2]-10, by = 10)
+    second_breaks <- seq(0.04, plyr::round_any(event_limits[2]/365, 0.02), 0.04)*365
+    second_break_labels <- paste0(seq(from = 4, by = 4, length.out = length(second_breaks)), "%")
   } else {
     event_type <- "MCS"
     event_file <- "_MCS"
     event_colours <- MCS_colours
-    event_limits <- c(0, 27)
-    event_breaks <- seq(5, 25, by = 5)
-    second_breaks <- c(7.3, 14.6, 21.9)
-    second_break_labels <- c("2%", "4%", "6%")
+    event_limits <- c(0, round(df_y_height+1, -1))
+    event_breaks <- seq(5, event_limits[2]-5, by = 5)
+    second_breaks <- seq(0.02, plyr::round_any(event_limits[2]/365, 0.02), 0.02)*365
+    second_break_labels <- paste0(seq(from = 2, by = 2, length.out = length(second_breaks)), "%")
   }
   
   # Stacked barplot of global daily count of events by category
