@@ -376,7 +376,7 @@ event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
   product_name <- product
   if(product == "OISST") product_name <- "NOAA OISST"
   fig_title <- paste0(event_type," categories of ",chosen_year, extra_bit,
-                      "\n",product_name,"; Climatogy period: ",chosen_clim)
+                      "\n",product_name,"; Climatology period: ",chosen_clim)
   
   # Load data
   event_cat_pixel <- readRDS(paste0("data/annual_summary/",product,event_file,"_cat_pixel_",
@@ -498,14 +498,14 @@ event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())),
 ## MCS
 event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
                        product = "OISST", chosen_clim = "1982-2011") # 5 seconds
-# event_annual_state_fig(2023, MHW = F, product = "OISST", chosen_clim = "1982-2011")
+# event_annual_state_fig(2023, product = "OISST", chosen_clim = "1982-2011", MHW = F)
 
 # Run ALL years
 ### OISST
 ## MHW
 # plyr::l_ply(1982:2022, event_annual_state_fig, .parallel = T,
 #             product = "OISST", chosen_clim = "1982-2011")
-# plyr::l_ply(1982:2019, event_annual_state, force_calc = T, database = T, .parallel = T,
+# plyr::l_ply(1982:2019, event_annual_state_fig, .parallel = T,
 #             product = "OISST", chosen_clim = "1992-2018")
 ## MCS
 # plyr::l_ply(1982:2022, event_annual_state_fig, .parallel = T,
