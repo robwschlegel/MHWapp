@@ -821,8 +821,8 @@ event_annual_state_anim <- function(product = "OISST", chosen_clim = "1982-2011"
   #                     "\n",product_name,"; Climatology period: ",chosen_clim)
   
   # Load data
-  event_cat_pixel <- readRDS(paste0("data/annual_summary/",product,event_file,"_cat_pixel_",
-                                    chosen_clim,"_2023.Rds"))
+  # event_cat_pixel <- readRDS(paste0("data/annual_summary/",product,event_file,"_cat_pixel_",
+  #                                   chosen_clim,"_2023.Rds"))
   event_cat_pixel <- map_dfr(dir("data/annual_summary/", full.names = TRUE,
                                  pattern = paste0(product,event_file,"_cat_pixel_", chosen_clim)), readRDS)
   # event_cat_annual <- event_cat_pixel |> 
@@ -832,25 +832,26 @@ event_annual_state_anim <- function(product = "OISST", chosen_clim = "1982-2011"
   # event_total <- readRDS(paste0("data/annual_summary/",product,event_file,"_cat_daily_",chosen_clim,"_total.Rds"))
   
   # Max category per pixel per year
-  event_cat_pixel_max <- event_cat_pixel |> ungroup() |> mutate(year = year(t)) |> 
+  event_cat_annual <- event_cat_pixel |> ungroup() |> mutate(year = year(t)) |>
+    filter(!year == year(Sys.Date())) |> 
     summarise(category = max(as.integer(category), na.rm = TRUE), .by = c("lon", "lat", "year")) |> 
-    mutate(category = factor(category, labels = levels(event_cat_pixel$category)))
+    mutate(category = factor(category, labels = levels(event_cat_pixel$category))) 
   
   # Labels for faster plotting
   event_cat_label <- event_cat_annual |> dplyr::select(year) |> distinct()
   
   # testers...
-  event_cat_annual_test <- filter(event_cat_annual, year == 1982)
-  event_cat_label_test <-  filter(event_cat_label, year == 1982)
+  event_cat_annual_test <- filter(event_cat_annual, year %in% 1982:1986)
+  event_cat_label_test <-  filter(event_cat_label, year %in% 1982:1986)
   
   # Global map of event occurrence
-  anim_map <- ggplot(event_cat_annual, aes(x = lon, y = lat)) +
+  anim_map <- ggplot(event_cat_annual_test, aes(x = lon, y = lat)) +
     # geom_tile(data = OISST_ice_coords, fill = "powderblue", colour = NA, alpha = 0.5) +
     geom_raster(aes(fill = category), show.legend = FALSE) +
     geom_polygon(data = map_base, aes(x = lon, y = lat, group = group), fill = "grey60") +
-    geom_label(data = event_cat_label, inherit.aes = FALSE,
+    geom_label(data = event_cat_label_test, inherit.aes = FALSE,
                aes(x = -40, y = 75, label = year),
-               fill = "white", label.size = 1, size = 6) +
+               fill = "white", label.size = 1, size = 10) +
     scale_fill_manual("Category", values = event_colours) +
     coord_cartesian(expand = F, ylim = c(min(OISST_ocean_coords$lat), max(OISST_ocean_coords$lat))) +
     theme_void() +
@@ -864,22 +865,30 @@ event_annual_state_anim <- function(product = "OISST", chosen_clim = "1982-2011"
   # fig_map
 
   # Create video
-  gganimate::animate(anim_map, width = 25, height = 14, unit = "in", 
-                     res = 100, fps = 1, duration = 42, # For testing
-                     # res = 300, fps = 5, duration = 36, # For full data
-                     renderer = av_renderer(paste0("figures/",product,"_",chosen_clim,"_annual.mp4")))
-  # Create GIF
-  animate(anim_map, width = 4.5, height = 4.5, unit = "in", 
-          res = 100, fps = 5, duration = 6) # For testing
-  # res = 300,fps = 5, duration = 36)# For full data
-  anim_save("figures/climate_spiral_NW_Med.gif")
+  anim_mp4 <- gganimate::animate(anim_map, width = 25, height = 14, unit = "in",
+                     res = 100, fps = 1, duration = 5, # For testing
+                     # res = 300, fps = 1, duration = 42, # For full data
+                     renderer = file_renderer(paste0("figures/")))
+  # # Create GIF
+  gganimate::animate(anim_map, width = 25, height = 14, unit = "in",
+                     res = 100, fps = 1, duration = 5, # For testing
+                     # res = 300, fps = 1, duration = 42, # For full data
+                     renderer = file_renderer(paste0("figures/",product,"_",chosen_clim,"_annual.gif")))
+  anim_full <- gganimate::animate(anim_map, width = 25, height = 14, unit = "in",
+                     res = 100, fps = 1, duration = 5) # For testing
+                     # res = 300,fps = 5, duration = 36)# For full data
+  gganimate::anim_save(filename = paste0("figures/",product,"_",chosen_clim,"_annual.gif"), animation = anim_full)
+  gganimate::anim_save(filename = paste0("figures/",product,"_",chosen_clim,"_annual.mp4"), animation = anim_mp4)
   
 }
 
-# Run the current year
+# Render the annual animations
+# NB: Only needs to be run once per year
 ## MHW
-event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())),
-                   product = "OISST", chosen_clim = "1982-2011", force_calc = T) # 161 seconds
+system.time(
+event_annual_state_anim() # xxx seconds
+)
 ## MCS
-event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
-                   product = "OISST", chosen_clim = "1982-2011", force_calc = T) # 161 seconds
+system.time(
+event_annual_state_anim(MHW = FALSE) # xxx seconds
+)
