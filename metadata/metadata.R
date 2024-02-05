@@ -17,10 +17,9 @@ library(FNN)
 # NOAA OISST lon/lat coords
 lon_OISST <- c(seq(0.125, 179.875, by = 0.25), seq(-179.875, -0.125, by = 0.25))
 lat_OISST <- seq(-89.875, 89.875, by = 0.25)
-lon_lat_OISST <- base::expand.grid(lon_OISST, lat_OISST) %>% 
-  dplyr::rename(lon = Var1, lat = Var2) %>% 
-  arrange(lon, lat) %>% 
-  data.frame()
+
+# Coordinates with surface area
+load("metadata/lon_lat_OISST_area.RData")
 
 # File locations
 OISST_files <- dir("../data/OISST", pattern = "oisst-avhrr", full.names = T)
@@ -46,12 +45,10 @@ current_date <- Sys.Date()
 # system.time(OISST_ocean_coords <- plyr::ldply(1:1440, extract_OISST_one, .parallel = T)) # 9 seconds
 # save(OISST_ocean_coords, file = "metadata/OISST_ocean_coords.Rdata")
 load("metadata/OISST_ocean_coords.Rdata")
-
-# Coordinates with surface area
-load("metadata/lon_lat_OISST_area.RData")
+OISST_ocean_coords <- left_join(OISST_ocean_coords, lon_lat_OISST_area, by = c("lon", "lat"))
 
 # Visualise ocean pixels
-# ggplot(OISST_ocean_coords, aes(x = lon, y = lat)) + geom_tile()
+# ggplot(OISST_ocean_coords, aes(x = lon, y = lat)) + geom_tile(aes(fill = sq_area))
 
 # Exclude OISST pixels with any near-ice (-1.6C) cover
 # During iterations of this methodology it was found that there are pixels near

@@ -13,6 +13,7 @@
 
 # source("MHW_daily_functions.R")
 library(dtplyr)
+library(gganimate)
 
 # Set number of cores
 registerDoParallel(cores = 50)
@@ -49,7 +50,7 @@ max_event_date <- function(df){
 # chosen_year <- 1983
 # chosen_clim <- "1982-2011"
 # chosen_clim <- "1992-2018"
-# MHW <- F; force_calc <- T; database <- F
+# MHW <-F; force_calc <- T; database <- F
 event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force_calc = F, database = F){
   
   if(MHW){
@@ -82,7 +83,8 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
   if(force_calc){
     # system.time(
     event_cat <- map_df(event_cat_files, readRDS) #%>% 
-    # right_join(OISST_no_ice_coords, by = c("lon", "lat")) %>%  # Filter out ice if desired
+    # NB: Filter out ice if desired
+    # right_join(OISST_no_ice_coords, by = c("lon", "lat")) %>%  
     # na.omit()
     # ) # 5 seconds
   }
@@ -128,14 +130,13 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
     # print(paste0("Counting the daily + cumulative categories per day; ~3 seconds"))
     
     # Complete dates by categories data.frame
-    ## This will need to be changed if the ice category is introduced
     full_grid <- expand_grid(t = seq(as.Date(paste0(chosen_year,"-01-01")), max(event_cat$t), by = "day"), 
                              category = as.factor(levels(event_cat$category))) %>% 
       mutate(category = factor(category, levels = levels(event_cat$category)))
     
     # system.time(
     event_cat_first <- event_cat_pixel %>%
-      right_join(lon_lat_OISST_area, by = c("lon", "lat")) %>% 
+      right_join(OISST_ocean_coords, by = c("lon", "lat")) %>% 
       group_by(t, category) %>%
       # count(category) %>%
       # dplyr::rename(first_n = n) %>% 
@@ -146,20 +147,20 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
       mutate(first_n = ifelse(is.na(first_n), 0, first_n),
              first_n_prop = round(first_n/nrow(OISST_ocean_coords), 4),
              first_area = ifelse(is.na(first_area), 0, first_area),
-             first_area_prop = round(first_area/sum(lon_lat_OISST_area$sq_area), 4)) %>% 
+             first_area_prop = round(first_area/sum(OISST_ocean_coords$sq_area), 4)) %>% 
       mutate(first_n = ifelse(is.na(first_n), 0, first_n)) %>% 
       arrange(t, category) %>% 
       group_by(category) %>%
       mutate(first_n_cum = cumsum(first_n),
              first_area_cum = cumsum(first_area),
              first_n_cum_prop = round(first_n_cum/nrow(OISST_ocean_coords), 4),
-             first_area_cum_prop = round(first_area_cum/sum(lon_lat_OISST_area$sq_area), 4)) %>% 
+             first_area_cum_prop = round(first_area_cum/sum(OISST_ocean_coords$sq_area), 4)) %>% 
       ungroup()
     # ) # 1 second
     
     # system.time(
     event_cat_daily <- event_cat %>% 
-      right_join(lon_lat_OISST_area, by = c("lon", "lat")) %>% 
+      right_join(OISST_ocean_coords, by = c("lon", "lat")) %>% 
       group_by(t, category) %>% 
       # count(category) %>% 
       # ungroup() %>% 
@@ -170,13 +171,13 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
       mutate(cat_n = ifelse(is.na(cat_n), 0, cat_n),
              cat_n_prop = round(cat_n/nrow(OISST_ocean_coords), 4),
              cat_area = ifelse(is.na(cat_area), 0, cat_area),
-             cat_area_prop = round(cat_area/sum(lon_lat_OISST_area$sq_area), 4)) %>% 
+             cat_area_prop = round(cat_area/sum(OISST_ocean_coords$sq_area), 4)) %>% 
       arrange(t, category) %>% 
       group_by(category) %>% 
       mutate(cat_n_cum = cumsum(cat_n),
              cat_area_cum = cumsum(cat_area),
              cat_n_cum_prop = round(cat_n_cum/nrow(OISST_ocean_coords), 4),
-             cat_area_cum_prop = round(cat_area_cum/sum(lon_lat_OISST_area$sq_area), 4)) %>% 
+             cat_area_cum_prop = round(cat_area_cum/sum(OISST_ocean_coords$sq_area), 4)) %>% 
       ungroup() %>% 
       right_join(event_cat_first, by = c("t", "category"))
     # ) # 7 second
@@ -192,22 +193,22 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
 # Run the current year
 ## MHW
 event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())),
-                   product = "OISST", chosen_clim = "1982-2011", force_calc = T) # 161 seconds
+                   product = "OISST", chosen_clim = "1982-2011", force_calc = T) # ~30 seconds
 ## MCS
 event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
-                   product = "OISST", chosen_clim = "1982-2011", force_calc = T) # 161 seconds
+                   product = "OISST", chosen_clim = "1982-2011", force_calc = T) # ~30 seconds
 # event_annual_state(2023, product = "OISST", chosen_clim = "1982-2011", force_calc = T)
 # event_annual_state(2023, MHW = F, product = "OISST", chosen_clim = "1982-2011", force_calc = T)
 
 # Run ALL years
 ### OISST
 ## MHW
-# plyr::l_ply(1982:2023, event_annual_state, force_calc = T, .parallel = T,
+# plyr::l_ply(1982:2023, event_annual_state, force_calc = TRUE, .parallel = TRUE,
 #             product = "OISST", chosen_clim = "1982-2011") # ~90 seconds for one
-# plyr::l_ply(1982:2019, event_annual_state, force_calc = T, database = T, .parallel = T,
+# plyr::l_ply(1982:2019, event_annual_state, force_calc = TRUE, database = TRUE, .parallel = TRUE,
 #             product = "OISST", chosen_clim = "1992-2018")
 ## MCS
-# plyr::l_ply(1982:2023, event_annual_state, MHW = F, force_calc = T, .parallel = T,
+# plyr::l_ply(1982:2023, event_annual_state, MHW = FALSE, force_calc = TRUE, .parallel = TRUE,
 #             product = "OISST", chosen_clim = "1982-2011")
 
 ### CCI
@@ -227,8 +228,8 @@ event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = 
 # product <- "OISST"
 # chosen_clim <- "1982-2011"
 # chosen_clim <- "1992-2018"
-# MHW <- F
-event_total_state <- function(product, chosen_clim, MHW = T){
+# MHW <- FALSE
+event_total_state <- function(product, chosen_clim, MHW = TRUE){
   
   if(MHW){
     event_type <- "MHW"
@@ -386,6 +387,11 @@ event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
   event_total <- readRDS(paste0("data/annual_summary/",product,event_file,
                                 "_cat_daily_",chosen_clim,"_total.Rds"))
   
+  # Get highest category per pixel
+  event_cat_pixel_max <- event_cat_pixel |> ungroup() |> 
+    summarise(category = max(as.integer(category), na.rm = TRUE), .by = c("lon", "lat")) |> 
+    mutate(category = factor(category, labels = levels(event_cat_pixel$category)))
+  
   # Extract small data.frame for easier labeling
   event_cat_daily_labels <- event_cat_daily %>% 
     group_by(category) %>% 
@@ -395,7 +401,7 @@ event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
     filter(first_area_cum != 0)
   
   # Global map of event occurrence
-  fig_map <- ggplot(event_cat_pixel, aes(x = lon, y = lat)) +
+  fig_map <- ggplot(event_cat_pixel_max, aes(x = lon, y = lat)) +
     # geom_tile(data = OISST_ice_coords, fill = "powderblue", colour = NA, alpha = 0.5) +
     geom_tile(aes(fill = category), colour = NA) +
     geom_polygon(data = map_base, aes(x = lon, y = lat, group = group), fill = "grey60") +
@@ -784,7 +790,96 @@ BAMS_fig <- function(){
 
 # 7: Animations -----------------------------------------------------------
 
+# Legacy code
 # setwd("figures") # Need to change working directory for animation code to be able to access png files
 # system.time(system("convert -delay 100 *.png ../anim/MHW_cat_summary.mp4")) # 139 seconds
 # setwd("../")
 
+# Create animations of the annual state for MHW or MCS
+# testers...
+# product <- "OISST"
+# chosen_clim <- "1982-2011"
+# chosen_clim <- "1992-2018"
+# MHW <- FALSE
+event_annual_state_anim <- function(product = "OISST", chosen_clim = "1982-2011", MHW = TRUE){
+  
+  # Set metadata
+  if(MHW){
+    event_type <- "MHW"
+    event_file <- ""
+    event_colours <- MHW_colours
+  } else {
+    event_type <- "MCS"
+    event_file <- "_MCS"
+    event_colours <- MCS_colours
+  }
+  
+  ## Create figure title
+  # product_name <- product
+  # if(product == "OISST") product_name <- "NOAA OISST"
+  # fig_title <- paste0(event_type," categories of ",chosen_year,
+  #                     "\n",product_name,"; Climatology period: ",chosen_clim)
+  
+  # Load data
+  event_cat_pixel <- readRDS(paste0("data/annual_summary/",product,event_file,"_cat_pixel_",
+                                    chosen_clim,"_2023.Rds"))
+  event_cat_pixel <- map_dfr(dir("data/annual_summary/", full.names = TRUE,
+                                 pattern = paste0(product,event_file,"_cat_pixel_", chosen_clim)), readRDS)
+  # event_cat_annual <- event_cat_pixel |> 
+  #   mutate(year = year(t)) |> group_by(year) |> filter(t == max(t)) |> ungroup() |> 
+  #   filter(!year == year(Sys.Date()))
+  # event_cat_daily <- map_dfr(dir("data/annual_summary/", pattern = paste0(product,event_file, "_cat_daily_",chosen_clim,)), readRDS)
+  # event_total <- readRDS(paste0("data/annual_summary/",product,event_file,"_cat_daily_",chosen_clim,"_total.Rds"))
+  
+  # Max category per pixel per year
+  event_cat_pixel_max <- event_cat_pixel |> ungroup() |> mutate(year = year(t)) |> 
+    summarise(category = max(as.integer(category), na.rm = TRUE), .by = c("lon", "lat", "year")) |> 
+    mutate(category = factor(category, labels = levels(event_cat_pixel$category)))
+  
+  # Labels for faster plotting
+  event_cat_label <- event_cat_annual |> dplyr::select(year) |> distinct()
+  
+  # testers...
+  event_cat_annual_test <- filter(event_cat_annual, year == 1982)
+  event_cat_label_test <-  filter(event_cat_label, year == 1982)
+  
+  # Global map of event occurrence
+  anim_map <- ggplot(event_cat_annual, aes(x = lon, y = lat)) +
+    # geom_tile(data = OISST_ice_coords, fill = "powderblue", colour = NA, alpha = 0.5) +
+    geom_raster(aes(fill = category), show.legend = FALSE) +
+    geom_polygon(data = map_base, aes(x = lon, y = lat, group = group), fill = "grey60") +
+    geom_label(data = event_cat_label, inherit.aes = FALSE,
+               aes(x = -40, y = 75, label = year),
+               fill = "white", label.size = 1, size = 6) +
+    scale_fill_manual("Category", values = event_colours) +
+    coord_cartesian(expand = F, ylim = c(min(OISST_ocean_coords$lat), max(OISST_ocean_coords$lat))) +
+    theme_void() +
+    # guides(fill = guide_legend(override.aes = list(size = 10))) +
+    # theme(panel.border = element_rect(colour = "black", fill = NA),
+    #       legend.position = "bottom",
+    #       legend.text = element_text(size = 14),
+    #       legend.title = element_text(size = 16),
+    #       panel.background = element_rect(fill = "grey90")) +
+    transition_manual(frames = year, cumulative = FALSE)
+  # fig_map
+
+  # Create video
+  gganimate::animate(anim_map, width = 25, height = 14, unit = "in", 
+                     res = 100, fps = 1, duration = 42, # For testing
+                     # res = 300, fps = 5, duration = 36, # For full data
+                     renderer = av_renderer(paste0("figures/",product,"_",chosen_clim,"_annual.mp4")))
+  # Create GIF
+  animate(anim_map, width = 4.5, height = 4.5, unit = "in", 
+          res = 100, fps = 5, duration = 6) # For testing
+  # res = 300,fps = 5, duration = 36)# For full data
+  anim_save("figures/climate_spiral_NW_Med.gif")
+  
+}
+
+# Run the current year
+## MHW
+event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())),
+                   product = "OISST", chosen_clim = "1982-2011", force_calc = T) # 161 seconds
+## MCS
+event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
+                   product = "OISST", chosen_clim = "1982-2011", force_calc = T) # 161 seconds
