@@ -825,17 +825,12 @@ event_annual_state_anim <- function(product = "OISST", chosen_clim = "1982-2011"
   #                                   chosen_clim,"_2023.Rds"))
   event_cat_pixel <- map_dfr(dir("data/annual_summary/", full.names = TRUE,
                                  pattern = paste0(product,event_file,"_cat_pixel_", chosen_clim)), readRDS)
-  # event_cat_annual <- event_cat_pixel |> 
-  #   mutate(year = year(t)) |> group_by(year) |> filter(t == max(t)) |> ungroup() |> 
-  #   filter(!year == year(Sys.Date()))
-  # event_cat_daily <- map_dfr(dir("data/annual_summary/", pattern = paste0(product,event_file, "_cat_daily_",chosen_clim,)), readRDS)
-  # event_total <- readRDS(paste0("data/annual_summary/",product,event_file,"_cat_daily_",chosen_clim,"_total.Rds"))
   
   # Max category per pixel per year
   event_cat_annual <- event_cat_pixel |> ungroup() |> mutate(year = year(t)) |>
     filter(!year == year(Sys.Date())) |> 
     summarise(category = max(as.integer(category), na.rm = TRUE), .by = c("lon", "lat", "year")) |> 
-    mutate(category = factor(category, labels = levels(event_cat_pixel$category))) 
+    mutate(category = factor(category, labels = levels(event_cat_pixel$category)))
   
   # Labels for faster plotting
   event_cat_label <- event_cat_annual |> dplyr::select(year) |> distinct()
@@ -862,24 +857,25 @@ event_annual_state_anim <- function(product = "OISST", chosen_clim = "1982-2011"
     #       legend.title = element_text(size = 16),
     #       panel.background = element_rect(fill = "grey90")) +
     transition_manual(frames = year, cumulative = FALSE)
+    # transition_states(states = year, transition_length = 5, state_length = 5, wrap = FALSE)
   # fig_map
 
   # Create video
-  anim_mp4 <- gganimate::animate(anim_map, width = 25, height = 14, unit = "in",
-                     res = 100, fps = 1, duration = 5, # For testing
-                     # res = 300, fps = 1, duration = 42, # For full data
-                     renderer = file_renderer(paste0("figures/")))
+  # anim_mp4 <- gganimate::animate(anim_map, width = 25, height = 14, unit = "in",
+  #                    res = 100, fps = 1, duration = 5, # For testing
+  #                    # res = 300, fps = 1, duration = 42, # For full data
+  #                    renderer = file_renderer(paste0("figures/")))
   # # Create GIF
-  gganimate::animate(anim_map, width = 25, height = 14, unit = "in",
-                     res = 100, fps = 1, duration = 5, # For testing
-                     # res = 300, fps = 1, duration = 42, # For full data
-                     renderer = file_renderer(paste0("figures/",product,"_",chosen_clim,"_annual.gif")))
-  anim_full <- gganimate::animate(anim_map, width = 25, height = 14, unit = "in",
-                     res = 100, fps = 1, duration = 5) # For testing
-                     # res = 300,fps = 5, duration = 36)# For full data
+  # gganimate::animate(anim_map, width = 25, height = 14, unit = "in",
+  #                    res = 100, fps = 1, duration = 5, # For testing
+  #                    # res = 300, fps = 1, duration = 42, # For full data
+  #                    renderer = file_renderer(paste0("figures/",product,"_",chosen_clim,"_annual.gif")))
+  anim_full <- gganimate::animate(anim_map, width = 5, height = 2.8, unit = "in",
+                                  res = 100, fps = 1, duration = 10) # For manual testing
+                                  # res = 100, fps = 5, duration = 10) # For transition testing
+                                  # res = 300,fps = 5, duration = 36)# For full data
   gganimate::anim_save(filename = paste0("figures/",product,"_",chosen_clim,"_annual.gif"), animation = anim_full)
-  gganimate::anim_save(filename = paste0("figures/",product,"_",chosen_clim,"_annual.mp4"), animation = anim_mp4)
-  
+  # gganimate::anim_save(filename = paste0("figures/",product,"_",chosen_clim,"_annual.mp4"), animation = anim_mp4)
 }
 
 # Render the annual animations
