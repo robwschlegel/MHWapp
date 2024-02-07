@@ -642,17 +642,30 @@ BAMS_fig <- function(){
   df_MHW <- readRDS("data/annual_summary/OISST_cat_daily_1982-2011_total.Rds")
   df_MCS <- readRDS("data/annual_summary/OISST_MCS_cat_daily_1982-2011_total.Rds")
 
+  # Get the range needed for the y-axis
+  ## MHW
+  df_MHW_sum <- df_MHW |> summarise(y_height = sum(cat_area_cum_prop), .by = "t")
+  df_MHW_y_height <- plyr::round_any(df_MHW_sum$y_height[df_MHW_sum$y_height == max(df_MHW_sum$y_height)], 5)
+  df_MHW_y_height_365 <- plyr::round_any(round(df_MHW_y_height/365, 2), 0.02)
+  ## MCS
+  df_MCS_sum <- df_MCS |> summarise(y_height = sum(cat_area_cum_prop), .by = "t")
+  df_MCS_y_height <- plyr::round_any(df_MCS_sum$y_height[df_MCS_sum$y_height == max(df_MCS_sum$y_height)], 5)
+  df_MCS_y_height_365 <- plyr::round_any(round(df_MCS_y_height/365, 2), 0.02)
+  
   # Set plotting parameters
   ## MHW
-  event_limits_MHW <- c(0, 65)
-  event_breaks_MHW <- seq(5, 60, by = 5)
-  second_breaks_MHW <- c(7.3, 14.6, 21.9, 29.2, 36.5, 43.8, 51.1, 58.4)
-  second_break_labels_MHW <- c("2%", "4%", "6%", "8%", "10%", "12%", "14%", "16%")
+  event_limits_MHW <- c(0, round(df_MHW_y_height+1, -1))
+  event_breaks_MHW <- seq(10, event_limits_MHW[2]-10, by = 10)
+  second_breaks_MHW <- seq(0.04, plyr::round_any(event_limits_MHW[2]/365, 0.02), 0.04)*365
+  second_break_labels_MHW <- paste0(seq(from = 4, by = 4, length.out = length(second_breaks_MHW)), "%")
   ## MCS
-  event_limits_MCS <- c(0, 27)
-  event_breaks_MCS <- seq(5, 25, by = 5)
-  second_breaks_MCS <- c(7.3, 14.6, 21.9)
-  second_break_labels_MCS <- c("2%", "4%", "6%")
+  event_limits_MCS <- c(0, round(df_MCS_y_height+1, -1))
+  event_breaks_MCS <- seq(5, event_limits_MCS[2]-5, by = 5)
+  second_breaks_MCS <- seq(0.02, plyr::round_any(event_limits_MCS[2]/365, 0.02), 0.02)*365
+  second_break_labels_MCS <- paste0(seq(from = 2, by = 2, length.out = length(second_breaks_MCS)), "%")
+  
+  # Set same x-axis breaks for all panels
+  x_breaks <- seq(1983, 2023, 10)
   
   # Stacked barplot of global daily count of MHW by category
   fig_count_historic_MHW <- ggplot(df_MHW, aes(x = t, y = cat_area_cum_prop)) +
@@ -664,7 +677,7 @@ BAMS_fig <- function(){
                                            trans = ~ . + 0,
                                            breaks = second_breaks_MHW,
                                            labels = second_break_labels_MHW)) +
-    scale_x_continuous(breaks = seq(1984, 2019, 7)) +
+    scale_x_continuous(breaks = x_breaks) +
     guides(fill = guide_legend(nrow = 1, byrow = TRUE)) +
     labs(y = paste0("Average MHW days"), x = NULL) +
     coord_cartesian(expand = F) +
@@ -685,7 +698,7 @@ BAMS_fig <- function(){
                                            trans = ~ . + 0,
                                            breaks = second_breaks_MCS,
                                            labels = second_break_labels_MCS)) +
-    scale_x_continuous(breaks = seq(1984, 2019, 7)) +
+    scale_x_continuous(breaks = x_breaks) +
     guides(fill = guide_legend(nrow = 1, byrow = TRUE)) +
     labs(y = paste0("Average MCS days"), x = NULL) +
     coord_cartesian(expand = F) +
@@ -704,7 +717,7 @@ BAMS_fig <- function(){
     scale_y_continuous(limits = c(0, 1),
                        breaks = seq(0.2, 0.8, length.out = 4),
                        labels = paste0(seq(20, 80, by = 20), "%")) +
-    scale_x_continuous(breaks = seq(1984, 2019, 7)) +
+    scale_x_continuous(breaks = x_breaks) +
     labs(y = paste0("Total MHW coverage"), x = NULL) +
     coord_cartesian(expand = F) +
     theme(panel.border = element_rect(colour = "black", fill = NA),
@@ -722,7 +735,7 @@ BAMS_fig <- function(){
     scale_y_continuous(limits = c(0, 1),
                        breaks = seq(0.2, 0.8, length.out = 4),
                        labels = paste0(seq(20, 80, by = 20), "%")) +
-    scale_x_continuous(breaks = seq(1984, 2019, 7)) +
+    scale_x_continuous(breaks = x_breaks) +
     labs(y = paste0("Total MCS coverage"), x = NULL) +
     coord_cartesian(expand = F) +
     theme(panel.border = element_rect(colour = "black", fill = NA),
