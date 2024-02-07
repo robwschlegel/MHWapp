@@ -843,22 +843,25 @@ event_annual_state_anim <- function(product = "OISST", chosen_clim = "1982-2011"
   # Create video
   gganimate::animate(anim_map, width = 25, height = 14, unit = "in",
                      # res = 100, fps = 1, duration = 10, # For testing
-                     res = 100, fps = 1, duration = 84, # For full data
+                     res = 300, fps = 1, duration = (nrow(event_cat_label)*2)+2, # For full data
+                     end_pause = 1,
                      renderer = av_renderer(paste0("figures/",product,event_file,"_",chosen_clim,"_annual.mp4")))
   # Create GIF
-  gganimate::animate(anim_map, width = 25, height = 14, unit = "in", 
-                     # res = 100, fps = 1, duration = 10, # For manual testing
-                     res = 300,fps = 1, duration = 84, # For full data
-                     renderer = gifski_renderer(paste0("figures/",product,event_file,"_",chosen_clim,"_annual.gif")))
+  # gganimate::animate(anim_map, width = 25, height = 14, unit = "in", 
+  #                    # res = 100, fps = 1, duration = 10, # For manual testing
+  #                    res = 300,fps = 1, duration = (nrow(event_cat_label)*2)+2, # For full data
+  #                    end_pause = 2,
+  #                    renderer = gifski_renderer(paste0("figures/",product,event_file,"_",chosen_clim,"_annual.gif")))
 }
 
 # Render the annual animations
 # NB: Only needs to be run once per year
 ## MHW
 system.time(
-event_annual_state_anim() # 606 seconds
+event_annual_state_anim() # 305 seconds
 )
 ## MCS
 system.time(
-event_annual_state_anim(MHW = FALSE) # xxx seconds
+event_annual_state_anim(MHW = FALSE) # 279 seconds
 )
+
