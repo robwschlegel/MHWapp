@@ -870,11 +870,11 @@ event_annual_state_anim <- function(product = "OISST", chosen_clim = "1982-2011"
 # Render the annual animations
 # NB: Only needs to be run once per year
 ## MHW
-system.time(
-event_annual_state_anim() # 305 seconds
-)
+# system.time(
+# event_annual_state_anim() # 305 seconds
+# )
 ## MCS
-system.time(
-event_annual_state_anim(MHW = FALSE) # 279 seconds
-)
+# system.time(
+# event_annual_state_anim(MHW = FALSE) # 279 seconds
+# )
 
