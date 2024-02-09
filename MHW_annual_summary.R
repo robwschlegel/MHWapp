@@ -655,7 +655,7 @@ BAMS_fig <- function(){
   # Set plotting parameters
   ## MHW
   event_limits_MHW <- c(0, round(df_MHW_y_height+1, -1))
-  event_breaks_MHW <- seq(10, event_limits_MHW[2]-10, by = 10)
+  event_breaks_MHW <- seq(20, event_limits_MHW[2]-10, by = 20)
   second_breaks_MHW <- seq(0.04, plyr::round_any(event_limits_MHW[2]/365, 0.02), 0.04)*365
   second_break_labels_MHW <- paste0(seq(from = 4, by = 4, length.out = length(second_breaks_MHW)), "%")
   ## MCS
