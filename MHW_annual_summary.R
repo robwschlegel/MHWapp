@@ -289,12 +289,8 @@ event_total_state("OISST", "1982-2011", MHW = F)
 
 # 5: Annual summary of categories per pixel -------------------------------
 
-# Create a load option for southern hemisphere, July - June
-# and one for Northern Hemisphere, January - December
-# NB: This is old code from the previous pipeline...
-
-# chosen_year <- 2013
-# hemisphere <- "S"
+# chosen_year <- 2013; hemisphere <- "N"
+# chosen_year <- 2015; hemisphere <- "S"
 MHW_annual_count <- function(chosen_year, hemisphere){
   
   print(paste0("Started run on ",chosen_year," at ",Sys.time()))
@@ -303,13 +299,12 @@ MHW_annual_count <- function(chosen_year, hemisphere){
   if(hemisphere == "N"){
     MHW_cat_files <- dir(paste0("../data/cat_clim/", chosen_year), pattern = "Rda", full.names = T)
   } else if(hemisphere == "S"){
-    MHW_cat_files <- c(dir(paste0("../data/cat_clim/", chosen_year), full.names = T),
-                       dir(paste0("../data/cat_clim/", chosen_year+1), full.names = T))
-    # if(chosen_year == 2019){ # This will need to be updated once July 1st, 2020 data are available
-    #   MHW_cat_files <- MHW_cat_files[grep("07-01", MHW_cat_files)[1]:length(MHW_cat_files)]
-    # } else {
-    #   MHW_cat_files <- MHW_cat_files[grep("07-01", MHW_cat_files)[1]:grep("06-30", MHW_cat_files)[2]]
-    # }
+    # Need to account for possible leap years when subsetting by index
+    MHW_cat_files_pre <- c(dir(paste0("../data/cat_clim/", chosen_year), full.names = T, pattern = "Rda"),
+                           dir(paste0("../data/cat_clim/", chosen_year+1), full.names = T, pattern = "Rda"))
+    MHW_cat_files <- MHW_cat_files_pre[yday(paste0(chosen_year,"-07-01")):
+                                         (yday(paste0(chosen_year,"-12-31"))+yday(paste0(chosen_year+1,"-06-30")))]
+    rm(MHW_cat_files_pre)
   }
   
   ## Load data
@@ -319,25 +314,26 @@ MHW_annual_count <- function(chosen_year, hemisphere){
   # system.time(
   MHW_cat_count <- lazy_dt(MHW_cat) %>% 
     group_by(lon, lat, event_no) %>% 
-    summarise(max_cat = max(as.integer(category))) %>% 
+    summarise(max_cat = max(as.integer(category)), .groups = "drop") %>% 
     data.frame() %>% 
     dplyr::select(-event_no) %>% 
-    mutate(max_cat = factor(max_cat, levels = c(1:4),  labels = levels(MHW_cat$category))) %>% 
+    mutate(max_cat = factor(max_cat, levels = c(1:4), labels = levels(MHW_cat$category))) %>% 
     group_by(lon, lat) %>% 
     table() %>% 
     as.data.frame() %>% 
     pivot_wider(values_from = Freq, names_from = max_cat) %>% 
     mutate(lon = as.numeric(as.character(lon)),
            lat = as.numeric(as.character(lat)))
-  # ) # 16 seconds
+  # ) # 24 seconds
   saveRDS(MHW_cat_count, paste0("data/annual_summary/MHW_cat_count_",hemisphere,"_", chosen_year,".Rds"))
   saveRDS(MHW_cat_count, paste0("../data/OISST/annual_summary/MHW_cat_count_",hemisphere,"_", chosen_year,".Rds"))
   # write_csv(MHW_cat_count, paste0("data/annual_summary/MHW_cat_sum_",hemisphere,"_", chosen_year,".csv"))
 }
 
 # Run them all
-# plyr::l_ply(2015:2019, MHW_annual_count, .parallel = F, hemisphere = "S")
-# plyr::l_ply(2016:2020, MHW_annual_count, .parallel = F, hemisphere = "N")
+# NB: Needs up to June 30th of the year for the Southern Hemisphere
+# plyr::l_ply(1982:2022, MHW_annual_count, .parallel = F, hemisphere = "S")
+# plyr::l_ply(1982:2023, MHW_annual_count, .parallel = F, hemisphere = "N")
 
 # test visuals
 # MHW_cat_count <- readRDS("data/annual_summary/MHW_cat_count_S_2014.Rds")
