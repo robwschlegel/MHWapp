@@ -664,3 +664,4 @@ global_MHW_summary_plot <- ggpubr::ggarrange(panel_A, panel_B, panel_C, panel_D,
                                              labels = c("A)", "B)", "C)", "D)")) + 
   ggpubr::bgcolor("white") + ggpubr::border("white")
 ggsave("figures/global_MHW_summary_plot.png", global_MHW_summary_plot, width = 12, height = 8)
+
