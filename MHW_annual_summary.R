@@ -129,6 +129,8 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
   } else{
     # print(paste0("Counting the daily + cumulative categories per day; ~3 seconds"))
     
+    # TODO: Add days of MHW/MCS per year per pixel
+    
     # Complete dates by categories data.frame
     full_grid <- expand_grid(t = seq(as.Date(paste0(chosen_year,"-01-01")), max(event_cat$t), by = "day"), 
                              category = as.factor(levels(event_cat$category))) %>% 
