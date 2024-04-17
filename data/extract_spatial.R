@@ -8,6 +8,11 @@
 source("MHW_daily_functions.R")
 library(raster)
 library(gganimate)#, lib.loc = "~/R-packages/")
+library(sf)
+library(stars)
+library(tidyterra)
+library(rnaturalearth)
+library(rnaturalearthdata)
 doParallel::registerDoParallel(cores = 50)
 
 # CCI file location
@@ -46,6 +51,45 @@ MHW_2017_single <- readRDS_date("shiny/cat_clim/2017/cat.clim.2017-02-25.Rda")
 # 2016 data for NZ MHW
 MHW_2016_single <- readRDS_date("shiny/cat_clim/2016/cat.clim.2016-02-01.Rda")
 
+## Code used for CIESM cover figure
+# Get dates for July 2023
+cat_clim_files_sub <- dir(cat_clim_annual_folders[42], pattern = "Rda", recursive = T, full.names = T)[182:212]
+# Get single dataframe for global data
+MHW_CIESM <- map_dfr(cat_clim_files_sub, readRDS_date)
+# Get highest category per pixel
+MHW_CIESM_proc <- summarise(MHW_CIESM, cat_max = max(as.numeric(category)), .by = c(lon, lat)) |> 
+  mutate(cat_max = factor(cat_max, labels = names(MHW_colours)))
+MHW_CIESM_crs <- sf::st_as_sf(MHW_CIESM_proc, coords = c(1:2), crs = "epsg:4326")
+# MHW_CIESM_raster <- rast(MHW_CIESM_proc, crs = "epsg:4326", digits = 3)
+MHW_CIESM_raster <- tidyterra::as_spatraster(MHW_CIESM_proc, crs = 4326)
+# Load world map into environment
+world <- ne_countries(scale = "medium", returnclass = "sf")
+worldmap <- ne_countries(scale = 'medium', type = 'map_units', returnclass = 'sf')
+# Crop to desired range
+europe_cropped <- st_crop(worldmap, xmin = -40, xmax = 80, ymin = 0, ymax = 90)
+# Plot global projection
+ggplot() +
+  # geom_raster(data = MHW_CIESM_proc, aes(x = lon, y = lat, fill = cat_max)) +
+  # geom_sf(data = MHW_CIESM_crs, aes(fill = cat_max)) +
+  geom_spatraster(data = MHW_CIESM_raster, na.rm = TRUE) +
+  geom_sf(data = worldmap, fill = "antiquewhite") +
+  # coord_sf(crs = st_crs(3035)) +
+  # Or rather crop the area directly  here
+  # coord_sf(xlim = c(-102.15, -74.12), ylim = c(7.65, 33.97), expand = FALSE) +
+  coord_sf(crs = "+proj=ortho +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +units=m +no_defs",
+           xlim = c(100000, 10000000), ylim = c(30000, 4000000), expand = FALSE) +
+  # coord_map(projection = "cylindrical") +
+  scale_fill_manual("Category", na.value = "transparent",
+                    values = c("#ffc866", "#ff6900", "#9e0000", "#2d0000"),
+                    labels = c("I Moderate", "II Strong", "III Severe", "IV Extreme"), 
+                    breaks = c("I Moderate", "II Strong", "III Severe", "IV Extreme")) +
+  ggtitle("Marine Heatwave Categories - July 2023", 
+          subtitle = "NOAA dOISST v2.1; Relative to 1982-2011 baseline") +
+  labs(x = NULL, y = NULL) +
+  theme(panel.grid.major = element_blank(), 
+        panel.background = element_rect(fill = "aliceblue"))
+ggsave("MHW_CIESM.png", width = 12, height = 5, dpi = 300)
+
 
 # Load regional data ------------------------------------------------------
 
@@ -64,7 +108,7 @@ readRDS_date_sub <- function(file_name, lon_min, lon_max, lat_min, lat_max){
 }
 
 # Get subset of years to upload
-cat_clim_files_sub <- dir(cat_clim_annual_folders[30:41], recursive = T, full.names = T)
+cat_clim_files_sub <- dir(cat_clim_annual_folders[30:41], pattern = "Rda", recursive = T, full.names = T)
 
 # Get single dataframe for UK region
 MHW_UK <- plyr::ldply(cat_clim_files_sub, readRDS_date_sub, .parallel = T,
