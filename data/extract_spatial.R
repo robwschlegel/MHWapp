@@ -356,7 +356,7 @@ plyr::l_ply(1982:2022, zip_by_year, df = cat_clim_ALL, file_stub = "cat_clim")
 
 # Function for extracting NOAA OISST only from a given bbox
 ## NB: This could easily be adapted to extract other MHW values etc. from a bbox
-sst_bbox <- function(bbox, filter_full_year = TRUE){
+sst_bbox <- function(bbox, filter_full_year = TRUE, spat_ave = FALSE){
   lon_bbox <- lon_OISST[which(lon_OISST >= bbox[1] & lon_OISST <= bbox[2])]
   lat_bbox <- range(lat_OISST[which(lat_OISST >= bbox[3] & lat_OISST <= bbox[4])])
   sst_dat <- plyr::ldply(lon_bbox, sst_seas_thresh_merge, .parallel = T, 
@@ -366,6 +366,10 @@ sst_bbox <- function(bbox, filter_full_year = TRUE){
   if(filter_full_year){
     full_year <- as.Date(paste0(year(Sys.Date())-1,"-12-31"))
     sst_dat <- filter(sst_dat, t <= full_year)
+  }
+  if(spat_ave){
+    sst_dat <- sst_dat |> 
+      summarise(temp = round(mean(temp, na.rm = TRUE), 4), .by = "t")
   }
   return(sst_dat)
 }
@@ -476,6 +480,22 @@ rm(sst_trom, sst_CCI_trom); gc()
 # bbox_gland <- c(-77, -9, 58, 84)
 # sst_gland <- sst_bbox(bbox_gland)
 # save(sst_gland, file = "data/sst_gland.RData")
+
+# Spatial averages
+Isfjorden <- sst_bbox(c(10, 13, 77.5, 78.5), spat_ave = TRUE)
+save(Isfjorden, file = "data/Isfjorden.Rdata")
+Kongsfjorden <- sst_bbox(c(8, 11, 78.5, 79.5), spat_ave = TRUE)
+save(Kongsfjorden, file = "data/Kongsfjorden.Rdata")
+Porsanger <- sst_bbox(c(24, 27, 70.5, 71.5), spat_ave = TRUE)
+save(Porsanger, file = "data/Porsanger.Rdata")
+Ittoqqortoormiit <- sst_bbox(c(-20, -17, 73.5, 74.5), spat_ave = TRUE)
+save(Ittoqqortoormiit, file = "data/Ittoqqortoormiit.Rdata")
+Tasiilaq <- sst_bbox(c(-39, -36, 64.5, 65.5), spat_ave = TRUE)
+save(Tasiilaq, file = "data/Tasiilaq.Rdata")
+Qeqertarsuaq <- sst_bbox(c(-56, -53, 68.5, 69.5), spat_ave = TRUE)
+save(Qeqertarsuaq, file = "data/Qeqertarsuaq.Rdata")
+Nuuk <- sst_bbox(c(-55, -52, 63.5, 64.5), spat_ave = TRUE)
+save(Nuuk, file = "data/Nuuk.Rdata")
 
 
 # Summary analyses --------------------------------------------------------
