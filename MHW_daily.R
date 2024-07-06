@@ -164,37 +164,21 @@ if(ncdf_date > cat_lon_date){
   
   # Load old file to see what the standard is
   ## MHW
-  cat_lon_MHW_old <- read_rds("../data/cat_lon/MHW.cat.0001.Rda")
-  event_MHW_old <- read_rds("../data/event/MHW.event.0001.Rda")
+  cat_lon_MHW_old <- read_rds("../data/cat_lon/MHW.cat.1222.Rda")
+  event_MHW_old <- read_rds("../data/event/MHW.event.1222.Rda")
+  cat_lon_MHW_new <- read_rds("cat_lon_MHW_1222.Rda")
+  event_MHW_new <- read_rds("event_MHW_1222.Rda")
   ## MCS
-  cat_lon_MCS_old <- read_rds("../data/cat_lon/MCS/MCS.cat.0001.Rda")
-  event_MCS_old <- read_rds("../data/event/MCS/MCS.event.0001.Rda")
+  cat_lon_MCS_old <- read_rds("../data/cat_lon/MCS/MCS.cat.1222.Rda")
+  event_MCS_old <- read_rds("../data/event/MCS/MCS.event.1222.Rda")
+  cat_lon_MCS_new <- read_rds("cat_lon_MCS_1222.Rda")
+  event_MCS_new <- read_rds("event_MCS_1222.Rda")
   
   # Set lon step
   # lon_row <- which(lon_OISST == lon_step)
   lon_row <- 1
   
-  # Load SST
-  sst_test <- tidync(OISST_files[lon_row]) |> hyper_tibble() |> 
-    mutate(time = as.Date(time, origin = "1970-01-01")) |> 
-    dplyr::rename(t = time, temp = sst) 
-  
-  # ts2clm
-  system.time(
-    MHW_res <- sst_test |>
-      group_by(lon, lat) |>
-      nest() |>
-      mutate(clim = purrr::map(data, ts2clm, climatologyPeriod = c("1991-01-01", "2020-12-31")),
-             event = purrr::map(clim, detect_event), 
-             cat = purrr::map(event, category, climatology = T, season = "peak", S = F)) |>
-      dplyr::select(-data, -clim) |> ungroup()
-  ) # 98 seconds for one full lon slice
-  
-  # heatwave3
-  library(heatwave3)
-  system.time(
-  MHW_res3 <- heatwave3::detect3(OISST_files[lon_row], clim_period = c("1991-01-01", "2020-12-31"), return_type = "df")
-  ) # 148 seconds
+  plyr::l_ply(1, .fun = event_cat_calc, .parallel = TRUE); gc()
   
   # system.time(
   plyr::l_ply(lon_OISST, .fun = event_cat_update, .parallel = TRUE); gc()

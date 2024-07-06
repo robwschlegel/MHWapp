@@ -680,6 +680,84 @@ event_calc <- function(df, sst_seas_thresh, event_data, cat_lon, full, cold_choi
   return(event_cat)
 }
 
+# Convenience wrapper for function below
+event_cat_unpack <- function(nest_df){
+  
+  # Unpack 'cat_lon' data
+  cat_lon_df <- nest_df |> 
+    unnest(event) |> 
+    filter(row_number() %% 2 == 1) |> 
+    unnest(event) |> 
+    dplyr::select(t, lon, lat, event_no, intensity, category) |>
+    filter(!is.na(event_no)) |> 
+    mutate(intensity = round(intensity, 2))
+  
+  # Unnest 'event' data
+  event_df <- nest_df |> 
+    unnest(event) |> 
+    filter(row_number() %% 2 == 0) |> 
+    unnest(event) |> 
+    dplyr::select(lon, lat, event_no, duration, date_start, date_peak, date_end, 
+                  intensity_mean, intensity_max, intensity_cumulative,
+                  category, p_moderate, p_strong, p_severe, p_extreme, season) |> 
+    mutate(intensity_mean = round(intensity_mean, 3),
+           intensity_max = round(intensity_max, 2),
+           intensity_cumulative = round(intensity_cumulative, 2))
+  
+  # Exit
+  event_cat <- list(event = event_df,
+                    cat = cat_lon_df)
+  return(event_cat)
+}
+
+# A new single function to run the daily calculations. Much less complicated
+event_cat_calc <- function(lon_row){
+  
+  # Load SST
+  sst_test <- tidync(OISST_files[lon_row]) |> hyper_tibble() |> 
+    mutate(time = as.Date(time, origin = "1970-01-01")) |> 
+    dplyr::rename(t = time, temp = sst) 
+  
+  # MHWs
+  ## Detect events+cats
+  # system.time(
+    MHW_nest <- sst_test |>
+      group_by(lon, lat) |>
+      nest() |>
+      mutate(clim = purrr::map(data, ts2clm, climatologyPeriod = c("1991-01-01", "2020-12-31")),
+             event = purrr::map(clim, detect_event, categories = TRUE, climatology = TRUE, season = "peak"))
+  # ) # 98 seconds for one full lon slice
+    ## Unpack
+    MHW_list <- event_cat_unpack(MHW_nest)
+    ## Save 
+    saveRDS(MHW_list$event, file = paste0("event_MHW_",lon_row,".Rda"))
+    saveRDS(MHW_list$cat, file = paste0("cat_lon_MHW_",lon_row,".Rda"))
+    # saveRDS(MHW_list$event, file = MHW_event_files[lon_row])
+    # saveRDS(MHW_list$cat, file = MHW_cat_lon_files[lon_row])
+    
+    detect_event(sst_step_1, coldSpells = cold_choice, categories = TRUE,
+                 climatology = TRUE, season = "peak", MCScorrect = cold_choice, MCSice = cold_choice)
+    # ts2clm(pctile = 10)
+    # MCSs
+    ## Detect events+cats
+    # system.time(
+    MHW_nest <- sst_test |>
+      group_by(lon, lat) |>
+      nest() |>
+      mutate(clim = purrr::map(data, ts2clm, climatologyPeriod = c("1991-01-01", "2020-12-31"), pctile = 10),
+             event = purrr::map(clim, detect_event), 
+             cat = purrr::map(event, category, climatology = T, season = "peak", S = F)) |>
+      dplyr::select(-data, -clim) |> ungroup()
+    # ) # 98 seconds for one full lon slice
+    ## Unpack
+    MHW_list <- event_cat_unpack(MHW_nest)
+    ## Save 
+    saveRDS(MHW_list$event, file = paste0("event_MHW_",lon_row,".Rda"))
+    saveRDS(MHW_list$cat, file = paste0("cat_lon_MHW_",lon_row,".Rda"))
+    # saveRDS(MHW_list$event, file = MHW_event_files[lon_row])
+    # saveRDS(MHW_list$cat, file = MHW_cat_lon_files[lon_row])
+}
+  
 
 # 5: Create daily global file functions -----------------------------------
 
