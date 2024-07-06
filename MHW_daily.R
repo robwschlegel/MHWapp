@@ -151,6 +151,13 @@ if(nrow(OISST_dat) > 2){
 
 # 2: Update MHW event and category data -----------------------------------
 
+# Create baseline seas+thresh files per longitude step
+# NB: Only needs to be run once per decade ;P
+## ~210 seconds per cycle
+# registerDoParallel(cores = 50)
+# plyr::l_ply(1:1440, create_thresh, .parallel = T, base_years = c(1982, 2011))
+# plyr::l_ply(1:1440, create_thresh, .parallel = T, base_years = c(1991, 2020))
+
 # Prep guide info for this section
 doParallel::registerDoParallel(cores = 25)
 ncdf_date <- max(as.Date(tidync("../data/OISST/oisst-avhrr-v02r01.ts.1440.nc")$transforms$time$time, origin = "1970-01-01"))
@@ -160,29 +167,13 @@ cat_lon_date <- max(readRDS("../data/cat_lon/MHW.cat.1440.Rda")$t)
 if(ncdf_date > cat_lon_date){
   print(paste0("Updating MHW/MCS results at ", Sys.time()))
   
-  # Testing new options
-  
-  # Load old file to see what the standard is
-  ## MHW
-  cat_lon_MHW_old <- read_rds("../data/cat_lon/MHW.cat.1222.Rda")
-  event_MHW_old <- read_rds("../data/event/MHW.event.1222.Rda")
-  cat_lon_MHW_new <- read_rds("cat_lon_MHW_1222.Rda")
-  event_MHW_new <- read_rds("event_MHW_1222.Rda")
-  ## MCS
-  cat_lon_MCS_old <- read_rds("../data/cat_lon/MCS/MCS.cat.1222.Rda")
-  event_MCS_old <- read_rds("../data/event/MCS/MCS.event.1222.Rda")
-  cat_lon_MCS_new <- read_rds("cat_lon_MCS_1222.Rda")
-  event_MCS_new <- read_rds("event_MCS_1222.Rda")
-  
-  # Set lon step
-  # lon_row <- which(lon_OISST == lon_step)
-  lon_row <- 1
-  
-  plyr::l_ply(1, .fun = event_cat_calc, .parallel = TRUE); gc()
+  # system.time(
+  plyr::l_ply(1:1440, .fun = event_cat_calc, .parallel = TRUE); gc()
+  # ) # ~300 seconds per cycle
   
   # system.time(
-  plyr::l_ply(lon_OISST, .fun = event_cat_update, .parallel = TRUE); gc()
-  # ) # ~ 258 seconds per cycle
+  # plyr::l_ply(lon_OISST[1:25], .fun = event_cat_update, .parallel = TRUE)#; gc()
+  # ) # ~ 172 seconds per cycle
   print(paste0("Finished MHW/MCS results at ", Sys.time()))
 }
 
@@ -195,9 +186,11 @@ if(ncdf_date > cat_lon_date){
 
 # Run many
 # plyr::l_ply(lon_OISST[1300:1365], .fun = event_cat_update, .parallel = TRUE, full = TRUE)
+# plyr::l_ply(1300:1365, .fun = event_cat_calc, .parallel = TRUE)
 
 # Run ALL
 # plyr::l_ply(lon_OISST, .fun = event_cat_update, .parallel = TRUE, full = TRUE) # ~4.5 hours on 50 cores
+# plyr::l_ply(1:1440, .fun = event_cat_calc, .parallel = TRUE) # ~4.5 hours on 50 cores
 
 # Find files that haven't been run since a certain date
 # file_dates <- file.info(dir("../data/cat_lon/MCS", full.names = T))  |>
@@ -207,6 +200,7 @@ if(ncdf_date > cat_lon_date){
 #   filter(ctime < Sys.Date()-1)
   # filter(size < 600000)
 # plyr::l_ply(lon_OISST[file_dates$file_num], .fun = event_cat_update, .parallel = TRUE, full = TRUE)
+# plyr::l_ply(file_dates$file_num, .fun = event_cat_calc, .parallel = TRUE)
 
 
 # 3: Create daily global files --------------------------------------------

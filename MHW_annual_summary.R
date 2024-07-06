@@ -13,14 +13,15 @@
 
 # source("MHW_daily_functions.R")
 library(dtplyr)
-# library(gganimate) # Only needed when running animations at bottome of script
 
 # Set number of cores
 registerDoParallel(cores = 50)
 
 # Animation libraries
+## Only needed when running animations at bottom of script
 # library(animation)
 # library(magick)
+# library(gganimate)
 
 
 # 2: Functions ------------------------------------------------------------

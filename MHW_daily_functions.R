@@ -440,6 +440,46 @@ OISST_merge <- function(lon_step, df){
 
 # 4: Update MHW event and category data functions -------------------------
 
+# Function that is used to create the seas + thresh files
+# lon_row <- 1; base_years <- c(1991, 2020)
+create_thresh <- function(lon_row, base_years){
+  
+  # Load SST
+  sst_lon <- tidync(OISST_files[lon_row]) |> hyper_tibble() |> 
+    mutate(time = as.Date(time, origin = "1970-01-01")) |> 
+    dplyr::rename(t = time, temp = sst)
+  
+  # Set baseline and pad lon_row for file name
+  base_line <- c(paste0(base_years[1],"-01-01"), paste0(base_years[2],"-12-31"))
+  lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
+  
+  # MHW
+  # system.time(
+  MHW_thresh <- sst_lon |>
+    group_by(lon, lat) |> nest() |>
+    mutate(clim = purrr::map(data, ts2clm, climatologyPeriod = base_line)) |> 
+    dplyr::select(-data) |> unnest(clim) |>
+    dplyr::select(lon, lat, doy, seas, thresh) |> 
+    distinct() |> arrange(lon, lat, doy) |> 
+    mutate(seas = round(seas, 2), thresh = round(thresh, 2))
+  # ) # ~50 seconds for one lon column
+  
+  # system.time(
+  MCS_thresh <- sst_lon |>
+    group_by(lon, lat) |> nest() |>
+    mutate(clim = purrr::map(data, ts2clm, climatologyPeriod = base_line, pctile = 10)) |> 
+    dplyr::select(-data) |> unnest(clim) |> 
+    dplyr::select(lon, lat, doy, seas, thresh) |> 
+    distinct() |> arrange(lon, lat, doy) |> 
+    mutate(seas = round(seas, 2), thresh = round(thresh, 2))
+  # ) # ~50 seconds for one lon column
+  
+  # Save and exit
+  saveRDS(MHW_thresh, paste0("../data/thresh/MHW.seas.thresh.", lon_row_pad,"_",base_years[1],"-",base_years[2],".Rds"))
+  saveRDS(MCS_thresh, paste0("../data/thresh/MCS/MCS.seas.thresh.", lon_row_pad,"_",base_years[1],"-",base_years[2],".Rds"))
+  return()
+}
+
 # Function that loads and merges sst/seas/thresh for a given lon_step
 # lon_step <- lon_OISST[2]
 # lat_range <- c(82.125, 82.875)
@@ -710,52 +750,58 @@ event_cat_unpack <- function(nest_df){
   return(event_cat)
 }
 
-# A new single function to run the daily calculations. Much less complicated
-event_cat_calc <- function(lon_row){
+# A new single function to run the daily calculations. Much less complicated.
+event_cat_calc <- function(lon_row, base_years = "1991-2020"){
   
   # Load SST
-  sst_test <- tidync(OISST_files[lon_row]) |> hyper_tibble() |> 
-    mutate(time = as.Date(time, origin = "1970-01-01")) |> 
+  sst_lon <- tidync(OISST_files[lon_row]) |> hyper_tibble() |> 
+    mutate(time = as.Date(time, origin = "1970-01-01"),
+           doy = yday(time)) |> 
     dplyr::rename(t = time, temp = sst) 
+  
+  # Load thresh files
+  lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
+  MHW_thresh <- readRDS(paste0("../data/thresh/MHW.seas.thresh.", lon_row_pad,"_",base_years,".Rds"))
+  MCS_thresh <- readRDS(paste0("../data/thresh/MCS/MCS.seas.thresh.", lon_row_pad,"_",base_years,".Rds"))
   
   # MHWs
   ## Detect events+cats
   # system.time(
-    MHW_nest <- sst_test |>
-      group_by(lon, lat) |>
-      nest() |>
-      mutate(clim = purrr::map(data, ts2clm, climatologyPeriod = c("1991-01-01", "2020-12-31")),
-             event = purrr::map(clim, detect_event, categories = TRUE, climatology = TRUE, season = "peak"))
-  # ) # 98 seconds for one full lon slice
-    ## Unpack
-    MHW_list <- event_cat_unpack(MHW_nest)
-    ## Save 
-    saveRDS(MHW_list$event, file = paste0("event_MHW_",lon_row,".Rda"))
-    saveRDS(MHW_list$cat, file = paste0("cat_lon_MHW_",lon_row,".Rda"))
-    # saveRDS(MHW_list$event, file = MHW_event_files[lon_row])
-    # saveRDS(MHW_list$cat, file = MHW_cat_lon_files[lon_row])
-    
-    detect_event(sst_step_1, coldSpells = cold_choice, categories = TRUE,
-                 climatology = TRUE, season = "peak", MCScorrect = cold_choice, MCSice = cold_choice)
-    # ts2clm(pctile = 10)
-    # MCSs
-    ## Detect events+cats
-    # system.time(
-    MHW_nest <- sst_test |>
-      group_by(lon, lat) |>
-      nest() |>
-      mutate(clim = purrr::map(data, ts2clm, climatologyPeriod = c("1991-01-01", "2020-12-31"), pctile = 10),
-             event = purrr::map(clim, detect_event), 
-             cat = purrr::map(event, category, climatology = T, season = "peak", S = F)) |>
-      dplyr::select(-data, -clim) |> ungroup()
-    # ) # 98 seconds for one full lon slice
-    ## Unpack
-    MHW_list <- event_cat_unpack(MHW_nest)
-    ## Save 
-    saveRDS(MHW_list$event, file = paste0("event_MHW_",lon_row,".Rda"))
-    saveRDS(MHW_list$cat, file = paste0("cat_lon_MHW_",lon_row,".Rda"))
-    # saveRDS(MHW_list$event, file = MHW_event_files[lon_row])
-    # saveRDS(MHW_list$cat, file = MHW_cat_lon_files[lon_row])
+  MHW_nest <- sst_lon |>
+    left_join(MHW_thresh, by = c("lon", "lat", "doy")) |> 
+    group_by(lon, lat) |> nest() |>
+    mutate(event = purrr::map(data, detect_event, categories = TRUE, climatology = TRUE, season = "peak")) |> 
+    dplyr::select(-data) |> ungroup()
+  # ) # 74 seconds for one full lon slice
+  ## Unpack
+  MHW_list <- event_cat_unpack(MHW_nest)
+  ## Save 
+  # saveRDS(MHW_list$event, file = paste0("event_MHW_",lon_row,".Rda"))
+  # saveRDS(MHW_list$cat, file = paste0("cat_lon_MHW_",lon_row,".Rda"))
+  saveRDS(MHW_list$event, file = MHW_event_files[lon_row])
+  saveRDS(MHW_list$cat, file = MHW_cat_lon_files[lon_row])
+  
+  # MCSs
+  ## Detect events+cats
+  # system.time(
+  MCS_nest <- sst_lon |>
+    left_join(MCS_thresh, by = c("lon", "lat", "doy")) |> 
+    group_by(lon, lat) |> nest() |>
+    mutate(event = purrr::map(data, detect_event, coldSpells = TRUE, categories = TRUE,
+                              climatology = TRUE, season = "peak", MCScorrect = TRUE, MCSice = TRUE)) |> 
+    dplyr::select(-data) |> ungroup()
+  # ) # 80 seconds for one full lon slice
+  ## Unpack
+  MCS_list <- event_cat_unpack(MCS_nest)
+  ## Save 
+  # saveRDS(MCS_list$event, file = paste0("event_MCS_",lon_row,".Rda"))
+  # saveRDS(MCS_list$cat, file = paste0("cat_lon_MCS_",lon_row,".Rda"))
+  saveRDS(MCS_list$event, file = MCS_event_files[lon_row])
+  saveRDS(MCS_list$cat, file = MCS_cat_lon_files[lon_row])
+  
+  # Exit
+  rm(sst_lon, MHW_nest, MHW_list, MCS_nest, MCS_list); gc()
+  return()
 }
   
 
