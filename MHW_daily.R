@@ -143,7 +143,7 @@ if(nrow(OISST_dat) > 2){
 # to see if the correction propagated through successfully.
 
 # If a NetCDF file breaks, re-create it with:
-# OISST_lon_NetCDF(1197, tail(final_dates)[6])
+# OISST_lon_NetCDF(994, tail(final_dates)[6])
 # It is then necessary to ensure that all of the final data up to the most recent date are downloaded
 # This will likely require that one manually edits the final_dates object at the start of this section
 # And then re-run the full NetCDF merging process
@@ -171,9 +171,11 @@ if(ncdf_date > cat_lon_date){
   plyr::l_ply(1:1440, .fun = event_cat_calc, .parallel = TRUE); gc()
   # ) # ~300 seconds per cycle
   
+  # The old pipeline for the 1982-2011 baseline
   # system.time(
   # plyr::l_ply(lon_OISST[1:25], .fun = event_cat_update, .parallel = TRUE)#; gc()
   # ) # ~ 172 seconds per cycle
+  
   print(paste0("Finished MHW/MCS results at ", Sys.time()))
 }
 
@@ -182,6 +184,7 @@ if(ncdf_date > cat_lon_date){
 # This function can fix a specific file
 
 # Run one
+# event_cat_calc(994)
 # event_cat_update(lon_OISST[1287], full = TRUE)
 
 # Run many
@@ -211,7 +214,7 @@ load("metadata/final_dates.Rdata")
 
 # Get the range of dates that need to be run
   # Manually control dates as desired
-# update_dates <- seq(as.Date("2023-12-01"), as.Date("2023-12-31"), by = "day")
+# update_dates <- seq(as.Date("2024-05-01"), as.Date("2024-07-03"), by = "day")
 update_dates <- time_index[which(time_index >= max(final_dates)-5)]
 if(length(update_dates) > 0) {
   print(paste0("Updating global files from ",min(update_dates)," to ",max(update_dates)))
@@ -223,7 +226,8 @@ if(length(update_dates) > 0) {
   print(paste0("Updating daily anom files at ", Sys.time()))
   doParallel::registerDoParallel(cores = 50)
   # system.time(
-  anom_global_daily(date_range = c(min(update_dates), max(update_dates)))
+  # TODO: Update this to the new baseline
+  # anom_global_daily(date_range = c(min(update_dates), max(update_dates)))
   # ) # 455 seconds
   print(paste0("Finished global daily MHW/MCS files at ", Sys.time()))
 }

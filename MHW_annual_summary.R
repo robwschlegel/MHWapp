@@ -51,7 +51,8 @@ max_event_date <- function(df){
 # chosen_year <- 1983
 # chosen_clim <- "1982-2011"
 # chosen_clim <- "1992-2018"
-# MHW <-F; force_calc <- T; database <- F
+# chosen_clim <- "1991-2020"
+# MHW <- T; force_calc <- T; database <- F
 event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force_calc = F, database = F){
   
   if(MHW){
@@ -116,7 +117,7 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
     # ) # 29 seconds
     saveRDS(event_cat_pixel, file = paste0("data/annual_summary/",product,event_file,"_cat_pixel_",
                                            chosen_clim,"_",chosen_year,".Rds"))
-    if(product == "OISST" & chosen_clim == "1982-2011"){
+    if(product == "OISST" ){
       saveRDS(event_cat_pixel, file = paste0("data/annual_summary/",event_type,"_cat_pixel_",chosen_year,".Rds"))
       saveRDS(event_cat_pixel, file = paste0("../data/OISST/annual_summary/",event_type,"_cat_pixel_",chosen_year,".Rds"))
     }
@@ -127,7 +128,7 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
                         chosen_clim,"_",chosen_year,".Rds")) & !force_calc){
     event_cat_daily <- readRDS(paste0("data/annual_summary/",product,event_file,
                                       "_cat_daily_",chosen_clim,"_",chosen_year,".Rds"))
-  } else{
+  } else {
     # print(paste0("Counting the daily + cumulative categories per day; ~3 seconds"))
     
     # TODO: Add days of MHW/MCS per year per pixel
@@ -186,7 +187,7 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
     # ) # 7 second
     saveRDS(event_cat_daily, file = paste0("data/annual_summary/",product,event_file,"_cat_daily_",
                                            chosen_clim,"_",chosen_year,".Rds"))
-    if(product == "OISST" & chosen_clim == "1982-2011"){
+    if(product == "OISST"){
       saveRDS(event_cat_daily, file = paste0("data/annual_summary/",event_type,"_cat_daily_",chosen_year,".Rds"))
       saveRDS(event_cat_daily, file = paste0("../data/OISST/annual_summary/",event_type,"_cat_daily_",chosen_year,".Rds"))
     }
@@ -196,21 +197,25 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
 # Run the current year
 ## MHW
 event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())),
-                   product = "OISST", chosen_clim = "1982-2011", force_calc = T) # ~30 seconds
+                   product = "OISST", chosen_clim = "1991-2020", force_calc = T) # ~30 seconds
+# event_annual_state(2023, product = "OISST", chosen_clim = "1991-2020", force_calc = T)
 ## MCS
 event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
-                   product = "OISST", chosen_clim = "1982-2011", force_calc = T) # ~30 seconds
-# event_annual_state(2023, product = "OISST", chosen_clim = "1982-2011", force_calc = T)
-# event_annual_state(2023, MHW = F, product = "OISST", chosen_clim = "1982-2011", force_calc = T)
+                   product = "OISST", chosen_clim = "1991-2020", force_calc = T) # ~30 seconds
+# event_annual_state(2023, MHW = F, product = "OISST", chosen_clim = "1991-2020", force_calc = T)
 
 # Run ALL years
 ### OISST
 ## MHW
 # plyr::l_ply(1982:2023, event_annual_state, force_calc = TRUE, .parallel = TRUE,
+#             product = "OISST", chosen_clim = "1991-2020") # ~90 seconds for one
+# plyr::l_ply(1982:2023, event_annual_state, force_calc = TRUE, .parallel = TRUE,
 #             product = "OISST", chosen_clim = "1982-2011") # ~90 seconds for one
 # plyr::l_ply(1982:2019, event_annual_state, force_calc = TRUE, database = TRUE, .parallel = TRUE,
 #             product = "OISST", chosen_clim = "1992-2018")
 ## MCS
+# plyr::l_ply(1982:2023, event_annual_state, MHW = FALSE, force_calc = TRUE, .parallel = TRUE,
+#             product = "OISST", chosen_clim = "1991-2020") # ~90 seconds for one
 # plyr::l_ply(1982:2023, event_annual_state, MHW = FALSE, force_calc = TRUE, .parallel = TRUE,
 #             product = "OISST", chosen_clim = "1982-2011")
 
@@ -231,6 +236,7 @@ event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = 
 # product <- "OISST"
 # chosen_clim <- "1982-2011"
 # chosen_clim <- "1992-2018"
+# chosen_clim <- "1991-2020"
 # MHW <- FALSE
 event_total_state <- function(product, chosen_clim, MHW = TRUE){
   
@@ -268,16 +274,18 @@ event_total_state <- function(product, chosen_clim, MHW = TRUE){
   
   # Save and exit
   saveRDS(cat_daily, paste0("data/annual_summary/",product,event_file,
-                            "_cat_daily_", chosen_clim,"_total.Rds"))
+                            "_cat_daily_",chosen_clim,"_total.Rds"))
   write_csv(cat_daily_slim, paste0("data/annual_summary/",product,event_file,
-                                   "_cat_daily_", chosen_clim,"_total.csv"))
+                                   "_cat_daily_",chosen_clim,"_total.csv"))
 }
 
 ## Run them all
 # OISST
-event_total_state("OISST", "1982-2011")
+event_total_state("OISST", "1991-2020")
+# event_total_state("OISST", "1982-2011")
 # event_total_state("OISST", "1992-2018")
-event_total_state("OISST", "1982-2011", MHW = F)
+event_total_state("OISST", "1991-2020", MHW = F)
+# event_total_state("OISST", "1982-2011", MHW = F)
 # CCI
 # event_total_state("CCI", "1982-2011")
 # event_total_state("CCI", "1992-2018")
@@ -285,13 +293,14 @@ event_total_state("OISST", "1982-2011", MHW = F)
 # event_total_state("CMC", "1992-2018")
 
 # Look at a total sum
-# OISST_1982_2011_sum <- OISST_1982_2011 %>%
+# OISST_1991_2020_sum <- OISST_1991_2020 %>%
 #   group_by(t) %>%
 #   summarise_if(is.numeric, sum)
 
 
 # 5: Annual summary of categories per pixel -------------------------------
 
+# TODO: This needs to be checked to see if it matches the new 1991-2020 pipeline
 # chosen_year <- 2013; hemisphere <- "N"
 # chosen_year <- 2015; hemisphere <- "S"
 MHW_annual_count <- function(chosen_year, hemisphere){
@@ -428,7 +437,7 @@ event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
                        breaks = seq(0.2, 0.8, length.out = 4),
                        labels = paste0(seq(20, 80, by = 20), "%"),
                        # sec.axis = sec_axis(name = paste0("Total ",event_type," coverage for ocean\n(cumulative)"), 
-                       #                     trans = ~ . + 0,
+                       #                     transform = ~ . + 0,
                        #                     breaks = seq(0.2, 0.8, length.out = 4),
                        #                     labels = paste0(seq(20, 80, by = 20), "%"))
                        ) +
@@ -498,21 +507,25 @@ event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
 # Run the current year
 ## MHW
 event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())),
-                       product = "OISST", chosen_clim = "1982-2011") # 5 seconds
-# event_annual_state_fig(2023, product = "OISST", chosen_clim = "1982-2011")
+                       product = "OISST", chosen_clim = "1991-2020") # 5 seconds
+# event_annual_state_fig(2023, product = "OISST", chosen_clim = "1991-2020")
 ## MCS
 event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
-                       product = "OISST", chosen_clim = "1982-2011") # 5 seconds
-# event_annual_state_fig(2023, product = "OISST", chosen_clim = "1982-2011", MHW = F)
+                       product = "OISST", chosen_clim = "1991-2020") # 5 seconds
+# event_annual_state_fig(2023, product = "OISST", chosen_clim = "1991-2020", MHW = F)
 
 # Run ALL years
 ### OISST
 ## MHW
-# plyr::l_ply(1982:2022, event_annual_state_fig, .parallel = T,
+# plyr::l_ply(1982:2023, event_annual_state_fig, .parallel = T,
+#             product = "OISST", chosen_clim = "1991-2020")
+# plyr::l_ply(1982:2023, event_annual_state_fig, .parallel = T,
 #             product = "OISST", chosen_clim = "1982-2011")
 # plyr::l_ply(1982:2019, event_annual_state_fig, .parallel = T,
 #             product = "OISST", chosen_clim = "1992-2018")
 ## MCS
+# plyr::l_ply(1982:2023, event_annual_state_fig, .parallel = T,
+#             product = "OISST", chosen_clim = "1991-2020", MHW = F)
 # plyr::l_ply(1982:2022, event_annual_state_fig, .parallel = T,
 #             product = "OISST", chosen_clim = "1982-2011", MHW = F)
 
@@ -527,7 +540,7 @@ event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())), MH
 #             product = "CMC", chosen_clim = "1992-2018")
 
 # Figures of total time series by year
-event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1982-2011", MHW = T){
+event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1991-2020", MHW = T){
   
   # Get the range needed for the y-axis
   df_sum <- df |> summarise(y_height = sum(cat_area_cum_prop), .by = "t")
@@ -567,7 +580,7 @@ event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1982-201
     scale_y_continuous(limits = event_limits,
                        breaks = event_breaks,
                        sec.axis = sec_axis(name = paste0("Average daily ",event_type," coverage"), 
-                                           trans = ~ . + 0,
+                                           transform = ~ . + 0,
                                            breaks = second_breaks,
                                            labels = second_break_labels)) +
     scale_x_continuous(breaks = seq(1984, 2019, 7)) +
@@ -621,9 +634,11 @@ event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1982-201
 
 ## Run them all
 # OISST
-event_total_state_fig(readRDS("data/annual_summary/OISST_cat_daily_1982-2011_total.Rds"))
+event_total_state_fig(readRDS("data/annual_summary/OISST_cat_daily_1991-2020_total.Rds"))
+# event_total_state_fig(readRDS("data/annual_summary/OISST_cat_daily_1982-2011_total.Rds"), chosen_clim = "1982-2011")
 # event_total_state_fig(readRDS("data/annual_summary/OISST_cat_daily_1992-2018_total.Rds"), chosen_clim = "1992-2018")
 event_total_state_fig(readRDS("data/annual_summary/OISST_MCS_cat_daily_1982-2011_total.Rds"), MHW = F)
+# event_total_state_fig(readRDS("data/annual_summary/OISST_MCS_cat_daily_1982-2011_total.Rds"), chosen_clim = "1982-2011", MHW = F)
 # CCI
 # CCI_1982_2011 <- readRDS("data/annual_summary/CCI_cat_daily_1982-2011_total.Rds")
 # event_total_state_fig(CCI_1982_2011, "CCI", "1982-2011")
@@ -638,8 +653,8 @@ event_total_state_fig(readRDS("data/annual_summary/OISST_MCS_cat_daily_1982-2011
 BAMS_fig <- function(){
   
   # Load data
-  df_MHW <- readRDS("data/annual_summary/OISST_cat_daily_1982-2011_total.Rds")
-  df_MCS <- readRDS("data/annual_summary/OISST_MCS_cat_daily_1982-2011_total.Rds")
+  df_MHW <- readRDS("data/annual_summary/OISST_cat_daily_1991-2020_total.Rds")
+  df_MCS <- readRDS("data/annual_summary/OISST_MCS_cat_daily_1991-2020_total.Rds")
 
   # Get the range needed for the y-axis
   ## MHW
@@ -673,7 +688,7 @@ BAMS_fig <- function(){
     scale_fill_manual("Category", values = MHW_colours) +
     scale_y_continuous(limits = event_limits_MHW, breaks = event_breaks_MHW,
                        sec.axis = sec_axis(name = paste0("Average daily MHW coverage"), 
-                                           trans = ~ . + 0,
+                                           transform = ~ . + 0,
                                            breaks = second_breaks_MHW,
                                            labels = second_break_labels_MHW)) +
     scale_x_continuous(breaks = x_breaks) +
@@ -694,7 +709,7 @@ BAMS_fig <- function(){
     scale_fill_manual("Category", values = MCS_colours) +
     scale_y_continuous(limits = event_limits_MCS, breaks = event_breaks_MCS,
                        sec.axis = sec_axis(name = paste0("Average daily MCS coverage"), 
-                                           trans = ~ . + 0,
+                                           transform = ~ . + 0,
                                            breaks = second_breaks_MCS,
                                            labels = second_break_labels_MCS)) +
     scale_x_continuous(breaks = x_breaks) +

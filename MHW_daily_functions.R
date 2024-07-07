@@ -441,13 +441,17 @@ OISST_merge <- function(lon_step, df){
 # 4: Update MHW event and category data functions -------------------------
 
 # Function that is used to create the seas + thresh files
-# lon_row <- 1; base_years <- c(1991, 2020)
+# lon_row <- 994; base_years <- c(1991, 2020)
 create_thresh <- function(lon_row, base_years){
+  
+  # TODO: Investigate why lon_row 994 is missing dates
+  ## Tried recreating NetCDF file but throwong unexpected errors
   
   # Load SST
   sst_lon <- tidync(OISST_files[lon_row]) |> hyper_tibble() |> 
     mutate(time = as.Date(time, origin = "1970-01-01")) |> 
-    dplyr::rename(t = time, temp = sst)
+    dplyr::rename(t = time, temp = sst) |> 
+    filter(!is.na(t)) # NB: Remove this once the 994 issue is resolved
   
   # Set baseline and pad lon_row for file name
   base_line <- c(paste0(base_years[1],"-01-01"), paste0(base_years[2],"-12-31"))
@@ -757,7 +761,8 @@ event_cat_calc <- function(lon_row, base_years = "1991-2020"){
   sst_lon <- tidync(OISST_files[lon_row]) |> hyper_tibble() |> 
     mutate(time = as.Date(time, origin = "1970-01-01"),
            doy = yday(time)) |> 
-    dplyr::rename(t = time, temp = sst) 
+    dplyr::rename(t = time, temp = sst) |> 
+    filter(!is.na(t)) # NB: Remove this once the 994 issue is resolved
   
   # Load thresh files
   lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
@@ -776,8 +781,6 @@ event_cat_calc <- function(lon_row, base_years = "1991-2020"){
   ## Unpack
   MHW_list <- event_cat_unpack(MHW_nest)
   ## Save 
-  # saveRDS(MHW_list$event, file = paste0("event_MHW_",lon_row,".Rda"))
-  # saveRDS(MHW_list$cat, file = paste0("cat_lon_MHW_",lon_row,".Rda"))
   saveRDS(MHW_list$event, file = MHW_event_files[lon_row])
   saveRDS(MHW_list$cat, file = MHW_cat_lon_files[lon_row])
   
@@ -794,8 +797,6 @@ event_cat_calc <- function(lon_row, base_years = "1991-2020"){
   ## Unpack
   MCS_list <- event_cat_unpack(MCS_nest)
   ## Save 
-  # saveRDS(MCS_list$event, file = paste0("event_MCS_",lon_row,".Rda"))
-  # saveRDS(MCS_list$cat, file = paste0("cat_lon_MCS_",lon_row,".Rda"))
   saveRDS(MCS_list$event, file = MCS_event_files[lon_row])
   saveRDS(MCS_list$cat, file = MCS_cat_lon_files[lon_row])
   
