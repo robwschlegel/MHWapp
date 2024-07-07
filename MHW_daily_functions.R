@@ -769,6 +769,11 @@ event_cat_calc <- function(lon_row, base_years = "1991-2020"){
   MHW_thresh <- readRDS(paste0("../data/thresh/MHW.seas.thresh.", lon_row_pad,"_",base_years,".Rds"))
   MCS_thresh <- readRDS(paste0("../data/thresh/MCS/MCS.seas.thresh.", lon_row_pad,"_",base_years,".Rds"))
   
+  # testing...
+  # sst_test <- sst_lon |> filter(lat == -77.625) |> left_join(MHW_thresh, by = c("lon", "lat", "doy"))
+  # event_test <- detect_event(sst_test, categories = TRUE, climatology = TRUE, season = "peak")
+  # write_csv(sst_test, "sst_test.csv")
+  
   # MHWs
   ## Detect events+cats
   # system.time(

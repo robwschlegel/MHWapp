@@ -196,12 +196,13 @@ if(ncdf_date > cat_lon_date){
 # plyr::l_ply(1:1440, .fun = event_cat_calc, .parallel = TRUE) # ~4.5 hours on 50 cores
 
 # Find files that haven't been run since a certain date
-# file_dates <- file.info(dir("../data/cat_lon/MCS", full.names = T))  |>
+# file_dates <- file.info(dir("../data/cat_lon/MCS", full.names = T)) |>
 #   rownames_to_column(var = "file_name") |>
 #   mutate(file_name = sapply(strsplit(file_name, "/"), "[[", 5)) |>
-#   mutate(file_num = as.integer(sapply(strsplit(file_name, "[.]"), "[[", 3)))  |>
+#   mutate(file_num = as.integer(sapply(strsplit(file_name, "[.]"), "[[", 3))) |>
 #   filter(ctime < Sys.Date()-1)
-  # filter(size < 600000)
+# filter(ctime < Sys.time()-72000)
+# filter(size < 600000)
 # plyr::l_ply(lon_OISST[file_dates$file_num], .fun = event_cat_update, .parallel = TRUE, full = TRUE)
 # plyr::l_ply(file_dates$file_num, .fun = event_cat_calc, .parallel = TRUE)
 

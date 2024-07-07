@@ -257,7 +257,8 @@ ui <- page_sidebar(
                         href = "https://github.com/ecjoliver/marineHeatWaves", "python ")," and ",
                       a(target = '_blank', rel = 'noopener noreferrer',
                         href = "https://github.com/ZijieZhaoMMHW/m_mhw1.0", "MATLAB"),
-                      ". The climatology period used for calculating the MHWs is, and will reamain, 1982-01-01 to 2011-12-31."),
+                      ". The climatology period used for calculating MHWs and MCS is the current recommended WMO 
+                      climate normal of 1991-01-01 to 2020-12-31."),
                     br(),
                     h2(tags$b("What are these different map layers?")),
                     br(),

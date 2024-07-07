@@ -51,7 +51,7 @@ source("functions.R", local = TRUE)
 
 ### Check that main data folders exist
 # NB: These are the folders that are connected to whalemap via rsync
-if(!dir.exists("cat_clim")) stop("The 'cast_clim' folder is missing.")
+if(!dir.exists("cat_clim")) stop("The 'cat_clim' folder is missing.")
 if(!dir.exists("event")) stop("The 'event' folder is missing.")
 if(!dir.exists("OISST")) stop("The 'OISST' folder is missing.")
 if(!dir.exists("thresh")) stop("The 'thresh' folder is missing.")
@@ -62,7 +62,9 @@ OISST_files <- dir("OISST", pattern = "oisst-avhrr", full.names = T)
 MHW_event_files <- dir("event", pattern = "MHW.event.", full.names = T)
 MCS_event_files <- dir("event/MCS", pattern = "MCS.event.", full.names = T)
 MHW_seas_thresh_files <- dir("thresh", pattern = "MHW.seas.thresh.", full.names = T)
+MHW_seas_thresh_files <- MHW_seas_thresh_files[grepl("1991", MHW_seas_thresh_files)]
 MCS_seas_thresh_files <- dir("thresh/MCS", pattern = "MCS.seas.thresh.", full.names = T)
+MCS_seas_thresh_files <- MCS_seas_thresh_files[grepl("1991", MCS_seas_thresh_files)]
 # cat_clim_files <- as.character(dir(path = "cat_clim", pattern = "cat.clim",
 #                                    full.names = TRUE, recursive = TRUE))
 
