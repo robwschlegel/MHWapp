@@ -637,7 +637,7 @@ event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1991-202
 event_total_state_fig(readRDS("data/annual_summary/OISST_cat_daily_1991-2020_total.Rds"))
 # event_total_state_fig(readRDS("data/annual_summary/OISST_cat_daily_1982-2011_total.Rds"), chosen_clim = "1982-2011")
 # event_total_state_fig(readRDS("data/annual_summary/OISST_cat_daily_1992-2018_total.Rds"), chosen_clim = "1992-2018")
-event_total_state_fig(readRDS("data/annual_summary/OISST_MCS_cat_daily_1982-2011_total.Rds"), MHW = F)
+event_total_state_fig(readRDS("data/annual_summary/OISST_MCS_cat_daily_1991-2020_total.Rds"), MHW = F)
 # event_total_state_fig(readRDS("data/annual_summary/OISST_MCS_cat_daily_1982-2011_total.Rds"), chosen_clim = "1982-2011", MHW = F)
 # CCI
 # CCI_1982_2011 <- readRDS("data/annual_summary/CCI_cat_daily_1982-2011_total.Rds")
