@@ -49,6 +49,13 @@ ui <- page_sidebar(
                shinyWidgets::prettySwitch(inputId = "iceMask", label = NULL, value = TRUE, 
                                           status = "info", fill = TRUE, bigger = TRUE)
              ),
+             # Baseline
+             accordion_panel(
+               "Baseline", icon = bsicons::bs_icon("calendar-range"),
+               shinyWidgets::radioGroupButtons(inputId = "baseLine", label = NULL,
+                                               choices = c("1982-2011", "1991-2020"),
+                                               selected = "1982-2011")
+             ),
              # Date selector
              accordion_panel(
                "Date", icon = bsicons::bs_icon("menu-app"), value = "datePanel",

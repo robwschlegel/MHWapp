@@ -62,18 +62,16 @@ OISST_files <- dir("OISST", pattern = "oisst-avhrr", full.names = T)
 MHW_event_files <- dir("event", pattern = "MHW.event.", full.names = T)
 MCS_event_files <- dir("event/MCS", pattern = "MCS.event.", full.names = T)
 MHW_seas_thresh_files <- dir("thresh", pattern = "MHW.seas.thresh.", full.names = T)
-MHW_seas_thresh_files <- MHW_seas_thresh_files[grepl("1991", MHW_seas_thresh_files)]
 MCS_seas_thresh_files <- dir("thresh/MCS", pattern = "MCS.seas.thresh.", full.names = T)
-MCS_seas_thresh_files <- MCS_seas_thresh_files[grepl("1991", MCS_seas_thresh_files)]
 # cat_clim_files <- as.character(dir(path = "cat_clim", pattern = "cat.clim",
 #                                    full.names = TRUE, recursive = TRUE))
 
 ### The present year of dates currently processed
 ## NB: Need a few days of data into the new year before progressing
 if(lubridate::yday(Sys.Date()) > 7){
-  current_dates <- unique(readRDS(paste0("OISST/annual_summary/MCS_cat_daily_", lubridate::year(Sys.Date()),".Rds"))$t)
+  current_dates <- unique(readRDS(paste0("OISST/annual_summary/MCS_cat_daily_1991-2020_",lubridate::year(Sys.Date()),".Rds"))$t)
 } else {
-  current_dates <- unique(readRDS(paste0("OISST/annual_summary/MCS_cat_daily_", lubridate::year(Sys.Date())-1,".Rds"))$t)
+  current_dates <- unique(readRDS(paste0("OISST/annual_summary/MCS_cat_daily_1991-2020_",lubridate::year(Sys.Date())-1,".Rds"))$t)
 }
 
 ### Starting values

@@ -14,8 +14,11 @@
 # lon_step <- -80.875
 # lat_step <- 38.125
 # lat_step <- 21.125
-sst_seas_thresh_ts <- function(lon_step, lat_step){
+sst_seas_thresh_ts <- function(lon_step, lat_step, base_years){
   
+  # Establish metadata
+  MHW_seas_thresh_files_base <- MHW_seas_thresh_files[grepl(base_years, MHW_seas_thresh_files)]
+  MCS_seas_thresh_files_base <- MCS_seas_thresh_files[grepl(base_years, MCS_seas_thresh_files)]
   lon_row <- which(lon_OISST == lon_step)
   # lat_row <- which(lat_OISST == lat_step)
   
@@ -41,9 +44,9 @@ sst_seas_thresh_ts <- function(lon_step, lat_step){
   
   # Merge to seas/thresh and exit
   sst_seas_thresh <- tidync_OISST %>% 
-    left_join(readRDS(MHW_seas_thresh_files[lon_row]), 
+    left_join(readRDS(MHW_seas_thresh_files_base[lon_row]), 
               by = c("lon", "lat", "doy")) %>% 
-    left_join(readRDS(MCS_seas_thresh_files[lon_row]),
+    left_join(readRDS(MCS_seas_thresh_files_base[lon_row]),
               by = c("lon", "lat", "doy")) %>%
     dplyr::select(-seas.y) %>% 
     dplyr::rename(seas = seas.x, thresh = thresh.x, thresh_MCS = thresh.y) %>% 

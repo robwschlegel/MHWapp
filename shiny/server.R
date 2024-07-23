@@ -3,8 +3,9 @@
 server <- function(input, output, session){
   
   # Testing...
-  # input <- data.frame(date = as.Date("1989-07-15"),
-  #                     layer = "MHW Category")
+  # input <- data.frame(date = as.Date("2024-07-15"),
+  #                     layer = "MHW Category",
+  #                     baseLine = "1982-2011")
   # input <- data.frame(from_to = c(max(current_dates)-365, max(current_dates)))
   
 
@@ -65,13 +66,13 @@ server <- function(input, output, session){
         height_mobile = "100px",
         fill = FALSE, fillable = TRUE,
         uiOutput("percT"), uiOutput("percI"), uiOutput("percII"), uiOutput("percIII"), uiOutput("percIV"), uiOutput("percV"))
-      } else {
-        layout_column_wrap(
-          width = "200px",
-          height = "130px",
-          height_mobile = "100px",
-          fill = FALSE, fillable = TRUE,
-          uiOutput("percT"), uiOutput("percI"), uiOutput("percII"), uiOutput("percIII"), uiOutput("percIV"))
+    } else {
+      layout_column_wrap(
+        width = "200px",
+        height = "130px",
+        height_mobile = "100px",
+        fill = FALSE, fillable = TRUE,
+        uiOutput("percT"), uiOutput("percI"), uiOutput("percII"), uiOutput("percIII"), uiOutput("percIV"))
     }
   })
   
@@ -80,13 +81,13 @@ server <- function(input, output, session){
   
   ### Shiny-projected raster data
   rasterProj <- reactive({
-    req(input$date, input$layer)
+    req(input$baseLine, input$date, input$layer)
     if(input$layer == "MCS Category"){
       rast_dir <- paste0("cat_clim/MCS/")
-      rast_name <- paste0("/cat.clim.MCS.",input$date,".tif")
+      rast_name <- paste0("/cat.clim.MCS.",input$date,".",input$baseLine,".tif")
     } else {
       rast_dir <- paste0("cat_clim/")
-      rast_name <- paste0("/cat.clim.",input$date,".tif")
+      rast_name <- paste0("/cat.clim.",input$date,".",input$baseLine,".tif")
     }
     rasterProj <- raster::raster(paste0(rast_dir, substr(input$date, 1, 4), rast_name))
     return(rasterProj)
@@ -102,7 +103,7 @@ server <- function(input, output, session){
     }
     # if( != yearReact$year)
     mapCoverAll <- readRDS(paste0("OISST/annual_summary/",event_type,"_cat_daily_",
-                             lubridate::year(input$date),".Rds"))
+                                  input$baseLine,"_",lubridate::year(input$date),".Rds"))
     mapCover <- mapCoverAll |> 
       filter(t == input$date) |> 
       dplyr::select(t, category, cat_area_prop) |>
@@ -140,7 +141,7 @@ server <- function(input, output, session){
   })
   
   ### The raster layer
-  observeEvent(c(input$layer, input$date, input$iceMask,
+  observeEvent(c(input$baseLine, input$layer, input$date, input$iceMask,
                  input$moderate_filter, input$strong_filter,
                  input$severe_filter, input$extreme_filter), {
                    leafletProxy("leaf_map") |> 
@@ -200,7 +201,7 @@ server <- function(input, output, session){
               lat_OISST[which(abs(lat_OISST - xy_wrap[2]) == min(abs(lat_OISST - xy_wrap[2])))][1])
       
       # Grab time series data
-      ts_data <- sst_seas_thresh_ts(lon_step = xy[1], lat_step = xy[2]) %>% 
+      ts_data <- sst_seas_thresh_ts(lon_step = xy[1], lat_step = xy[2], base_years = input$baseLine) %>% 
         dplyr::mutate(diff = thresh - seas,
                       thresh_2x = thresh + diff,
                       thresh_3x = thresh_2x + diff,
@@ -211,12 +212,14 @@ server <- function(input, output, session){
                       thresh_MCS_4x = thresh_MCS_3x + diff_MCS)
       
       # Grab event data
-      event_data <- readRDS(MHW_event_files[which(lon_OISST == xy[1])]) %>% 
+      MHW_event_files_base <- MHW_event_files[grepl(input$baseLine, MHW_event_files)]
+      MCS_event_files_base <- MCS_event_files[grepl(input$baseLine, MCS_event_files)]
+      event_data <- readRDS(MHW_event_files_base[which(lon_OISST == xy[1])]) %>% 
         dplyr::filter(lat == xy[2]) %>%
         mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
                date_peak = as.Date(date_peak, origin = "1970-01-01"),
                date_end = as.Date(date_end, origin = "1970-01-01"))
-      event_MCS_data <- readRDS(MCS_event_files[which(lon_OISST == xy[1])]) %>% 
+      event_MCS_data <- readRDS(MCS_event_files_base[which(lon_OISST == xy[1])]) %>% 
         dplyr::filter(lat == xy[2]) %>%
         mutate(date_start = as.Date(date_start, origin = "1970-01-01"),
                date_peak = as.Date(date_peak, origin = "1970-01-01"),
@@ -578,7 +581,7 @@ server <- function(input, output, session){
   ### Download event data
   output$download_event <- downloadHandler(
     filename = function() {
-      paste0("event_lon_",downloadEventData()$lon[1],"_lat_",downloadEventData()$lat[1],".csv")
+      paste0("event_lon_",downloadEventData()$lon[1],"_lat_",downloadEventData()$lat[1],"_",input$baseLine,".csv")
     },
     content <- function(file) {
       readr::write_csv(downloadEventData(), file)
@@ -602,7 +605,7 @@ server <- function(input, output, session){
   ### Download clim/thresh data
   output$download_clim <- downloadHandler(
     filename = function() {
-      paste0("clim_lon_",downloadClimData()$lon[1],"_lat_",downloadClimData()$lat[1],".csv")
+      paste0("clim_lon_",downloadClimData()$lon[1],"_lat_",downloadClimData()$lat[1],"_",input$baseLine,".csv")
     },
     content <- function(file) {
       readr::write_csv(downloadClimData(), file)
@@ -618,10 +621,10 @@ server <- function(input, output, session){
     date_seq <- seq(date_filter_from, date_filter_to, by = "day")
     date_seq_years <- sapply(strsplit(as.character(date_seq), "-"), "[[", 1)
     if(input$layer == "MHW Category"){
-      date_seq_files <- paste0("cat_clim/",date_seq_years,"/cat.clim.",date_seq,".Rda")
+      date_seq_files <- paste0("cat_clim/",date_seq_years,"/cat.clim.",date_seq,"_",input$baseLine,".Rda")
       map_data <- purrr::map_dfr(date_seq_files, readRDS_date)
     } else if(input$layer == "MCS Category"){
-      date_seq_files <- paste0("cat_clim/MCS/",date_seq_years,"/cat.clim.MCS.",date_seq,".Rds")
+      date_seq_files <- paste0("cat_clim/MCS/",date_seq_years,"/cat.clim.MCS.",date_seq,"_",input$baseLine,".Rds")
       map_data <- purrr::map_dfr(date_seq_files, readRDS_date)
     }
     return(map_data)
