@@ -161,20 +161,23 @@ if(nrow(OISST_dat) > 2){
 # Prep guide info for this section
 doParallel::registerDoParallel(cores = 25)
 ncdf_date <- max(as.Date(tidync("../data/OISST/oisst-avhrr-v02r01.ts.1440.nc")$transforms$time$time, origin = "1970-01-01"))
-cat_lon_date <- max(readRDS("../data/cat_lon/MHW.cat.1440.Rda")$t)
+cat_lon_date <- max(readRDS("../data/cat_lon/MHW.cat.1440.1991-2020.Rda")$t)
 
 # This takes roughly 300 minutes and is by far the largest time requirement
 if(ncdf_date > cat_lon_date){
   print(paste0("Updating MHW/MCS results at ", Sys.time()))
   
+  print(paste0("Began 1982-2011 baseline calcs at ", Sys.time()))
   # system.time(
   plyr::l_ply(1:1440, .fun = event_cat_calc, .parallel = TRUE); gc()
   # ) # ~300 seconds per cycle
   
-  # The old pipeline for the 1982-2011 baseline
-  # system.time(
-  # plyr::l_ply(lon_OISST[1:25], .fun = event_cat_update, .parallel = TRUE)#; gc()
-  # ) # ~ 172 seconds per cycle
+  # Quick break
+  gc(); Sys.sleep(10)
+  
+  # 1991-2020 calcs
+  print(paste0("Began 1991-2020 baseline calcs at ", Sys.time()))
+  plyr::l_ply(1:1440, .fun = event_cat_calc, .parallel = TRUE, base_years = "1991-2020"); gc()
   
   print(paste0("Finished MHW/MCS results at ", Sys.time()))
 }
@@ -215,17 +218,25 @@ load("metadata/final_dates.Rdata")
 
 # Get the range of dates that need to be run
   # Manually control dates as desired
-# update_dates <- seq(as.Date("2024-05-01"), as.Date("2024-07-03"), by = "day")
+# update_dates <- seq(as.Date("2024-05-01"), as.Date("2024-07-21"), by = "day")
 update_dates <- time_index[which(time_index >= max(final_dates)-5)]
 if(length(update_dates) > 0) {
   print(paste0("Updating global files from ",min(update_dates)," to ",max(update_dates)))
   print(paste0("Updating daily MHW/MCS cat files at ", Sys.time()))
   doParallel::registerDoParallel(cores = 50)
-  # system.time(
+  
+  # 1982-2011 calcs
+  print(paste0("Began 1982-2011 baseline calcs at ", Sys.time()))
   cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)))
-  # ) # ~28 seconds
-  print(paste0("Updating daily anom files at ", Sys.time()))
-  doParallel::registerDoParallel(cores = 50)
+  
+  # Quick break
+  gc(); Sys.sleep(10)
+  
+  # 1991-2020 calcs
+  print(paste0("Began 1991-2020 baseline calcs at ", Sys.time()))
+  cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)), base_years = "1991-2020")
+  
+  # print(paste0("Updating daily anom files at ", Sys.time()))
   # system.time(
   # TODO: Update this to the new baseline
   # anom_global_daily(date_range = c(min(update_dates), max(update_dates)))
@@ -241,12 +252,12 @@ if(length(update_dates) > 0) {
 # for(i in 1982:2023){
 #   update_dates <- seq(as.Date(paste0(i,"-01-01")), as.Date(paste0(i,"-06-30")), by = "day")
 #   print(paste0("Updating from ",min(update_dates)," to ",max(update_dates)," at ", Sys.time()))
-#   cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)))
+#   cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)), base_years = "1991-2020")
 #   print(paste0("Finished at ", Sys.time()))
 #   gc(); Sys.sleep(10)
 #   update_dates <- seq(as.Date(paste0(i,"-07-01")), as.Date(paste0(i,"-12-31")), by = "day")
 #   print(paste0("Updating from ",min(update_dates)," to ",max(update_dates)," at ", Sys.time()))
-#   cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)))
+#   cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)), base_years = "1991-2020")
 #   print(paste0("Finished at ", Sys.time()))
 #   gc(); Sys.sleep(10)
 # }

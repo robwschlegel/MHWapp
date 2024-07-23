@@ -48,10 +48,10 @@ max_event_date <- function(df){
 
 # testers...
 # product <- "OISST"
-# chosen_year <- 1983
+# chosen_year <- 2023
 # chosen_clim <- "1982-2011"
-# chosen_clim <- "1992-2018"
 # chosen_clim <- "1991-2020"
+# chosen_clim <- "1992-2018"
 # MHW <- T; force_calc <- T; database <- F
 event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force_calc = F, database = F){
   
@@ -78,7 +78,7 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
   } else {
     event_cat_files <- dir(paste0("../data/cat_clim/",chosen_year), pattern = ".Rda", full.names = T)
   }
-
+  event_cat_files <- event_cat_files[grepl(chosen_clim, event_cat_files)]
   # print(paste0("There are currently ",length(event_cat_files)," days of data for ",chosen_year))
   
   ## Load data
@@ -118,8 +118,8 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
     saveRDS(event_cat_pixel, file = paste0("data/annual_summary/",product,event_file,"_cat_pixel_",
                                            chosen_clim,"_",chosen_year,".Rds"))
     if(product == "OISST" ){
-      saveRDS(event_cat_pixel, file = paste0("data/annual_summary/",event_type,"_cat_pixel_",chosen_year,".Rds"))
-      saveRDS(event_cat_pixel, file = paste0("../data/OISST/annual_summary/",event_type,"_cat_pixel_",chosen_year,".Rds"))
+      saveRDS(event_cat_pixel, file = paste0("data/annual_summary/",event_type,"_cat_pixel_",chosen_clim,"_",chosen_year,".Rds"))
+      saveRDS(event_cat_pixel, file = paste0("../data/OISST/annual_summary/",event_type,"_cat_pixel_",chosen_clim,"_",chosen_year,".Rds"))
     }
   }
   
@@ -188,8 +188,8 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
     saveRDS(event_cat_daily, file = paste0("data/annual_summary/",product,event_file,"_cat_daily_",
                                            chosen_clim,"_",chosen_year,".Rds"))
     if(product == "OISST"){
-      saveRDS(event_cat_daily, file = paste0("data/annual_summary/",event_type,"_cat_daily_",chosen_year,".Rds"))
-      saveRDS(event_cat_daily, file = paste0("../data/OISST/annual_summary/",event_type,"_cat_daily_",chosen_year,".Rds"))
+      saveRDS(event_cat_daily, file = paste0("data/annual_summary/",event_type,"_cat_daily_",chosen_clim,"_",chosen_year,".Rds"))
+      saveRDS(event_cat_daily, file = paste0("../data/OISST/annual_summary/",event_type,"_cat_daily_",chosen_clim,"_",chosen_year,".Rds"))
     }
   }
 }
@@ -197,14 +197,20 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
 # Run the current year
 ## MHW
 event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())),
+                   product = "OISST", chosen_clim = "1982-2011", force_calc = T) # ~30 seconds
+event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())),
                    product = "OISST", chosen_clim = "1991-2020", force_calc = T) # ~30 seconds
 # event_annual_state(2023, product = "OISST", chosen_clim = "1991-2020", force_calc = T)
 ## MCS
+event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
+                   product = "OISST", chosen_clim = "1982-2011", force_calc = T) # ~30 seconds
 event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
                    product = "OISST", chosen_clim = "1991-2020", force_calc = T) # ~30 seconds
 # event_annual_state(2023, MHW = F, product = "OISST", chosen_clim = "1991-2020", force_calc = T)
 
 # Run ALL years
+## NB: Do not run on more than 25 cores
+# registerDoParallel(cores = 25)
 ### OISST
 ## MHW
 # plyr::l_ply(1982:2023, event_annual_state, force_calc = TRUE, .parallel = TRUE,
@@ -281,11 +287,11 @@ event_total_state <- function(product, chosen_clim, MHW = TRUE){
 
 ## Run them all
 # OISST
+event_total_state("OISST", "1982-2011")
 event_total_state("OISST", "1991-2020")
-# event_total_state("OISST", "1982-2011")
 # event_total_state("OISST", "1992-2018")
+event_total_state("OISST", "1982-2011", MHW = F)
 event_total_state("OISST", "1991-2020", MHW = F)
-# event_total_state("OISST", "1982-2011", MHW = F)
 # CCI
 # event_total_state("CCI", "1982-2011")
 # event_total_state("CCI", "1992-2018")
@@ -499,7 +505,7 @@ event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
   # print("Saving final figure")
   # NB: PDF looks terrible...
   ggsave(fig_ALL_cap, height = 12, width = 18, 
-         filename = paste0("figures/",product,event_file,"_cat_summary_", chosen_clim,"_",chosen_year,".png"))
+         filename = paste0("figures/",product,event_file,"_cat_summary_",chosen_clim,"_",chosen_year,".png"))
   # ggsave(fig_ALL_cap, height = 12, width = 18,
   #        filename = paste0("figures/",product,event_file,"_cat_summary_", chosen_clim,"_",chosen_year,".eps"))
 }
@@ -507,9 +513,13 @@ event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
 # Run the current year
 ## MHW
 event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())),
+                       product = "OISST", chosen_clim = "1982-2011") # 5 seconds
+event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())),
                        product = "OISST", chosen_clim = "1991-2020") # 5 seconds
 # event_annual_state_fig(2023, product = "OISST", chosen_clim = "1991-2020")
 ## MCS
+event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
+                       product = "OISST", chosen_clim = "1982-2011") # 5 seconds
 event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
                        product = "OISST", chosen_clim = "1991-2020") # 5 seconds
 # event_annual_state_fig(2023, product = "OISST", chosen_clim = "1991-2020", MHW = F)
@@ -526,7 +536,7 @@ event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())), MH
 ## MCS
 # plyr::l_ply(1982:2023, event_annual_state_fig, .parallel = T,
 #             product = "OISST", chosen_clim = "1991-2020", MHW = F)
-# plyr::l_ply(1982:2022, event_annual_state_fig, .parallel = T,
+# plyr::l_ply(1982:2023, event_annual_state_fig, .parallel = T,
 #             product = "OISST", chosen_clim = "1982-2011", MHW = F)
 
 ### CCI
@@ -635,10 +645,10 @@ event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1991-202
 ## Run them all
 # OISST
 event_total_state_fig(readRDS("data/annual_summary/OISST_cat_daily_1991-2020_total.Rds"))
-# event_total_state_fig(readRDS("data/annual_summary/OISST_cat_daily_1982-2011_total.Rds"), chosen_clim = "1982-2011")
+event_total_state_fig(readRDS("data/annual_summary/OISST_cat_daily_1982-2011_total.Rds"), chosen_clim = "1982-2011")
 # event_total_state_fig(readRDS("data/annual_summary/OISST_cat_daily_1992-2018_total.Rds"), chosen_clim = "1992-2018")
 event_total_state_fig(readRDS("data/annual_summary/OISST_MCS_cat_daily_1991-2020_total.Rds"), MHW = F)
-# event_total_state_fig(readRDS("data/annual_summary/OISST_MCS_cat_daily_1982-2011_total.Rds"), chosen_clim = "1982-2011", MHW = F)
+event_total_state_fig(readRDS("data/annual_summary/OISST_MCS_cat_daily_1982-2011_total.Rds"), MHW = F, chosen_clim = "1982-2011")
 # CCI
 # CCI_1982_2011 <- readRDS("data/annual_summary/CCI_cat_daily_1982-2011_total.Rds")
 # event_total_state_fig(CCI_1982_2011, "CCI", "1982-2011")

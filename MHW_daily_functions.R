@@ -445,7 +445,7 @@ OISST_merge <- function(lon_step, df){
 create_thresh <- function(lon_row, base_years){
   
   # TODO: Investigate why lon_row 994 is missing dates
-  ## Tried recreating NetCDF file but throwong unexpected errors
+  ## Tried recreating NetCDF file but throwing unexpected errors
   
   # Load SST
   sst_lon <- tidync(OISST_files[lon_row]) |> hyper_tibble() |> 
@@ -755,7 +755,7 @@ event_cat_unpack <- function(nest_df){
 }
 
 # A new single function to run the daily calculations. Much less complicated.
-event_cat_calc <- function(lon_row, base_years = "1991-2020"){
+event_cat_calc <- function(lon_row, base_years = "1982-2011"){
   
   # Load SST
   sst_lon <- tidync(OISST_files[lon_row]) |> hyper_tibble() |> 
@@ -786,8 +786,8 @@ event_cat_calc <- function(lon_row, base_years = "1991-2020"){
   ## Unpack
   MHW_list <- event_cat_unpack(MHW_nest)
   ## Save 
-  saveRDS(MHW_list$event, file = MHW_event_files[lon_row])
-  saveRDS(MHW_list$cat, file = MHW_cat_lon_files[lon_row])
+  saveRDS(MHW_list$event, file = paste0("../data/event/MHW.event.",lon_row_pad,".",base_years,".Rda"))
+  saveRDS(MHW_list$cat, file = paste0("../data/cat_lon/MHW.cat.",lon_row_pad,".",base_years,".Rda"))
   
   # MCSs
   ## Detect events+cats
@@ -802,8 +802,8 @@ event_cat_calc <- function(lon_row, base_years = "1991-2020"){
   ## Unpack
   MCS_list <- event_cat_unpack(MCS_nest)
   ## Save 
-  saveRDS(MCS_list$event, file = MCS_event_files[lon_row])
-  saveRDS(MCS_list$cat, file = MCS_cat_lon_files[lon_row])
+  saveRDS(MCS_list$event, file = paste0("../data/event/MCS/MCS.event.",lon_row_pad,".",base_years,".Rda"))
+  saveRDS(MCS_list$cat, file = paste0("../data/cat_lon/MCS/MCS.cat.",lon_row_pad,".",base_years,".Rda"))
   
   # Exit
   rm(sst_lon, MHW_nest, MHW_list, MCS_nest, MCS_list); gc()
@@ -828,18 +828,18 @@ load_sub_cat_clim <- function(cat_lon_file, date_range){
 # Function for saving daily global cat files
 # date_choice <- max(current_dates)+1
 # date_choice <- as.Date("2020-01-01")
-save_sub_cat_clim <- function(date_choice, df, event_type){
+save_sub_cat_clim <- function(date_choice, df, event_type, base_years){
   
   # Establish file name and save location
   cat_clim_year <- lubridate::year(date_choice)
   if(event_type == "MCS"){
     cat_clim_dir <- paste0("../data/cat_clim/MCS/",cat_clim_year)
-    cat_clim_name <- paste0("cat.clim.MCS.",date_choice,".Rds")
-    cat_rast_name <- paste0("cat.clim.MCS.",date_choice,".tif")
+    cat_clim_name <- paste0("cat.clim.MCS.",date_choice,".",base_years,".Rds")
+    cat_rast_name <- paste0("cat.clim.MCS.",date_choice,".",base_years,".tif")
   } else {
     cat_clim_dir <- paste0("../data/cat_clim/",cat_clim_year)
-    cat_clim_name <- paste0("cat.clim.",date_choice,".Rda")
-    cat_rast_name <- paste0("cat.clim.",date_choice,".tif")
+    cat_clim_name <- paste0("cat.clim.",date_choice,".",base_years,".Rda")
+    cat_rast_name <- paste0("cat.clim.",date_choice,".",base_years,".tif")
   }
   dir.create(as.character(cat_clim_dir), showWarnings = F)
   
@@ -864,15 +864,19 @@ save_sub_cat_clim <- function(date_choice, df, event_type){
 
 # Function for loading, prepping, and saving the daily global category slices
 # date_range <- c(as.Date("1982-01-01"), as.Date("1982-01-01"))
-cat_clim_global_daily <- function(date_range){
-  MHW_cat_clim_daily <- plyr::ldply(MHW_cat_lon_files,
-                                    load_sub_cat_clim,
+cat_clim_global_daily <- function(date_range, base_years = "1982-2011"){
+  
+  # Get correct baseline files
+  MHW_cat_lon_files_base <- str_filter(MHW_cat_lon_files, base_years)
+  MCS_cat_lon_files_base <- str_filter(MCS_cat_lon_files, base_years)
+  
+  # Extract data
+  MHW_cat_clim_daily <- plyr::ldply(MHW_cat_lon_files_base, load_sub_cat_clim, 
                                     .parallel = T, date_range = date_range) |>
     mutate(category = factor(category, levels = c("I Moderate", "II Strong",
                                                   "III Severe", "IV Extreme"))) |>
     na.omit()
-  MCS_cat_clim_daily <- plyr::ldply(MCS_cat_lon_files,
-                                    load_sub_cat_clim,
+  MCS_cat_clim_daily <- plyr::ldply(MCS_cat_lon_files_base, load_sub_cat_clim, 
                                     .parallel = T, date_range = date_range) |> 
     mutate(category = factor(category, 
                              levels = c("I Moderate", "II Strong",
@@ -883,10 +887,12 @@ cat_clim_global_daily <- function(date_range){
   # NB: Running this on too many cores may cause RAM issues
   # doParallel::registerDoParallel(cores = 20)
   plyr::l_ply(seq(min(MHW_cat_clim_daily$t), max(MHW_cat_clim_daily$t), by = "day"),
-              save_sub_cat_clim, .parallel = T, df = MHW_cat_clim_daily, event_type = "MHW")
+              save_sub_cat_clim, .parallel = T, df = MHW_cat_clim_daily, 
+              event_type = "MHW", base_years = base_years)
   rm(MHW_cat_clim_daily); gc()
   plyr::l_ply(seq(min(MCS_cat_clim_daily$t), max(MCS_cat_clim_daily$t), by = "day"), 
-              save_sub_cat_clim, .parallel = T, df = MCS_cat_clim_daily, event_type = "MCS")
+              save_sub_cat_clim, .parallel = T, df = MCS_cat_clim_daily, 
+              event_type = "MCS", base_years = base_years)
   rm(MCS_cat_clim_daily); gc()
 }
 
