@@ -146,7 +146,7 @@ value_box_cat <- function(cat_choice, layer_choice, mapCover){
   
   # Create box
   value_box(title = mapVal$category, value = mapVal$cat_area_prop*100, showcase = bs_icon("percent"),
-            style = paste0("background-color: ",event_col,"!important;"), class = mapVal$text_class)
+            style = paste0("background-color: ",event_col,"!important;"), class = mapVal$text_class, min_height = "100px")
 }
 
 

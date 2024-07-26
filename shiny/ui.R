@@ -345,7 +345,7 @@ ui <- page_sidebar(
                     p("If problems with viewing the map panel persist, one is encouraged to update the javascript plugins on one's browser of choice."),
                     br(),
                     p("To report any bugs or to provide any other feedback on the app please contact the developer at:
-                      robert.schlegel@imev-mer.fr"),
+                      robwschlegel@gmail.com"),
                     br(),
                     h2(tags$b("How do I cite this app?")),
                     br(),

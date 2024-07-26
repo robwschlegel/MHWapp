@@ -61,17 +61,19 @@ server <- function(input, output, session){
     req(input$layer)
     if(input$layer == "MCS Category"){
       layout_column_wrap(
-        width = "200px",
-        height = "130px",
+        width = 1/6,
+        min_height = "130px",
         height_mobile = "100px",
-        fill = FALSE, fillable = TRUE,
+        heights_equal = "all",
+        fill = TRUE, fillable = FALSE,
         uiOutput("percT"), uiOutput("percI"), uiOutput("percII"), uiOutput("percIII"), uiOutput("percIV"), uiOutput("percV"))
     } else {
       layout_column_wrap(
-        width = "200px",
-        height = "130px",
+        width = 1/5,
+        min_height = "130px",
         height_mobile = "100px",
-        fill = FALSE, fillable = TRUE,
+        heights_equal = "all",
+        fill = TRUE, fillable = FALSE,
         uiOutput("percT"), uiOutput("percI"), uiOutput("percII"), uiOutput("percIII"), uiOutput("percIV"))
     }
   })
