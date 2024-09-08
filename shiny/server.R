@@ -623,10 +623,10 @@ server <- function(input, output, session){
     date_seq <- seq(date_filter_from, date_filter_to, by = "day")
     date_seq_years <- sapply(strsplit(as.character(date_seq), "-"), "[[", 1)
     if(input$layer == "MHW Category"){
-      date_seq_files <- paste0("cat_clim/",date_seq_years,"/cat.clim.",date_seq,"_",input$baseLine,".Rda")
+      date_seq_files <- paste0("cat_clim/",date_seq_years,"/cat.clim.",date_seq,".",input$baseLine,".Rda")
       map_data <- purrr::map_dfr(date_seq_files, readRDS_date)
     } else if(input$layer == "MCS Category"){
-      date_seq_files <- paste0("cat_clim/MCS/",date_seq_years,"/cat.clim.MCS.",date_seq,"_",input$baseLine,".Rds")
+      date_seq_files <- paste0("cat_clim/MCS/",date_seq_years,"/cat.clim.MCS.",date_seq,".",input$baseLine,".Rds")
       map_data <- purrr::map_dfr(date_seq_files, readRDS_date)
     }
     return(map_data)
