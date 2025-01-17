@@ -141,6 +141,7 @@ OISST_url_daily_save <- function(target_URL){
   file_year <- substr(sapply(strsplit(target_URL, split = "/"), "[[", 9), 1, 4)
   file_name <- sapply(strsplit(target_URL, split = "/"), "[[", 10)
   file_dest <- paste0("../data/OISST/daily/",file_year,"/",file_name)
+  dir.create(paste0("../data/OISST/daily/",file_year))
   
   # Check if file already exists and download if needed
   if(file.exists(file_dest)){
@@ -163,10 +164,12 @@ OISST_url_daily_save <- function(target_URL){
 # Prepares downloaded OISST data for merging with larger files
 OISST_prep <- function(file_name){
   temp_dat <- tidync(file_name) %>% 
-    hyper_tibble() %>% 
+    hyper_tibble(force = TRUE, drop = FALSE) %>% 
     dplyr::select(lon, lat, time, sst) %>% 
     dplyr::rename(t = time, temp = sst) %>% 
-    mutate(t = as.Date(t, origin = "1978-01-01"))
+    mutate(t = as.Date(t, origin = "1978-01-01"),
+           lon = as.numeric(lon),
+           lat = as.numeric(lat))
   return(temp_dat)
 }
 
