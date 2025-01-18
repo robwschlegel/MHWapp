@@ -44,7 +44,8 @@ OISST_months <- data.frame(months = readHTMLTable(OISST_url_month_get, skip.rows
 
 
 # Uncomment to manually control downloads
-# final_dates <- as.Date("1981-12-31")
+# final_dates <- as.Date("1981-12-31") # TO re-download everything
+# final_dates <- seq(as.Date("1981-12-31"), as.Date("2024-12-25"), by = "day") # Or just from the latest date
 # OISST_months <- data.frame(months = apply(expand.grid(2023, stringr::str_pad(seq(1:5), 2, pad = "0")), 
 #                                           1, paste, collapse = "")) |> arrange(months)
 
@@ -143,11 +144,10 @@ if(nrow(OISST_dat) > 2){
 # to see if the correction propagated through successfully.
 
 # If a NetCDF file breaks, re-create it with:
-# OISST_lon_NetCDF(994, tail(final_dates)[6])
-# It is then necessary to ensure that all of the final data up to the most recent date are downloaded
-# This will likely require that one manually edits the final_dates object at the start of this section
-# And then re-run the full NetCDF merging process
-
+# OISST_lon_NetCDF(994, tail(prelim_dates, 1))
+# As long as the final date matches the other NetCDF files, there shouldn't be an issue
+# Otherwise it will be necessary to change the final/prelim date files manually and re-run
+# the OISST daily file downloading so that all files have the exact same date range
 
 # 2: Update MHW event and category data -----------------------------------
 

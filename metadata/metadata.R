@@ -21,6 +21,9 @@ lon_lat_OISST <- base::expand.grid(lon_OISST, lat_OISST) %>%
   dplyr::rename(lon = Var1, lat = Var2) %>%
   arrange(lon, lat) %>% data.frame()
 
+# OISST projection
+OISST_proj <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+
 # Coordinates with surface area
 load("metadata/lon_lat_OISST_area.RData")
 

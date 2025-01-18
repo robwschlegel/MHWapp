@@ -16,8 +16,8 @@ library(tidyverse)
 library(terra)
 library(raster)
 library(leaflet)
-library(tidync)
 library(ncdf4)
+library(tidync)
 library(abind)
 library(padr)
 library(RCurl)
@@ -25,8 +25,6 @@ library(XML)
 library(threadr)
 library(heatwaveR)
 library(doParallel)
-# library(rerddap) # No longer used in daily workflow
-# library(processNC) # Not used, but could be useful
 })
 
 print(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))
@@ -34,16 +32,6 @@ registerDoParallel(cores = 25)
 
 # Load metadata
 source("metadata/metadata.R")
-
-# The two files missing from the ERDDAP server
-OISST_ERDDAP_miss <- data.frame(files = c("oisst-avhrr-v02r01.20210323.nc", 
-                                          "oisst-avhrr-v02r01.20210907.nc"),
-                                t = c(as.Date("2021-03-23"), as.Date("2021-09-07")),
-                                full_name = c("https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/202103/oisst-avhrr-v02r01.20210323.nc",
-                                              "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/202109/oisst-avhrr-v02r01.20210907.nc"))
-
-# OISST projection
-# OISST_proj <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
 
 
 # 2: Extract MHW results functions ----------------------------------------
@@ -55,7 +43,6 @@ MHW_clim <- function(df){
     filter(row_number() %% 2 == 1) %>% 
     unnest(event)
 }
-# test <- MHW_clim(MHW_res)
 
 # Pull out events
 MHW_event <- function(df){
@@ -64,7 +51,6 @@ MHW_event <- function(df){
     filter(row_number() %% 2 == 0) %>% 
     unnest(event)
 }
-# test <- MHW_event(MHW_res)
 
 # Pull out category climatologies
 MHW_cat_clim <- function(df, long = FALSE){
@@ -84,8 +70,6 @@ MHW_cat_clim <- function(df, long = FALSE){
     return(cat_clim)
   }
 }
-# test <- MHW_cat_clim(MHW_res)
-# test <- MHW_cat_clim(MHW_res, long = T)
 
 # Pull out event category summaries
 MHW_cat_event <- function(df){
@@ -96,7 +80,6 @@ MHW_cat_event <- function(df){
       unnest(cat)
   )
 }
-# test <- MHW_cat_event(MHW_res)
 
 
 # 3: Update OISST data functions ------------------------------------------
@@ -120,19 +103,6 @@ OISST_url_daily <- function(target_month, final_dates){
   return(OISST_table)
 }
 
-# Download all of the outstanding data from the links created above
-# NB: Legacy code. No longer used in favour of OISST_url_daily_save() and OISST_prep()
-OISST_url_daily_dl <- function(target_URL){
-  temp_dest <- paste0("data/",sapply(strsplit(target_URL, split = "/"), "[[", 10))
-  download.file(url = target_URL, method = "libcurl", destfile = temp_dest)
-  temp_dat <- tidync(temp_dest) %>% 
-    hyper_tibble() %>% 
-    dplyr::select(lon, lat, time, sst) %>% 
-    dplyr::rename(t = time, temp = sst) %>% 
-    mutate(t = as.Date(t, origin = "1978-01-01"))
-  file.remove(temp_dest)
-  return(temp_dat)
-}
 
 # Download any number of desired OISST files and save them locally
 OISST_url_daily_save <- function(target_URL){
@@ -163,41 +133,13 @@ OISST_url_daily_save <- function(target_URL){
 
 # Prepares downloaded OISST data for merging with larger files
 OISST_prep <- function(file_name){
-  temp_dat <- tidync(file_name) %>% 
-    hyper_tibble(force = TRUE, drop = FALSE) %>% 
-    dplyr::select(lon, lat, time, sst) %>% 
-    dplyr::rename(t = time, temp = sst) %>% 
+  tidync(file_name) |>  
+    hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |> 
+    dplyr::select(lon, lat, time, sst) |> 
+    dplyr::rename(t = time, temp = sst) |>  
     mutate(t = as.Date(t, origin = "1978-01-01"),
            lon = as.numeric(lon),
            lat = as.numeric(lat))
-  return(temp_dat)
-}
-
-# Download and prepare data based on user provided start and end dates
-OISST_sub_dl <- function(date_range, lon_range, lat_range){
-  # Allow input for integer values as complete years
-  if(length(date_range) == 1 & is.numeric(date_range[1])) 
-    date_range <- c(as.Date(paste0(date_range,"-01-01")), as.Date(paste0(date_range,"-12-31")))
-  # Duplicate single values if necessary
-  if(length(date_range) == 1) date_range <- c(date_range, date_range)
-  if(length(lon_range) == 1) lon_range <- c(lon_range, lon_range)
-  if(length(lat_range) == 1) lat_range <- c(lat_range, lat_range)
-  # Account for final data lag on ERDDAP server
-  if(date_range[2] > Sys.Date()-18) date_range[2] <- Sys.Date()-18
-  # Download data
-  OISST_dat <- griddap(datasetx = "ncdcOisst21Agg_LonPM180", 
-                       url = "https://coastwatch.pfeg.noaa.gov/erddap/", 
-                       # time = c(time_df$start, time_df$end), 
-                       time = date_range,
-                       zlev = c(0, 0),
-                       longitude = lon_range,
-                       latitude = lat_range,
-                       fields = "sst")$data %>% 
-    mutate(time = as.Date(stringr::str_remove(time, "T00:00:00Z"))) %>% 
-    dplyr::rename(t = time, temp = sst, lon = longitude, lat = latitude) %>% 
-    select(lon, lat, t, temp) %>% 
-    na.omit()
-  return(OISST_dat)
 }
 
 # Function for creating arrays from data.frames
@@ -206,7 +148,7 @@ OISST_sub_dl <- function(date_range, lon_range, lat_range){
 OISST_acast <- function(df){
   
   # Ensure correct grid size
-  lon_lat_OISST_sub <- lon_lat_OISST %>% 
+  lon_lat_OISST_sub <- lon_lat_OISST |> 
     filter(lon == df$lon[1])
   
   # Round data for massive file size reduction
@@ -214,7 +156,7 @@ OISST_acast <- function(df){
   
   # Force grid
   res <- df %>%
-    right_join(lon_lat_OISST_sub, by = c("lon", "lat")) %>% 
+    right_join(lon_lat_OISST_sub, by = c("lon", "lat")) |> 
     arrange(lon, lat)
   
   # Create array
@@ -230,17 +172,17 @@ OISST_acast <- function(df){
 OISST_temp <- function(df){
   
   # Filter NA and convert dates to integer
-  OISST_step <- df %>% 
+  OISST_step <- df |> 
     mutate(temp = ifelse(is.na(temp), NA, temp),
            t = as.integer(t))# %>% 
     # na.omit() # Breaks data with missing days
   
   # Acast
-  dfa <- OISST_step %>%
-    mutate(t2 = t) %>% 
-    group_by(t2) %>%
-    nest() %>%
-    mutate(data2 = purrr::map(data, OISST_acast)) %>%
+  dfa <- OISST_step |> 
+    mutate(t2 = t) |> 
+    group_by(t2) |> 
+    nest() |> 
+    mutate(data2 = purrr::map(data, OISST_acast)) |> 
     dplyr::select(-data)
   
   # Final form
@@ -249,59 +191,52 @@ OISST_temp <- function(df){
   return(dfa_temp)
 }
 
+# Wrapper to help rectangle data from wide to long in `OISST_lon_NetCDF()`
+OISST_lon_filter <- function(file_name, lon_slice){
+  tidync(file_name) |>  
+    hyper_filter(lon = lon == lon_slice) |> 
+    hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |> 
+    dplyr::select(lon, lat, time, sst) |> 
+    dplyr::rename(t = time, temp = sst) |>  
+    mutate(t = as.Date(t, origin = "1978-01-01"),
+           lon = as.numeric(lon),
+           lat = as.numeric(lat))
+}
+
 # Create new OISST lon slice NetCDF
 OISST_lon_NetCDF <- function(lon_row, date_max){
   
   # Determine lon slice
-  lon_val <- lon_OISST[lon_row]
+  lon_val <- lon_OISST[lon_row]; lon_val_360 <- lon_val
+  if(lon_val_360 < 0) lon_val_360 <- lon_val_360 + 360
   lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
   
   # Set file name
   ncdf_file_name <- paste0("../data/OISST/oisst-avhrr-v02r01.ts.",lon_row_pad,".nc")
-
-  # Set dates for download
-  date_dl <- seq(as.Date("1982-01-01"), as.Date(date_max), by = "day")
   
   
-  # Download data -----------------------------------------------------------
+  # Compile data ------------------------------------------------------------
 
+  # List of all downloaded daily files
+  # OISST_nc_files <- dir("../data/OISST/daily", pattern = "v02r01", recursive = TRUE, full.names = TRUE)
+  
   # Takes a few minutes for ~40 years of data
-  print(paste0("Began downloading data from 1982-01-01 to ",date_max," at ", Sys.time()," for lon ",lon_val))
+  print(paste0("Began compiling data from 1982-01-01 to ",date_max," at ", Sys.time()," for lon ",lon_val))
   # doParallel::registerDoParallel(cores = 50)
-  # NB: 1983 throws an error for some reason...
   # system.time(
-  df_dl <- plyr::ldply(unique(lubridate::year(date_dl)), OISST_sub_dl, .parallel = F,
-                       lon_range = lon_val, lat_range = range(lat_OISST))
-  # ) # ~ 8 minutes for ~40 years of data
-  
-  # ERDDAP server appears to be missing a couple of dates
-  # We also want the most up-to-date data
-  miss_date <- date_dl[which(!date_dl %in% df_dl$t)]
-  if(length(miss_date) > 0){
-    print(paste0("Getting ",length(miss_date)," additional files"))
-    miss_date_df <- data.frame(date = miss_date) %>% 
-      mutate(date_full_clip = format(miss_date, format = "%Y%m%d"),
-             date_month_clip = format(miss_date, format = "%Y%m"),
-             full_name = paste0("https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/",
-                                date_month_clip,"/oisst-avhrr-v02r01.",date_full_clip,".nc"))
-    df_dl_plus <- plyr::ldply(miss_date_df$full_name, .fun = OISST_url_daily_dl, .parallel = F)
-    df_dl_plus_sub <- df_dl_plus %>% 
-      mutate(lon = ifelse(lon > 180, lon-360, lon)) %>% filter(lon == lon_val)
-    df_dl <- rbind(df_dl, df_dl_plus_sub) %>% arrange(lon, lat, t)
-  }
-  miss_date <- date_dl[which(!date_dl %in% df_dl$t)]
-  if(length(miss_date) > 0) stop("Downloading problems persist")
+  df_dl <- plyr::ldply(OISST_daily_nc_files, OISST_lon_filter, .parallel = T, lon_slice = lon_val_360)
+  # ) # ~4 minutes for ~40 years of data
   
   
   # Define dimensions -------------------------------------------------------
   
   # Set the dataframe in question
-  dataset <- df_dl %>% 
+  dat_base <- df_dl %>% 
     mutate(t = as.integer(t),
            lon = ifelse(lon > 180, lon-360, lon))
   
   # lon
-  xvals <- unique(dataset$lon)
+  xvals <- unique(dat_base$lon)
   if(length(xvals) > 1) stop("Too many lon values. Should only be one.")
   # xvals_df <- data.frame(lon = lon_lat_OISST$lon)
   nx <- length(xvals)
@@ -315,7 +250,7 @@ OISST_lon_NetCDF <- function(lon_row, date_max){
   
   # time
   tunits <- "days since 1970-01-01 00:00:00"
-  tvals <- seq(min(dataset$t), max(dataset$t))
+  tvals <- seq(min(dat_base$t), max(dat_base$t))
   nt <- length(tvals)
   time_def <- ncdim_def("time", tunits, tvals, unlim = TRUE)
   
@@ -324,13 +259,13 @@ OISST_lon_NetCDF <- function(lon_row, date_max){
   
   print(paste0("Began creating arrays at ", Sys.time()))
   # system.time(
-  dfa_temp <- OISST_temp(df_dl)
+  dfa_temp <- OISST_temp(dat_base)
   # ) # ~4.5 minutes for ~ 40 years of data
   
   
   # Define variables --------------------------------------------------------
   
-  temp_def <- ncvar_def(name = "sst", units = "deg_C", 
+  temp_def <- ncvar_def(name = "sst", units = "deg_C",
                         dim = list(lat_def, lon_def, time_def), 
                         longname = "Sea Surface Temperature",
                         missval = -999, prec = "float")
@@ -338,6 +273,10 @@ OISST_lon_NetCDF <- function(lon_row, date_max){
   
   # Create NetCDF files -----------------------------------------------------
   
+  # Check if file exists and delete beforehand
+  if(file.exists(ncdf_file_name)) file.remove(ncdf_file_name)
+  
+  # Create the new file
   ncout <- nc_create(filename = ncdf_file_name, vars = list(temp_def), force_v4 = T)
   
   
@@ -451,8 +390,11 @@ create_thresh <- function(lon_row, base_years){
   ## Tried recreating NetCDF file but throwing unexpected errors
   
   # Load SST
-  sst_lon <- tidync(OISST_files[lon_row]) |> hyper_tibble() |> 
-    mutate(time = as.Date(time, origin = "1970-01-01")) |> 
+  sst_lon <- tidync(OISST_files[lon_row]) |> 
+    hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |> 
+    mutate(time = as.Date(time, origin = "1970-01-01"),
+           lon = as.numeric(lon),
+           lat = as.numeric(lat)) |>  
     dplyr::rename(t = time, temp = sst) |> 
     filter(!is.na(t)) # NB: Remove this once the 994 issue is resolved
   
@@ -504,17 +446,21 @@ sst_seas_thresh_merge <- function(lon_step, date_range, lat_range = NULL){
   # OISST data
   ## Base
   if(is.null(lat_range[1])){
-    tidync_OISST_base <- tidync(OISST_files[lon_row]) %>% 
-      hyper_filter(time = between(time, as.integer(date_range[1]), as.integer(date_range[2]))) %>% 
-      hyper_tibble()
+    tidync_OISST_base <- tidync(OISST_files[lon_row]) |> 
+      hyper_filter(time = between(time, as.integer(date_range[1]), as.integer(date_range[2]))) |> 
+      hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |> 
+      mutate(lon = as.numeric(lon),
+             lat = as.numeric(lat)) 
   } else if(length(lat_range) == 2){
     lat_row_1 <- which(lat_OISST == lat_range[1])
     lat_row_2 <- which(lat_OISST == lat_range[2])
-    tidync_OISST_base <- tidync(OISST_files[lon_row]) %>% 
+    tidync_OISST_base <- tidync(OISST_files[lon_row]) |>  
       hyper_filter(time = between(time, as.integer(date_range[1]), as.integer(date_range[2])),
                    # lat = between(lat, as.integer(lat_row_1), as.integer(lat_row_2))) %>% 
-                   lat = between(lat, lat_range[1], lat_range[2])) %>% 
-      hyper_tibble()
+                   lat = between(lat, lat_range[1], lat_range[2])) |> 
+      hyper_tibble(na.rm = FALSE, orce = TRUE, drop = FALSE) |> 
+      mutate(lon = as.numeric(lon),
+             lat = as.numeric(lat)) 
   } else {
     stop()
   }
@@ -529,6 +475,9 @@ sst_seas_thresh_merge <- function(lon_step, date_range, lat_range = NULL){
                         ifelse(doy > 59, doy+1, doy), doy)) %>% 
     ungroup() %>%
     dplyr::select(lon, lat, t, doy, temp)
+  
+  # Load OISST files
+  # test1 <- hyper_tibble(tidync(MHW_seas_thresh_files[lon_row]))
   
   # Merge to seas/thresh and exit
   sst_seas_thresh <- tidync_OISST %>%
@@ -761,11 +710,13 @@ event_cat_unpack <- function(nest_df){
 event_cat_calc <- function(lon_row, base_years = "1982-2011"){
   
   # Load SST
-  sst_lon <- tidync(OISST_files[lon_row]) |> hyper_tibble() |> 
+  sst_lon <- tidync(OISST_files[lon_row]) |> 
+    hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |> 
     mutate(time = as.Date(time, origin = "1970-01-01"),
-           doy = yday(time)) |> 
-    dplyr::rename(t = time, temp = sst) |> 
-    filter(!is.na(t)) # NB: Remove this once the 994 issue is resolved
+           doy = yday(time),
+           lon = as.numeric(lon),
+           lat = as.numeric(lat)) |> 
+    dplyr::rename(t = time, temp = sst)
   
   # Load thresh files
   lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
