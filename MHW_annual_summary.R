@@ -200,13 +200,24 @@ event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())),
                    product = "OISST", chosen_clim = "1982-2011", force_calc = T) # ~30 seconds
 event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())),
                    product = "OISST", chosen_clim = "1991-2020", force_calc = T) # ~30 seconds
-# event_annual_state(2023, product = "OISST", chosen_clim = "1991-2020", force_calc = T)
+# Keep running the previous year until all final data have been processed; takes NOAA roughly 2 weeks
+if(lubridate::yday(Sys.Date()) < 14){
+  event_annual_state(as.numeric(lubridate::year(Sys.Date()))-1, 
+                     product = "OISST", chosen_clim = "1982-2011", force_calc = T)
+  event_annual_state(as.numeric(lubridate::year(Sys.Date()))-1, 
+                     product = "OISST", chosen_clim = "1991-2020", force_calc = T)
+} 
 ## MCS
 event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
                    product = "OISST", chosen_clim = "1982-2011", force_calc = T) # ~30 seconds
 event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
                    product = "OISST", chosen_clim = "1991-2020", force_calc = T) # ~30 seconds
-# event_annual_state(2023, MHW = F, product = "OISST", chosen_clim = "1991-2020", force_calc = T)
+if(lubridate::yday(Sys.Date()) < 14){
+  event_annual_state(as.numeric(lubridate::year(Sys.Date()))-1, MHW = F,
+                     product = "OISST", chosen_clim = "1982-2011", force_calc = T)
+  event_annual_state(as.numeric(lubridate::year(Sys.Date()))-1, MHW = F,
+                     product = "OISST", chosen_clim = "1991-2020", force_calc = T)
+} 
 
 # Run ALL years
 ## NB: Do not run on more than 25 cores
@@ -516,13 +527,24 @@ event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())),
                        product = "OISST", chosen_clim = "1982-2011") # 5 seconds
 event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())),
                        product = "OISST", chosen_clim = "1991-2020") # 5 seconds
-# event_annual_state_fig(2023, product = "OISST", chosen_clim = "1991-2020")
+# Keep running the previous year until all final data have been processed; takes NOAA roughly 2 weeks
+if(lubridate::yday(Sys.Date()) < 14){
+  event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date()))-1,
+                         product = "OISST", chosen_clim = "1982-2011") # 5 seconds
+  event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date()))-1,
+                         product = "OISST", chosen_clim = "1991-2020") # 5 seconds
+}
 ## MCS
 event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
                        product = "OISST", chosen_clim = "1982-2011") # 5 seconds
 event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
                        product = "OISST", chosen_clim = "1991-2020") # 5 seconds
-# event_annual_state_fig(2023, product = "OISST", chosen_clim = "1991-2020", MHW = F)
+if(lubridate::yday(Sys.Date()) < 14){
+  event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date()))-1, MHW = F,
+                         product = "OISST", chosen_clim = "1982-2011") # 5 seconds
+  event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date()))-1, MHW = F,
+                         product = "OISST", chosen_clim = "1991-2020") # 5 seconds
+}
 
 # Run ALL years
 ### OISST
