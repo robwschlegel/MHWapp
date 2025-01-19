@@ -38,33 +38,33 @@ source("metadata/metadata.R")
 
 # Pull out climatologies
 MHW_clim <- function(df){
-  clim <- df %>% 
-    unnest(event) %>% 
-    filter(row_number() %% 2 == 1) %>% 
+  clim <- df |> 
+    unnest(event) |> 
+    filter(row_number() %% 2 == 1) |> 
     unnest(event)
 }
 
 # Pull out events
 MHW_event <- function(df){
-  event <- df %>% 
-    unnest(event) %>% 
-    filter(row_number() %% 2 == 0) %>% 
+  event <- df |> 
+    unnest(event) |> 
+    filter(row_number() %% 2 == 0) |> 
     unnest(event)
 }
 
 # Pull out category climatologies
 MHW_cat_clim <- function(df, long = FALSE){
-  cat_clim <- df %>% 
-    unnest(cat) %>% 
-    filter(row_number() %% 2 == 1) %>% 
+  cat_clim <- df |> 
+    unnest(cat) |> 
+    filter(row_number() %% 2 == 1) |> 
     unnest(cat)
   if(long){
-    cat_clim_long <- cat_clim %>% 
-      group_by(lon, lat) %>%
-      nest() %>%
+    cat_clim_long <- cat_clim |> 
+      group_by(lon, lat) |>
+      nest() |>
       mutate(long = map(data, pad, interval = "day", 
-                        start_val = as.Date("1982-01-01"))) %>% 
-      dplyr::select(-data) %>%
+                        start_val = as.Date("1982-01-01"))) |> 
+      dplyr::select(-data) |>
       unnest()
   } else {
     return(cat_clim)
@@ -74,9 +74,9 @@ MHW_cat_clim <- function(df, long = FALSE){
 # Pull out event category summaries
 MHW_cat_event <- function(df){
   suppressWarnings(
-    cat_event <- df %>% 
-      unnest(cat) %>% 
-      filter(row_number() %% 2 == 0) %>% 
+    cat_event <- df |> 
+      unnest(cat) |> 
+      filter(row_number() %% 2 == 0) |> 
       unnest(cat)
   )
 }
@@ -94,11 +94,11 @@ NOAA_date <- function(date_string, piece){
 OISST_url_daily <- function(target_month, final_dates){
   OISST_url <- paste0(OISST_url_month, target_month,"/")
   OISST_url_get <- getURL(OISST_url)
-  OISST_table <- data.frame(files = readHTMLTable(OISST_url_get, skip.rows = 1:2)[[1]]$Name) %>% 
-    mutate(files = as.character(files)) %>% 
-    filter(grepl("avhrr", files)) %>% 
+  OISST_table <- data.frame(files = readHTMLTable(OISST_url_get, skip.rows = 1:2)[[1]]$Name) |> 
+    mutate(files = as.character(files)) |> 
+    filter(grepl("avhrr", files)) |> 
     mutate(t = lubridate::as_date(sapply(strsplit(files, "[.]"), "[[", 2)),
-           full_name = paste0(OISST_url, files)) %>% 
+           full_name = paste0(OISST_url, files)) |> 
     filter(t > max(final_dates))
   return(OISST_table)
 }
@@ -155,7 +155,7 @@ OISST_acast <- function(df){
   df$temp <- round(df$temp, 2)
   
   # Force grid
-  res <- df %>%
+  res <- df |>
     right_join(lon_lat_OISST_sub, by = c("lon", "lat")) |> 
     arrange(lon, lat)
   
@@ -174,7 +174,7 @@ OISST_temp <- function(df){
   # Filter NA and convert dates to integer
   OISST_step <- df |> 
     mutate(temp = ifelse(is.na(temp), NA, temp),
-           t = as.integer(t))# %>% 
+           t = as.integer(t))# |> 
     # na.omit() # Breaks data with missing days
   
   # Acast
@@ -231,7 +231,7 @@ OISST_lon_NetCDF <- function(lon_row, date_max){
   # Define dimensions -------------------------------------------------------
   
   # Set the dataframe in question
-  dat_base <- df_dl %>% 
+  dat_base <- df_dl |> 
     mutate(t = as.integer(t),
            lon = ifelse(lon > 180, lon-360, lon))
   
@@ -328,10 +328,10 @@ OISST_merge <- function(lon_step, df){
   # tail(time_vals)
   
   ### Grab the lon slice intended for the chosen NetCDF file
-  OISST_prelim_sub <- df %>% 
+  OISST_prelim_sub <- df |> 
     filter(lon  == lon_step,
            t > max(time_vals))
-  OISST_final_sub <- df %>% 
+  OISST_final_sub <- df |> 
     filter(lon  == lon_step,
            t <= max(time_vals))
   
@@ -456,7 +456,7 @@ sst_seas_thresh_merge <- function(lon_step, date_range, lat_range = NULL){
     lat_row_2 <- which(lat_OISST == lat_range[2])
     tidync_OISST_base <- tidync(OISST_files[lon_row]) |>  
       hyper_filter(time = between(time, as.integer(date_range[1]), as.integer(date_range[2])),
-                   # lat = between(lat, as.integer(lat_row_1), as.integer(lat_row_2))) %>% 
+                   # lat = between(lat, as.integer(lat_row_1), as.integer(lat_row_2))) |> 
                    lat = between(lat, lat_range[1], lat_range[2])) |> 
       hyper_tibble(na.rm = FALSE, orce = TRUE, drop = FALSE) |> 
       mutate(lon = as.numeric(lon),
@@ -465,28 +465,25 @@ sst_seas_thresh_merge <- function(lon_step, date_range, lat_range = NULL){
     stop()
   }
   ## Process
-  tidync_OISST <- tidync_OISST_base %>% 
+  tidync_OISST <- tidync_OISST_base |> 
     mutate(time = as.Date(time, origin = "1970-01-01"),
-           year = year(time)) %>% 
-    dplyr::rename(t = time, temp = sst) %>%
-    mutate(doy = yday(t)) %>% 
-    group_by(year) %>% 
+           year = year(time)) |> 
+    dplyr::rename(t = time, temp = sst) |>
+    mutate(doy = yday(t)) |> 
+    group_by(year) |> 
     mutate(doy = ifelse(!leap_year(year),
-                        ifelse(doy > 59, doy+1, doy), doy)) %>% 
-    ungroup() %>%
+                        ifelse(doy > 59, doy+1, doy), doy)) |> 
+    ungroup() |>
     dplyr::select(lon, lat, t, doy, temp)
   
-  # Load OISST files
-  # test1 <- hyper_tibble(tidync(MHW_seas_thresh_files[lon_row]))
-  
   # Merge to seas/thresh and exit
-  sst_seas_thresh <- tidync_OISST %>%
+  sst_seas_thresh <- tidync_OISST |>
     left_join(hyper_tibble(tidync(MHW_seas_thresh_files[lon_row])),
-              by = c("lon", "lat", "doy" = "time")) %>%
+              by = c("lon", "lat", "doy" = "time")) |>
     left_join(readRDS(MCS_seas_thresh_files[lon_row]),
-              by = c("lon", "lat", "doy" = "time")) %>%
-    dplyr::select(-seas.y) %>% 
-    dplyr::rename(seas = seas.x, thresh_MHW = thresh.x, thresh_MCS = thresh.y) %>% 
+              by = c("lon", "lat", "doy" = "time")) |>
+    dplyr::select(-seas.y) |> 
+    dplyr::rename(seas = seas.x, thresh_MHW = thresh.x, thresh_MCS = thresh.y) |> 
     mutate(anom = round(temp - seas, 2))
   rm(tidync_OISST_base, tidync_OISST); gc()
   return(sst_seas_thresh)
@@ -530,13 +527,13 @@ event_cat_update <- function(lon_step, full = FALSE){
     # that the MHW will be considered finished and the code would incorrectly begin calculating another MHW
     # To correct for this we must use the final_dates R object, which is tied to the OISST downloading
     # We then go back one event before the final data end date to ensure we are not missing anything
-    MHW_previous_event_index <- MHW_event_data %>% 
-      group_by(lon, lat) %>% 
-      filter(date_start < max(final_dates)) %>%
+    MHW_previous_event_index <- MHW_event_data |> 
+      group_by(lon, lat) |> 
+      filter(date_start < max(final_dates)) |>
       filter(event_no == max(event_no)-2)
-    MCS_previous_event_index <- MCS_event_data %>% 
-      group_by(lon, lat) %>% 
-      filter(date_start < max(final_dates)) %>%
+    MCS_previous_event_index <- MCS_event_data |> 
+      group_by(lon, lat) |> 
+      filter(date_start < max(final_dates)) |>
       filter(event_no == max(event_no)-2)
   }
   
@@ -575,28 +572,28 @@ event_proc <- function(df, sst_seas_thresh, event_data, cat_lon, event_file, cat
   
   # Calculate new event metrics with new data for MHW/MCSs as necessary
   # system.time(
-  event_cat <- df %>% 
-    mutate(lat2 = lat) %>% 
-    group_by(lat2) %>% 
-    nest() %>% 
+  event_cat <- df |> 
+    mutate(lat2 = lat) |> 
+    group_by(lat2) |> 
+    nest() |> 
     mutate(event_cat_res = purrr::map(data, event_calc,
                                       sst_seas_thresh = sst_seas_thresh,
                                       event_data = event_data,
                                       cat_lon = cat_lon,
                                       full = full,
-                                      cold_choice = cold_choice)) %>% 
-    ungroup() %>% 
-    dplyr::select(-data, -lat2) %>%
+                                      cold_choice = cold_choice)) |> 
+    ungroup() |> 
+    dplyr::select(-data, -lat2) |>
     unnest(cols = event_cat_res)
   # ) # 144 seconds for 720 pixels
   
   # Save results and exit
-  event_new <- event_cat %>%
-    filter(row_number() %% 2 == 1) %>%
+  event_new <- event_cat |>
+    filter(row_number() %% 2 == 1) |>
     unnest(cols = event_cat_res)
   saveRDS(event_new, file = event_file)
-  cat_new <- event_cat %>%
-    filter(row_number() %% 2 == 0) %>%
+  cat_new <- event_cat |>
+    filter(row_number() %% 2 == 0) |>
     unnest(cols = event_cat_res)
   saveRDS(cat_new, file = cat_lon_file)
   rm(event_cat, event_new, cat_new); gc()
@@ -616,19 +613,19 @@ event_proc <- function(df, sst_seas_thresh, event_data, cat_lon, event_file, cat
 event_calc <- function(df, sst_seas_thresh, event_data, cat_lon, full, cold_choice){
   
   # Extract necessary SST
-  sst_step_1 <- sst_seas_thresh %>% 
+  sst_step_1 <- sst_seas_thresh |> 
     filter(lat == df$lat,
            t >= df$date_end)
   if(nrow(sst_step_1) == 0) return()
   
   # Get correct thresh column
   if(cold_choice){
-    sst_step_1 <- sst_step_1 %>% 
-      dplyr::rename(thresh = thresh_MCS) %>% 
+    sst_step_1 <- sst_step_1 |> 
+      dplyr::rename(thresh = thresh_MCS) |> 
       dplyr::select(-thresh_MHW)
   } else {
-    sst_step_1 <- sst_step_1 %>% 
-      dplyr::rename(thresh = thresh_MHW) %>% 
+    sst_step_1 <- sst_step_1 |> 
+      dplyr::rename(thresh = thresh_MHW) |> 
       dplyr::select(-thresh_MCS)
   }
   
@@ -637,36 +634,36 @@ event_calc <- function(df, sst_seas_thresh, event_data, cat_lon, full, cold_choi
                              climatology = TRUE, season = "peak", MCScorrect = cold_choice, MCSice = cold_choice)
   
   # Get event steps
-  event_step_1 <- event_base$event %>% 
-    mutate(lon = df$lon, lat = df$lat) %>% 
-    dplyr::select(lon, lat, event_no, duration:intensity_max, intensity_cumulative, category:season) %>%
+  event_step_1 <- event_base$event |> 
+    mutate(lon = df$lon, lat = df$lat) |> 
+    dplyr::select(lon, lat, event_no, duration:intensity_max, intensity_cumulative, category:season) |>
     mutate_if(is.numeric, round, 3)
   if(nrow(filter(event_step_1, !is.na(event_no))) == 0) return()
   if(full){
     event_step_2 <- event_step_1
   } else{
-    event_step_2 <- event_data %>%
+    event_step_2 <- event_data |>
       filter(lat == df$lat,
-             date_end <= df$date_end) %>%
-      rbind(event_step_1) %>%
+             date_end <= df$date_end) |>
+      rbind(event_step_1) |>
       mutate(event_no = seq_len(n()))
   }
   
   # Get category steps
-  cat_step_1 <- event_base$climatology %>% 
+  cat_step_1 <- event_base$climatology |> 
     mutate(event_no = event_no + df$event_no,
            lon = df$lon,
            lat = df$lat,
            t = as.Date(t),
-           category = as.character(category)) %>% 
-    dplyr::select(t, lon, lat, event_no, intensity, category) %>% 
+           category = as.character(category)) |> 
+    dplyr::select(t, lon, lat, event_no, intensity, category) |> 
     filter(!is.na(category))
   if(full){
     cat_step_2 <- cat_step_1
   } else{
-    cat_step_2 <- cat_lon %>%
+    cat_step_2 <- cat_lon |>
       filter(lat == df$lat,
-             t <= as.Date(df$date_end)) %>%
+             t <= as.Date(df$date_end)) |>
       bind_rows(cat_step_1)
   }
   
@@ -773,7 +770,7 @@ event_cat_calc <- function(lon_row, base_years = "1982-2011"){
 # date_range <- c(as.Date("2019-11-01"), as.Date("2020-01-07"))
 load_sub_cat_clim <- function(cat_lon_file, date_range){
   cat_clim <- readRDS(cat_lon_file)
-  cat_clim_sub <- cat_clim %>%
+  cat_clim_sub <- cat_clim |>
     filter(t >= date_range[1], t <= date_range[2])
   rm(cat_clim)
   return(cat_clim_sub)
@@ -862,7 +859,7 @@ save_sub_anom <- function(date_choice, df){
   anom_name <- paste0("daily.",date_choice,".Rda")
   
   # Extract data and save
-  df_sub <- df %>% 
+  df_sub <- df |> 
     filter(t == date_choice)
   rm(df); gc()
   saveRDS(df_sub, file = paste0(anom_dir,"/",anom_name))

@@ -30,16 +30,16 @@ registerDoParallel(cores = 50)
 readRDS_date <- function(file_name){
   file_date <- sapply(str_split(file_name, "/"), "[[", 5)
   file_date <- as.Date(sapply(str_split(file_date, "[.]"), "[[", 3))
-  res <- readRDS(file_name) %>% 
+  res <- readRDS(file_name) |> 
     mutate(t = file_date)
 }
 
 # Function for finding the first date of the highest category MHW per pixel
 max_event_date <- function(df){
-  df %>% 
-    group_by(lat) %>% 
-    filter(as.integer(category) == max(as.integer(category))) %>% 
-    filter(t == min(t)) %>% 
+  df |> 
+    group_by(lat) |> 
+    filter(as.integer(category) == max(as.integer(category))) |> 
+    filter(t == min(t)) |> 
     ungroup()
 }
 
@@ -52,8 +52,8 @@ max_event_date <- function(df){
 # chosen_clim <- "1982-2011"
 # chosen_clim <- "1991-2020"
 # chosen_clim <- "1992-2018"
-# MHW <- T; force_calc <- T; database <- F
-event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force_calc = F, database = F){
+# MHW <- TRUE; force_calc <- TRUE; database <- FALSE
+event_annual_state <- function(chosen_year, product, chosen_clim, MHW = TRUE, force_calc = FALSE, database = FALSE){
   
   if(MHW){
     event_type <- "MHW"
@@ -84,9 +84,9 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
   ## Load data
   if(force_calc){
     # system.time(
-    event_cat <- map_df(event_cat_files, readRDS) #%>% 
+    event_cat <- map_df(event_cat_files, readRDS) #|> 
     # NB: Filter out ice if desired
-    # right_join(OISST_no_ice_coords, by = c("lon", "lat")) %>%  
+    # right_join(OISST_no_ice_coords, by = c("lon", "lat")) |>  
     # na.omit()
     # ) # 5 seconds
   }
@@ -100,19 +100,19 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
   } else{
     # print(paste0("Filtering out the max category at each pixel and counting sum of intensity; ~14 seconds"))
     
-    event_intensity <- event_cat %>% 
-      group_by(lon, lat) %>% 
+    event_intensity <- event_cat |> 
+      group_by(lon, lat) |> 
       summarise(intensity_sum = sum(intensity), .groups = "drop")
 
     # system.time(
-    event_cat_pixel <- event_cat %>% 
-      dplyr::select(-event_no) %>%
-      na.omit() %>% 
-      group_by(lon) %>% 
-      nest() %>% 
-      mutate(data = map(data, max_event_date)) %>% 
-      unnest(data) %>% 
-      distinct() %>%
+    event_cat_pixel <- event_cat |> 
+      dplyr::select(-event_no) |> 
+      na.omit() |> 
+      group_by(lon) |>  
+      nest() |> 
+      mutate(data = map(data, max_event_date)) |> 
+      unnest(data) |> 
+      distinct() |> 
       left_join(event_intensity, by = c("lon", "lat"))
     # ) # 29 seconds
     saveRDS(event_cat_pixel, file = paste0("data/annual_summary/",product,event_file,"_cat_pixel_",
@@ -135,54 +135,54 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = T, force
     
     # Complete dates by categories data.frame
     full_grid <- expand_grid(t = seq(as.Date(paste0(chosen_year,"-01-01")), max(event_cat$t), by = "day"), 
-                             category = as.factor(levels(event_cat$category))) %>% 
+                             category = as.factor(levels(event_cat$category))) |> 
       mutate(category = factor(category, levels = levels(event_cat$category)))
     
     # system.time(
-    event_cat_first <- event_cat_pixel %>%
-      right_join(OISST_ocean_coords, by = c("lon", "lat")) %>% 
-      group_by(t, category) %>%
-      # count(category) %>%
-      # dplyr::rename(first_n = n) %>% 
-      # ungroup() %>% 
+    event_cat_first <- event_cat_pixel |> 
+      right_join(OISST_ocean_coords, by = c("lon", "lat")) |> 
+      group_by(t, category) |> 
+      # count(category) |> 
+      # dplyr::rename(first_n = n) |> 
+      # ungroup() |> 
       summarise(first_n = n(),
-                first_area = sum(sq_area), .groups = "drop") %>% 
-      right_join(full_grid, by = c("t", "category")) %>%
+                first_area = sum(sq_area), .groups = "drop") |> 
+      right_join(full_grid, by = c("t", "category"))  |> 
       mutate(first_n = ifelse(is.na(first_n), 0, first_n),
              first_n_prop = round(first_n/nrow(OISST_ocean_coords), 4),
              first_area = ifelse(is.na(first_area), 0, first_area),
-             first_area_prop = round(first_area/sum(OISST_ocean_coords$sq_area), 4)) %>% 
-      mutate(first_n = ifelse(is.na(first_n), 0, first_n)) %>% 
-      arrange(t, category) %>% 
-      group_by(category) %>%
+             first_area_prop = round(first_area/sum(OISST_ocean_coords$sq_area), 4)) |> 
+      mutate(first_n = ifelse(is.na(first_n), 0, first_n)) |> 
+      arrange(t, category) |> 
+      group_by(category) |>
       mutate(first_n_cum = cumsum(first_n),
              first_area_cum = cumsum(first_area),
              first_n_cum_prop = round(first_n_cum/nrow(OISST_ocean_coords), 4),
-             first_area_cum_prop = round(first_area_cum/sum(OISST_ocean_coords$sq_area), 4)) %>% 
+             first_area_cum_prop = round(first_area_cum/sum(OISST_ocean_coords$sq_area), 4)) |> 
       ungroup()
     # ) # 1 second
     
     # system.time(
-    event_cat_daily <- event_cat %>% 
-      right_join(OISST_ocean_coords, by = c("lon", "lat")) %>% 
-      group_by(t, category) %>% 
-      # count(category) %>% 
-      # ungroup() %>% 
+    event_cat_daily <- event_cat |> 
+      right_join(OISST_ocean_coords, by = c("lon", "lat")) |> 
+      group_by(t, category) |> 
+      # count(category) |> 
+      # ungroup() |> 
       summarise(cat_n = n(),
-                cat_area = sum(sq_area), .groups = "drop") %>% 
-      right_join(full_grid, by = c("t", "category")) %>% 
-      # dplyr::rename(cat_n = n) %>% 
+                cat_area = sum(sq_area), .groups = "drop") |> 
+      right_join(full_grid, by = c("t", "category")) |> 
+      # dplyr::rename(cat_n = n) |> 
       mutate(cat_n = ifelse(is.na(cat_n), 0, cat_n),
              cat_n_prop = round(cat_n/nrow(OISST_ocean_coords), 4),
              cat_area = ifelse(is.na(cat_area), 0, cat_area),
-             cat_area_prop = round(cat_area/sum(OISST_ocean_coords$sq_area), 4)) %>% 
-      arrange(t, category) %>% 
-      group_by(category) %>% 
+             cat_area_prop = round(cat_area/sum(OISST_ocean_coords$sq_area), 4)) |> 
+      arrange(t, category) |> 
+      group_by(category) |> 
       mutate(cat_n_cum = cumsum(cat_n),
              cat_area_cum = cumsum(cat_area),
              cat_n_cum_prop = round(cat_n_cum/nrow(OISST_ocean_coords), 4),
-             cat_area_cum_prop = round(cat_area_cum/sum(OISST_ocean_coords$sq_area), 4)) %>% 
-      ungroup() %>% 
+             cat_area_cum_prop = round(cat_area_cum/sum(OISST_ocean_coords$sq_area), 4)) |> 
+      ungroup() |> 
       right_join(event_cat_first, by = c("t", "category"))
     # ) # 7 second
     saveRDS(event_cat_daily, file = paste0("data/annual_summary/",product,event_file,"_cat_daily_",
@@ -260,22 +260,22 @@ event_total_state <- function(product, chosen_clim, MHW = TRUE){
   cat_daily_files <- dir("data/annual_summary", full.names = T,
                          pattern = paste0(product,event_file,"_cat_daily_",chosen_clim))
   cat_daily_files <- cat_daily_files[!grepl("total", cat_daily_files)]
-  cat_daily_mean <- map_dfr(cat_daily_files, readRDS) %>%
-    mutate(t = lubridate::year(t)) %>%
-    group_by(t, category) %>% 
-    summarise(cat_area_prop_mean = mean(cat_area_prop, na.rm = T), .groups = "drop") %>% 
+  cat_daily_mean <- map_dfr(cat_daily_files, readRDS) |>
+    mutate(t = lubridate::year(t)) |>
+    group_by(t, category) |> 
+    summarise(cat_area_prop_mean = mean(cat_area_prop, na.rm = T), .groups = "drop") |> 
     filter(t < lubridate::year(Sys.Date())) # Use this to not include the current partial year
   
   # Extract only values from December 31st
-  cat_daily <- map_dfr(cat_daily_files, readRDS) %>%
-    filter(lubridate::month(t) == 12, lubridate::day(t) == 31) %>%
-    mutate(t = lubridate::year(t)) %>% #,
-    # first_n_cum_prop = round(first_n_cum/nrow(OISST_ocean_coords), 4)) %>% 
-    left_join(cat_daily_mean, by = c("t", "category"))# %>% 
+  cat_daily <- map_dfr(cat_daily_files, readRDS) |>
+    filter(lubridate::month(t) == 12, lubridate::day(t) == 31) |>
+    mutate(t = lubridate::year(t)) |> #,
+    # first_n_cum_prop = round(first_n_cum/nrow(OISST_ocean_coords), 4)) |> 
+    left_join(cat_daily_mean, by = c("t", "category"))# |> 
     # filter(t <= lubridate::year(Sys.Date())) # Use this to not include the current partial year
   
   # Create a slimmed down dataframe to save as CSV for easier external use
-  cat_daily_slim <- cat_daily %>% 
+  cat_daily_slim <- cat_daily |> 
     dplyr::select(t, category, cat_n_cum:cat_area_cum_prop, first_n_cum:first_area_cum_prop)
   
   # Save and exit
@@ -299,8 +299,8 @@ event_total_state("OISST", "1991-2020", MHW = F)
 # event_total_state("CMC", "1992-2018")
 
 # Look at a total sum
-# OISST_1991_2020_sum <- OISST_1991_2020 %>%
-#   group_by(t) %>%
+# OISST_1991_2020_sum <- OISST_1991_2020 |>
+#   group_by(t) |>
 #   summarise_if(is.numeric, sum)
 
 
@@ -330,16 +330,16 @@ MHW_annual_count <- function(chosen_year, hemisphere){
   
   ## Summarise
   # system.time(
-  MHW_cat_count <- lazy_dt(MHW_cat) %>% 
-    group_by(lon, lat, event_no) %>% 
-    summarise(max_cat = max(as.integer(category)), .groups = "drop") %>% 
-    data.frame() %>% 
-    dplyr::select(-event_no) %>% 
-    mutate(max_cat = factor(max_cat, levels = c(1:4), labels = levels(MHW_cat$category))) %>% 
-    group_by(lon, lat) %>% 
-    table() %>% 
-    as.data.frame() %>% 
-    pivot_wider(values_from = Freq, names_from = max_cat) %>% 
+  MHW_cat_count <- lazy_dt(MHW_cat) |> 
+    group_by(lon, lat, event_no) |> 
+    summarise(max_cat = max(as.integer(category)), .groups = "drop") |> 
+    data.frame() |> 
+    dplyr::select(-event_no) |> 
+    mutate(max_cat = factor(max_cat, levels = c(1:4), labels = levels(MHW_cat$category))) |> 
+    group_by(lon, lat) |> 
+    table() |> 
+    as.data.frame() |> 
+    pivot_wider(values_from = Freq, names_from = max_cat) |> 
     mutate(lon = as.numeric(as.character(lon)),
            lat = as.numeric(as.character(lat)))
   # ) # 24 seconds
@@ -407,11 +407,11 @@ event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
     mutate(category = factor(category, labels = levels(event_cat_pixel$category)))
   
   # Extract small data.frame for easier labeling
-  event_cat_daily_labels <- event_cat_daily %>% 
-    group_by(category) %>% 
-    filter(t == max(t)) %>% 
-    ungroup() %>% 
-    mutate(label_first_area_cum = cumsum(first_area_cum_prop)) %>% 
+  event_cat_daily_labels <- event_cat_daily |> 
+    group_by(category) |> 
+    filter(t == max(t)) |> 
+    ungroup() |> 
+    mutate(label_first_area_cum = cumsum(first_area_cum_prop)) |> 
     filter(first_area_cum != 0)
   
   # Global map of event occurrence
@@ -799,30 +799,30 @@ BAMS_fig <- function(){
 # 6: Comparisons ----------------------------------------------------------
 
 # Load the annual summaries
-# ann_sum_OISST <- readRDS("data/annual_summary/OISST_cat_daily_1992-2018_total.Rds") %>% 
+# ann_sum_OISST <- readRDS("data/annual_summary/OISST_cat_daily_1992-2018_total.Rds") |> 
 #   mutate(product = "OISST")
-# ann_sum_CCI <- readRDS("data/annual_summary/CCI_cat_daily_1992-2018_total.Rds") %>% 
+# ann_sum_CCI <- readRDS("data/annual_summary/CCI_cat_daily_1992-2018_total.Rds") |> 
 #   mutate(product = "CCI")
-# ann_sum_CMC <- readRDS("data/annual_summary/CMC_cat_daily_1992-2018_total.Rds") %>% 
+# ann_sum_CMC <- readRDS("data/annual_summary/CMC_cat_daily_1992-2018_total.Rds") |> 
 #   mutate(product = "CMC")
 
 # Combine for further analyses
-# ann_sum_ALL <- rbind(ann_sum_OISST, ann_sum_CCI, ann_sum_CMC) %>% 
+# ann_sum_ALL <- rbind(ann_sum_OISST, ann_sum_CCI, ann_sum_CMC) |> 
 #   filter(t >= 1992, t <= 2018)
 
 # Highest total daily occurrences; cat_prop_daily_mean
-# ann_sum_daily <- ann_sum_ALL %>% 
-#   group_by(product, category) %>% 
+# ann_sum_daily <- ann_sum_ALL |> 
+#   group_by(product, category) |> 
 #   summarise(cat_daily_mean = round(mean(cat_prop_daily_mean), 5)*100)
 
 # Highest total ocean coverage; first_n_cum_prop
-# ann_sum_cover <- ann_sum_ALL %>% 
-#   group_by(product, category) %>% 
+# ann_sum_cover <- ann_sum_ALL |> 
+#   group_by(product, category) |> 
 #   summarise(first_n_cum = round(mean(first_n_cum_prop), 5)*100)
 
 # Highest MHW days per pixel; cat_n_prop
-# ann_sum_days <- ann_sum_ALL %>% 
-#   group_by(product, category) %>% 
+# ann_sum_days <- ann_sum_ALL |> 
+#   group_by(product, category) |> 
 #   summarise(cat_n = round(mean(cat_n_prop), 5)*100)
 
 

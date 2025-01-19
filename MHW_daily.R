@@ -10,6 +10,7 @@
 ## 4: Check the `current_dates` index to make sure no days are missing
 ## 5: Run the annual summary update
 ## 6: Push to GitHub
+## 7: Maintenance
 
 source("MHW_daily_functions.R")
 
@@ -37,9 +38,9 @@ if(length(prelim_dates) == 0) stop("Prelim date indexing has broken.")
 print(paste0("Fetching OISST folder names at ",Sys.time()))
 OISST_url_month <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/"
 OISST_url_month_get <- getURL(OISST_url_month)
-OISST_months <- data.frame(months = readHTMLTable(OISST_url_month_get, skip.rows = 1:2)[[1]]$Name) %>%
-  mutate(months = lubridate::as_date(str_replace(as.character(months), "/", "01"))) %>%
-  filter(months >= max(lubridate::floor_date(final_dates, unit = "month"))) %>%
+OISST_months <- data.frame(months = readHTMLTable(OISST_url_month_get, skip.rows = 1:2)[[1]]$Name) |>
+  mutate(months = lubridate::as_date(str_replace(as.character(months), "/", "01"))) |>
+  filter(months >= max(lubridate::floor_date(final_dates, unit = "month"))) |>
   mutate(months = gsub("-", "", substr(months, 1, 7)))
 
 
@@ -287,4 +288,23 @@ if(lubridate::yday(Sys.Date()) > 6) source("MHW_annual_summary.R")
 system("git commit -a -m 'Daily run'")
 system("git pull")
 system("git push")
+
+
+# 7: Maintenance ----------------------------------------------------------
+
+# Active folders
+## Daily/lon files
+### "../data/thresh" # The seas+clim static threshold files per lon slice - small/medium size files
+### "../data/event" # The lon slice files containing the MHW/MCS event results - small size files
+### "../data/cat_lon # The lon slice files containing the daily MHW/MCS category results - medium size files
+### "../data/cat_clim # Global daily files containing MHW/MCS spatial categories - small-medium, .Rda and .tif
+## Annual summaries
+### "data/annual_summary" # Contains pixel and day based annual summaries for OISST, CCI, and CMC datasets
+
+# Find and remove old files from before the second baseline was introduced
+# NB: This was done manually for all of the daily/lon files except the cat_clim files as they are too numerous
+# file_dates_cat_clim <- file.info(dir("../data/cat_clim", full.names = TRUE, recursive = TRUE)) |>
+#   rownames_to_column(var = "file_name") |>
+#   filter(ctime < as.POSIXct("2024-07-10"))
+# file.remove(file_dates_cat_clim$file_name)
 
