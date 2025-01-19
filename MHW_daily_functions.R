@@ -729,9 +729,9 @@ event_cat_calc <- function(lon_row, base_years = "1982-2011"){
   ## Detect events+cats
   # system.time(
   MHW_nest <- sst_lon |>
-    left_join(MHW_thresh, by = c("lon", "lat", "doy")) |> 
+    left_join(MHW_thresh, by = c("lon", "lat", "doy")) |>
     group_by(lon, lat) |> nest() |>
-    mutate(event = purrr::map(data, detect_event, categories = TRUE, climatology = TRUE, season = "peak")) |> 
+    mutate(event = purrr::map(data, detect_event, categories = TRUE, climatology = TRUE, season = "peak")) |>
     dplyr::select(-data) |> ungroup()
   # ) # 74 seconds for one full lon slice
   ## Unpack
@@ -757,7 +757,9 @@ event_cat_calc <- function(lon_row, base_years = "1982-2011"){
   saveRDS(MCS_list$cat, file = paste0("../data/cat_lon/MCS/MCS.cat.",lon_row_pad,".",base_years,".Rda"))
   
   # Exit
-  rm(sst_lon, MHW_nest, MHW_list, MCS_nest, MCS_list); gc()
+  rm(sst_lon, 
+     MHW_nest, MHW_list,
+     MCS_nest, MCS_list); gc()
   return()
 }
   

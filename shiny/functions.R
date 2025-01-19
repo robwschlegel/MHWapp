@@ -23,17 +23,19 @@ sst_seas_thresh_ts <- function(lon_step, lat_step, base_years){
   # lat_row <- which(lat_OISST == lat_step)
   
   # OISST data
-  tidync_OISST <- tidync::tidync(OISST_files[lon_row]) %>% 
-    tidync::hyper_filter(lat = lat == lat_step) %>%
-    tidync::hyper_tibble() %>%
+  tidync_OISST <- tidync::tidync(OISST_files[lon_row]) |>
+    tidync::hyper_filter(lat = lat == lat_step) |> 
+    tidync::hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |> 
     mutate(time = as.Date(time, origin = "1970-01-01"),
-           year = lubridate::year(time)) %>% 
-    dplyr::rename(t = time, temp = sst) %>%
-    mutate(doy = lubridate::yday(t)) %>% 
-    group_by(year) %>% 
+           year = lubridate::year(time),
+           lon = as.numeric(lon),
+           lat = as.numeric(lat)) |>
+    dplyr::rename(t = time, temp = sst) |> 
+    mutate(doy = lubridate::yday(t)) |>
+    group_by(year) |>
     mutate(doy = ifelse(!lubridate::leap_year(year),
-                        ifelse(doy > 59, doy+1, doy), doy)) %>% 
-    ungroup() %>%
+                        ifelse(doy > 59, doy+1, doy), doy)) |>
+    ungroup() |> 
     dplyr::select(lon, lat, t, doy, temp)
   
   if(length(na.omit(tidync_OISST)) == 0){
@@ -43,13 +45,13 @@ sst_seas_thresh_ts <- function(lon_step, lat_step, base_years){
   }
   
   # Merge to seas/thresh and exit
-  sst_seas_thresh <- tidync_OISST %>% 
+  sst_seas_thresh <- tidync_OISST |>
     left_join(readRDS(MHW_seas_thresh_files_base[lon_row]), 
-              by = c("lon", "lat", "doy")) %>% 
+              by = c("lon", "lat", "doy")) |>
     left_join(readRDS(MCS_seas_thresh_files_base[lon_row]),
-              by = c("lon", "lat", "doy")) %>%
-    dplyr::select(-seas.y) %>% 
-    dplyr::rename(seas = seas.x, thresh = thresh.x, thresh_MCS = thresh.y) %>% 
+              by = c("lon", "lat", "doy")) |> 
+    dplyr::select(-seas.y) |>
+    dplyr::rename(seas = seas.x, thresh = thresh.x, thresh_MCS = thresh.y) |>
     mutate(temp = round(temp, 2),
            seas = round(seas, 2),
            thresh = round(thresh, 2),
@@ -113,8 +115,8 @@ showpos <- function(x = NULL, y = NULL){
   # updateNumericInput(session, "lat", value = round(xy_click[2], 2))
   
   # Add Popup to leaflet
-  leafletProxy("leaf_map") %>%
-    clearPopups() %>%
+  leafletProxy("leaf_map") |> 
+    clearPopups() |> 
     addPopups(lng = xy_click[1], lat = xy_click[2],
               popup = paste(content))
 }
@@ -157,8 +159,8 @@ readRDS_date <- function(file_name){
   file_segments <- length(strsplit(file_name, "/")[[1]])
   file_date <- sapply(strsplit(file_name, "/"), "[[", file_segments)
   file_date <- as.Date(stringr::str_remove_all(file_date, "[daily.cat.clim.Rda.Rds.MCS]"))
-  res <- readRDS(file_name) %>% 
-    mutate(t = file_date) %>% 
+  res <- readRDS(file_name) |>
+    mutate(t = file_date) |>
     dplyr::select(t, lon, lat, everything())
 }
 
@@ -169,8 +171,8 @@ readRDS_year <- function(file_name){
   file_only <- stringr::str_remove_all(file_only, "[.Rds]")
   file_only_segments <- length(strsplit(file_only, "_")[[1]])
   file_year <- as.integer(sapply(strsplit(file_only, "_"), "[[", file_only_segments))
-  res <- readRDS(file_name) %>% 
-    mutate(t = file_year) %>% 
+  res <- readRDS(file_name) |>
+    mutate(t = file_year) |>
     dplyr::select(t, lon, lat, everything())
 }
 
