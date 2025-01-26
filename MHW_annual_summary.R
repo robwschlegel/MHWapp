@@ -19,8 +19,6 @@ registerDoParallel(cores = 50)
 
 # Animation libraries
 ## Only needed when running animations at bottom of script
-# library(animation)
-# library(magick)
 # library(gganimate)
 
 
@@ -853,18 +851,13 @@ BAMS_fig()
 
 # 7: Animations -----------------------------------------------------------
 
-# Legacy code
-# setwd("figures") # Need to change working directory for animation code to be able to access png files
-# system.time(system("convert -delay 100 *.png ../anim/MHW_cat_summary.mp4")) # 139 seconds
-# setwd("../")
-
 # Create animations of the annual state for MHW or MCS
 # TODO: Allow user to subset a region
 # testers...
 # product <- "OISST"; chosen_clim <- "1982-2011"; MHW <- TRUE
 # chosen_clim <- "1992-2018"
 # MHW <- FALSE
-event_annual_state_anim <- function(product = "OISST", chosen_clim = "1982-2011", MHW = TRUE){
+event_annual_historic_anim <- function(product = "OISST", chosen_clim = "1982-2011", MHW = TRUE){
   
   # Set metadata
   if(MHW){
@@ -907,7 +900,7 @@ event_annual_state_anim <- function(product = "OISST", chosen_clim = "1982-2011"
                      # res = 100, fps = 1, duration = 10, # For testing
                      res = 300, fps = 1, duration = (nrow(event_cat_label)*2)+2, # For full data
                      end_pause = 1,
-                     renderer = av_renderer(paste0("figures/",product,event_file,"_",chosen_clim,"_annual.mp4")))
+                     renderer = av_renderer(paste0("animations/",product,event_file,"_",chosen_clim,"_annual.mp4")))
   # Create GIF
   # gganimate::animate(anim_map, width = 25, height = 14, unit = "in", 
   #                    # res = 100, fps = 1, duration = 10, # For manual testing
@@ -920,10 +913,71 @@ event_annual_state_anim <- function(product = "OISST", chosen_clim = "1982-2011"
 # NB: Only needs to be run once per year
 ## MHW
 # system.time(
-# event_annual_state_anim() # 305 seconds
+#   event_annual_historic_anim() # 305 seconds
 # )
 ## MCS
 # system.time(
-# event_annual_state_anim(MHW = FALSE) # 279 seconds
+#   event_annual_historic_anim(MHW = FALSE) # 279 seconds
 # )
+
+# Daily animation for a given year
+# testers...
+# anim_month = 1; anim_year = 2024; chosen_clim = "1991-2020"; MHW = FALSE
+event_annual_daily_anim <- function(anim_month, anim_year = lubridate::year(Sys.Date())-1, chosen_clim = "1982-2011", MHW = TRUE){
+ 
+  # Set metadata
+  anim_month_pad <- str_pad(anim_month, 2, pad = "0")
+  if(MHW){
+    event_type <- "MHW"
+    event_file <- ""
+    event_colours <- MHW_colours
+    file_ext <- ".Rda"
+  } else {
+    event_type <- "MCS"
+    event_file <- "MCS/"
+    event_colours <- MCS_colours
+    file_ext <- ".Rds"
+  }
+  
+  # Set target files
+  anim_files <- dir(paste0("../data/cat_clim/", event_file, anim_year), full.names = TRUE,
+                    pattern = paste0(chosen_clim,file_ext))
+  anim_files <- anim_files[grepl(pattern = paste0(anim_year,"-",anim_month_pad), x = anim_files)]
+  
+  
+  # Load data
+  # system.time(
+  event_cat_daily_pixel <- map_dfr(anim_files, readRDS) |> 
+    dplyr::select(t, lon, lat, category)
+  # ) # 40 seconds for 366 files
+  
+  # Get metadata for animation
+  frame_steps <- nrow(distinct(dplyr::select(event_cat_daily_pixel, t)))
+  
+  # Global map of event occurrence
+  anim_daily_map <- ggplot(event_cat_daily_pixel, aes(x = lon, y = lat)) +
+    geom_tile(aes(fill = category), show.legend = FALSE) +
+    geom_polygon(data = map_base, aes(x = lon, y = lat, group = group), fill = "grey60") +
+    scale_fill_manual("Category", values = event_colours) +
+    coord_cartesian(expand = F, ylim = c(min(OISST_ocean_coords$lat), max(OISST_ocean_coords$lat))) +
+    labs(title = paste0("Daily ",event_type," records for ", anim_year,"-",anim_month_pad,"; NOAA OISST; Climatology Period: ",chosen_clim,"; Date: {frame_time}"), 
+         x = NULL, y = NULL) +
+    theme_void() +
+    transition_time(t)
+  
+  # Save
+  anim_save(paste0("animations/",event_type,"_",chosen_clim,"_",anim_year,"_",anim_month_pad,".gif"), anim_daily_map, 
+            nframes = frame_steps, fps = 2, width = 9, height = 5, units = "in", res = 300)
+  rm(event_cat_daily_pixel, anim_daily_map); gc()
+}
+
+# Run the animations
+## MHWs for previous year with 1991-2020 clim
+# system.time(
+#   plyr::l_ply(1:12, event_annual_daily_anim, chosen_clim = "1991-2020", .parallel = FALSE)
+# ) # ~24 minutes
+## MCSs for previous year with 1991-2020 clim
+# system.time(
+#   plyr::l_ply(1:12, event_annual_daily_anim, chosen_clim = "1991-2020", MHW = FALSE, .parallel = FALSE)
+# ) # 7 minutes
 
