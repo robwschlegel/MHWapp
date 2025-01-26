@@ -681,7 +681,6 @@ event_total_state_fig(readRDS("data/annual_summary/OISST_MCS_cat_daily_1982-2011
 # event_total_state_fig(CMC_1992_2018, "CMC", "1992-2018")
 
 # Figures of total time series by year a la format for the annual BAMS report
-# TODO: Fix for new larger Y axis in panel A+C
 BAMS_fig <- function(){
   
   # Load data
@@ -692,10 +691,12 @@ BAMS_fig <- function(){
   ## MHW
   df_MHW_sum <- df_MHW |> summarise(y_height = sum(cat_area_cum_prop), .by = "t")
   df_MHW_y_height <- plyr::round_any(df_MHW_sum$y_height[df_MHW_sum$y_height == max(df_MHW_sum$y_height)], 5)
+  if(df_MHW_y_height < max(df_MHW_sum$y_height)) df_MHW_y_height <- df_MHW_y_height + 5
   df_MHW_y_height_365 <- plyr::round_any(round(df_MHW_y_height/365, 2), 0.02)
   ## MCS
   df_MCS_sum <- df_MCS |> summarise(y_height = sum(cat_area_cum_prop), .by = "t")
   df_MCS_y_height <- plyr::round_any(df_MCS_sum$y_height[df_MCS_sum$y_height == max(df_MCS_sum$y_height)], 5)
+  if(df_MCS_y_height < max(df_MCS_sum$y_height)) df_MCS_y_height <- df_MCS_y_height + 5
   df_MCS_y_height_365 <- plyr::round_any(round(df_MCS_y_height/365, 2), 0.02)
   
   # Set plotting parameters
@@ -706,7 +707,7 @@ BAMS_fig <- function(){
   second_break_labels_MHW <- paste0(seq(from = 4, by = 4, length.out = length(second_breaks_MHW)), "%")
   ## MCS
   event_limits_MCS <- c(0, round(df_MCS_y_height+1, -1))
-  event_breaks_MCS <- seq(5, event_limits_MCS[2]-5, by = 5)
+  event_breaks_MCS <- seq(10, event_limits_MCS[2]-5, by = 10)
   second_breaks_MCS <- seq(0.02, plyr::round_any(event_limits_MCS[2]/365, 0.02), 0.02)*365
   second_break_labels_MCS <- paste0(seq(from = 2, by = 2, length.out = length(second_breaks_MCS)), "%")
   
@@ -730,8 +731,9 @@ BAMS_fig <- function(){
     theme(panel.border = element_rect(colour = "black", fill = NA),
           axis.title = element_text(size = 14),
           axis.text = element_text(size = 12),
-          legend.title = element_text(size = 14),
-          legend.text = element_text(size = 12))
+          legend.key.spacing.x = unit(10, "pt"),
+          legend.title = element_text(size = 14, margin = margin(r = 10)),
+          legend.text = element_text(size = 12, margin = margin(l = 2, r = 5)))
   # fig_count_historic_MHW
   
   # Stacked barplot of global daily count of MCS by category
@@ -751,8 +753,9 @@ BAMS_fig <- function(){
     theme(panel.border = element_rect(colour = "black", fill = NA),
           axis.title = element_text(size = 14),
           axis.text = element_text(size = 12),
-          legend.title = element_text(size = 14),
-          legend.text = element_text(size = 12))
+          legend.key.spacing.x = unit(10, "pt"),
+          legend.title = element_text(size = 14, margin = margin(r = 10)),
+          legend.text = element_text(size = 12, margin = margin(l = 2, r = 5)))
   # fig_count_historic_MCS
   
   # Stacked barplot of cumulative percent of ocean affected by MHW
@@ -815,7 +818,7 @@ BAMS_fig <- function(){
 }
 
 # Run the figure
-# BAMS_fig()
+BAMS_fig()
 
 
 # 6: Comparisons ----------------------------------------------------------
