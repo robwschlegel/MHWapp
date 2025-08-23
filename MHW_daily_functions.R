@@ -94,13 +94,16 @@ NOAA_date <- function(date_string, piece){
 OISST_url_daily <- function(target_month, final_dates){
   OISST_url <- paste0(OISST_url_month, target_month,"/")
   OISST_url_get <- getURL(OISST_url)
-  OISST_table <- data.frame(files = readHTMLTable(OISST_url_get, skip.rows = 1:2)[[1]]$Name) |> 
+  OISST_table <- readHTMLTable(OISST_url_get)[[1]] |> 
+    rename(files = V1) |> 
+    drop_na()
+  OISST_new <- slice(OISST_table, which(OISST_table$files == "Parent Directory")+1:nrow(OISST_table)) |> 
     mutate(files = as.character(files)) |> 
     filter(grepl("avhrr", files)) |> 
     mutate(t = lubridate::as_date(sapply(strsplit(files, "[.]"), "[[", 2)),
            full_name = paste0(OISST_url, files)) |> 
     filter(t > max(final_dates))
-  return(OISST_table)
+  return(OISST_new)
 }
 
 

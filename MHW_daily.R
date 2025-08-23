@@ -38,11 +38,13 @@ if(length(prelim_dates) == 0) stop("Prelim date indexing has broken.")
 print(paste0("Fetching OISST folder names at ",Sys.time()))
 OISST_url_month <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/"
 OISST_url_month_get <- getURL(OISST_url_month)
-OISST_months <- data.frame(months = readHTMLTable(OISST_url_month_get, skip.rows = 1:2)[[1]]$Name) |>
+OISST_table <- readHTMLTable(OISST_url_month_get, as.data.frame = TRUE)[[1]] |> 
+  rename(months = V1) |> 
+  drop_na()
+OISST_months <- slice(OISST_table, which(OISST_table$months == "198109/"):nrow(OISST_table))  |>
   mutate(months = lubridate::as_date(str_replace(as.character(months), "/", "01"))) |>
   filter(months >= max(lubridate::floor_date(final_dates, unit = "month"))) |>
   mutate(months = gsub("-", "", substr(months, 1, 7)))
-
 
 # Uncomment to manually control downloads
 # final_dates <- as.Date("1981-12-31") # TO re-download everything
@@ -150,6 +152,7 @@ if(nrow(OISST_dat) > 2){
 # Otherwise it will be necessary to change the final/prelim date files manually and re-run
 # the OISST daily file downloading so that all files have the exact same date range
 
+
 # 2: Update MHW event and category data -----------------------------------
 
 # Create baseline seas+thresh files per longitude step
@@ -219,8 +222,8 @@ load("metadata/final_dates.Rdata")
 
 # Get the range of dates that need to be run
   # Manually control dates as desired
-# update_dates <- seq(as.Date("2024-05-01"), as.Date("2024-07-21"), by = "day")
-update_dates <- time_index[which(time_index >= max(final_dates)-5)]
+update_dates <- seq(as.Date("2025-07-01"), as.Date("2025-08-21"), by = "day")
+# update_dates <- time_index[which(time_index >= max(final_dates)-5)]
 if(length(update_dates) > 0) {
   print(paste0("Updating global files from ",min(update_dates)," to ",max(update_dates)))
   print(paste0("Updating daily MHW/MCS cat files at ", Sys.time()))
