@@ -55,7 +55,8 @@ OISST_months <- slice(OISST_table, which(OISST_table$months == "198109/"):nrow(O
 
 # Check if new data need downloading
 # final_dates <- as.Date("2023-04-01") # tester...
-OISST_filenames <- plyr::ldply(OISST_months$months, .fun = OISST_url_daily, final_dates, .parallel = T)
+OISST_filenames <- plyr::ldply(OISST_months$months, .fun = OISST_url_daily, final_dates, .parallel = T) |> 
+  dplyr::select(files, t, full_name)
 
 # Download and save files locally 
 print(paste0("Saving new data locally at ", Sys.time()))
