@@ -223,8 +223,8 @@ load("metadata/final_dates.Rdata")
 
 # Get the range of dates that need to be run
   # Manually control dates as desired
-update_dates <- seq(as.Date("2025-07-01"), as.Date("2025-08-21"), by = "day")
-# update_dates <- time_index[which(time_index >= max(final_dates)-5)]
+# update_dates <- seq(as.Date("2025-07-01"), as.Date("2025-08-21"), by = "day")
+update_dates <- time_index[which(time_index >= max(final_dates)-7)]
 if(length(update_dates) > 0) {
   print(paste0("Updating global files from ",min(update_dates)," to ",max(update_dates)))
   print(paste0("Updating daily MHW/MCS cat files at ", Sys.time()))
