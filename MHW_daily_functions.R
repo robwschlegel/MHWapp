@@ -823,8 +823,8 @@ save_sub_cat_clim <- function(date_choice, df, event_type, base_years){
 cat_clim_global_daily <- function(date_range, base_years = "1982-2011"){
   
   # Get correct baseline files
-  MHW_cat_lon_files_base <- str_filter(MHW_cat_lon_files, base_years)
-  MCS_cat_lon_files_base <- str_filter(MCS_cat_lon_files, base_years)
+  MHW_cat_lon_files_base <- str_subset(MHW_cat_lon_files, base_years)
+  MCS_cat_lon_files_base <- str_subset(MCS_cat_lon_files, base_years)
   
   # Extract data
   MHW_cat_clim_daily <- plyr::ldply(MHW_cat_lon_files_base, load_sub_cat_clim, 

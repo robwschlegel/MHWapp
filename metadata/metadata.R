@@ -17,10 +17,10 @@ library(FNN)
 # NOAA OISST lon/lat coords
 lon_OISST <- c(seq(0.125, 179.875, by = 0.25), seq(-179.875, -0.125, by = 0.25))
 lat_OISST <- seq(-89.875, 89.875, by = 0.25)
-lon_lat_OISST <- base::expand.grid(lon_OISST, lat_OISST) %>% 
-  dplyr::rename(lon = Var1, lat = Var2) %>%
-  arrange(lon, lat) %>% data.frame()
-
+lon_lat_OISST <- base::expand.grid(lon_OISST, lat_OISST) |> 
+  dplyr::rename(lon = Var1, lat = Var2) |>
+  arrange(lon, lat) |> data.frame()
+ 
 # OISST projection
 OISST_proj <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
 
@@ -30,14 +30,14 @@ load("metadata/lon_lat_OISST_area.RData")
 # File locations
 OISST_files <- dir("../data/OISST", pattern = "oisst-avhrr", full.names = T)
 OISST_daily_nc_files <- dir("../data/OISST/daily", pattern = "oisst-avhrr", full.names = T, recursive = T)
-MHW_event_files <- dir("../data/event", pattern = "MHW.event.", full.names = T) %>% str_filter("MCS", invert = T)
+MHW_event_files <- dir("../data/event", pattern = "MHW.event.", full.names = T) |> str_subset("MCS", negate = T)
 MCS_event_files <- dir("../data/event/MCS", pattern = "MCS.event.", full.names = T)
 MHW_seas_thresh_files <- dir("../data/thresh", pattern = "MHW.seas.thresh.", full.names = T)
 MCS_seas_thresh_files <- dir("../data/thresh/MCS", pattern = "MCS.seas.thresh.", full.names = T)
-MHW_cat_lon_files <- dir("../data/cat_lon", full.names = T) %>% str_filter("MCS", invert = T)
+MHW_cat_lon_files <- dir("../data/cat_lon", full.names = T) |> str_subset("MCS", negate = T)
 MCS_cat_lon_files <- dir("../data/cat_lon/MCS", full.names = T)
 MHW_cat_clim_files <- as.character(dir(path = "../data/cat_clim", pattern = "cat.clim", 
-                                   full.names = TRUE, recursive = TRUE)) %>% str_filter("MCS", invert = T)
+                                   full.names = TRUE, recursive = TRUE)) |> str_subset("MCS", negate = T)
 MCS_cat_clim_files <- as.character(dir(path = "../data/cat_clim/MCS", pattern = "cat.clim", 
                                    full.names = TRUE, recursive = TRUE))
 CCI_files <- dir("../data/CCI", full.names = T)
@@ -78,19 +78,19 @@ OISST_ocean_coords <- left_join(OISST_ocean_coords, lon_lat_OISST_area, by = c("
 # 
 #   # Prep SST for further use
 #   # system.time(
-#   res <- as.data.frame(reshape2::melt(sst_raw, value.name = "temp"), row.names = NULL) %>%
-#     na.omit() %>%
+#   res <- as.data.frame(reshape2::melt(sst_raw, value.name = "temp"), row.names = NULL) |>
+#     na.omit() |>
 #     mutate(lon = lon_vals[1],
-#            t = as.Date(t, origin = "1970-01-01")) %>%
+#            t = as.Date(t, origin = "1970-01-01")) |>
 #     # Filter out pixels with any ice/slush cover during the time series
 #     # Filter out pixels that don't cover the whole time series
-#     group_by(lon, lat) %>%
+#     group_by(lon, lat) |>
 #     filter(min(round(temp, 1)) > -1.6,
-#            n() == 13514) %>%
-#     ungroup() %>%
-#     select(lon, lat) %>%
-#     mutate(lon = ifelse(lon > 180, lon-360, lon)) %>%
-#     unique() %>%
+#            n() == 13514) |>
+#     ungroup() |>
+#     select(lon, lat) |>
+#     mutate(lon = ifelse(lon > 180, lon-360, lon)) |>
+#     unique() |>
 #     data.frame()
 #   # ) ~1.7 seconds
 #   
@@ -122,8 +122,8 @@ load("metadata/OISST_no_ice_coords.Rdata")
 #                     filename = "../data/OISST/ice_proj.tif")
 
 # The base map
-map_base <- ggplot2::fortify(maps::map(fill = TRUE, col = "grey80", plot = FALSE)) %>%
-  dplyr::rename(lon = long) %>%
+map_base <- ggplot2::map_data(maps::map(fill = TRUE, col = "grey80", plot = FALSE)) |>
+  dplyr::rename(lon = long) |>
   mutate(group = ifelse(lon > 180, group+9999, group),
          lon = ifelse(lon > 180, lon-360, lon))
 
@@ -149,15 +149,15 @@ OISST_ocean_coords$index <- seq_len(nrow(OISST_ocean_coords))
 
 # Function for finding matching pixels between OISST and another product
 X_OISST_coords <- function(file_name){
-  coord_match <- tidync(file_name) %>% 
-      hyper_tibble() %>%
-      na.omit() %>%
-      select(lon, lat) %>%
+  coord_match <- tidync(file_name) |> 
+      hyper_tibble() |>
+      na.omit() |>
+      select(lon, lat) |>
       mutate(index = as.vector(knnx.index(as.matrix(OISST_ocean_coords[,c("lon", "lat")]),
-                                          as.matrix(.), k = 1))) %>%
-      left_join(OISST_ocean_coords, by = "index") %>%
+                                          as.matrix(.), k = 1))) |>
+      left_join(OISST_ocean_coords, by = "index") |>
       dplyr::rename(lon = lon.x, lat = lat.x,
-                    lon_OI = lon.y, lat_OI = lat.y) %>%
+                    lon_OI = lon.y, lat_OI = lat.y) |>
       dplyr::select(lon, lat, lon_OI, lat_OI)
 }
 
