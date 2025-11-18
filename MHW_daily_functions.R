@@ -811,18 +811,9 @@ save_sub_cat_clim <- function(date_choice, df, event_type, base_years){
                                          digits = 3, crs = "EPSG:4326")
   # The next step is for the future. Requires new leaflet workflow...
   # rasterNonProj <- terra::rast(MHW_raster, digits = 3, crs = inputProj)
-  # suppressWarnings(
-  # NB: This started behaving strangely after update on 2025-11-17 leaflet v2.2.3
-  # rasterProj <- leaflet::projectRasterForLeaflet(rasterNonProj, method = "ngb")
-  # )
-  # rasterProj <- terra::project(rasterNonProj, y = epsg3857, method = "near")
-  # rasterProj <- raster::projectRaster(rasterNonProj, 
-  #                                     raster::projectExtent(rasterNonProj, 
-  #                                                           crs = "EPSG:3857"), 
-  #                                     method = "ngb", res = 0.25)
+  # NB: EPSG:3857 projection behaving strangely after update on 2025-11-17; leaflet v2.2.3
   rasterProj <- raster::projectRaster(rasterNonProj, crs = "EPSG:3857", method = "ngb")
   rasterProj <- raster::crop(rasterProj, raster::extent(-20037508, 20037508, -14642047, 16800000))
-  # rastestProjdf <- as.data.frame(rasterProj, xy = TRUE); colnames(rastestProjdf)[3] <- "val"; rastestProjdf <- rastestProjdf[!is.na(rastestProjdf$val),]
   raster::writeRaster(rasterProj, format = "GTiff", overwrite = TRUE,
                       filename = paste0(cat_clim_dir,"/",cat_rast_name))
 }
@@ -837,12 +828,12 @@ cat_clim_global_daily <- function(date_range, base_years = "1982-2011"){
   
   # Extract data
   MHW_cat_clim_daily <- plyr::ldply(MHW_cat_lon_files_base, load_sub_cat_clim, 
-                                    .parallel = T, date_range = date_range) |>
+                                    .parallel = TRUE, date_range = date_range) |>
     mutate(category = factor(category, levels = c("I Moderate", "II Strong",
                                                   "III Severe", "IV Extreme"))) |>
     na.omit()
   MCS_cat_clim_daily <- plyr::ldply(MCS_cat_lon_files_base, load_sub_cat_clim, 
-                                    .parallel = T, date_range = date_range) |> 
+                                    .parallel = TRUE, date_range = date_range) |> 
     mutate(category = factor(category, 
                              levels = c("I Moderate", "II Strong",
                                         "III Severe", "IV Extreme", "V Ice"))) |> 
@@ -850,13 +841,13 @@ cat_clim_global_daily <- function(date_range, base_years = "1982-2011"){
   
   # Save data as .Rda and as rasters projected to the shiny EPSG:3857
   # NB: Running this on too many cores may cause RAM issues
-  doParallel::registerDoParallel(cores = 20)
+  # doParallel::registerDoParallel(cores = 20)
   plyr::l_ply(seq(min(MHW_cat_clim_daily$t), max(MHW_cat_clim_daily$t), by = "day"),
-              save_sub_cat_clim, .parallel = T, df = MHW_cat_clim_daily, 
+              save_sub_cat_clim, .parallel = TRUE, df = MHW_cat_clim_daily, 
               event_type = "MHW", base_years = base_years)
   rm(MHW_cat_clim_daily); gc()
   plyr::l_ply(seq(min(MCS_cat_clim_daily$t), max(MCS_cat_clim_daily$t), by = "day"), 
-              save_sub_cat_clim, .parallel = T, df = MCS_cat_clim_daily, 
+              save_sub_cat_clim, .parallel = TRUE, df = MCS_cat_clim_daily, 
               event_type = "MCS", base_years = base_years)
   rm(MCS_cat_clim_daily); gc()
 }
