@@ -220,11 +220,13 @@ if(ncdf_date > cat_lon_date){
 # Get most current processed OISST dates
 time_index <- as.Date(tidync("../data/OISST/oisst-avhrr-v02r01.ts.1440.nc")$transforms$time$time, origin = "1970-01-01")
 load("metadata/final_dates.Rdata")
+load("metadata/prelim_dates.Rdata")
 
 # Get the range of dates that need to be run
   # Manually control dates as desired
-# update_dates <- seq(as.Date("2025-07-01"), as.Date("2025-08-21"), by = "day")
-update_dates <- time_index[which(time_index >= max(final_dates)-7)]
+# update_dates <- seq(as.Date("2025-08-25"), as.Date("2025-11-15"), by = "day")
+# update_dates <- time_index[which(time_index >= max(final_dates)-7)] # NB: NOAA not creating final data as of 2025-09-01
+update_dates <- time_index[which(time_index >= max(prelim_dates)-7)]
 if(length(update_dates) > 0) {
   print(paste0("Updating global files from ",min(update_dates)," to ",max(update_dates)))
   print(paste0("Updating daily MHW/MCS cat files at ", Sys.time()))
@@ -266,6 +268,32 @@ if(length(update_dates) > 0) {
 #   print(paste0("Finished at ", Sys.time()))
 #   gc(); Sys.sleep(10)
 # }
+
+# Load a cat_lon slice
+
+# View the pixels over time
+
+# Load a day of data and plot
+test1 <- readRDS("shiny/cat_clim/2025/cat.clim.2025-08-24.1982-2011.Rda")
+ggplot(test1, aes(x = lon, y = lat)) + geom_tile(aes(fill = category))
+rastest1 <- raster::raster("shiny/cat_clim/2025/cat.clim.2025-08-24.1982-2011.tif")
+plot(rastest1)
+rastestdf1 <- as.data.frame(rastest1, xy = TRUE); colnames(rastestdf1)[3] <- "val"; rastestdf1 <- rastestdf1[!is.na(rastestdf1$val),]
+ggplot(rastestdf1, aes(x = x, y = y)) + geom_tile(aes(fill = as.factor(val)))
+
+test2 <- readRDS("shiny/cat_clim/2025/cat.clim.2025-08-25.1982-2011.Rda")
+ggplot(test2, aes(x = lon, y = lat)) + geom_tile(aes(fill = category))
+rastest2 <- raster::raster("shiny/cat_clim/2025/cat.clim.2025-08-25.1982-2011.tif")
+plot(rastest2)
+rastestdf2 <- as.data.frame(rastest2, xy = TRUE); colnames(rastestdf2)[3] <- "val"; rastestdf2 <- rastestdf2[!is.na(rastestdf2$val),]
+ggplot(rastestdf2, aes(x = x, y = y)) + geom_tile(aes(fill = as.factor(val)))
+
+test3 <- readRDS("shiny/cat_clim/2025/cat.clim.2025-11-15.1982-2011.Rda")
+ggplot(test3, aes(x = lon, y = lat)) + geom_tile(aes(fill = category))
+rastest3 <- raster::raster("shiny/cat_clim/2025/cat.clim.2025-11-15.1991-2020.tif")
+plot(rastest3)
+rastestdf3 <- as.data.frame(rastest3, xy = TRUE); colnames(rastestdf3)[3] <- "val"; rastestdf3 <- rastestdf3[!is.na(rastestdf3$val),]
+ggplot(rastestdf3, aes(x = x, y = y)) + geom_tile(aes(fill = as.factor(val)))
 
 
 # 4: Check current dates --------------------------------------------------
