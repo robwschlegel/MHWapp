@@ -92,7 +92,7 @@ if(nrow(OISST_new) > 0){
 
 
 # Prep data for merging with existing files
-if(nrow(OISST_new) > 50) stop("A suspicious amount of new files are attempting to be downloaded.")
+# if(nrow(OISST_new) > 50) stop("A suspicious amount of new files are attempting to be downloaded.")
 if(nrow(OISST_new) > 0){
   print(paste0("Prepping new data at ", Sys.time()))
   OISST_dat <- plyr::ldply(OISST_new$file_name, .fun = OISST_prep, .parallel = F)
