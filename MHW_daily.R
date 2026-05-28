@@ -160,11 +160,11 @@ if(nrow(OISST_dat) > 2){
 # NB: Only needs to be run once per decade ;P
 ## ~210 seconds per cycle
 # registerDoParallel(cores = 50)
-# plyr::l_ply(1:1440, create_thresh, .parallel = T, base_years = c(1982, 2011))
-# plyr::l_ply(1:1440, create_thresh, .parallel = T, base_years = c(1991, 2020))
+# plyr::l_ply(1:1440, create_thresh, .parallel = TRUE, base_years = c(1982, 2011))
+# plyr::l_ply(1:1440, create_thresh, .parallel = TRUE, base_years = c(1991, 2020))
 
 # Prep guide info for this section
-doParallel::registerDoParallel(cores = 25)
+doParallel::registerDoParallel(cores = 50)
 ncdf_date <- max(as.Date(tidync("../data/OISST/oisst-avhrr-v02r01.ts.1440.nc")$transforms$time$time, origin = "1970-01-01"))
 cat_lon_date <- max(readRDS("../data/cat_lon/MHW.cat.1440.1991-2020.Rda")$t)
 
@@ -182,7 +182,7 @@ if(ncdf_date > cat_lon_date){
   
   # 1991-2020 calcs
   print(paste0("Began 1991-2020 baseline calcs at ", Sys.time()))
-  plyr::l_ply(1:1440, .fun = event_cat_calc, .parallel = TRUE, base_years = "1991-2020"); gc()
+  plyr::l_ply(1:1440, .fun = event_cat_calc, .parallel = TRUE, base_years = c(1991, 2020)); gc()
   
   print(paste0("Finished MHW/MCS results at ", Sys.time()))
 }

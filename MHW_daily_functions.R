@@ -24,10 +24,12 @@ library(RCurl)
 library(XML)
 library(threadr)
 library(heatwaveR)
+library(heatwave3)
 library(doParallel)
 })
 
 print(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))
+print(paste0("heatwave3 version = ",packageDescription("heatwave3")$Version))
 registerDoParallel(cores = 25)
 
 # Load metadata
@@ -393,42 +395,87 @@ create_thresh <- function(lon_row, base_years){
   ## Tried recreating NetCDF file but throwing unexpected errors
   
   # Load SST
-  sst_lon <- tidync(OISST_files[lon_row]) |> 
-    hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |> 
-    mutate(time = as.Date(time, origin = "1970-01-01"),
-           lon = as.numeric(lon),
-           lat = as.numeric(lat)) |>  
-    dplyr::rename(t = time, temp = sst) |> 
-    filter(!is.na(t)) # NB: Remove this once the 994 issue is resolved
+  # sst_lon <- tidync(OISST_files[lon_row]) |> 
+  #   hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |> 
+  #   mutate(time = as.Date(time, origin = "1970-01-01"),
+  #          lon = as.numeric(lon),
+  #          lat = as.numeric(lat)) |>  
+  #   dplyr::rename(t = time, temp = sst) |> 
+  #   filter(!is.na(t)) # NB: Remove this once the 994 issue is resolved
+  
+  # Set baseline and pad lon_row for file name
+  # base_line <- c(paste0(base_years[1],"-01-01"), paste0(base_years[2],"-12-31"))
+  # lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
+
+  # MHW
+  # system.time(
+  # MHW_thresh <- sst_lon |>
+  #   group_by(lon, lat) |> nest() |>
+  #   mutate(clim = purrr::map(data, ts2clm, climatologyPeriod = base_line)) |> 
+  #   dplyr::select(-data) |> unnest(clim) |>
+  #   dplyr::select(lon, lat, doy, seas, thresh) |> 
+  #   distinct() |> arrange(lon, lat, doy) |> 
+  #   mutate(seas = round(seas, 2), thresh = round(thresh, 2))
+  # ) # ~50 seconds for one lon column
+  
+  # system.time(
+  # MCS_thresh <- sst_lon |>
+  #   group_by(lon, lat) |> nest() |>
+  #   mutate(clim = purrr::map(data, ts2clm, climatologyPeriod = base_line, pctile = 10)) |> 
+  #   dplyr::select(-data) |> unnest(clim) |> 
+  #   dplyr::select(lon, lat, doy, seas, thresh) |> 
+  #   distinct() |> arrange(lon, lat, doy) |> 
+  #   mutate(seas = round(seas, 2), thresh = round(thresh, 2))
+  # ) # ~50 seconds for one lon column
+  
+  # Save and exit
+  # saveRDS(MHW_thresh, paste0("../data/thresh/MHW.seas.thresh.",lon_row_pad,"_",base_years[1],"-",base_years[2],".Rds"))
+  # saveRDS(MCS_thresh, paste0("../data/thresh/MCS/MCS.seas.thresh.",lon_row_pad,"_",base_years[1],"-",base_years[2],".Rds"))
+  
+  ## heatwave3 code
   
   # Set baseline and pad lon_row for file name
   base_line <- c(paste0(base_years[1],"-01-01"), paste0(base_years[2],"-12-31"))
   lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
   
-  # MHW
-  # system.time(
-  MHW_thresh <- sst_lon |>
-    group_by(lon, lat) |> nest() |>
-    mutate(clim = purrr::map(data, ts2clm, climatologyPeriod = base_line)) |> 
-    dplyr::select(-data) |> unnest(clim) |>
-    dplyr::select(lon, lat, doy, seas, thresh) |> 
-    distinct() |> arrange(lon, lat, doy) |> 
-    mutate(seas = round(seas, 2), thresh = round(thresh, 2))
-  # ) # ~50 seconds for one lon column
+  # File names
+  file_seas_MHW <- paste0("../data/thresh/MHW.seas.thresh.",lon_row_pad,"_",base_years[1],"-",base_years[2],".nc")
+  file_seas_MCS <- paste0("../data/thresh/MCS/MCS.seas.thresh.",lon_row_pad,"_",base_years[1],"-",base_years[2],".nc")
   
-  # system.time(
-  MCS_thresh <- sst_lon |>
-    group_by(lon, lat) |> nest() |>
-    mutate(clim = purrr::map(data, ts2clm, climatologyPeriod = base_line, pctile = 10)) |> 
-    dplyr::select(-data) |> unnest(clim) |> 
-    dplyr::select(lon, lat, doy, seas, thresh) |> 
-    distinct() |> arrange(lon, lat, doy) |> 
-    mutate(seas = round(seas, 2), thresh = round(thresh, 2))
-  # ) # ~50 seconds for one lon column
+  # Calculate MHW clims
+  heatwave3::ts2clm3(
+    file_in = OISST_files[lon_row],
+    file_out = file_seas_MHW,
+    climatologyPeriod = base_line,
+    n_threads = 25
+  ) # ~2 seconds
   
-  # Save and exit
-  saveRDS(MHW_thresh, paste0("../data/thresh/MHW.seas.thresh.", lon_row_pad,"_",base_years[1],"-",base_years[2],".Rds"))
-  saveRDS(MCS_thresh, paste0("../data/thresh/MCS/MCS.seas.thresh.", lon_row_pad,"_",base_years[1],"-",base_years[2],".Rds"))
+  # Calculate MCS clims
+  heatwave3::ts2clm3(
+    file_in = OISST_files[lon_row],
+    file_out = file_seas_MCS,
+    climatologyPeriod = base_line,
+    n_threads = 25, 
+    pctile = 10
+  ) # ~2 seconds
+  
+  # Test
+  # test_MHW <- tidync(file_seas_MHW) |>
+  #   hyper_tibble() |>
+  #   summarise(seas = mean(seas),
+  #             thresh = mean(thresh), .by = "doy")
+  # test_MCS <- tidync(file_seas_MCS) |>
+  #   hyper_tibble() |>
+  #   summarise(seas = mean(seas),
+  #             thresh = mean(thresh), .by = "doy")
+  # ggplot(test_MHW, aes(x = as.numeric(doy), y = seas)) +
+  #   geom_line() +
+  #   geom_line(aes(y = thresh), colour = "red") +
+  #   # geom_line(data = test_MCS, aes(y = seas), colour = "purple") +
+  #   geom_line(data = test_MCS, aes(y = thresh), colour = "blue")
+  # event_line3(OISST_files[lon_row], file_seas_MHW, lon = 25.0, lat = -34.0,
+  #             start_date = "2018-01-01", end_date = "2019-12-31")
+  
   return()
 }
 
@@ -707,62 +754,109 @@ event_cat_unpack <- function(nest_df){
 }
 
 # A new single function to run the daily calculations. Much less complicated.
-event_cat_calc <- function(lon_row, base_years = "1982-2011"){
+event_cat_calc <- function(lon_row, base_years = c(1982, 2011)){#base_years = "1982-2011"){
   
-  # Load SST
-  sst_lon <- tidync(OISST_files[lon_row]) |> 
-    hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |> 
-    mutate(time = as.Date(time, origin = "1970-01-01"),
-           doy = yday(time),
-           lon = as.numeric(lon),
-           lat = as.numeric(lat)) |> 
-    dplyr::rename(t = time, temp = sst)
+  # # Load SST
+  # sst_lon <- tidync(OISST_files[lon_row]) |> 
+  #   hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |> 
+  #   mutate(time = as.Date(time, origin = "1970-01-01"),
+  #          doy = yday(time),
+  #          lon = as.numeric(lon),
+  #          lat = as.numeric(lat)) |> 
+  #   dplyr::rename(t = time, temp = sst)
   
-  # Load thresh files
-  lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
-  MHW_thresh <- readRDS(paste0("../data/thresh/MHW.seas.thresh.", lon_row_pad,"_",base_years,".Rds"))
-  MCS_thresh <- readRDS(paste0("../data/thresh/MCS/MCS.seas.thresh.", lon_row_pad,"_",base_years,".Rds"))
+  # # Load thresh files
+  # lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
+  # MHW_thresh <- readRDS(paste0("../data/thresh/MHW.seas.thresh.", lon_row_pad,"_",base_years,".Rds"))
+  # MCS_thresh <- readRDS(paste0("../data/thresh/MCS/MCS.seas.thresh.", lon_row_pad,"_",base_years,".Rds"))
   
   # testing...
   # sst_test <- sst_lon |> filter(lat == -77.625) |> left_join(MHW_thresh, by = c("lon", "lat", "doy"))
   # event_test <- detect_event(sst_test, categories = TRUE, climatology = TRUE, season = "peak")
   # write_csv(sst_test, "sst_test.csv")
   
-  # MHWs
-  ## Detect events+cats
-  # system.time(
-  MHW_nest <- sst_lon |>
-    left_join(MHW_thresh, by = c("lon", "lat", "doy")) |>
-    group_by(lon, lat) |> nest() |>
-    mutate(event = purrr::map(data, detect_event, categories = TRUE, climatology = TRUE, season = "peak")) |>
-    dplyr::select(-data) |> ungroup()
-  # ) # 74 seconds for one full lon slice
-  ## Unpack
-  MHW_list <- event_cat_unpack(MHW_nest)
-  ## Save 
-  saveRDS(MHW_list$event, file = paste0("../data/event/MHW.event.",lon_row_pad,".",base_years,".Rda"))
-  saveRDS(MHW_list$cat, file = paste0("../data/cat_lon/MHW.cat.",lon_row_pad,".",base_years,".Rda"))
+  # # MHWs
+  # ## Detect events+cats
+  # # system.time(
+  # MHW_nest <- sst_lon |>
+  #   left_join(MHW_thresh, by = c("lon", "lat", "doy")) |>
+  #   group_by(lon, lat) |> nest() |>
+  #   mutate(event = purrr::map(data, detect_event, categories = TRUE, climatology = TRUE, season = "peak")) |>
+  #   dplyr::select(-data) |> ungroup()
+  # # ) # 74 seconds for one full lon slice
+  # ## Unpack
+  # MHW_list <- event_cat_unpack(MHW_nest)
+  # ## Save 
+  # saveRDS(MHW_list$event, file = paste0("../data/event/MHW.event.",lon_row_pad,".",base_years,".Rda"))
+  # saveRDS(MHW_list$cat, file = paste0("../data/cat_lon/MHW.cat.",lon_row_pad,".",base_years,".Rda"))
   
-  # MCSs
-  ## Detect events+cats
-  # system.time(
-  MCS_nest <- sst_lon |>
-    left_join(MCS_thresh, by = c("lon", "lat", "doy")) |> 
-    group_by(lon, lat) |> nest() |>
-    mutate(event = purrr::map(data, detect_event, coldSpells = TRUE, categories = TRUE,
-                              climatology = TRUE, season = "peak", MCScorrect = TRUE, MCSice = TRUE)) |> 
-    dplyr::select(-data) |> ungroup()
-  # ) # 80 seconds for one full lon slice
-  ## Unpack
-  MCS_list <- event_cat_unpack(MCS_nest)
-  ## Save 
-  saveRDS(MCS_list$event, file = paste0("../data/event/MCS/MCS.event.",lon_row_pad,".",base_years,".Rda"))
-  saveRDS(MCS_list$cat, file = paste0("../data/cat_lon/MCS/MCS.cat.",lon_row_pad,".",base_years,".Rda"))
+  # # MCSs
+  # ## Detect events+cats
+  # # system.time(
+  # MCS_nest <- sst_lon |>
+  #   left_join(MCS_thresh, by = c("lon", "lat", "doy")) |> 
+  #   group_by(lon, lat) |> nest() |>
+  #   mutate(event = purrr::map(data, detect_event, coldSpells = TRUE, categories = TRUE,
+  #                             climatology = TRUE, season = "peak", MCScorrect = TRUE, MCSice = TRUE)) |> 
+  #   dplyr::select(-data) |> ungroup()
+  # # ) # 80 seconds for one full lon slice
+  # ## Unpack
+  # MCS_list <- event_cat_unpack(MCS_nest)
+  # ## Save 
+  # saveRDS(MCS_list$event, file = paste0("../data/event/MCS/MCS.event.",lon_row_pad,".",base_years,".Rda"))
+  # saveRDS(MCS_list$cat, file = paste0("../data/cat_lon/MCS/MCS.cat.",lon_row_pad,".",base_years,".Rda"))
   
   # Exit
-  rm(sst_lon, 
-     MHW_nest, MHW_list,
-     MCS_nest, MCS_list); gc()
+  # rm(sst_lon, 
+  #    MHW_nest, MHW_list,
+  #    MCS_nest, MCS_list); gc()
+  
+  ## heatwave3 code
+  
+  # Set baseline and pad lon_row for file name
+  base_line <- c(paste0(base_years[1],"-01-01"), paste0(base_years[2],"-12-31"))
+  lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
+  
+  # Clim file names
+  file_seas_MHW <- paste0("../data/thresh/MHW.seas.thresh.",lon_row_pad,"_",base_years[1],"-",base_years[2],".nc")
+  file_seas_MCS <- paste0("../data/thresh/MCS/MCS.seas.thresh.",lon_row_pad,"_",base_years[1],"-",base_years[2],".nc")
+  
+  # Event file names
+  file_cat_MHW <- paste0("../data/cat_lon/MHW.cat.",lon_row_pad,".",base_years[1],"-",base_years[2],".nc")
+  file_cat_MCS <- paste0("../data/cat_lon/MCS/MCS.cat.",lon_row_pad,".",base_years[1],"-",base_years[2],".nc")
+  
+  # Calculate MHW events + cats
+  heatwave3::detect_event3(
+    file_in = OISST_files[lon_row],
+    clim_file = file_seas_MHW,
+    file_out = file_cat_MHW,
+    category = TRUE,
+    n_threads = 25
+  ) # ~2 seconds
+  
+  # Calculate MCS clims
+  heatwave3::detect_event3(
+    file_in = OISST_files[lon_row],
+    clim_file = file_seas_MCS,
+    file_out = file_cat_MCS,
+    coldSpells = TRUE,
+    category = TRUE,
+    n_threads = 25
+  ) # ~2 seconds
+  
+  # Test
+  # test_MHW <- tidync(file_cat_MHW) |>
+  #   hyper_tibble()
+  # test_MCS <- tidync(file_cat_MCS) |>
+  #   hyper_tibble()
+  # ggplot(test_MHW, aes(x = as.numeric(doy), y = seas)) +
+  #   geom_line() +
+  #   geom_line(aes(y = thresh), colour = "red") +
+  #   # geom_line(data = test_MCS, aes(y = seas), colour = "purple") +
+  #   geom_line(data = test_MCS, aes(y = thresh), colour = "blue")
+  # event_line3(OISST_files[lon_row], file_seas_MHW, lon = 25.0, lat = -34.0,
+  #             start_date = "2018-01-01", end_date = "2019-12-31")
+  
   return()
 }
   
