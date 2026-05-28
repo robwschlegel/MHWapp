@@ -164,21 +164,19 @@ if(nrow(OISST_dat) > 2){
 # plyr::l_ply(1:1440, create_thresh, .parallel = TRUE, base_years = c(1991, 2020))
 
 # Prep guide info for this section
-doParallel::registerDoParallel(cores = 50)
 ncdf_date <- max(as.Date(tidync("../data/OISST/oisst-avhrr-v02r01.ts.1440.nc")$transforms$time$time, origin = "1970-01-01"))
 cat_lon_date <- max(readRDS("../data/cat_lon/MHW.cat.1440.1991-2020.Rda")$t)
 
 # This takes roughly 300 minutes and is by far the largest time requirement
 if(ncdf_date > cat_lon_date){
+  doParallel::registerDoParallel(cores = 50)
   print(paste0("Updating MHW/MCS results at ", Sys.time()))
   
+  # 1982-2011 calcs
   print(paste0("Began 1982-2011 baseline calcs at ", Sys.time()))
   # system.time(
   plyr::l_ply(1:1440, .fun = event_cat_calc, .parallel = TRUE); gc()
-  # ) # ~300 seconds per cycle
-  
-  # Quick break
-  gc(); Sys.sleep(10)
+  # ) # ~2 seconds per cycle
   
   # 1991-2020 calcs
   print(paste0("Began 1991-2020 baseline calcs at ", Sys.time()))
@@ -229,7 +227,9 @@ load("metadata/prelim_dates.Rdata")
 update_dates <- time_index[which(time_index >= max(prelim_dates)-14)]
 if(length(update_dates) > 0) {
   print(paste0("Updating global files from ",min(update_dates)," to ",max(update_dates)))
+  
   print(paste0("Updating daily MHW/MCS cat files at ", Sys.time()))
+  
   doParallel::registerDoParallel(cores = 50)
   
   # 1982-2011 calcs

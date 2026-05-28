@@ -23,12 +23,12 @@ library(padr)
 library(RCurl)
 library(XML)
 library(threadr)
-library(heatwaveR)
+# library(heatwaveR)
 library(heatwave3)
 library(doParallel)
 })
 
-print(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))
+# print(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))
 print(paste0("heatwave3 version = ",packageDescription("heatwave3")$Version))
 registerDoParallel(cores = 25)
 
@@ -391,9 +391,6 @@ OISST_merge <- function(lon_step, df){
 # lon_row <- 994; base_years <- c(1991, 2020)
 create_thresh <- function(lon_row, base_years){
   
-  # TODO: Investigate why lon_row 994 is missing dates
-  ## Tried recreating NetCDF file but throwing unexpected errors
-  
   # Load SST
   # sst_lon <- tidync(OISST_files[lon_row]) |> 
   #   hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |> 
@@ -485,7 +482,7 @@ create_thresh <- function(lon_row, base_years){
 # date_range <- as.Date("2020-01-01")
 # date_range <- as.Date("1982-01-01")
 # date_range <- c(as.Date("2016-02-01"), as.Date("2017-04-01"))
-sst_seas_thresh_merge <- function(lon_step, date_range, lat_range = NULL){
+sst_seas_thresh_merge <- function(lon_step, date_range,  base_years = c(1982, 2011), lat_range = NULL){
   
   # Establish lon row number
   lon_row <- which(lon_OISST == lon_step)
@@ -508,7 +505,7 @@ sst_seas_thresh_merge <- function(lon_step, date_range, lat_range = NULL){
       hyper_filter(time = between(time, as.integer(date_range[1]), as.integer(date_range[2])),
                    # lat = between(lat, as.integer(lat_row_1), as.integer(lat_row_2))) |> 
                    lat = between(lat, lat_range[1], lat_range[2])) |> 
-      hyper_tibble(na.rm = FALSE, orce = TRUE, drop = FALSE) |> 
+      hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |> 
       mutate(lon = as.numeric(lon),
              lat = as.numeric(lat)) 
   } else {
@@ -516,7 +513,8 @@ sst_seas_thresh_merge <- function(lon_step, date_range, lat_range = NULL){
   }
   ## Process
   tidync_OISST <- tidync_OISST_base |> 
-    mutate(time = as.Date(time, origin = "1970-01-01"),
+    # mutate(time = as.Date(time, origin = "1970-01-01"),
+    mutate(time = as.Date(time),
            year = year(time)) |> 
     dplyr::rename(t = time, temp = sst) |>
     mutate(doy = yday(t)) |> 
@@ -526,12 +524,25 @@ sst_seas_thresh_merge <- function(lon_step, date_range, lat_range = NULL){
     ungroup() |>
     dplyr::select(lon, lat, t, doy, temp)
   
+  # Load MHW and MCS
+  base_years_text <- paste0(base_years[1],"-", base_years[2])
+  MHW_seas_thresh_files_base <- str_subset(MHW_seas_thresh_files, base_years_text)
+  MCS_seas_thresh_files_base <- str_subset(MCS_seas_thresh_files, base_years_text)  
+  seas_base_MHW <- tidync(MHW_seas_thresh_files_base[lon_row]) |> 
+    hyper_tibble(drop = FALSE) |> 
+    mutate(doy = as.numeric(doy),
+           lon = as.numeric(lon),
+           lat = as.numeric(lat)) 
+  seas_base_MCS <- tidync(MCS_seas_thresh_files_base[lon_row]) |> 
+    hyper_tibble(drop = FALSE) |> 
+    mutate(doy = as.numeric(doy),
+           lon = as.numeric(lon),
+           lat = as.numeric(lat)) 
+  
   # Merge to seas/thresh and exit
   sst_seas_thresh <- tidync_OISST |>
-    left_join(hyper_tibble(tidync(MHW_seas_thresh_files[lon_row])),
-              by = c("lon", "lat", "doy" = "time")) |>
-    left_join(readRDS(MCS_seas_thresh_files[lon_row]),
-              by = c("lon", "lat", "doy" = "time")) |>
+    left_join(seas_base_MHW, by = c("lon", "lat", "doy")) |>
+    left_join(seas_base_MCS, by = c("lon", "lat", "doy")) |>
     dplyr::select(-seas.y) |> 
     dplyr::rename(seas = seas.x, thresh_MHW = thresh.x, thresh_MCS = thresh.y) |> 
     mutate(anom = round(temp - seas, 2))
@@ -753,16 +764,16 @@ event_cat_unpack <- function(nest_df){
   return(event_cat)
 }
 
-# A new single function to run the daily calculations. Much less complicated.
+# A single function to run the daily calculations. Much less complicated.
 event_cat_calc <- function(lon_row, base_years = c(1982, 2011)){#base_years = "1982-2011"){
   
   # # Load SST
-  # sst_lon <- tidync(OISST_files[lon_row]) |> 
-  #   hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |> 
+  # sst_lon <- tidync(OISST_files[lon_row]) |>
+  #   hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |>
   #   mutate(time = as.Date(time, origin = "1970-01-01"),
   #          doy = yday(time),
   #          lon = as.numeric(lon),
-  #          lat = as.numeric(lat)) |> 
+  #          lat = as.numeric(lat)) |>
   #   dplyr::rename(t = time, temp = sst)
   
   # # Load thresh files
@@ -865,13 +876,31 @@ event_cat_calc <- function(lon_row, base_years = c(1982, 2011)){#base_years = "1
 
 # Function for loading a cat_lon slice and extracting a single day of values
 # testers...
-# cat_lon_file <- cat_lon_files[1118]
+# cat_lon_file <- MHW_cat_lon_files_base[1]
+# clim_file <- MHW_seas_thresh_files[1]
 # date_range <- c(as.Date("2019-11-01"), as.Date("2020-01-07"))
 load_sub_cat_clim <- function(cat_lon_file, date_range){
-  cat_clim <- readRDS(cat_lon_file)
+  cat_clim <- readRDS("../data/cat_lon/MHW.cat.0001.1982-2011.Rda")
   cat_clim_sub <- cat_clim |>
     filter(t >= date_range[1], t <= date_range[2])
   rm(cat_clim)
+  
+  ## heatwave3 code
+  # THis will be replaced with a function call
+  # But for now we need to make a plan
+  lon_clim <- tidync(clim_file) |> 
+    hyper_tibble(drop = FALSE) |> 
+    mutate(lon = as.numeric(lon),
+           lat = as.numeric(lat))
+  cat_clim <- tidync(cat_lon_file) |> 
+    hyper_tibble() |> 
+    dplyr::select(lon, lat, date_start, date_peak, date_end) |> 
+    mutate(date_start = as.Date(date_start, origin = "1981-01-01"),
+           date_peak = as.Date(date_peak, origin = "1981-01-01"),
+           date_end = as.Date(date_end, origin = "1981-01-01"))
+  
+  cat_clim <- heatwave3::category3(cat_lon_file, clim_file)
+    
   return(cat_clim_sub)
 }
 
@@ -913,12 +942,15 @@ save_sub_cat_clim <- function(date_choice, df, event_type, base_years){
 }
 
 # Function for loading, prepping, and saving the daily global category slices
-# date_range <- c(as.Date("2025-08-25"), as.Date("2025-08-25"))
-cat_clim_global_daily <- function(date_range, base_years = "1982-2011"){
+# date_range <- c(as.Date("2026-05-20"), as.Date("2025-05-23"))
+cat_clim_global_daily <- function(date_range, base_years = c(1982, 2011)){#base_years = "1982-2011"){
+  
+  # Create text label
+  base_years_text <- paste0(base_years[1],"-", base_years[2])
   
   # Get correct baseline files
-  MHW_cat_lon_files_base <- str_subset(MHW_cat_lon_files, base_years)
-  MCS_cat_lon_files_base <- str_subset(MCS_cat_lon_files, base_years)
+  MHW_cat_lon_files_base <- str_subset(MHW_cat_lon_files, base_years_text)
+  MCS_cat_lon_files_base <- str_subset(MCS_cat_lon_files, base_years_text)
   
   # Extract data
   MHW_cat_clim_daily <- plyr::ldply(MHW_cat_lon_files_base, load_sub_cat_clim, 
