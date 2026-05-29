@@ -108,7 +108,6 @@ OISST_url_daily <- function(target_month, final_dates){
   return(OISST_new)
 }
 
-
 # Download any number of desired OISST files and save them locally
 OISST_url_daily_save <- function(target_URL){
   
@@ -229,7 +228,7 @@ OISST_lon_NetCDF <- function(lon_row, date_max){
   print(paste0("Began compiling data from 1982-01-01 to ",date_max," at ", Sys.time()," for lon ",lon_val))
   # doParallel::registerDoParallel(cores = 50)
   # system.time(
-  df_dl <- plyr::ldply(OISST_daily_nc_files, OISST_lon_filter, .parallel = T, lon_slice = lon_val_360)
+  df_dl <- plyr::ldply(OISST_daily_nc_files, OISST_lon_filter, .parallel = TRUE, lon_slice = lon_val_360)
   # ) # ~4 minutes for ~40 years of data
   
   
@@ -390,47 +389,7 @@ OISST_merge <- function(lon_step, df){
 # Function that is used to create the seas + thresh files
 # lon_row <- 994; base_years <- c(1991, 2020)
 create_thresh <- function(lon_row, base_years){
-  
-  # Load SST
-  # sst_lon <- tidync(OISST_files[lon_row]) |> 
-  #   hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |> 
-  #   mutate(time = as.Date(time, origin = "1970-01-01"),
-  #          lon = as.numeric(lon),
-  #          lat = as.numeric(lat)) |>  
-  #   dplyr::rename(t = time, temp = sst) |> 
-  #   filter(!is.na(t)) # NB: Remove this once the 994 issue is resolved
-  
-  # Set baseline and pad lon_row for file name
-  # base_line <- c(paste0(base_years[1],"-01-01"), paste0(base_years[2],"-12-31"))
-  # lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
 
-  # MHW
-  # system.time(
-  # MHW_thresh <- sst_lon |>
-  #   group_by(lon, lat) |> nest() |>
-  #   mutate(clim = purrr::map(data, ts2clm, climatologyPeriod = base_line)) |> 
-  #   dplyr::select(-data) |> unnest(clim) |>
-  #   dplyr::select(lon, lat, doy, seas, thresh) |> 
-  #   distinct() |> arrange(lon, lat, doy) |> 
-  #   mutate(seas = round(seas, 2), thresh = round(thresh, 2))
-  # ) # ~50 seconds for one lon column
-  
-  # system.time(
-  # MCS_thresh <- sst_lon |>
-  #   group_by(lon, lat) |> nest() |>
-  #   mutate(clim = purrr::map(data, ts2clm, climatologyPeriod = base_line, pctile = 10)) |> 
-  #   dplyr::select(-data) |> unnest(clim) |> 
-  #   dplyr::select(lon, lat, doy, seas, thresh) |> 
-  #   distinct() |> arrange(lon, lat, doy) |> 
-  #   mutate(seas = round(seas, 2), thresh = round(thresh, 2))
-  # ) # ~50 seconds for one lon column
-  
-  # Save and exit
-  # saveRDS(MHW_thresh, paste0("../data/thresh/MHW.seas.thresh.",lon_row_pad,"_",base_years[1],"-",base_years[2],".Rds"))
-  # saveRDS(MCS_thresh, paste0("../data/thresh/MCS/MCS.seas.thresh.",lon_row_pad,"_",base_years[1],"-",base_years[2],".Rds"))
-  
-  ## heatwave3 code
-  
   # Set baseline and pad lon_row for file name
   base_line <- c(paste0(base_years[1],"-01-01"), paste0(base_years[2],"-12-31"))
   lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
@@ -511,9 +470,9 @@ sst_seas_thresh_merge <- function(lon_step, date_range,  base_years = c(1982, 20
   } else {
     stop()
   }
+  
   ## Process
   tidync_OISST <- tidync_OISST_base |> 
-    # mutate(time = as.Date(time, origin = "1970-01-01"),
     mutate(time = as.Date(time),
            year = year(time)) |> 
     dplyr::rename(t = time, temp = sst) |>
@@ -550,279 +509,8 @@ sst_seas_thresh_merge <- function(lon_step, date_range,  base_years = c(1982, 20
   return(sst_seas_thresh)
 }
 
-# Function for updating the MHW event metric lon slice files
-# tester...
-# lon_step <- lon_OISST[1132]; full = TRUE
-event_cat_update <- function(lon_step, full = FALSE){
-  
-  # load the final download date
-  if(!exists("final_dates")) load("metadata/final_dates.Rdata")
-  
-  # Determine correct lon/row/slice
-  lon_row <- which(lon_OISST == lon_step)
-  # lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
-  
-  # Begin the calculations
-  # print(paste0("Began run on ",MHW_event_files[lon_row]," at ",Sys.time()))
-  
-  # Load current lon slice for event/category
-  if(full){
-    MHW_event_data <- data.frame()
-    MCS_event_data <- data.frame()
-    MHW_cat_lon <- data.frame()
-    MCS_cat_lon <- data.frame()
-    MHW_previous_event_index <- data.frame(lon = lon_step, lat = lat_OISST,
-                                           event_no = 0, date_end = as.Date("1982-01-01"))
-    MCS_previous_event_index <- data.frame(lon = lon_step, lat = lat_OISST,
-                                           event_no = 0, date_end = as.Date("1982-01-01"))
-  } else {
-    MHW_event_data <- na.omit(readRDS(MHW_event_files[lon_row]))
-    MCS_event_data <- na.omit(readRDS(MCS_event_files[lon_row]))
-    if(MHW_event_data$lon[1] != lon_step) stop(paste0("The lon_row indexing has broken down somewhere for ",lon_row_pad))
-    MHW_cat_lon <- na.omit(readRDS(MHW_cat_lon_files[lon_row]))
-    MCS_cat_lon <- na.omit(readRDS(MCS_cat_lon_files[lon_row]))
-    if(MHW_cat_lon$lon[1] != lon_step) stop(paste0("The lon_row indexing has broken down somewhere for ",lon_row_pad))
-    
-    # Determine how far back in time to get old data based on the occurrence of previous MHWs
-    # The problem here is that sometimes the prelim data will dip below the threshold long enough
-    # that the MHW will be considered finished and the code would incorrectly begin calculating another MHW
-    # To correct for this we must use the final_dates R object, which is tied to the OISST downloading
-    # We then go back one event before the final data end date to ensure we are not missing anything
-    MHW_previous_event_index <- MHW_event_data |> 
-      group_by(lon, lat) |> 
-      filter(date_start < max(final_dates)) |>
-      filter(event_no == max(event_no)-2)
-    MCS_previous_event_index <- MCS_event_data |> 
-      group_by(lon, lat) |> 
-      filter(date_start < max(final_dates)) |>
-      filter(event_no == max(event_no)-2)
-  }
-  
-  # Extract each pixel time series based on how far back the oldest event occurred for the entire longitude slice
-  # Or calculate events for the full time series
-  if(full){
-    sst_seas_thresh <- sst_seas_thresh_merge(lon_step,
-                                             date_range = as.Date("1982-01-01"))
-  } else {
-    sst_seas_thresh <- sst_seas_thresh_merge(lon_step, 
-                                             date_range = min(c(min(MHW_previous_event_index$date_start),
-                                                                min(MCS_previous_event_index$date_start))))
-  }
-  
-  # Detect and save new event metrics with new data for MHWs as necessary
-  # system.time(
-  event_proc(MHW_previous_event_index, sst_seas_thresh, MHW_event_data, MHW_cat_lon, 
-             MHW_event_files[lon_row], MHW_cat_lon_files[lon_row], full)
-  # ) # 66 seconds for 478 pixels
-  # Detect and save new event metrics with new data for MCSs as necessary
-  # system.time(
-  event_proc(MCS_previous_event_index, sst_seas_thresh, MCS_event_data, MCS_cat_lon, 
-             MCS_event_files[lon_row], MCS_cat_lon_files[lon_row], full, cold_choice = T)
-  # ) # 102 seconds for 478 pixels
-  rm(sst_seas_thresh, MHW_previous_event_index, MHW_event_data, MHW_cat_lon,
-     MCS_previous_event_index, MCS_event_data, MCS_cat_lon); gc()
-  # return()
-}
-
-# Wrapper function to detect events and save the results
-# df <- MHW_previous_event_index; event_data <- MHW_event_data; cat_lon <- MHW_cat_lon
-# event_file <- MHW_event_files[lon_row]; cat_lon_file <- MHW_cat_lon_files[lon_row]; cold_choice = F
-# df <- MCS_previous_event_index; event_data <- MCS_event_data; cat_lon <- MCS_cat_lon
-# event_file <- MCS_event_files[lon_row]; cat_lon_file <- MCS_cat_lon_files[lon_row]; cold_choice = T
-event_proc <- function(df, sst_seas_thresh, event_data, cat_lon, event_file, cat_lon_file, full, cold_choice = F){
-  
-  # Calculate new event metrics with new data for MHW/MCSs as necessary
-  # system.time(
-  event_cat <- df |> 
-    mutate(lat2 = lat) |> 
-    group_by(lat2) |> 
-    nest() |> 
-    mutate(event_cat_res = purrr::map(data, event_calc,
-                                      sst_seas_thresh = sst_seas_thresh,
-                                      event_data = event_data,
-                                      cat_lon = cat_lon,
-                                      full = full,
-                                      cold_choice = cold_choice)) |> 
-    ungroup() |> 
-    dplyr::select(-data, -lat2) |>
-    unnest(cols = event_cat_res)
-  # ) # 144 seconds for 720 pixels
-  
-  # Save results and exit
-  event_new <- event_cat |>
-    filter(row_number() %% 2 == 1) |>
-    unnest(cols = event_cat_res)
-  saveRDS(event_new, file = event_file)
-  cat_new <- event_cat |>
-    filter(row_number() %% 2 == 0) |>
-    unnest(cols = event_cat_res)
-  saveRDS(cat_new, file = cat_lon_file)
-  rm(event_cat, event_new, cat_new); gc()
-  # return()
-}
-
-# Function for extracting correct SST data based on pre-determined subsets
-# It also calculates and returns corrected MHW metric results
-# df <- MHW_previous_event_index[1,]
-# event_data <- MHW_event_data[MHW_event_data$lat == df$lat,]
-# cat_lon <- MHW_cat_lon[MHW_cat_lon$lat == df$lat,]
-# full <- F; cold_choice <- F
-# df <- MCS_previous_event_index[49,]
-# event_data <- MCS_event_data[MCS_event_data$lat == df$lat,]
-# cat_lon <- MCS_cat_lon[MCS_cat_lon$lat == df$lat,]
-# full <- F; cold_choice <- T
-event_calc <- function(df, sst_seas_thresh, event_data, cat_lon, full, cold_choice){
-  
-  # Extract necessary SST
-  sst_step_1 <- sst_seas_thresh |> 
-    filter(lat == df$lat,
-           t >= df$date_end)
-  if(nrow(sst_step_1) == 0) return()
-  
-  # Get correct thresh column
-  if(cold_choice){
-    sst_step_1 <- sst_step_1 |> 
-      dplyr::rename(thresh = thresh_MCS) |> 
-      dplyr::select(-thresh_MHW)
-  } else {
-    sst_step_1 <- sst_step_1 |> 
-      dplyr::rename(thresh = thresh_MHW) |> 
-      dplyr::select(-thresh_MCS)
-  }
-  
-  # Calculate events+cats
-  event_base <- detect_event(sst_step_1, coldSpells = cold_choice, categories = TRUE,
-                             climatology = TRUE, season = "peak", MCScorrect = cold_choice, MCSice = cold_choice)
-  
-  # Get event steps
-  event_step_1 <- event_base$event |> 
-    mutate(lon = df$lon, lat = df$lat) |> 
-    dplyr::select(lon, lat, event_no, duration:intensity_max, intensity_cumulative, category:season) |>
-    mutate_if(is.numeric, round, 3)
-  if(nrow(filter(event_step_1, !is.na(event_no))) == 0) return()
-  if(full){
-    event_step_2 <- event_step_1
-  } else{
-    event_step_2 <- event_data |>
-      filter(lat == df$lat,
-             date_end <= df$date_end) |>
-      rbind(event_step_1) |>
-      mutate(event_no = seq_len(n()))
-  }
-  
-  # Get category steps
-  cat_step_1 <- event_base$climatology |> 
-    mutate(event_no = event_no + df$event_no,
-           lon = df$lon,
-           lat = df$lat,
-           t = as.Date(t),
-           category = as.character(category)) |> 
-    dplyr::select(t, lon, lat, event_no, intensity, category) |> 
-    filter(!is.na(category))
-  if(full){
-    cat_step_2 <- cat_step_1
-  } else{
-    cat_step_2 <- cat_lon |>
-      filter(lat == df$lat,
-             t <= as.Date(df$date_end)) |>
-      bind_rows(cat_step_1)
-  }
-  
-  # Exit
-  event_cat <- list(event = event_step_2,
-                    cat = cat_step_2)
-  return(event_cat)
-}
-
-# Convenience wrapper for function below
-event_cat_unpack <- function(nest_df){
-  
-  # Unpack 'cat_lon' data
-  cat_lon_df <- nest_df |> 
-    unnest(event) |> 
-    filter(row_number() %% 2 == 1) |> 
-    unnest(event) |> 
-    dplyr::select(t, lon, lat, event_no, intensity, category) |>
-    filter(!is.na(event_no)) |> 
-    mutate(intensity = round(intensity, 2))
-  
-  # Unnest 'event' data
-  event_df <- nest_df |> 
-    unnest(event) |> 
-    filter(row_number() %% 2 == 0) |> 
-    unnest(event) |> 
-    dplyr::select(lon, lat, event_no, duration, date_start, date_peak, date_end, 
-                  intensity_mean, intensity_max, intensity_cumulative,
-                  category, p_moderate, p_strong, p_severe, p_extreme, season) |> 
-    mutate(intensity_mean = round(intensity_mean, 3),
-           intensity_max = round(intensity_max, 2),
-           intensity_cumulative = round(intensity_cumulative, 2))
-  
-  # Exit
-  event_cat <- list(event = event_df,
-                    cat = cat_lon_df)
-  return(event_cat)
-}
-
 # A single function to run the daily calculations. Much less complicated.
-event_cat_calc <- function(lon_row, base_years = c(1982, 2011)){#base_years = "1982-2011"){
-  
-  # # Load SST
-  # sst_lon <- tidync(OISST_files[lon_row]) |>
-  #   hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |>
-  #   mutate(time = as.Date(time, origin = "1970-01-01"),
-  #          doy = yday(time),
-  #          lon = as.numeric(lon),
-  #          lat = as.numeric(lat)) |>
-  #   dplyr::rename(t = time, temp = sst)
-  
-  # # Load thresh files
-  # lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
-  # MHW_thresh <- readRDS(paste0("../data/thresh/MHW.seas.thresh.", lon_row_pad,"_",base_years,".Rds"))
-  # MCS_thresh <- readRDS(paste0("../data/thresh/MCS/MCS.seas.thresh.", lon_row_pad,"_",base_years,".Rds"))
-  
-  # testing...
-  # sst_test <- sst_lon |> filter(lat == -77.625) |> left_join(MHW_thresh, by = c("lon", "lat", "doy"))
-  # event_test <- detect_event(sst_test, categories = TRUE, climatology = TRUE, season = "peak")
-  # write_csv(sst_test, "sst_test.csv")
-  
-  # # MHWs
-  # ## Detect events+cats
-  # # system.time(
-  # MHW_nest <- sst_lon |>
-  #   left_join(MHW_thresh, by = c("lon", "lat", "doy")) |>
-  #   group_by(lon, lat) |> nest() |>
-  #   mutate(event = purrr::map(data, detect_event, categories = TRUE, climatology = TRUE, season = "peak")) |>
-  #   dplyr::select(-data) |> ungroup()
-  # # ) # 74 seconds for one full lon slice
-  # ## Unpack
-  # MHW_list <- event_cat_unpack(MHW_nest)
-  # ## Save 
-  # saveRDS(MHW_list$event, file = paste0("../data/event/MHW.event.",lon_row_pad,".",base_years,".Rda"))
-  # saveRDS(MHW_list$cat, file = paste0("../data/cat_lon/MHW.cat.",lon_row_pad,".",base_years,".Rda"))
-  
-  # # MCSs
-  # ## Detect events+cats
-  # # system.time(
-  # MCS_nest <- sst_lon |>
-  #   left_join(MCS_thresh, by = c("lon", "lat", "doy")) |> 
-  #   group_by(lon, lat) |> nest() |>
-  #   mutate(event = purrr::map(data, detect_event, coldSpells = TRUE, categories = TRUE,
-  #                             climatology = TRUE, season = "peak", MCScorrect = TRUE, MCSice = TRUE)) |> 
-  #   dplyr::select(-data) |> ungroup()
-  # # ) # 80 seconds for one full lon slice
-  # ## Unpack
-  # MCS_list <- event_cat_unpack(MCS_nest)
-  # ## Save 
-  # saveRDS(MCS_list$event, file = paste0("../data/event/MCS/MCS.event.",lon_row_pad,".",base_years,".Rda"))
-  # saveRDS(MCS_list$cat, file = paste0("../data/cat_lon/MCS/MCS.cat.",lon_row_pad,".",base_years,".Rda"))
-  
-  # Exit
-  # rm(sst_lon, 
-  #    MHW_nest, MHW_list,
-  #    MCS_nest, MCS_list); gc()
-  
-  ## heatwave3 code
+event_cat_calc <- function(lon_row, base_years = c(1982, 2011)){
   
   # Set baseline and pad lon_row for file name
   base_line <- c(paste0(base_years[1],"-01-01"), paste0(base_years[2],"-12-31"))
@@ -834,7 +522,7 @@ event_cat_calc <- function(lon_row, base_years = c(1982, 2011)){#base_years = "1
   
   # Event file names
   # NB: When moving from heatwaveR to heatwave3
-  # All event and categories are caluclated into the same .nc files
+  # All event and categories are calculated into the same .nc files
   # So there is no longer a "../data/cat_lon/" output
   file_cat_MHW <- paste0("../data/event/MHW.cat.",lon_row_pad,".",base_years[1],"-",base_years[2],".nc")
   file_cat_MCS <- paste0("../data/event/MCS/MCS.cat.",lon_row_pad,".",base_years[1],"-",base_years[2],".nc")
@@ -891,6 +579,8 @@ event_cat_calc <- function(lon_row, base_years = c(1982, 2011)){#base_years = "1
 # lon_step <- 1
 # date_range <- c(as.Date("2019-11-01"), as.Date("2020-01-07"))
 load_sub_cat_clim <- function(lon_step, date_range, base_years, MHW = TRUE){
+  
+  ## Legacy code - kept for comparison once heatwave3 is able to create cat_clim outputs
   # cat_clim <- readRDS("../data/cat_lon/MHW.cat.0001.1982-2011.Rda")
   # cat_clim_sub <- cat_clim |>
   #   filter(t >= date_range[1], t <= date_range[2])
@@ -935,7 +625,6 @@ load_sub_cat_clim <- function(lon_step, date_range, base_years, MHW = TRUE){
     hyper_tibble() |> 
     dplyr::select(lon, lat, event_no, date_start, date_end) |>
     mutate(date_start = as.Date(date_start, origin = "1982-01-01"),
-           # date_peak = as.Date(date_peak, origin = "1981-01-01"),
            date_end = as.Date(date_end, origin = "1982-02-01")) |> 
     # NB: These values are intentionally inverted to rather filter everything OUTSIDE of the given dates
     filter(date_start <= date_range[2]) |>
@@ -1017,6 +706,7 @@ save_sub_cat_clim <- function(date_choice, df, event_type, base_years){
   df_rast$Z <- as.integer(df_rast$Z)
   rasterNonProj <- raster::rasterFromXYZ(df_rast, res = c(0.25, 0.25),
                                          digits = 3, crs = "EPSG:4326")
+  
   # The next step is for the future. Requires new leaflet workflow...
   # rasterNonProj <- terra::rast(MHW_raster, digits = 3, crs = inputProj)
   # NB: EPSG:3857 projection behaving strangely after update on 2025-11-17; leaflet v2.2.3
@@ -1028,22 +718,9 @@ save_sub_cat_clim <- function(date_choice, df, event_type, base_years){
 
 # Function for loading, prepping, and saving the daily global category slices
 # date_range <- c(as.Date("2026-05-20"), as.Date("2026-05-26")); base_years = c(1982, 2011)
-cat_clim_global_daily <- function(date_range, base_years = c(1982, 2011)){#base_years = "1982-2011"){
+cat_clim_global_daily <- function(date_range, base_years = c(1982, 2011)){
   
   # Extract data
-  # MHW_cat_clim_daily <- plyr::ldply(MHW_cat_lon_files_base, load_sub_cat_clim, 
-  #                                   .parallel = TRUE, date_range = date_range) |>
-  #   mutate(category = factor(category, levels = c("I Moderate", "II Strong",
-  #                                                 "III Severe", "IV Extreme"))) |>
-  #   na.omit()
-  # MCS_cat_clim_daily <- plyr::ldply(MCS_cat_lon_files_base, load_sub_cat_clim, 
-  #                                   .parallel = TRUE, date_range = date_range) |> 
-  #   mutate(category = factor(category, 
-  #                            levels = c("I Moderate", "II Strong",
-  #                                       "III Severe", "IV Extreme", "V Ice"))) |> 
-  #   na.omit()
-  
-  # heatwave3 code
   # system.time(
   MHW_cat_clim_daily <- plyr::ldply(1:1440, load_sub_cat_clim, .parallel = TRUE, 
                                     date_range = date_range, base_years = base_years, MHW = TRUE) |> 
@@ -1067,39 +744,5 @@ cat_clim_global_daily <- function(date_range, base_years = c(1982, 2011)){#base_
               event_type = "MCS", base_years = base_years)
   rm(MCS_cat_clim_daily); gc()
   return()
-}
-
-# Function for saving daily global anom files
-# date_choice <- max(current_dates)+1
-# date_choice <- as.Date("1982-01-01")
-save_sub_anom <- function(date_choice, df){
-  
-  # Establish file name and save location
-  anom_year <- lubridate::year(date_choice)
-  anom_dir <- paste0("../data/OISST/daily/",anom_year)
-  dir.create(as.character(anom_dir), showWarnings = F)
-  anom_name <- paste0("daily.",date_choice,".Rda")
-  
-  # Extract data and save
-  df_sub <- df |> 
-    filter(t == date_choice)
-  rm(df); gc()
-  saveRDS(df_sub, file = paste0(anom_dir,"/",anom_name))
-}
-
-# Function for loading global clims and saving each daily file
-# date_range <- c(as.Date("2020-05-31"), as.Date("2020-06-22"))
-anom_global_daily <- function(date_range){
-  # print(paste0("Began loading anom data at ",Sys.time()))
-  # system.time(
-  global_anom <- plyr::ldply(lon_OISST, sst_seas_thresh_merge, .parallel = T,
-                             date_range = date_range)
-  # ) # ~50 seconds for 1 day, ~60 seconds for 1 year
-  
-  # NB: Running this on too many cores may cause RAM issues
-  # print(paste0("Began saving anom data at ",Sys.time()))
-  doParallel::registerDoParallel(cores = 20)
-  plyr::l_ply(seq(min(global_anom$t), max(global_anom$t), by = "day"), 
-              save_sub_anom, .parallel = T, df = global_anom)
 }
 
