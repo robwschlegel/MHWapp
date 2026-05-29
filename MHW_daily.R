@@ -85,7 +85,6 @@ if(nrow(OISST_new) > 0){
            file_name = paste0("../data/OISST/daily/",file_year,"/",file_stub))
 }
 
-
 # Or manually control which data are added to the NetCDF database
 # OISST_new <- data.frame(file_name = dir("../data/OISST/daily/2014", 
 #                                         pattern = ".nc",full.names = TRUE, recursive = TRUE))
@@ -139,6 +138,7 @@ if(nrow(OISST_dat) > 2){
 }
 # return()
 
+
 # Fix files that didn't run correctly:
 # This happens every few months, usually due to a core slipping
 # The easiest way to fix this is to load the `final_dates` and `prelim_dates` objects,
@@ -167,7 +167,7 @@ if(nrow(OISST_dat) > 2){
 ncdf_date <- max(as.Date(tidync("../data/OISST/oisst-avhrr-v02r01.ts.1440.nc")$transforms$time$time, origin = "1970-01-01"))
 cat_lon_date <- max(readRDS("../data/cat_lon/MHW.cat.1440.1991-2020.Rda")$t)
 
-# This takes roughly 300 minutes and is by far the largest time requirement
+# This takes roughly 20 minutes
 if(ncdf_date > cat_lon_date){
   doParallel::registerDoParallel(cores = 50)
   print(paste0("Updating MHW/MCS results at ", Sys.time()))
@@ -185,21 +185,19 @@ if(ncdf_date > cat_lon_date){
   print(paste0("Finished MHW/MCS results at ", Sys.time()))
 }
 
+
 # Occasionally the cat_lon files don't come right
 # One can usually tell if the size is under 400 kb
 # This function can fix a specific file
 
 # Run one
 # event_cat_calc(994)
-# event_cat_update(lon_OISST[1287], full = TRUE)
 
 # Run many
-# plyr::l_ply(lon_OISST[1300:1365], .fun = event_cat_update, .parallel = TRUE, full = TRUE)
 # plyr::l_ply(1300:1365, .fun = event_cat_calc, .parallel = TRUE)
 
 # Run ALL
-# plyr::l_ply(lon_OISST, .fun = event_cat_update, .parallel = TRUE, full = TRUE) # ~4.5 hours on 50 cores
-# plyr::l_ply(1:1440, .fun = event_cat_calc, .parallel = TRUE) # ~4.5 hours on 50 cores
+# plyr::l_ply(1:1440, .fun = event_cat_calc, .parallel = TRUE) # 10 minutes on 50 cores
 
 # Find files that haven't been run since a certain date
 # file_dates <- file.info(dir("../data/cat_lon/MCS", full.names = T)) |>
@@ -209,7 +207,6 @@ if(ncdf_date > cat_lon_date){
 #   filter(ctime < Sys.Date()-1)
 # filter(ctime < Sys.time()-72000)
 # filter(size < 600000)
-# plyr::l_ply(lon_OISST[file_dates$file_num], .fun = event_cat_update, .parallel = TRUE, full = TRUE)
 # plyr::l_ply(file_dates$file_num, .fun = event_cat_calc, .parallel = TRUE)
 
 
@@ -221,10 +218,10 @@ load("metadata/final_dates.Rdata")
 load("metadata/prelim_dates.Rdata")
 
 # Get the range of dates that need to be run
-  # Manually control dates as desired
-# update_dates <- seq(as.Date("2025-08-25"), as.Date("2025-11-15"), by = "day")
-# update_dates <- time_index[which(time_index >= max(final_dates)-7)] # NB: NOAA not creating final data as of 2025-09-01
 update_dates <- time_index[which(time_index >= max(prelim_dates)-14)]
+# Or manually control dates as desired
+# update_dates <- seq(as.Date("2025-08-25"), as.Date("2025-11-15"), by = "day")
+# update_dates <- time_index[which(time_index >= max(final_dates)-7)]
 if(length(update_dates) > 0) {
   print(paste0("Updating global files from ",min(update_dates)," to ",max(update_dates)))
   
@@ -242,29 +239,26 @@ if(length(update_dates) > 0) {
   # 1991-2020 calcs
   print(paste0("Began 1991-2020 baseline calcs at ", Sys.time()))
   cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)), base_years = c(1991, 2020))
-  
-  # print(paste0("Updating daily anom files at ", Sys.time()))
-  # system.time(
-  # TODO: Update this to the new baseline
-  # anom_global_daily(date_range = c(min(update_dates), max(update_dates)))
-  # ) # 455 seconds
+
   print(paste0("Finished global daily MHW/MCS files at ", Sys.time()))
 }
 
+
 # If any of the files created in this section break for any reason,
 # simply change the 'update_dates' object manually and re-run the section.
+
 
 # For loop to reprocess large sets of data one year at a time in 6 month batches
 # doParallel::registerDoParallel(cores = 25) # Don't update more than 6 months at once on 40 cores
 # for(i in 1982:2023){
 #   update_dates <- seq(as.Date(paste0(i,"-01-01")), as.Date(paste0(i,"-06-30")), by = "day")
 #   print(paste0("Updating from ",min(update_dates)," to ",max(update_dates)," at ", Sys.time()))
-#   cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)), base_years = "1991-2020")
+#   cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)), base_years = c(1991, 2020))
 #   print(paste0("Finished at ", Sys.time()))
 #   gc(); Sys.sleep(10)
 #   update_dates <- seq(as.Date(paste0(i,"-07-01")), as.Date(paste0(i,"-12-31")), by = "day")
 #   print(paste0("Updating from ",min(update_dates)," to ",max(update_dates)," at ", Sys.time()))
-#   cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)), base_years = "1991-2020")
+#   cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)), base_years = c(1991, 2020))
 #   print(paste0("Finished at ", Sys.time()))
 #   gc(); Sys.sleep(10)
 # }
