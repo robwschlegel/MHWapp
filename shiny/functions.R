@@ -26,7 +26,8 @@ sst_seas_thresh_ts <- function(lon_step, lat_step, base_years){
   tidync_OISST <- tidync::tidync(OISST_files[lon_row]) |>
     tidync::hyper_filter(lat = lat == lat_step) |> 
     tidync::hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |> 
-    mutate(time = as.Date(time, origin = "1970-01-01"),
+    # mutate(time = as.Date(time, origin = "1970-01-01"),
+    mutate(time = as.Date(time),
            year = lubridate::year(time),
            lon = as.numeric(lon),
            lat = as.numeric(lat)) |>
@@ -44,18 +45,45 @@ sst_seas_thresh_ts <- function(lon_step, lat_step, base_years){
     return(sst_seas_thresh)
   }
   
+  # Load MHW and MCS
+  # MHW_seas_thresh_files_base <- str_subset(MHW_seas_thresh_files, base_years)
+  # MCS_seas_thresh_files_base <- str_subset(MCS_seas_thresh_files, base_years)  
+  seas_base_MHW <- tidync(MHW_seas_thresh_files_base[lon_row]) |> 
+    hyper_tibble(drop = FALSE) |> 
+    mutate(doy = as.numeric(doy),
+           lon = as.numeric(lon),
+           lat = as.numeric(lat)) 
+  seas_base_MCS <- tidync(MCS_seas_thresh_files_base[lon_row]) |> 
+    hyper_tibble(drop = FALSE) |> 
+    mutate(doy = as.numeric(doy),
+           lon = as.numeric(lon),
+           lat = as.numeric(lat)) 
+  
   # Merge to seas/thresh and exit
   sst_seas_thresh <- tidync_OISST |>
-    left_join(readRDS(MHW_seas_thresh_files_base[lon_row]), 
-              by = c("lon", "lat", "doy")) |>
-    left_join(readRDS(MCS_seas_thresh_files_base[lon_row]),
-              by = c("lon", "lat", "doy")) |> 
-    dplyr::select(-seas.y) |>
-    dplyr::rename(seas = seas.x, thresh = thresh.x, thresh_MCS = thresh.y) |>
-    mutate(temp = round(temp, 2),
+    left_join(seas_base_MHW, by = c("lon", "lat", "doy")) |>
+    left_join(seas_base_MCS, by = c("lon", "lat", "doy")) |>
+    dplyr::select(-seas.y) |> 
+    dplyr::rename(seas = seas.x, thresh_MHW = thresh.x, thresh_MCS = thresh.y) |> 
+    mutate(anom = round(temp - seas, 2),
+           temp = round(temp, 2),
            seas = round(seas, 2),
            thresh = round(thresh, 2),
            thresh_MCS = round(thresh_MCS, 2))
+  rm(tidync_OISST_base, tidync_OISST); gc()
+  
+  # Merge to seas/thresh and exit
+  # sst_seas_thresh <- tidync_OISST |>
+  #   left_join(readRDS(MHW_seas_thresh_files_base[lon_row]), 
+  #             by = c("lon", "lat", "doy")) |>
+  #   left_join(readRDS(MCS_seas_thresh_files_base[lon_row]),
+  #             by = c("lon", "lat", "doy")) |> 
+  #   dplyr::select(-seas.y) |>
+  #   dplyr::rename(seas = seas.x, thresh = thresh.x, thresh_MCS = thresh.y) |>
+  #   mutate(temp = round(temp, 2),
+  #          seas = round(seas, 2),
+  #          thresh = round(thresh, 2),
+  #          thresh_MCS = round(thresh_MCS, 2))
   return(sst_seas_thresh)
 }
 

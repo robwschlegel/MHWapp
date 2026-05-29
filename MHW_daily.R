@@ -241,7 +241,7 @@ if(length(update_dates) > 0) {
   
   # 1991-2020 calcs
   print(paste0("Began 1991-2020 baseline calcs at ", Sys.time()))
-  cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)), base_years = "1991-2020")
+  cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)), base_years = c(1991, 2020))
   
   # print(paste0("Updating daily anom files at ", Sys.time()))
   # system.time(

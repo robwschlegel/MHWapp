@@ -842,6 +842,8 @@ event_cat_calc <- function(lon_row, base_years = c(1982, 2011)){#base_years = "1
     clim_file = file_seas_MHW,
     file_out = file_cat_MHW,
     category = TRUE,
+    # return_df = TRUE,
+    # save_format = "csv",
     n_threads = 25
   ) # ~2 seconds
   
@@ -876,32 +878,102 @@ event_cat_calc <- function(lon_row, base_years = c(1982, 2011)){#base_years = "1
 
 # Function for loading a cat_lon slice and extracting a single day of values
 # testers...
-# cat_lon_file <- MHW_cat_lon_files_base[1]
-# clim_file <- MHW_seas_thresh_files[1]
+# lon_step <- 1
 # date_range <- c(as.Date("2019-11-01"), as.Date("2020-01-07"))
-load_sub_cat_clim <- function(cat_lon_file, date_range){
-  cat_clim <- readRDS("../data/cat_lon/MHW.cat.0001.1982-2011.Rda")
-  cat_clim_sub <- cat_clim |>
-    filter(t >= date_range[1], t <= date_range[2])
-  rm(cat_clim)
+load_sub_cat_clim <- function(lon_step, date_range, base_years, MHW = TRUE){
+  # cat_clim <- readRDS("../data/cat_lon/MHW.cat.0001.1982-2011.Rda")
+  # cat_clim_sub <- cat_clim |>
+  #   filter(t >= date_range[1], t <= date_range[2])
+  # rm(cat_clim)
+  # return(cat_clim_sub)
   
   ## heatwave3 code
-  # THis will be replaced with a function call
+  # This will be replaced with a function call
   # But for now we need to make a plan
+  # cat_clim <- heatwave3::category3(cat_lon_file, clim_file)
+  
+  # Create text label
+  base_years_text <- paste0(base_years[1],"-", base_years[2])
+  
+  # Get correct baseline files
+  MHW_seas_thresh_files_base <- str_subset(MHW_seas_thresh_files, base_years_text)
+  MCS_seas_thresh_files_base <- str_subset(MCS_seas_thresh_files, base_years_text)
+  MHW_cat_lon_files_base <- str_subset(MHW_cat_lon_files, base_years_text)
+  MCS_cat_lon_files_base <- str_subset(MCS_cat_lon_files, base_years_text)
+  
+  # Get files
+  sst_file <- OISST_files[lon_step]
+  cat_lon_file <- MHW_cat_lon_files_base[lon_step]
+  clim_file <- MHW_seas_thresh_files_base[lon_step]
+  
+  # Get base data and join
+  sst_base <- tidync(sst_file) |> 
+    hyper_filter(time = between(time, as.integer(date_range[1]), as.integer(date_range[2]))) |>
+    hyper_tibble(drop = FALSE) |> 
+    dplyr::rename(t = time, temp = sst) |>
+    mutate(doy = yday(t),
+           year = year(t)) |> 
+    group_by(year) |> 
+    mutate(doy = ifelse(!leap_year(year),
+                        ifelse(doy > 59, doy+1, doy), doy)) |> 
+    ungroup() |>
+    dplyr::select(lon, lat, t, doy, temp)
   lon_clim <- tidync(clim_file) |> 
     hyper_tibble(drop = FALSE) |> 
-    mutate(lon = as.numeric(lon),
-           lat = as.numeric(lat))
+    mutate(doy = as.numeric(doy))
   cat_clim <- tidync(cat_lon_file) |> 
     hyper_tibble() |> 
-    dplyr::select(lon, lat, date_start, date_peak, date_end) |> 
-    mutate(date_start = as.Date(date_start, origin = "1981-01-01"),
-           date_peak = as.Date(date_peak, origin = "1981-01-01"),
-           date_end = as.Date(date_end, origin = "1981-01-01"))
+    dplyr::select(lon, lat, event_no, date_start, date_end) |>
+    mutate(date_start = as.Date(date_start, origin = "1982-01-01"),
+           # date_peak = as.Date(date_peak, origin = "1981-01-01"),
+           date_end = as.Date(date_end, origin = "1982-02-01")) |> 
+    # NB: These values are intentionally inverted to rather filter everything OUTSIDE of the given dates
+    filter(date_start <= date_range[2]) |>
+    filter(date_end >= date_range[1])
   
-  cat_clim <- heatwave3::category3(cat_lon_file, clim_file)
-    
-  return(cat_clim_sub)
+  # Join and create daily category values
+  df_base <- left_join(sst_base, lon_clim, by = join_by(lon, lat, doy)) |> 
+    mutate(lon = as.numeric(lon),
+           lat = as.numeric(lat),
+           t = as.Date(t)) |> 
+    left_join(cat_clim, by = c("lon", "lat"), relationship = "many-to-many") |> 
+    filter(t >= date_start, t <= date_end)
+  
+  # Get the categories based on seas diff
+  # NB: This could be optimized, but this process will eventually be replaced, so no need
+  if(MHW){
+    df_cat <- df_base |> 
+      mutate(intensity = round(temp - seas, 2),
+             diff = thresh - seas,
+             thresh_2x = thresh + diff,
+             thresh_3x = thresh_2x + diff, 
+             thresh_4x = thresh_3x + diff) |> 
+      # filter(temp < thresh)
+      mutate(category = case_when(temp > thresh_4x ~ 4, 
+                                  temp > thresh_3x ~ 3,
+                                  temp > thresh_2x ~ 2,
+                                  temp > thresh ~ 1)) |> 
+      dplyr::select(t, lon, lat, event_no, intensity, category) |> 
+      na.omit()
+  } else {
+    df_cat <- df_base |> 
+      mutate(intensity = round(temp - seas, 2),
+             diff = thresh - seas,
+             thresh_2x = thresh - diff,
+             thresh_3x = thresh_2x - diff, 
+             thresh_4x = thresh_3x - diff) |> 
+      # filter(temp < thresh)
+      mutate(category = case_when(temp < thresh_4x ~ 4, 
+                                  temp < thresh_3x ~ 3,
+                                  temp < thresh_2x ~ 2,
+                                  temp < thresh ~ 1)) |>
+      # Add ice category
+      mutate(category = case_when(temp < -1.7 & !is.na(category) ~ 5,
+                                  TRUE ~ category)) |> 
+      dplyr::select(t, lon, lat, event_no, intensity, category) |> 
+      na.omit()
+  }
+  return(df_cat)
 }
 
 # Function for saving daily global cat files
@@ -909,16 +981,19 @@ load_sub_cat_clim <- function(cat_lon_file, date_range){
 # date_choice <- as.Date("2025-08-25")
 save_sub_cat_clim <- function(date_choice, df, event_type, base_years){
   
+  # Create text label
+  base_years_text <- paste0(base_years[1],"-", base_years[2])
+  
   # Establish file name and save location
   cat_clim_year <- lubridate::year(date_choice)
   if(event_type == "MCS"){
     cat_clim_dir <- paste0("../data/cat_clim/MCS/",cat_clim_year)
-    cat_clim_name <- paste0("cat.clim.MCS.",date_choice,".",base_years,".Rds")
-    cat_rast_name <- paste0("cat.clim.MCS.",date_choice,".",base_years,".tif")
+    cat_clim_name <- paste0("cat.clim.MCS.",date_choice,".",base_years_text,".Rds")
+    cat_rast_name <- paste0("cat.clim.MCS.",date_choice,".",base_years_text,".tif")
   } else {
     cat_clim_dir <- paste0("../data/cat_clim/",cat_clim_year)
-    cat_clim_name <- paste0("cat.clim.",date_choice,".",base_years,".Rda")
-    cat_rast_name <- paste0("cat.clim.",date_choice,".",base_years,".tif")
+    cat_clim_name <- paste0("cat.clim.",date_choice,".",base_years_text,".Rda")
+    cat_rast_name <- paste0("cat.clim.",date_choice,".",base_years_text,".tif")
   }
   dir.create(as.character(cat_clim_dir), showWarnings = F)
   
@@ -942,28 +1017,33 @@ save_sub_cat_clim <- function(date_choice, df, event_type, base_years){
 }
 
 # Function for loading, prepping, and saving the daily global category slices
-# date_range <- c(as.Date("2026-05-20"), as.Date("2025-05-23"))
+# date_range <- c(as.Date("2026-05-20"), as.Date("2026-05-26")); base_years = c(1982, 2011)
 cat_clim_global_daily <- function(date_range, base_years = c(1982, 2011)){#base_years = "1982-2011"){
   
-  # Create text label
-  base_years_text <- paste0(base_years[1],"-", base_years[2])
-  
-  # Get correct baseline files
-  MHW_cat_lon_files_base <- str_subset(MHW_cat_lon_files, base_years_text)
-  MCS_cat_lon_files_base <- str_subset(MCS_cat_lon_files, base_years_text)
-  
   # Extract data
-  MHW_cat_clim_daily <- plyr::ldply(MHW_cat_lon_files_base, load_sub_cat_clim, 
-                                    .parallel = TRUE, date_range = date_range) |>
-    mutate(category = factor(category, levels = c("I Moderate", "II Strong",
-                                                  "III Severe", "IV Extreme"))) |>
-    na.omit()
-  MCS_cat_clim_daily <- plyr::ldply(MCS_cat_lon_files_base, load_sub_cat_clim, 
-                                    .parallel = TRUE, date_range = date_range) |> 
-    mutate(category = factor(category, 
-                             levels = c("I Moderate", "II Strong",
-                                        "III Severe", "IV Extreme", "V Ice"))) |> 
-    na.omit()
+  # MHW_cat_clim_daily <- plyr::ldply(MHW_cat_lon_files_base, load_sub_cat_clim, 
+  #                                   .parallel = TRUE, date_range = date_range) |>
+  #   mutate(category = factor(category, levels = c("I Moderate", "II Strong",
+  #                                                 "III Severe", "IV Extreme"))) |>
+  #   na.omit()
+  # MCS_cat_clim_daily <- plyr::ldply(MCS_cat_lon_files_base, load_sub_cat_clim, 
+  #                                   .parallel = TRUE, date_range = date_range) |> 
+  #   mutate(category = factor(category, 
+  #                            levels = c("I Moderate", "II Strong",
+  #                                       "III Severe", "IV Extreme", "V Ice"))) |> 
+  #   na.omit()
+  
+  # heatwave3 code
+  # system.time(
+  MHW_cat_clim_daily <- plyr::ldply(1:1440, load_sub_cat_clim, .parallel = TRUE, 
+                                    date_range = date_range, base_years = base_years, MHW = TRUE) |> 
+    mutate(category = factor(category, levels = 1:4,
+                             labels = c("I Moderate", "II Strong", "III Severe", "IV Extreme")))
+  # ) # 13 seconds per cycle. ~6 minutes for all. This needs to be optimized.
+  MCS_cat_clim_daily <- plyr::ldply(1:1440, load_sub_cat_clim, .parallel = TRUE, 
+                                    date_range = date_range, base_years = base_years, MHW = FALSE) |> 
+    mutate(category = factor(category, levels = 1:5,
+                             labels = c("I Moderate", "II Strong", "III Severe", "IV Extreme", "V Ice")))
   
   # Save data as .Rda and as rasters projected to the shiny EPSG:3857
   # NB: Running this on too many cores may cause RAM issues
@@ -976,6 +1056,7 @@ cat_clim_global_daily <- function(date_range, base_years = c(1982, 2011)){#base_
               save_sub_cat_clim, .parallel = TRUE, df = MCS_cat_clim_daily, 
               event_type = "MCS", base_years = base_years)
   rm(MCS_cat_clim_daily); gc()
+  return()
 }
 
 # Function for saving daily global anom files
