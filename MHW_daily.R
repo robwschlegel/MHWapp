@@ -218,7 +218,7 @@ load("metadata/final_dates.Rdata")
 load("metadata/prelim_dates.Rdata")
 
 # Get the range of dates that need to be run
-update_dates <- time_index[which(time_index >= max(prelim_dates)-14)]
+update_dates <- time_index[which(time_index >= max(prelim_dates)-14)] # ~14 minutes
 # Or manually control dates as desired
 # update_dates <- seq(as.Date("2025-08-25"), as.Date("2025-11-15"), by = "day")
 # update_dates <- time_index[which(time_index >= max(final_dates)-7)]
@@ -294,12 +294,13 @@ system("git push")
 
 # Active folders
 ## Daily/lon files
-### "../data/thresh" # The seas+clim static threshold files per lon slice - small/medium size files
-### "../data/event" # The lon slice files containing the MHW/MCS event results - small size files
-### "../data/cat_lon # The lon slice files containing the daily MHW/MCS category results - medium size files
-### "../data/cat_clim # Global daily files containing MHW/MCS spatial categories - small-medium, .Rda and .tif
+### "../data/thresh" # The seas+clim static threshold files per lon slice - medium .nc files
+### "../data/event" # The lon slice files containing the MHW/MCS event results - large .nc files
+### "../data/cat_lon # The lon slice files containing the daily MHW/MCS category results - DEPRECATED after heatwave3
+### "../data/cat_clim # Global daily files containing MHW/MCS spatial categories - small-medium, .Rda and .tif files
 ## Annual summaries
 ### "data/annual_summary" # Contains pixel and day based annual summaries for OISST, CCI, and CMC datasets
+
 
 # Find and remove old files from before the second baseline was introduced
 # NB: This was done manually for all of the daily/lon files except the cat_clim files as they are too numerous
@@ -307,4 +308,12 @@ system("git push")
 #   rownames_to_column(var = "file_name") |>
 #   filter(ctime < as.POSIXct("2024-07-10"))
 # file.remove(file_dates_cat_clim$file_name)
+
+
+# Move files as necessary during heatwave3 integration process
+# files_to_move <- fs::dir_ls("../data/cat_lon/MCS", glob = glue::glue("*.nc$"))
+# tail(files_to_move)
+# dest_dir <- "../data/event/MCS"
+# tail(fs::dir_ls(dest_dir))
+# fs::file_move(files_to_move, dest_dir)
 

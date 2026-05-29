@@ -220,7 +220,6 @@ if(lubridate::yday(Sys.Date()) < 14){
 # Run ALL years
 ## NB: Do not run on more than 25 cores
 # registerDoParallel(cores = 25)
-### OISST
 ## MHW
 # plyr::l_ply(1982:2023, event_annual_state, force_calc = TRUE, .parallel = TRUE,
 #             product = "OISST", chosen_clim = "1991-2020") # ~90 seconds for one
@@ -233,16 +232,6 @@ if(lubridate::yday(Sys.Date()) < 14){
 #             product = "OISST", chosen_clim = "1991-2020") # ~90 seconds for one
 # plyr::l_ply(1982:2023, event_annual_state, MHW = FALSE, force_calc = TRUE, .parallel = TRUE,
 #             product = "OISST", chosen_clim = "1982-2011")
-
-### CCI
-# plyr::l_ply(1982:2018, MHW_annual_state, force_calc = T, .parallel = F,
-#             product = "CCI", chosen_clim = "1982-2011") # ~50 seconds for one
-# plyr::l_ply(1982:2018, MHW_annual_state, force_calc = T, .parallel = F,
-#             product = "CCI", chosen_clim = "1992-2018")
-
-### CMC
-# plyr::l_ply(1992:2019, MHW_annual_state, force_calc = T, .parallel = F,
-#             product = "CMC", chosen_clim = "1992-2018")
 
 
 # 4: Total summary of all years -------------------------------------------
@@ -298,14 +287,8 @@ event_total_state <- function(product, chosen_clim, MHW = TRUE){
 # OISST
 event_total_state("OISST", "1982-2011")
 event_total_state("OISST", "1991-2020")
-# event_total_state("OISST", "1992-2018")
 event_total_state("OISST", "1982-2011", MHW = F)
 event_total_state("OISST", "1991-2020", MHW = F)
-# CCI
-# event_total_state("CCI", "1982-2011")
-# event_total_state("CCI", "1992-2018")
-# CMC
-# event_total_state("CMC", "1992-2018")
 
 # Look at a total sum
 # OISST_1991_2020_sum <- OISST_1991_2020 |>
@@ -545,7 +528,6 @@ if(lubridate::yday(Sys.Date()) < 14){
 }
 
 # Run ALL years
-### OISST
 ## MHW
 # plyr::l_ply(1982:2023, event_annual_state_fig, .parallel = T,
 #             product = "OISST", chosen_clim = "1991-2020")
@@ -558,16 +540,6 @@ if(lubridate::yday(Sys.Date()) < 14){
 #             product = "OISST", chosen_clim = "1991-2020", MHW = F)
 # plyr::l_ply(1982:2023, event_annual_state_fig, .parallel = T,
 #             product = "OISST", chosen_clim = "1982-2011", MHW = F)
-
-### CCI
-# plyr::l_ply(1982:2018, MHW_annual_state, force_calc = T, .parallel = F,
-#             product = "CCI", chosen_clim = "1982-2011") # ~50 seconds for one
-# plyr::l_ply(1982:2018, MHW_annual_state, force_calc = T, .parallel = F,
-#             product = "CCI", chosen_clim = "1992-2018")
-
-### CMC
-# plyr::l_ply(1992:2019, MHW_annual_state, force_calc = T, .parallel = F,
-#             product = "CMC", chosen_clim = "1992-2018")
 
 # Figures of total time series by year
 event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1991-2020", MHW = T){
@@ -663,20 +635,10 @@ event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1991-202
 }
 
 ## Run them all
-# OISST
 event_total_state_fig(readRDS("data/annual_summary/OISST_cat_daily_1991-2020_total.Rds"))
 event_total_state_fig(readRDS("data/annual_summary/OISST_cat_daily_1982-2011_total.Rds"), chosen_clim = "1982-2011")
-# event_total_state_fig(readRDS("data/annual_summary/OISST_cat_daily_1992-2018_total.Rds"), chosen_clim = "1992-2018")
 event_total_state_fig(readRDS("data/annual_summary/OISST_MCS_cat_daily_1991-2020_total.Rds"), MHW = F)
 event_total_state_fig(readRDS("data/annual_summary/OISST_MCS_cat_daily_1982-2011_total.Rds"), MHW = F, chosen_clim = "1982-2011")
-# CCI
-# CCI_1982_2011 <- readRDS("data/annual_summary/CCI_cat_daily_1982-2011_total.Rds")
-# event_total_state_fig(CCI_1982_2011, "CCI", "1982-2011")
-# CCI_1992_2018 <- readRDS("data/annual_summary/CCI_cat_daily_1992-2018_total.Rds")
-# event_total_state_fig(CCI_1992_2018, "CCI", "1992-2018")
-# CMC
-# CMC_1992_2018 <- readRDS("data/annual_summary/CMC_cat_daily_1992-2018_total.Rds")
-# event_total_state_fig(CMC_1992_2018, "CMC", "1992-2018")
 
 # Figures of total time series by year a la format for the annual BAMS report
 BAMS_fig <- function(){
@@ -816,7 +778,7 @@ BAMS_fig <- function(){
 }
 
 # Run the figure
-BAMS_fig()
+# BAMS_fig()
 
 
 # 6: Comparisons ----------------------------------------------------------

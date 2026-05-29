@@ -203,7 +203,7 @@ server <- function(input, output, session){
               lat_OISST[which(abs(lat_OISST - xy_wrap[2]) == min(abs(lat_OISST - xy_wrap[2])))][1])
       
       # Grab time series data
-      ts_data <- sst_seas_thresh_ts(lon_step = xy[1], lat_step = xy[2], base_years = input$baseLine) %>% 
+      ts_data <- sst_seas_thresh_ts(lon_step = xy[1], lat_step = xy[2], base_years = input$baseLine) |> 
         dplyr::mutate(diff = thresh - seas,
                       thresh_2x = thresh + diff,
                       thresh_3x = thresh_2x + diff,
@@ -216,7 +216,6 @@ server <- function(input, output, session){
       # Grab event data
       MHW_event_files_base <- MHW_event_files[grepl(input$baseLine, MHW_event_files)]
       MCS_event_files_base <- MCS_event_files[grepl(input$baseLine, MCS_event_files)]
-      # event_data <- readRDS(MHW_event_files_base[which(lon_OISST == xy[1])]) %>% 
       event_data <- tidync::tidync(MHW_event_files_base[which(lon_OISST == xy[1])]) |> 
         # tidync::hyper_filter(lat = lat == xy[2]) |> # Currently not able to see values within .nc file
         tidync::hyper_tibble() |> 
@@ -226,7 +225,6 @@ server <- function(input, output, session){
                date_end = as.Date(date_end, origin = "1982-01-01"),
                category = factor(category, levels = 1:4,
                                  labels = c("I Moderate", "II Strong", "III Severe", "IV Extreme")))
-      # event_MCS_data <- readRDS(MCS_event_files_base[which(lon_OISST == xy[1])]) %>% 
       event_MCS_data <- tidync::tidync(MCS_event_files_base[which(lon_OISST == xy[1])]) |> 
         tidync::hyper_tibble() |> 
         dplyr::filter(lat == xy[2]) |> 
@@ -274,15 +272,15 @@ server <- function(input, output, session){
     }
     
     # Filter time series based on dates
-    ts_data_sub <- ts_data %>%
+    ts_data_sub <- ts_data |> 
       dplyr::filter(t >= input$from_to[1], t <= input$from_to[2])
     
     # Event data prep
     event_data <- pixelData()$event
-    event_data_sub <- event_data %>%
+    event_data_sub <- event_data |>
       dplyr::filter(date_peak >= input$from_to[1], date_peak <= input$from_to[2])
     event_MCS_data <- pixelData()$event_MCS
-    event_MCS_data_sub <- event_MCS_data %>%
+    event_MCS_data_sub <- event_MCS_data |>
       dplyr::filter(date_peak >= input$from_to[1], date_peak <= input$from_to[2])
     
     # Get days during MHW/MCS
@@ -426,7 +424,7 @@ server <- function(input, output, session){
     
     # Filter time series based on dates
     ts_data <- pixelData()$ts
-    ts_data_sub <- ts_data %>%
+    ts_data_sub <- ts_data |>
       dplyr::filter(t >= input$from_to[1], t <= input$from_to[2])
     
     # Get coordinates
@@ -515,7 +513,7 @@ server <- function(input, output, session){
     # p <- lollilot()
     p <- lolliPlot()
     # p <- p + theme_gray(base_size = 16)
-    pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) #%>%
+    pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) #|>
     # style(hoverinfo = "none", traces = c(3, 4))
     pp
   })
@@ -578,13 +576,13 @@ server <- function(input, output, session){
 
   ### Prep event data
   downloadEventData <- reactive({
-    data <- pixelData()$event %>% mutate(event = "MHW")
-    data_MCS <- pixelData()$event_MCS  %>% mutate(event = "MCS")
+    data <- pixelData()$event |> mutate(event = "MHW")
+    data_MCS <- pixelData()$event_MCS  |> mutate(event = "MCS")
     lon <- pixelData()$lon[1]
     lat <- pixelData()$lat[1]
-    data_sub <- rbind(data, data_MCS) %>% 
-      mutate(lon = lon, lat = lat) %>% 
-      dplyr::select(event, lon, lat, event_no, date_start, date_peak, date_end, everything()) %>% 
+    data_sub <- rbind(data, data_MCS) |> 
+      mutate(lon = lon, lat = lat) |> 
+      dplyr::select(event, lon, lat, event_no, date_start, date_peak, date_end, everything()) |> 
       dplyr::arrange(date_peak)
     return(data_sub)
   })
@@ -604,11 +602,11 @@ server <- function(input, output, session){
     data <- pixelData()$ts
     lon <- pixelData()$lon[1]
     lat <- pixelData()$lat[1]
-    data_sub <- data %>% 
+    data_sub <- data |> 
       mutate(lon = lon,
-             lat = lat) %>% 
-      dplyr::select(lon, lat, doy, seas, thresh, thresh_MCS) %>% 
-      dplyr::distinct() %>% 
+             lat = lat) |> 
+      dplyr::select(lon, lat, doy, seas, thresh, thresh_MCS) |> 
+      dplyr::distinct() |> 
       arrange(doy)
     return(data_sub)
   })

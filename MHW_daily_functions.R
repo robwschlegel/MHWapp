@@ -564,20 +564,14 @@ event_cat_calc <- function(lon_row, base_years = c(1982, 2011)){
   return()
 }
 
-# Move files as necessary during heatwave3 integration process
-# files_to_move <- fs::dir_ls("../data/cat_lon/MCS", glob = glue::glue("*.nc$"))
-# tail(files_to_move)
-# dest_dir <- "../data/event/MCS"
-# tail(fs::dir_ls(dest_dir))
-# fs::file_move(files_to_move, dest_dir)
-
 
 # 5: Create daily global file functions -----------------------------------
 
 # Function for loading a cat_lon slice and extracting a single day of values
 # testers...
-# lon_step <- 1
-# date_range <- c(as.Date("2019-11-01"), as.Date("2020-01-07"))
+# lon_step <- 100
+# date_range <- c(as.Date("2026-05-26"), as.Date("2026-05-26"))
+# base_years <- c(1982, 2011)
 load_sub_cat_clim <- function(lon_step, date_range, base_years, MHW = TRUE){
   
   ## Legacy code - kept for comparison once heatwave3 is able to create cat_clim outputs
@@ -603,8 +597,13 @@ load_sub_cat_clim <- function(lon_step, date_range, base_years, MHW = TRUE){
   
   # Get files
   sst_file <- OISST_files[lon_step]
-  cat_lon_file <- MHW_event_files_base[lon_step]
-  clim_file <- MHW_seas_thresh_files_base[lon_step]
+  if(MHW){
+    cat_lon_file <- MHW_cat_lon_files_base[lon_step]
+    clim_file <- MHW_seas_thresh_files_base[lon_step]
+  } else {
+    cat_lon_file <- MCS_cat_lon_files_base[lon_step]
+    clim_file <- MCS_seas_thresh_files_base[lon_step]
+  }
   
   # Get base data and join
   sst_base <- tidync(sst_file) |> 
@@ -658,16 +657,16 @@ load_sub_cat_clim <- function(lon_step, date_range, base_years, MHW = TRUE){
     df_cat <- df_base |> 
       mutate(intensity = round(temp - seas, 2),
              diff = thresh - seas,
-             thresh_2x = thresh - diff,
-             thresh_3x = thresh_2x - diff, 
-             thresh_4x = thresh_3x - diff) |> 
+             thresh_2x = thresh + diff,
+             thresh_3x = thresh_2x + diff, 
+             thresh_4x = thresh_3x + diff) |> 
       # filter(temp < thresh)
       mutate(category = case_when(temp < thresh_4x ~ 4, 
                                   temp < thresh_3x ~ 3,
                                   temp < thresh_2x ~ 2,
                                   temp < thresh ~ 1)) |>
       # Add ice category
-      mutate(category = case_when(temp < -1.7 & !is.na(category) ~ 5,
+      mutate(category = case_when(thresh < -1.7 & !is.na(category) ~ 5,
                                   TRUE ~ category)) |> 
       dplyr::select(t, lon, lat, event_no, intensity, category) |> 
       na.omit()
