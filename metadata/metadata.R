@@ -1,8 +1,7 @@
 # metadata/metadata.R
 # This script is used to create or load the metadata objects used in this project
 # 1: Setup environment
-# 2: Create metadata
-# 3: Load metadata
+# 2: Create and load metadata
 
 
 # 1: Setup ----------------------------------------------------------------
@@ -34,6 +33,7 @@ MHW_event_files <- dir("../data/event", pattern = "MHW.cat.", full.names = T) |>
 MCS_event_files <- dir("../data/event/MCS", pattern = "MCS.cat.", full.names = T) |> str_subset("[.]nc$")
 MHW_seas_thresh_files <- dir("../data/thresh", pattern = "MHW.seas.thresh.", full.names = T) |> str_subset("[.]nc$")
 MCS_seas_thresh_files <- dir("../data/thresh/MCS", pattern = "MCS.seas.thresh.", full.names = T) |> str_subset("[.]nc$")
+# heatwave3 - These were combined with the event files
 # MHW_cat_lon_files <- dir("../data/cat_lon", full.names = T) |> str_subset("MCS", negate = T) |> str_subset("[.]nc$")
 # MCS_cat_lon_files <- dir("../data/cat_lon/MCS", full.names = T) |> str_subset("[.]nc$")
 MHW_cat_clim_files <- as.character(dir(path = "../data/cat_clim", pattern = "cat.clim", 
@@ -161,16 +161,6 @@ X_OISST_coords <- function(file_name){
       dplyr::select(lon, lat, lon_OI, lat_OI)
 }
 
-## CCI to OISST coordinate regridding
-# CCI_OISST_coords <- X_OISST_coords(CCI_files[1])
-# saveRDS(CCI_OISST_coords, "metadata/CCI_OISST_coords.Rds")
-
-## CMC to OISST coordinate regridding
-# CMC0.2_OISST_coords <- X_OISST_coords(CMC_files[1])
-# saveRDS(CMC0.2_OISST_coords, "metadata/CMC0.2_OISST_coords.Rds")
-# CMC0.1_OISST_coords <- X_OISST_coords(CMC_files[10000])
-# saveRDS(CMC0.1_OISST_coords, "metadata/CMC0.1_OISST_coords.Rds")
-
 # Get coords between EPSG:4326 (OISST) and EPSG:leaflet
 # lon_lat_OISST_XY <- mutate(lon_lat_OISST) |> dplyr::rename(X = lon, Y = lat)
 # coords_non_proj <- raster::rasterFromXYZ(lon_lat_OISST_XY, res = c(0.25, 0.25),
@@ -181,12 +171,4 @@ X_OISST_coords <- function(file_name){
 #   dplyr::rename(lon_leaf = x, lat_leaf = y)
 # save(OISST_leaf_coords, file = "metadata/OISST_leaf_coords.Rdata")
 load("metadata/OISST_leaf_coords.Rdata")
-
-
-# 3: Load metadata --------------------------------------------------------
-
-# The pixel grids against OISST
-# CCI_OISST_coords <- readRDS("metadata/CCI_OISST_coords.Rds")
-# CMC0.2_OISST_coords <- readRDS("metadata/CMC0.2_OISST_coords.Rds")
-# CMC0.1_OISST_coords <- readRDS("metadata/CMC0.1_OISST_coords.Rds")
 

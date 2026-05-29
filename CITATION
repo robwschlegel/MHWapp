@@ -2,8 +2,9 @@ bibentry(bibtype = "Misc",
          title   = "Marine Heatwave Tracker",
          author  = person(given = c("Robert", "W."),
                           family = "Schlegel",
-                          email = "robert.schlegel@dal.ca"),
-         year    = "2020",
+                          email = "robwschlegel@gmail.com"),
+         version = "v2.0",
+         year    = "2023",
       	 url     = "http://www.marineheatwaves.org/tracker.html",
       	 doi     = "10.5281/zenodo.3787872"
 )

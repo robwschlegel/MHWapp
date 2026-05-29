@@ -42,6 +42,9 @@ The code found in this GitHub repo contains everything required to download, pro
   
 ## Updates
 
+* July 29th, 2023
+  * A large series of improvements to the UI and back-end brought this project up to v2.0
+
 * June 23rd, 2020
   * Fixed a bug in the main pipeline caused by a change in the default behaviour of `dplyr::right_join()` where joining in NA pixels for landmass areas were now being inserted at the bottom of the data.frame instead of in their correctly ordered place. This is why the world looked like it was melting.
 
