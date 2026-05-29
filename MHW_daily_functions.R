@@ -833,8 +833,11 @@ event_cat_calc <- function(lon_row, base_years = c(1982, 2011)){#base_years = "1
   file_seas_MCS <- paste0("../data/thresh/MCS/MCS.seas.thresh.",lon_row_pad,"_",base_years[1],"-",base_years[2],".nc")
   
   # Event file names
-  file_cat_MHW <- paste0("../data/cat_lon/MHW.cat.",lon_row_pad,".",base_years[1],"-",base_years[2],".nc")
-  file_cat_MCS <- paste0("../data/cat_lon/MCS/MCS.cat.",lon_row_pad,".",base_years[1],"-",base_years[2],".nc")
+  # NB: When moving from heatwaveR to heatwave3
+  # All event and categories are caluclated into the same .nc files
+  # So there is no longer a "../data/cat_lon/" output
+  file_cat_MHW <- paste0("../data/event/MHW.cat.",lon_row_pad,".",base_years[1],"-",base_years[2],".nc")
+  file_cat_MCS <- paste0("../data/event/MCS/MCS.cat.",lon_row_pad,".",base_years[1],"-",base_years[2],".nc")
   
   # Calculate MHW events + cats
   heatwave3::detect_event3(
@@ -872,7 +875,14 @@ event_cat_calc <- function(lon_row, base_years = c(1982, 2011)){#base_years = "1
   
   return()
 }
-  
+
+# Move files as necessary during heatwave3 integration process
+# files_to_move <- fs::dir_ls("../data/cat_lon/MCS", glob = glue::glue("*.nc$"))
+# tail(files_to_move)
+# dest_dir <- "../data/event/MCS"
+# tail(fs::dir_ls(dest_dir))
+# fs::file_move(files_to_move, dest_dir)
+
 
 # 5: Create daily global file functions -----------------------------------
 
@@ -898,12 +908,12 @@ load_sub_cat_clim <- function(lon_step, date_range, base_years, MHW = TRUE){
   # Get correct baseline files
   MHW_seas_thresh_files_base <- str_subset(MHW_seas_thresh_files, base_years_text)
   MCS_seas_thresh_files_base <- str_subset(MCS_seas_thresh_files, base_years_text)
-  MHW_cat_lon_files_base <- str_subset(MHW_cat_lon_files, base_years_text)
-  MCS_cat_lon_files_base <- str_subset(MCS_cat_lon_files, base_years_text)
+  MHW_cat_lon_files_base <- str_subset(MHW_event_files, base_years_text) # TODO: Fix to cat_lon when possible
+  MCS_cat_lon_files_base <- str_subset(MCS_event_files, base_years_text) # TODO: Fix to cat_lon when possible
   
   # Get files
   sst_file <- OISST_files[lon_step]
-  cat_lon_file <- MHW_cat_lon_files_base[lon_step]
+  cat_lon_file <- MHW_event_files_base[lon_step]
   clim_file <- MHW_seas_thresh_files_base[lon_step]
   
   # Get base data and join

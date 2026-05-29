@@ -14,6 +14,7 @@
 # lon_step <- -80.875
 # lat_step <- 38.125
 # lat_step <- 21.125
+# base_years <- "1982-2011"
 sst_seas_thresh_ts <- function(lon_step, lat_step, base_years){
   
   # Establish metadata
@@ -48,13 +49,15 @@ sst_seas_thresh_ts <- function(lon_step, lat_step, base_years){
   # Load MHW and MCS
   # MHW_seas_thresh_files_base <- str_subset(MHW_seas_thresh_files, base_years)
   # MCS_seas_thresh_files_base <- str_subset(MCS_seas_thresh_files, base_years)  
-  seas_base_MHW <- tidync(MHW_seas_thresh_files_base[lon_row]) |> 
-    hyper_tibble(drop = FALSE) |> 
+  seas_base_MHW <- tidync::tidync(MHW_seas_thresh_files_base[lon_row]) |> 
+    tidync::hyper_filter(lat = lat == lat_step) |> 
+    tidync::hyper_tibble(drop = FALSE) |> 
     mutate(doy = as.numeric(doy),
            lon = as.numeric(lon),
            lat = as.numeric(lat)) 
-  seas_base_MCS <- tidync(MCS_seas_thresh_files_base[lon_row]) |> 
-    hyper_tibble(drop = FALSE) |> 
+  seas_base_MCS <- tidync::tidync(MCS_seas_thresh_files_base[lon_row]) |> 
+    tidync::hyper_filter(lat = lat == lat_step) |> 
+    tidync::hyper_tibble(drop = FALSE) |> 
     mutate(doy = as.numeric(doy),
            lon = as.numeric(lon),
            lat = as.numeric(lat)) 
@@ -64,13 +67,13 @@ sst_seas_thresh_ts <- function(lon_step, lat_step, base_years){
     left_join(seas_base_MHW, by = c("lon", "lat", "doy")) |>
     left_join(seas_base_MCS, by = c("lon", "lat", "doy")) |>
     dplyr::select(-seas.y) |> 
-    dplyr::rename(seas = seas.x, thresh_MHW = thresh.x, thresh_MCS = thresh.y) |> 
+    dplyr::rename(seas = seas.x, thresh = thresh.x, thresh_MCS = thresh.y) |> 
     mutate(anom = round(temp - seas, 2),
            temp = round(temp, 2),
            seas = round(seas, 2),
            thresh = round(thresh, 2),
            thresh_MCS = round(thresh_MCS, 2))
-  rm(tidync_OISST_base, tidync_OISST); gc()
+  rm(tidync_OISST, seas_base_MHW, seas_base_MCS); gc()
   
   # Merge to seas/thresh and exit
   # sst_seas_thresh <- tidync_OISST |>
@@ -131,7 +134,7 @@ showpos <- function(x = NULL, y = NULL){
   content <- paste0("Lon = ", xy_lon,
                     "<br>Lat = ", xy_lat,
                     "<br>",
-                    "<br><b>↓ See time series below ↓</b>")#,
+                    "<br><b>↓ See time series panel below ↓</b>")#,
   # content_sub,
   # regional_link,
   # "<hr>",
@@ -145,7 +148,8 @@ showpos <- function(x = NULL, y = NULL){
   # Add Popup to leaflet
   leafletProxy("leaf_map") |> 
     clearPopups() |> 
-    addPopups(lng = xy_click[1], lat = xy_click[2],
+    addPopups(lng = xy_click[1], 
+              lat = xy_click[2],
               popup = paste(content))
 }
 
@@ -207,7 +211,7 @@ readRDS_year <- function(file_name){
 
 # Join ts and event -------------------------------------------------------
 
-# Conveninece wrapper to add daily event info
+# Convenience wrapper to add daily event info
 ts_event_join <- function(event_df, ts_df){
   ts_res <- ts_df |> 
     filter(t >= event_df$date_start[1], t <= event_df$date_end[1]) |> 

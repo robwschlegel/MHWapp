@@ -30,12 +30,12 @@ load("metadata/lon_lat_OISST_area.RData")
 # File locations
 OISST_files <- dir("../data/OISST", pattern = "oisst-avhrr", full.names = T)
 OISST_daily_nc_files <- dir("../data/OISST/daily", pattern = "oisst-avhrr", full.names = T, recursive = T)
-MHW_event_files <- dir("../data/event", pattern = "MHW.event.", full.names = T) |> str_subset("MCS", negate = T)
-MCS_event_files <- dir("../data/event/MCS", pattern = "MCS.event.", full.names = T)
+MHW_event_files <- dir("../data/event", pattern = "MHW.cat.", full.names = T) |> str_subset("[.]nc$")
+MCS_event_files <- dir("../data/event/MCS", pattern = "MCS.cat.", full.names = T) |> str_subset("[.]nc$")
 MHW_seas_thresh_files <- dir("../data/thresh", pattern = "MHW.seas.thresh.", full.names = T) |> str_subset("[.]nc$")
 MCS_seas_thresh_files <- dir("../data/thresh/MCS", pattern = "MCS.seas.thresh.", full.names = T) |> str_subset("[.]nc$")
-MHW_cat_lon_files <- dir("../data/cat_lon", full.names = T) |> str_subset("MCS", negate = T) |> str_subset("[.]nc$")
-MCS_cat_lon_files <- dir("../data/cat_lon/MCS", full.names = T) |> str_subset("[.]nc$")
+# MHW_cat_lon_files <- dir("../data/cat_lon", full.names = T) |> str_subset("MCS", negate = T) |> str_subset("[.]nc$")
+# MCS_cat_lon_files <- dir("../data/cat_lon/MCS", full.names = T) |> str_subset("[.]nc$")
 MHW_cat_clim_files <- as.character(dir(path = "../data/cat_clim", pattern = "cat.clim", 
                                    full.names = TRUE, recursive = TRUE)) |> str_subset("MCS", negate = T)
 MCS_cat_clim_files <- as.character(dir(path = "../data/cat_clim/MCS", pattern = "cat.clim", 

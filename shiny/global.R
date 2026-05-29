@@ -23,7 +23,7 @@ library(leaflet)
 library(plotly)
 library(DT)
 library(waiter)
-# library(cicerone)
+# library(cicerone) # Not currently used
 })
 
 # Dependencies that are called explicitly
@@ -59,10 +59,11 @@ if(!dir.exists("thresh")) stop("The 'thresh' folder is missing.")
 
 ### The file locations
 OISST_files <- dir("OISST", pattern = "oisst-avhrr", full.names = T)
-MHW_event_files <- dir("event", pattern = "MHW.event.", full.names = T)
-MCS_event_files <- dir("event/MCS", pattern = "MCS.event.", full.names = T)
-MHW_seas_thresh_files <- dir("thresh", pattern = "MHW.seas.thresh.", full.names = T)
-MCS_seas_thresh_files <- dir("thresh/MCS", pattern = "MCS.seas.thresh.", full.names = T)
+# heatwave3 code - Changed 'MHW.event.' to 'MHW.cat.' due to new file structure - might change again...
+MHW_event_files <- dir("event", pattern = "MHW.cat.", full.names = T) |> stringr::str_subset("[.]nc$")
+MCS_event_files <- dir("event/MCS", pattern = "MCS.cat.", full.names = T) |> stringr::str_subset("[.]nc$")
+MHW_seas_thresh_files <- dir("thresh", pattern = "MHW.seas.thresh.", full.names = T) |> stringr::str_subset("[.]nc$")
+MCS_seas_thresh_files <- dir("thresh/MCS", pattern = "MCS.seas.thresh.", full.names = T) |> stringr::str_subset("[.]nc$")
 # cat_clim_files <- as.character(dir(path = "cat_clim", pattern = "cat.clim",
 #                                    full.names = TRUE, recursive = TRUE))
 
