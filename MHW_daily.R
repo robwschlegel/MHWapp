@@ -158,7 +158,7 @@ if(nrow(OISST_dat) > 2){
 
 # Create baseline seas+thresh files per longitude step
 # NB: Only needs to be run once per decade ;P
-## ~210 seconds per cycle
+## ~1 seconds per cycle
 # registerDoParallel(cores = 50)
 # plyr::l_ply(1:1440, create_thresh, .parallel = TRUE, base_years = c(1982, 2011))
 # plyr::l_ply(1:1440, create_thresh, .parallel = TRUE, base_years = c(1991, 2020))
@@ -167,10 +167,10 @@ if(nrow(OISST_dat) > 2){
 ncdf_date <- max(as.Date(tidync("../data/OISST/oisst-avhrr-v02r01.ts.1440.nc")$transforms$time$time, origin = "1970-01-01"))
 cat_lon_date <- max(readRDS("../data/cat_lon/MHW.cat.1440.1991-2020.Rda")$t)
 
-# This takes roughly 20 minutes
+# This takes roughly 6 minutes
 if(ncdf_date > cat_lon_date){
   doParallel::registerDoParallel(cores = 50)
-  print(paste0("Updating MHW/MCS results at ", Sys.time()))
+  print(paste0("Updating MHW/MCS lon files:"))
   
   # 1982-2011 calcs
   print(paste0("Began 1982-2011 baseline calcs at ", Sys.time()))
@@ -182,7 +182,7 @@ if(ncdf_date > cat_lon_date){
   print(paste0("Began 1991-2020 baseline calcs at ", Sys.time()))
   plyr::l_ply(1:1440, .fun = event_cat_calc, .parallel = TRUE, base_years = c(1991, 2020)); gc()
   
-  print(paste0("Finished MHW/MCS results at ", Sys.time()))
+  print(paste0("Finished MHW/MCS lon files at ", Sys.time()))
 }
 
 
@@ -220,14 +220,11 @@ load("metadata/prelim_dates.Rdata")
 # Get the range of dates that need to be run
 update_dates <- time_index[which(time_index >= max(prelim_dates)-14)] # ~14 minutes
 # Or manually control dates as desired
-# update_dates <- seq(as.Date("2025-08-25"), as.Date("2025-11-15"), by = "day")
+# update_dates <- seq(as.Date("2026-05-10"), as.Date("2026-05-20"), by = "day")
 # update_dates <- time_index[which(time_index >= max(final_dates)-7)]
 if(length(update_dates) > 0) {
-  print(paste0("Updating global files from ",min(update_dates)," to ",max(update_dates)))
-  
-  print(paste0("Updating daily MHW/MCS cat files at ", Sys.time()))
-  
   doParallel::registerDoParallel(cores = 50)
+  print(paste0("Updating global daily MHW/MCS cat files from ",min(update_dates)," to ",max(update_dates)))
   
   # 1982-2011 calcs
   print(paste0("Began 1982-2011 baseline calcs at ", Sys.time()))
@@ -250,7 +247,7 @@ if(length(update_dates) > 0) {
 
 # For loop to reprocess large sets of data one year at a time in 6 month batches
 # doParallel::registerDoParallel(cores = 25) # Don't update more than 6 months at once on 40 cores
-# for(i in 1982:2023){
+# for(i in 1982:2025){
 #   update_dates <- seq(as.Date(paste0(i,"-01-01")), as.Date(paste0(i,"-06-30")), by = "day")
 #   print(paste0("Updating from ",min(update_dates)," to ",max(update_dates)," at ", Sys.time()))
 #   cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)), base_years = c(1991, 2020))
@@ -316,4 +313,9 @@ system("git push")
 # dest_dir <- "../data/event/MCS"
 # tail(fs::dir_ls(dest_dir))
 # fs::file_move(files_to_move, dest_dir)
+
+# Delete files as necessary during heatwave3 integration process
+# files_to_delete <- fs::dir_ls("../data/event", glob = "*.nc$") |> stringr::str_subset("MHW.cat")
+# head(files_to_delete); tail(files_to_delete)
+# fs::file_delete(files_to_delete)
 
