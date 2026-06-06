@@ -167,7 +167,7 @@ if(nrow(OISST_dat) > 2){
 ncdf_date <- max(as.Date(tidync("../data/OISST/oisst-avhrr-v02r01.ts.1440.nc")$transforms$time$time, origin = "1970-01-01"))
 cat_lon_date <- max(readRDS("../data/cat_lon/MHW.cat.1440.1991-2020.Rda")$t)
 
-# This takes roughly 6 minutes
+# This takes roughly 10 minutes
 if(ncdf_date > cat_lon_date){
   doParallel::registerDoParallel(cores = 50)
   print(paste0("Updating MHW/MCS lon files:"))

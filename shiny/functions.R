@@ -47,13 +47,13 @@ sst_seas_thresh_ts <- function(lon_step, lat_step, base_years){
   
   # Load MHW and MCS
   # MHW_seas_thresh_files_base <- str_subset(MHW_seas_thresh_files, base_years)
-  # MCS_seas_thresh_files_base <- str_subset(MCS_seas_thresh_files, base_years)  
-  # seas_base_MHW <- tidync::tidync(MHW_seas_thresh_files_base[lon_row]) |> 
-  #   tidync::hyper_filter(lat = lat == lat_step) |> 
-  #   tidync::hyper_tibble(drop = FALSE) |> 
-  #   mutate(doy = as.numeric(doy),
-  #          lon = as.numeric(lon),
-  #          lat = as.numeric(lat)) 
+  # MCS_seas_thresh_files_base <- str_subset(MCS_seas_thresh_files, base_years)
+  # seas_base_MHW <- tidync::tidync(MHW_seas_thresh_files_base[lon_row]) |>
+    # tidync::hyper_filter(lat = lat == lat_step) |>
+    # tidync::hyper_tibble(drop = FALSE) |>
+    # mutate(doy = as.numeric(doy),
+    #        lon = as.numeric(lon),
+    #        lat = as.numeric(lat))
   # seas_base_MCS <- tidync::tidync(MCS_seas_thresh_files_base[lon_row]) |> 
   #   tidync::hyper_filter(lat = lat == lat_step) |> 
   #   tidync::hyper_tibble(drop = FALSE) |> 
@@ -90,20 +90,37 @@ sst_seas_thresh_ts <- function(lon_step, lat_step, base_years){
   lon_row <- which(lon_OISST == lon_step)
   
   # Extract daily values
+  # OISST data
+  # tidync_OISST <- tidync::tidync(OISST_files[lon_row]) |>
+  #   tidync::hyper_filter(lat = lat == lat_step) |>
+  #   tidync::hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |>
+  #   # mutate(time = as.Date(time, origin = "1970-01-01"),
+  #   mutate(t = as.Date(time),
+  #          lon = as.numeric(lon),
+  #          lat = as.numeric(lat)) |>
+  #   dplyr::rename(t = time, temp = sst)
+  # 
+  # if(length(na.omit(tidync_OISST)) == 0){
+  #   sst_seas_thresh <- data.frame(doy = NA, t = NA, temp = NA,
+  #                                 seas = NA, thresh = NA)
+  #   return(sst_seas_thresh)
+  # }
+  # seas_base_MHW <- heatwave3::hw3_export(MHW_seas_thresh_files_base[lon_row],  lat_range = lat_step)
+  # seas_base_MCS <- heatwave3::hw3_export(MCS_seas_thresh_files_base[lon_row],  lat_range = lat_step)
   cat_daily_MHW <- heatwave3::category_daily3(
       sst_file = OISST_files[lon_row],
       clim_file = MHW_seas_thresh_files_base[lon_row],
       event_file =  MHW_event_files_base[lon_row],
-      time_range = date_range
-    ) |> filter(lat == lat_step) |> 
+      time_range = date_range, 
+      lat_range = c(lat_step, lat_step)) |> 
     dplyr::select(lon, lat, t, temp, seas, thresh)
   cat_daily_MCS <- heatwave3::category_daily3(
       sst_file = OISST_files[lon_row],
       clim_file = MCS_seas_thresh_files_base[lon_row],
       event_file =  MCS_event_files_base[lon_row],
       time_range = date_range,
-      coldSpells = TRUE
-    ) |> filter(lat == lat_step) |> 
+      lat_range = c(lat_step, lat_step),
+      coldSpells = TRUE) |> 
     dplyr::select(lon, lat, t, temp, seas, thresh) |> 
     dplyr::rename(thresh_MCS = thresh)
   

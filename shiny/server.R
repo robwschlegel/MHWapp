@@ -216,22 +216,17 @@ server <- function(input, output, session){
       # Grab event data
       MHW_event_files_base <- MHW_event_files[grepl(input$baseLine, MHW_event_files)]
       MCS_event_files_base <- MCS_event_files[grepl(input$baseLine, MCS_event_files)]
-      event_data <- tidync::tidync(MHW_event_files_base[which(lon_OISST == xy[1])]) |> 
-        # tidync::hyper_filter(lat = lat == xy[2]) |> # Currently not able to see values within .nc file
-        tidync::hyper_tibble() |> 
-        dplyr::filter(lat == xy[2]) |> 
+      event_data <- heatwave3::hw3_export(MHW_event_files_base[which(lon_OISST == xy[1])], lat_range = xy[2]) |> 
         mutate(date_start = as.Date(date_start, origin = "1982-01-01"),
                date_peak = as.Date(date_peak, origin = "1982-01-01"),
                date_end = as.Date(date_end, origin = "1982-01-01"),
-               category = factor(category, levels = 1:4,
+               category = factor(category, levels = c("I Moderate", "II Strong", "III Severe", "IV Extreme"),
                                  labels = c("I Moderate", "II Strong", "III Severe", "IV Extreme")))
-      event_MCS_data <- tidync::tidync(MCS_event_files_base[which(lon_OISST == xy[1])]) |> 
-        tidync::hyper_tibble() |> 
-        dplyr::filter(lat == xy[2]) |> 
+      event_MCS_data <- heatwave3::hw3_export(MCS_event_files_base[which(lon_OISST == xy[1])], lat_range = xy[2]) |> 
         mutate(date_start = as.Date(date_start, origin = "1982-01-01"),
                date_peak = as.Date(date_peak, origin = "1982-01-01"),
                date_end = as.Date(date_end, origin = "1982-01-01"),
-               category = factor(category, levels = 1:5,
+               category = factor(category, levels = c("I Moderate", "II Strong", "III Severe", "IV Extreme", "V Ice"),
                                  labels = c("I Moderate", "II Strong", "III Severe", "IV Extreme", "V Ice")))
       
       # Return the pixel data

@@ -11,7 +11,7 @@
 # 1: Setup ----------------------------------------------------------------
 
 .libPaths(c("~/R-packages", .libPaths()))
-# remotes::install_github("robwschlegel/heatwave3@dev")
+# remotes::install_github("robwschlegel/heatwave3@dev", force = TRUE)
 suppressPackageStartupMessages({
 library(tidyverse)
 library(terra)

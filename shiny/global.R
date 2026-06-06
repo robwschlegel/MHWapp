@@ -39,6 +39,7 @@ library(waiter)
 # library(purrr)
 # library(daterangepicker)
 # library(heatwaveR)
+# library(heatwave3)
 # cat(packageDescription("heatwaveR")$Version)
 
 
