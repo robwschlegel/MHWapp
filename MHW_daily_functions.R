@@ -640,6 +640,17 @@ load_sub_cat_clim <- function(lon_step, date_range, base_years, MHW = TRUE){
     clim_file <- MCS_seas_thresh_files_base[lon_step]
   }
   
+  
+  system.time(
+  cat_daily <- category_daily3(
+    sst_file = sst_file,
+    clim_file = clim_file,
+    event_file = cat_lon_file,
+    time_range = date_range
+  ) |> 
+    filter(category >= 1)
+  )
+  
   # Get base data and join
   sst_nc <- nc_open(sst_file)
   date_start_int <- which(sst_nc$dim$time$vals == as.integer(date_range[1]))
