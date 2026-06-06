@@ -466,6 +466,8 @@ create_thresh <- function(lon_row, base_years){
 # date_range <- c(as.Date("2016-02-01"), as.Date("2017-04-01"))
 sst_seas_thresh_merge <- function(lon_step, date_range,  base_years = c(1982, 2011), lat_range = NULL){
   
+  # NB: If this needs to be faster, it could be replaced with category_daily3()
+  
   # Establish lon row number
   lon_row <- which(lon_OISST == lon_step)
   
@@ -617,9 +619,6 @@ load_sub_cat_clim <- function(lon_step, date_range, base_years, MHW = TRUE){
   # return(cat_clim_sub)
   
   ## heatwave3 code
-  # This will be replaced with a function call
-  # But for now we need to make a plan
-  # cat_clim <- heatwave3::category3(cat_lon_file, clim_file)
   
   # Create text label
   base_years_text <- paste0(base_years[1],"-", base_years[2])
@@ -627,121 +626,27 @@ load_sub_cat_clim <- function(lon_step, date_range, base_years, MHW = TRUE){
   # Get correct baseline files
   MHW_seas_thresh_files_base <- str_subset(MHW_seas_thresh_files, base_years_text)
   MCS_seas_thresh_files_base <- str_subset(MCS_seas_thresh_files, base_years_text)
-  MHW_cat_lon_files_base <- str_subset(MHW_event_files, base_years_text) # TODO: Fix to cat_lon when possible
-  MCS_cat_lon_files_base <- str_subset(MCS_event_files, base_years_text) # TODO: Fix to cat_lon when possible
+  MHW_event_files_base <- str_subset(MHW_event_files, base_years_text)
+  MCS_event_files_base <- str_subset(MCS_event_files, base_years_text)
   
-  # Get files
-  sst_file <- OISST_files[lon_step]
+  # Calculate daily values
   if(MHW){
-    cat_lon_file <- MHW_cat_lon_files_base[lon_step]
-    clim_file <- MHW_seas_thresh_files_base[lon_step]
+    cat_daily <- category_daily3(
+      sst_file = OISST_files[lon_step],
+      clim_file = MHW_seas_thresh_files_base[lon_step],
+      event_file =  MHW_event_files_base[lon_step],
+      time_range = date_range
+      ) |> filter(category >= 1)
   } else {
-    cat_lon_file <- MCS_cat_lon_files_base[lon_step]
-    clim_file <- MCS_seas_thresh_files_base[lon_step]
+    cat_daily <- category_daily3(
+      sst_file = OISST_files[lon_step],
+      clim_file = MCS_seas_thresh_files_base[lon_step],
+      event_file =  MCS_event_files_base[lon_step],
+      time_range = date_range,
+      coldSpells = TRUE
+    ) |> filter(category >= 1)
   }
-  
-  
-  system.time(
-  cat_daily <- category_daily3(
-    sst_file = sst_file,
-    clim_file = clim_file,
-    event_file = cat_lon_file,
-    time_range = date_range
-  ) |> 
-    filter(category >= 1)
-  )
-  
-  # Get base data and join
-  sst_nc <- nc_open(sst_file)
-  date_start_int <- which(sst_nc$dim$time$vals == as.integer(date_range[1]))
-  date_end_int <- which(sst_nc$dim$time$vals == as.integer(date_range[2]))
-  date_count_int <- date_end_int - date_start_int + 1
-  date_vals <- seq(date_range[1], date_range[2], by = "day")
-  sst_lat <- ncvar_get(sst_nc, "lat")
-  sst_lon <- ncvar_get(sst_nc, "lon")[1] # NB: Should always be 1 value
-  # system.time(
-  sst_dat <- ncvar_get(sst_nc, "sst", start = c(1, 1, date_start_int), count = c(720, 1, date_count_int)) |> 
-    as.data.frame() |> 
-    mutate(lon = sst_lon, lat = sst_lat) |> 
-    pivot_longer(cols = c(paste0("V", seq(1:date_count_int))), values_to = "temp") |> 
-    mutate(t = rep(date_vals, 720)) |> 
-    mutate(doy = yday(t), # Rather first determine the DOY based on the date_vals and make the merge that way
-           year = year(t)) |> 
-    group_by(year) |> 
-    mutate(doy = ifelse(!leap_year(year),
-                        ifelse(doy > 59, doy+1, doy), doy)) |> 
-    ungroup() |>
-    dplyr::select(lon, lat, t, doy, temp)
-  # )
-  nc_close(sst_nc)
-  
-  # system.time(
-  # sst_base <- tidync(sst_file) |> 
-  #   hyper_filter(time = between(time, as.integer(date_range[1]), as.integer(date_range[2]))) |>
-  #   hyper_tibble(drop = FALSE) |> 
-  #   dplyr::rename(t = time, temp = sst) |>
-  #   mutate(doy = yday(t),
-  #          year = year(t)) |> 
-  #   group_by(year) |> 
-  #   mutate(doy = ifelse(!leap_year(year),
-  #                       ifelse(doy > 59, doy+1, doy), doy)) |> 
-  #   ungroup() |>
-  #   dplyr::select(lon, lat, t, doy, temp)
-  # )
-  lon_clim <- tidync(clim_file) |> 
-    hyper_tibble(drop = FALSE) |> 
-    mutate(doy = as.numeric(doy),
-           lon = as.numeric(lon),
-           lat = as.numeric(lat))
-  cat_clim <- tidync(cat_lon_file) |> 
-    hyper_tibble() |> 
-    dplyr::select(lon, lat, event_no, date_start, date_end) |>
-    mutate(date_start = as.Date(date_start, origin = "1982-01-01"),
-           date_end = as.Date(date_end, origin = "1982-01-01")) |> 
-    # NB: These values are intentionally inverted to rather filter everything OUTSIDE of the given dates
-    filter(date_start <= date_range[2]) |>
-    filter(date_end >= date_range[1])
-  
-  # Join and create daily category values
-  df_base <- left_join(sst_dat, lon_clim, by = join_by(lon, lat, doy)) |> 
-    left_join(cat_clim, by = c("lon", "lat"), relationship = "many-to-many") |> 
-    filter(t >= date_start, t <= date_end)
-  
-  # Get the categories based on seas diff
-  # NB: This could be optimized, but this process will eventually be replaced, so no need
-  if(MHW){
-    df_cat <- df_base |> 
-      mutate(intensity = round(temp - seas, 2),
-             diff = thresh - seas,
-             thresh_2x = thresh + diff,
-             thresh_3x = thresh_2x + diff, 
-             thresh_4x = thresh_3x + diff) |> 
-      # filter(temp < thresh)
-      mutate(category = case_when(temp > thresh_4x ~ 4, 
-                                  temp > thresh_3x ~ 3,
-                                  temp > thresh_2x ~ 2,
-                                  temp > thresh ~ 1)) |> 
-      dplyr::select(t, lon, lat, event_no, intensity, category) |> 
-      na.omit()
-  } else {
-    df_cat <- df_base |> 
-      mutate(intensity = round(temp - seas, 2),
-             diff = thresh - seas,
-             thresh_2x = thresh + diff,
-             thresh_3x = thresh_2x + diff, 
-             thresh_4x = thresh_3x + diff) |> 
-      # filter(temp < thresh)
-      mutate(category = case_when(temp < thresh_4x ~ 4, 
-                                  temp < thresh_3x ~ 3,
-                                  temp < thresh_2x ~ 2,
-                                  temp < thresh ~ 1)) |>
-      # Add ice category
-      mutate(category = case_when(thresh < -1.7 & !is.na(category) ~ 5,
-                                  TRUE ~ category)) |> 
-      dplyr::select(t, lon, lat, event_no, intensity, category) |> 
-      na.omit()
-  }
-  return(df_cat)
+  return(cat_daily)
 }
 
 # Function for saving daily global cat files
@@ -795,7 +700,7 @@ cat_clim_global_daily <- function(date_range, base_years = c(1982, 2011)){
                                     date_range = date_range, base_years = base_years, MHW = TRUE) |> 
     mutate(category = factor(category, levels = 1:4,
                              labels = c("I Moderate", "II Strong", "III Severe", "IV Extreme")))
-  # ) # 13 seconds per cycle. ~6 minutes for all. This needs to be optimized.
+  # ) # 1 second per cycle. ~7 seconds for all.
   MCS_cat_clim_daily <- plyr::ldply(1:1440, load_sub_cat_clim, .parallel = TRUE, 
                                     date_range = date_range, base_years = base_years, MHW = FALSE) |> 
     mutate(category = factor(category, levels = 1:5,

@@ -17,75 +17,112 @@
 sst_seas_thresh_ts <- function(lon_step, lat_step, base_years){
   
   # Establish metadata
-  MHW_seas_thresh_files_base <- MHW_seas_thresh_files[grepl(base_years, MHW_seas_thresh_files)]
-  MCS_seas_thresh_files_base <- MCS_seas_thresh_files[grepl(base_years, MCS_seas_thresh_files)]
-  lon_row <- which(lon_OISST == lon_step)
+  # MHW_seas_thresh_files_base <- MHW_seas_thresh_files[grepl(base_years, MHW_seas_thresh_files)]
+  # MCS_seas_thresh_files_base <- MCS_seas_thresh_files[grepl(base_years, MCS_seas_thresh_files)]
+  # lon_row <- which(lon_OISST == lon_step)
   # lat_row <- which(lat_OISST == lat_step)
   
   # OISST data
-  tidync_OISST <- tidync::tidync(OISST_files[lon_row]) |>
-    tidync::hyper_filter(lat = lat == lat_step) |> 
-    tidync::hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |> 
-    # mutate(time = as.Date(time, origin = "1970-01-01"),
-    mutate(time = as.Date(time),
-           year = lubridate::year(time),
-           lon = as.numeric(lon),
-           lat = as.numeric(lat)) |>
-    dplyr::rename(t = time, temp = sst) |> 
-    mutate(doy = lubridate::yday(t)) |>
-    group_by(year) |>
-    mutate(doy = ifelse(!lubridate::leap_year(year),
-                        ifelse(doy > 59, doy+1, doy), doy)) |>
-    ungroup() |> 
-    dplyr::select(lon, lat, t, doy, temp)
-  
-  if(length(na.omit(tidync_OISST)) == 0){
-    sst_seas_thresh <- data.frame(doy = NA, t = NA, temp = NA,
-                                  seas = NA, thresh = NA)
-    return(sst_seas_thresh)
-  }
+  # tidync_OISST <- tidync::tidync(OISST_files[lon_row]) |>
+  #   tidync::hyper_filter(lat = lat == lat_step) |> 
+  #   tidync::hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |> 
+  #   # mutate(time = as.Date(time, origin = "1970-01-01"),
+  #   mutate(time = as.Date(time),
+  #          year = lubridate::year(time),
+  #          lon = as.numeric(lon),
+  #          lat = as.numeric(lat)) |>
+  #   dplyr::rename(t = time, temp = sst) |> 
+  #   mutate(doy = lubridate::yday(t)) |>
+  #   group_by(year) |>
+  #   mutate(doy = ifelse(!lubridate::leap_year(year),
+  #                       ifelse(doy > 59, doy+1, doy), doy)) |>
+  #   ungroup() |> 
+  #   dplyr::select(lon, lat, t, doy, temp)
+  # 
+  # if(length(na.omit(tidync_OISST)) == 0){
+  #   sst_seas_thresh <- data.frame(doy = NA, t = NA, temp = NA,
+  #                                 seas = NA, thresh = NA)
+  #   return(sst_seas_thresh)
+  # }
   
   # Load MHW and MCS
   # MHW_seas_thresh_files_base <- str_subset(MHW_seas_thresh_files, base_years)
   # MCS_seas_thresh_files_base <- str_subset(MCS_seas_thresh_files, base_years)  
-  seas_base_MHW <- tidync::tidync(MHW_seas_thresh_files_base[lon_row]) |> 
-    tidync::hyper_filter(lat = lat == lat_step) |> 
-    tidync::hyper_tibble(drop = FALSE) |> 
-    mutate(doy = as.numeric(doy),
-           lon = as.numeric(lon),
-           lat = as.numeric(lat)) 
-  seas_base_MCS <- tidync::tidync(MCS_seas_thresh_files_base[lon_row]) |> 
-    tidync::hyper_filter(lat = lat == lat_step) |> 
-    tidync::hyper_tibble(drop = FALSE) |> 
-    mutate(doy = as.numeric(doy),
-           lon = as.numeric(lon),
-           lat = as.numeric(lat)) 
+  # seas_base_MHW <- tidync::tidync(MHW_seas_thresh_files_base[lon_row]) |> 
+  #   tidync::hyper_filter(lat = lat == lat_step) |> 
+  #   tidync::hyper_tibble(drop = FALSE) |> 
+  #   mutate(doy = as.numeric(doy),
+  #          lon = as.numeric(lon),
+  #          lat = as.numeric(lat)) 
+  # seas_base_MCS <- tidync::tidync(MCS_seas_thresh_files_base[lon_row]) |> 
+  #   tidync::hyper_filter(lat = lat == lat_step) |> 
+  #   tidync::hyper_tibble(drop = FALSE) |> 
+  #   mutate(doy = as.numeric(doy),
+  #          lon = as.numeric(lon),
+  #          lat = as.numeric(lat)) 
   
   # Merge to seas/thresh and exit
-  sst_seas_thresh <- tidync_OISST |>
-    left_join(seas_base_MHW, by = c("lon", "lat", "doy")) |>
-    left_join(seas_base_MCS, by = c("lon", "lat", "doy")) |>
-    dplyr::select(-seas.y) |> 
-    dplyr::rename(seas = seas.x, thresh = thresh.x, thresh_MCS = thresh.y) |> 
+  # sst_seas_thresh <- tidync_OISST |>
+  #   left_join(seas_base_MHW, by = c("lon", "lat", "doy")) |>
+  #   left_join(seas_base_MCS, by = c("lon", "lat", "doy")) |>
+  #   dplyr::select(-seas.y) |> 
+  #   dplyr::rename(seas = seas.x, thresh = thresh.x, thresh_MCS = thresh.y) |> 
+  #   mutate(anom = round(temp - seas, 2),
+  #          temp = round(temp, 2),
+  #          seas = round(seas, 2),
+  #          thresh = round(thresh, 2),
+  #          thresh_MCS = round(thresh_MCS, 2))
+  # rm(tidync_OISST, seas_base_MHW, seas_base_MCS); gc()
+  
+  # Create text label
+  # base_years_text <- paste0(base_years[1],"-", base_years[2])
+  
+  ## heatwave3 code
+  
+  # Get correct baseline files
+  MHW_seas_thresh_files_base <- MHW_seas_thresh_files[grepl(base_years, MHW_seas_thresh_files)]
+  MCS_seas_thresh_files_base <- MCS_seas_thresh_files[grepl(base_years, MCS_seas_thresh_files)]
+  MHW_event_files_base <- MHW_event_files[grepl(base_years, MHW_event_files)]
+  MCS_event_files_base <- MCS_event_files[grepl(base_years, MCS_event_files)]
+  
+  # Set metadata
+  date_range <- c(as.Date("1982-01-01"), as.Date(Sys.Date()))
+  lon_row <- which(lon_OISST == lon_step)
+  
+  # Extract daily values
+  cat_daily_MHW <- heatwave3::category_daily3(
+      sst_file = OISST_files[lon_row],
+      clim_file = MHW_seas_thresh_files_base[lon_row],
+      event_file =  MHW_event_files_base[lon_row],
+      time_range = date_range
+    ) |> filter(lat == lat_step) |> 
+    dplyr::select(lon, lat, t, temp, seas, thresh)
+  cat_daily_MCS <- heatwave3::category_daily3(
+      sst_file = OISST_files[lon_row],
+      clim_file = MCS_seas_thresh_files_base[lon_row],
+      event_file =  MCS_event_files_base[lon_row],
+      time_range = date_range,
+      coldSpells = TRUE
+    ) |> filter(lat == lat_step) |> 
+    dplyr::select(lon, lat, t, temp, seas, thresh) |> 
+    dplyr::rename(thresh_MCS = thresh)
+  
+  # Combine and exit
+  sst_seas_thresh <- left_join(cat_daily_MHW, cat_daily_MCS, 
+                                   by = join_by(lon, lat, t, temp, seas)) |> 
+  mutate(doy = lubridate::yday(t),
+         year = lubridate::year(t),
+         anom = temp - seas) |>
+    group_by(year) |>
+    mutate(doy = ifelse(!lubridate::leap_year(year),
+                        ifelse(doy > 59, doy+1, doy), doy)) |>
+    ungroup() |> 
     mutate(anom = round(temp - seas, 2),
            temp = round(temp, 2),
            seas = round(seas, 2),
            thresh = round(thresh, 2),
-           thresh_MCS = round(thresh_MCS, 2))
-  rm(tidync_OISST, seas_base_MHW, seas_base_MCS); gc()
-  
-  # Merge to seas/thresh and exit
-  # sst_seas_thresh <- tidync_OISST |>
-  #   left_join(readRDS(MHW_seas_thresh_files_base[lon_row]), 
-  #             by = c("lon", "lat", "doy")) |>
-  #   left_join(readRDS(MCS_seas_thresh_files_base[lon_row]),
-  #             by = c("lon", "lat", "doy")) |> 
-  #   dplyr::select(-seas.y) |>
-  #   dplyr::rename(seas = seas.x, thresh = thresh.x, thresh_MCS = thresh.y) |>
-  #   mutate(temp = round(temp, 2),
-  #          seas = round(seas, 2),
-  #          thresh = round(thresh, 2),
-  #          thresh_MCS = round(thresh_MCS, 2))
+           thresh_MCS = round(thresh_MCS, 2)) |> 
+    dplyr::select(lon, lat, t, doy, temp, seas, thresh, thresh_MCS, anom)
   return(sst_seas_thresh)
 }
 
