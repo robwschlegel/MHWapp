@@ -46,7 +46,7 @@ ui <- page_sidebar(
              # Ice mask
              accordion_panel(
                "Ice mask", icon = bsicons::bs_icon("snow2"),
-               shinyWidgets::prettySwitch(inputId = "iceMask", label = NULL, value = TRUE, 
+               shinyWidgets::prettySwitch(inputId = "iceMask", label = NULL, value = FALSE, 
                                           status = "info", fill = TRUE, bigger = TRUE)
              ),
              # Baseline
