@@ -46,8 +46,6 @@ sst_seas_thresh_ts <- function(lon_step, lat_step, base_years){
   }
   
   # Load MHW and MCS
-  MHW_seas_thresh_files_base <- MHW_seas_thresh_files[grepl(base_years, MHW_seas_thresh_files)]
-  MCS_seas_thresh_files_base <- MCS_seas_thresh_files[grepl(base_years, MCS_seas_thresh_files)]
   seas_base_MHW <- tidync::tidync(MHW_seas_thresh_files_base[lon_row]) |>
   tidync::hyper_filter(lat = lat == lat_step) |>
   tidync::hyper_tibble(drop = FALSE) |>
