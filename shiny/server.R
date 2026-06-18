@@ -187,9 +187,9 @@ server <- function(input, output, session){
   ### Pixel data
   pixelData <- reactive({
     req(input$leaf_map_click)
-    if(is.null(input$leaf_map_click)){
+    if(is.null(input$leaf_map_click)){ # Reactivate once new server is established
       return()
-    } else {
+    } else { # Reactivate once new server is established
       # testers...
       # x <- 10; y <- -5
       # x <- -27.125; y <- 25.625
@@ -261,8 +261,8 @@ server <- function(input, output, session){
     
     # Check that it's not empty
     if(length(ts_data$temp) == 1){
-      p <- ggplot() + geom_text(aes(x = 0, y = 0,label = "Please select an ocean pixel.")) +
-        labs(x = x_lab, y = y_lab, title = title_lab) + theme_grey(base_size = 20)
+      p <- ggplot() + geom_text(aes(x = 0, y = 0, label = "Please select an ocean pixel.")) +
+        labs(x = x_lab, y = y_lab, title = title_lab) + theme_grey(base_size = 40)
       return(p)
     }
     
@@ -394,25 +394,25 @@ server <- function(input, output, session){
   })
   
   ### Create interactive time series plot
-  tsPlotly <- reactive({
-    
-    # Grab static plot
-    p <- tsPlot()
-    suppressWarnings( # text aes plotly
-      p <- p +
-        geom_segment(aes(x = input$date[1],
-                         xend = input$date[1],
-                         y = min(temp),
-                         yend = max(temp),
-                         text = "Date shown"),
-                     colour = "limegreen")
-    )
-    
-    # Convert to plotly
-    # NB: Setting dynamicTicks = T causes the flames to be rendered incorrectly
-    pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) |> plotly::layout(hovermode = "x")
-    pp
-  })
+  # tsPlotly <- reactive({
+  #   
+  #   # Grab static plot
+  #   p <- tsPlot()
+  #   suppressWarnings( # text aes plotly
+  #     p <- p +
+  #       geom_segment(aes(x = input$date[1],
+  #                        xend = input$date[1],
+  #                        y = min(temp),
+  #                        yend = max(temp),
+  #                        text = "Date shown"),
+  #                    colour = "limegreen")
+  #   )
+  #   
+  #   # Convert to plotly
+  #   # NB: Setting dynamicTicks = T causes the flames to be rendered incorrectly
+  #   pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) |> plotly::layout(hovermode = "x")
+  #   pp
+  # })
   
   ### Create lolliplot
   lolliPlot <- reactive({
@@ -506,54 +506,56 @@ server <- function(input, output, session){
   ### Interactive lolliplot
   lolliPlotly <- reactive({
     # p <- lollilot()
-    p <- lolliPlot()
+    # p <- lolliPlot()
     # p <- p + theme_gray(base_size = 16)
-    pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) #|>
+    # pp <- ggplotly(p, tooltip = "text", dynamicTicks = F) #|>
     # style(hoverinfo = "none", traces = c(3, 4))
-    pp
+    # pp
   })
   
   ### Create data table
   tsTable <- reactive({
-    event_data <- pixelData()$event |> 
-      dplyr::filter(date_start >= input$from_to[1], date_start <= input$from_to[2]) |> 
-      mutate(Event = "MHW")
-    event_MCS_data <- pixelData()$event_MCS |> 
-      dplyr::filter(date_start >= input$from_to[1], date_start <= input$from_to[2]) |> 
-      mutate(Event = "MCS")
-    event_res <- rbind(event_data, event_MCS_data) |> 
-      dplyr::rename(Lon = lon,
-                    Lat = lat,
-                    '#' = event_no,
-                    Category = category,
-                    Duration = duration,
-                    'Start Date' = date_start,
-                    'Peak Date' = date_peak,
-                    'End Date' = date_end,
-                    'Mean Intensity' = intensity_mean,
-                    'Max. Intensity' = intensity_max,
-                    'Cum. Intensity' = intensity_cumulative) |> 
-      dplyr::arrange(`Peak Date`) |> 
-      dplyr::select(Event, Lon, Lat, `#`, Category, Duration, `Start Date`, `Peak Date`, `End Date`, 
-                    `Mean Intensity`, `Max. Intensity`, `Cum. Intensity`)
-    event_res
+    # event_data <- pixelData()$event |> 
+    #   dplyr::filter(date_start >= input$from_to[1], date_start <= input$from_to[2]) |> 
+    #   mutate(Event = "MHW")
+    # event_MCS_data <- pixelData()$event_MCS |> 
+    #   dplyr::filter(date_start >= input$from_to[1], date_start <= input$from_to[2]) |> 
+    #   mutate(Event = "MCS")
+    # event_res <- rbind(event_data, event_MCS_data) |> 
+    #   dplyr::rename(Lon = lon,
+    #                 Lat = lat,
+    #                 '#' = event_no,
+    #                 Category = category,
+    #                 Duration = duration,
+    #                 'Start Date' = date_start,
+    #                 'Peak Date' = date_peak,
+    #                 'End Date' = date_end,
+    #                 'Mean Intensity' = intensity_mean,
+    #                 'Max. Intensity' = intensity_max,
+    #                 'Cum. Intensity' = intensity_cumulative) |> 
+    #   dplyr::arrange(`Peak Date`) |> 
+    #   dplyr::select(Event, Lon, Lat, `#`, Category, Duration, `Start Date`, `Peak Date`, `End Date`, 
+    #                 `Mean Intensity`, `Max. Intensity`, `Cum. Intensity`)
+    # event_res
   })
   
   ### Static time series plot
   output$tsPlot <- renderPlot({
-    if(is.null(input$leaf_map_click)){
+    # if(is.null(input$leaf_map_click)){ # Reactivate once server is updated
       ggplot() +
         geom_text(aes(x = 1, y = 1,
-                      label = "Please click a pixel on the map to visualise data.")) + theme_void(base_size = 20)
-    } else {
-      tsPlot()
-    }
+                      # label = "Please click a pixel on the map to visualise data.")) + 
+                      label = "Currently under construction. Check back soon!")) +
+        theme_void(base_size = 20)
+    # } else {  # Reactivate once server is updated
+    #   tsPlot()  # Reactivate once server is updated
+    # }  # Reactivate once server is updated
   })
   
   ### Interactive time series plot
-  output$tsPlotly <- renderPlotly({
-    tsPlotly()
-  })
+  # output$tsPlotly <- renderPlotly({
+  #   tsPlotly()
+  # })
   
   ### Lolli plot
   output$lolliPlotly <- renderPlotly({

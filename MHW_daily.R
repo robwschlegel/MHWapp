@@ -315,7 +315,7 @@ system("git push")
 # fs::file_move(files_to_move, dest_dir)
 
 # Delete files as necessary during heatwave3 integration process
-# files_to_delete <- fs::dir_ls("../data/event", glob = "*.nc$") |> stringr::str_subset("MHW.cat")
+# files_to_delete <- fs::dir_ls("../data/OISST/daily", recurse = TRUE, glob = "*.Rda$") #|> stringr::str_subset("MHW.cat")
 # head(files_to_delete); tail(files_to_delete)
 # fs::file_delete(files_to_delete)
 

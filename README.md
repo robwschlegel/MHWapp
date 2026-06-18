@@ -50,7 +50,7 @@ At the end of this README is a list of the updates that have been made.
   
 ## Updates
 
-* May 28th, 2023
+* May 28th, 2026
   * Began integrating heatwave3 into the full stack
 
 * July 29th, 2023
