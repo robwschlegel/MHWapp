@@ -14,7 +14,7 @@
 # remotes::install_github("robwschlegel/heatwave3@dev", force = TRUE)
 suppressPackageStartupMessages({
 library(tidyverse)
-library(terra)
+# library(terra) # This often throws errors due to missing external files
 library(raster)
 library(leaflet)
 library(ncdf4)

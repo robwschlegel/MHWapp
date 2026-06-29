@@ -218,7 +218,7 @@ load("metadata/final_dates.Rdata")
 load("metadata/prelim_dates.Rdata")
 
 # Get the range of dates that need to be run
-update_dates <- time_index[which(time_index >= max(prelim_dates)-14)] # ~14 minutes
+update_dates <- time_index[which(time_index >= max(prelim_dates)-14)] # ~4 minutes
 # Or manually control dates as desired
 # update_dates <- seq(as.Date("2026-05-10"), as.Date("2026-05-20"), by = "day")
 # update_dates <- time_index[which(time_index >= max(final_dates)-7)]
@@ -264,7 +264,9 @@ if(length(update_dates) > 0) {
 # 4: Check current dates --------------------------------------------------
 
 # Indexes all files throughout the OISST/daily sub-folders to create the current_dates index
-current_dates <- as.Date(sapply(str_split(list.files("../data/OISST/daily/", recursive = T, pattern = "daily"), "[.]"), "[[", 2))
+current_dates <- as.Date(sapply(stringr::str_split(list.files("../data/OISST/daily/", 
+                                                              recursive = T, pattern = "nc"), "[.]"), "[[", 2),
+                         format = "%Y%m%d")
 
 # Check that no days are missing
 possible_dates <- seq(as.Date("1982-01-01"), max(current_dates), by = "day")
