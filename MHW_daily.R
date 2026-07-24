@@ -22,7 +22,7 @@ source("MHW_daily_functions.R")
 # state to the main session (all libraries, metadata, custom functions) -
 # this avoids relying on future's automatic global/package detection, which
 # is easy to get subtly wrong for code that isn't a package.
-n_workers <- 12
+n_workers <- 25
 oisst_cwd <- getwd()
 oisst_cl <- parallelly::makeClusterPSOCK(
   n_workers, rscript_libs = .libPaths(),
@@ -179,7 +179,7 @@ if(file.exists(event_file_check)){
   event_date <- as.Date("1980-01-01")
 }
 
-# This takes roughly 10 minutes
+# This takes roughly 14 minutes
 if(ncdf_date > event_date){
   print(paste0("Updating MHW/MCS lon files:"))
 
@@ -187,13 +187,13 @@ if(ncdf_date > event_date){
   print(paste0("Began 1982-2011 baseline calcs at ", Sys.time()))
   # system.time(
   furrr::future_walk(1:1440, event_cat_calc, 
-                     .options = furrr::furrr_options(seed = TRUE)); gc()
+                     .options = furrr::furrr_options(seed = TRUE, conditions = character())); gc()
   # ) # ~2 seconds per cycle
 
   # 1991-2020 calcs
   print(paste0("Began 1991-2020 baseline calcs at ", Sys.time()))
   furrr::future_walk(1:1440, event_cat_calc, base_years = c(1991, 2020),
-                     .options = furrr::furrr_options(seed = TRUE)); gc()
+                     .options = furrr::furrr_options(seed = TRUE, conditions = character())); gc()
 
   print(paste0("Finished MHW/MCS lon files at ", Sys.time()))
 }
