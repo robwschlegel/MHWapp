@@ -172,9 +172,11 @@ ncdf_date <- max(as.Date(ncdf_1440$dim$time$vals, origin = "1970-01-01"))
 nc_close(ncdf_1440)
 event_file_check <- "../data/event/MHW_1440_1991-2020_events.nc"
 if(file.exists(event_file_check)){
-  event_date <- as.Date(max(ncvar_get(nc_open(event_file_check), "date_end")), origin = "1982-01-01")
+  ncdf_event_check <- nc_open(event_file_check)
+  event_date <- as.Date(max(ncvar_get(ncdf_event_check, "date_end")), origin = "1982-01-01")
+  nc_close(ncdf_event_check)
 } else {
-  event_date <- as.Date("1900-01-01")
+  event_date <- as.Date("1980-01-01")
 }
 
 # This takes roughly 10 minutes

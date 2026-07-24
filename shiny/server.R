@@ -216,13 +216,15 @@ server <- function(input, output, session){
       # Grab event data
       MHW_event_files_base <- MHW_event_files[grepl(input$baseLine, MHW_event_files)]
       MCS_event_files_base <- MCS_event_files[grepl(input$baseLine, MCS_event_files)]
-      event_data <- heatwave3::hw3_export(MHW_event_files_base[which(lon_OISST == xy[1])], lat_range = xy[2]) |> 
+      event_data <- heatwave3::hw3_export(MHW_event_files_base[which(lon_OISST == xy[1])], 
+                                          lat_range = c(xy[2], xy[2])) |> 
         mutate(date_start = as.Date(date_start, origin = "1982-01-01"),
                date_peak = as.Date(date_peak, origin = "1982-01-01"),
                date_end = as.Date(date_end, origin = "1982-01-01"),
                category = factor(category, levels = c("I Moderate", "II Strong", "III Severe", "IV Extreme"),
                                  labels = c("I Moderate", "II Strong", "III Severe", "IV Extreme")))
-      event_MCS_data <- heatwave3::hw3_export(MCS_event_files_base[which(lon_OISST == xy[1])], lat_range = xy[2]) |> 
+      event_MCS_data <- heatwave3::hw3_export(MCS_event_files_base[which(lon_OISST == xy[1])], 
+                                              lat_range = c(xy[2], xy[2])) |> 
         mutate(date_start = as.Date(date_start, origin = "1982-01-01"),
                date_peak = as.Date(date_peak, origin = "1982-01-01"),
                date_end = as.Date(date_end, origin = "1982-01-01"),
@@ -445,7 +447,7 @@ server <- function(input, output, session){
     # Get y_lims
     y_lims <- c(0, 1)
     if(length(event_data_sub$date_start) > 0) y_lims[2] <- max(event_data_sub$intensity_max)*1.1
-    if(length(event_MCS_data_sub$date_start) > 0) y_lims[1] <- min(event_MCS_data_sub$intensity_max)*1.1
+    if(length(event_MCS_data_sub$date_start) > 0) y_lims[1] <- -max(event_MCS_data_sub$intensity_max)*1.1
     if(length(event_MCS_data_sub$date_start) > 0 & length(event_data_sub$date_start) == 0) y_lims[2] <- 0
     
     # The base figure
@@ -479,10 +481,10 @@ server <- function(input, output, session){
     if(length(event_MCS_data_sub$date_start) > 0){
       suppressWarnings(
         p <- p + geom_segment(data = event_MCS_data_sub,
-                              aes(x = date_peak, xend = date_peak, y = intensity_max, yend = 0)) +
+                              aes(x = date_peak, xend = date_peak, y = -intensity_max, yend = 0)) +
           geom_hline(yintercept = 0) +
           geom_point(data = event_MCS_data_sub, shape = 21, size = 4, #fill = "steelblue1",
-                     aes(x = date_peak, y = intensity_max, fill = category,
+                     aes(x = date_peak, y = -intensity_max, fill = category,
                          text = paste0("Event: ",event_no,
                                        "<br>Category: ",gsub("MCS_", "", category),
                                        "<br>Duration: ",duration," days",
@@ -504,14 +506,12 @@ server <- function(input, output, session){
   })
   
   ### Interactive lolliplot
-  # Reactivate once server is updated
   lolliPlotly <- reactive({
     pp <- ggplotly(lolliPlot(), tooltip = "text", dynamicTicks = F)
     pp
   })
   
   ### Create data table
-  # Reactivate once server is updated
   tsTable <- reactive({
     event_data <- pixelData()$event |>
       dplyr::filter(date_start >= input$from_to[1], date_start <= input$from_to[2]) |>
@@ -539,15 +539,14 @@ server <- function(input, output, session){
   
   ### Static time series plot
   output$tsPlot <- renderPlot({
-    if(is.null(input$leaf_map_click)){ # Reactivate once server is updated
+    if(is.null(input$leaf_map_click)){
       ggplot() +
         geom_text(aes(x = 1, y = 1,
-                      label = "Please click a pixel on the map to visualise data.")) +  # Reactivate once server is updated
-                      # label = "Currently under construction. Check back soon!")) +
+                      label = "Please click a pixel on the map to visualise data.")) + 
         theme_void(base_size = 20)
-    } else {  # Reactivate once server is updated
-      tsPlot()  # Reactivate once server is updated
-    }  # Reactivate once server is updated
+    } else {
+      tsPlot()
+    }
   })
   
   ### Interactive time series plot
