@@ -16,6 +16,7 @@ suppressPackageStartupMessages({
 library(bslib)
 library(bsicons)
 library(shinyWidgets)
+library(ncdf4)
 library(dplyr)
 library(ggplot2)
 library(leaflet)
@@ -31,7 +32,6 @@ library(waiter)
 # library(maps)
 # library(readr)
 # library(tidyr)
-# library(threadr)
 # library(stringr)
 # library(lubridate)
 # library(raster)
@@ -51,7 +51,8 @@ source("functions.R", local = TRUE)
 # Meta-data ---------------------------------------------------------------
 
 ### Check that main data folders exist
-# NB: These are the folders that are connected to whalemap via rsync
+# NB: These are the folders that are connected to the host server via rsync
+# NB: These folders are all symlink copies from the same folders on tikoraluk at ../data/*
 if(!dir.exists("OISST")) stop("The 'OISST' folder is missing.")
 if(!dir.exists("event")) stop("The 'event' folder is missing.")
 if(!dir.exists("thresh")) stop("The 'thresh' folder is missing.")

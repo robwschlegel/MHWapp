@@ -85,7 +85,7 @@ MHW_cat_lon <- readRDS(cat_lon_files[chosen_sub])
 
 ## Visualise
 p <- ggplot(data = sst_seas_thresh_sub, aes(x = t, y = temp)) +
-  geom_flame(aes(y2 = thresh)) +
+  geom_flame3(aes(y2 = thresh)) +
   geom_line(colour = "grey20",
             aes(group = 1, text = paste0("Date: ",t,
                                          "<br>Temperature: ",temp,"°C"))) +

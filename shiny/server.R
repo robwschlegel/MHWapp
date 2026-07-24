@@ -297,43 +297,43 @@ server <- function(input, output, session){
     ## MHWs
     # if(any(ts_data_sub$temp > ts_data_sub$thresh)){
     if(any(ts_data_sub$temp > ts_data_sub$thresh)){
-      p <- p + heatwaveR::geom_flame(aes(y2 = thresh), fill = "#ffc866", n = 5, n_gap = 2)
+      p <- p + heatwave3::geom_flame3(aes(y2 = thresh), fill = "#ffc866", n = 5, n_gap = 2)
       # p <- p + geom_segment(data = ts_data_sub, linewidth = 1,
       #                   aes(x = t, xend = t, y = ts_y_min, yend = ts_y_max), colour = "#ffc866")
     }
     if(any(ts_data_sub$temp > ts_data_sub$thresh_2x)){
-      p <- p + heatwaveR::geom_flame(aes(y2 = thresh_2x), fill = "#ff6900")
+      p <- p + heatwave3::geom_flame3(aes(y2 = thresh_2x), fill = "#ff6900")
       # p <- p + geom_segment(data = filter(ts_data_sub, temp > thresh_2x),
       #                       aes(x = t, xend = t, y = ts_y_min, yend = ts_y_max), colour = "#ff6900")
     }
     if(any(ts_data_sub$temp > ts_data_sub$thresh_3x)){
-      p <- p + heatwaveR::geom_flame(aes(y2 = thresh_3x), fill = "#9e0000")
+      p <- p + heatwave3::geom_flame3(aes(y2 = thresh_3x), fill = "#9e0000")
       # p <- p + geom_segment(data = filter(ts_data_sub, temp > thresh_3x),
       #                       aes(x = t, xend = t, y = ts_y_min, yend = ts_y_max), colour = "#9e0000")
     }
     if(any(ts_data_sub$temp > ts_data_sub$thresh_4x)){
-      p <- p + heatwaveR::geom_flame(aes(y2 = thresh_4x), fill = "#2d0000")
+      p <- p + heatwave3::geom_flame3(aes(y2 = thresh_4x), fill = "#2d0000")
       # p <- p + geom_segment(data = filter(ts_data_sub, temp > thresh_4x),
       #                       aes(x = t, xend = t, y = ts_y_min, yend = ts_y_max), colour = "#2d0000")
     }
     ## MCSs
     if(any(ts_data_sub$temp < ts_data_sub$thresh_MCS)){
-      p <- p + heatwaveR::geom_flame(aes(y = thresh_MCS, y2 = temp), fill = "#C7ECF2", n = 5, n_gap = 2)
+      p <- p + heatwave3::geom_flame3(aes(y = thresh_MCS, y2 = temp), fill = "#C7ECF2", n = 5, n_gap = 2)
       # p <- p + geom_segment(data = ts_data_sub,
       #                       aes(x = t, xend = t, y = ts_y_min, yend = ts_y_max), colour = "#C7ECF2")
     }
     if(any(ts_data_sub$temp < ts_data_sub$thresh_MCS_2x)){
-      p <- p + heatwaveR::geom_flame(aes(y = thresh_MCS_2x, y2 = temp), fill = "#85B7CC")
+      p <- p + heatwave3::geom_flame3(aes(y = thresh_MCS_2x, y2 = temp), fill = "#85B7CC")
       # p <- p + geom_segment(data = filter(ts_data_sub, temp < thresh_MCS_2x),
       #                       aes(x = t, xend = t, y = ts_y_min, yend = ts_y_max), colour = "#85B7CC")
     }
     if(any(ts_data_sub$temp < ts_data_sub$thresh_MCS_3x)){
-      p <- p + heatwaveR::geom_flame(aes(y = thresh_MCS_3x, y2 = temp), fill = "#4A6A94")
+      p <- p + heatwave3::geom_flame3(aes(y = thresh_MCS_3x, y2 = temp), fill = "#4A6A94")
       # p <- p + geom_segment(data = filter(ts_data_sub, temp < thresh_MCS_3x),
       #                       aes(x = t, xend = t, y = ts_y_min, yend = ts_y_max), colour = "#4A6A94")
     }
     if(any(ts_data_sub$temp < ts_data_sub$thresh_MCS_4x)){
-      p <- p + heatwaveR::geom_flame(aes(y = thresh_MCS_4x, y2 = temp), fill = "#111433")
+      p <- p + heatwave3::geom_flame3(aes(y = thresh_MCS_4x, y2 = temp), fill = "#111433")
       # p <- p + geom_segment(data = filter(ts_data_sub, temp < thresh_MCS_4x),
       #                       aes(x = t, xend = t, y = ts_y_min, yend = ts_y_max), colour = "#111433")
     }

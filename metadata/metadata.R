@@ -8,7 +8,6 @@
 
 .libPaths(c("~/R-packages", .libPaths()))
 library(tidyverse)
-library(FNN)
 
 
 # 2: Create metadata ------------------------------------------------------
@@ -145,19 +144,10 @@ MCS_colours <- c(
 # Add an index column for easier pixel comparisons below
 OISST_ocean_coords$index <- seq_len(nrow(OISST_ocean_coords))
 
-# Function for finding matching pixels between OISST and another product
-X_OISST_coords <- function(file_name){
-  coord_match <- tidync(file_name) |> 
-      hyper_tibble() |>
-      na.omit() |>
-      select(lon, lat) |>
-      mutate(index = as.vector(knnx.index(as.matrix(OISST_ocean_coords[,c("lon", "lat")]),
-                                          as.matrix(.), k = 1))) |>
-      left_join(OISST_ocean_coords, by = "index") |>
-      dplyr::rename(lon = lon.x, lat = lat.x,
-                    lon_OI = lon.y, lat_OI = lat.y) |>
-      dplyr::select(lon, lat, lon_OI, lat_OI)
-}
+# NB: X_OISST_coords() was removed - it had zero callers anywhere in the repo.
+# It matched pixels between OISST and another product's grid via nearest-neighbour
+# (FNN::knnx.index); MHW_database.R now just reads the pre-computed CCI_OISST_coords.Rds
+# / CMC0.x_OISST_coords.Rds files directly instead of calling this to regenerate them.
 
 # Get coords between EPSG:4326 (OISST) and EPSG:leaflet
 # lon_lat_OISST_XY <- mutate(lon_lat_OISST) |> dplyr::rename(X = lon, Y = lat)

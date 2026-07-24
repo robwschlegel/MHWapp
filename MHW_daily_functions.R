@@ -14,24 +14,25 @@
 # remotes::install_github("robwschlegel/heatwave3@dev", force = TRUE)
 suppressPackageStartupMessages({
 library(tidyverse)
-# library(terra) # This often throws errors due to missing external files
 library(raster)
-library(leaflet)
 library(ncdf4)
 library(tidync)
 library(abind)
-library(padr)
 library(RCurl)
 library(XML)
-library(threadr)
 # library(heatwaveR)
 library(heatwave3)
-library(doParallel)
+library(future)
+library(furrr)
 })
 
 # print(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))
 print(paste0("heatwave3 version = ",packageDescription("heatwave3")$Version))
-registerDoParallel(cores = 25)
+
+# NB: no parallel plan is set up here - workers are configured to run this
+# same file at startup (see MHW_daily.R's cluster setup), so this file must
+# stay free of any plan()/cluster-creation side effects, or every worker
+# would try to spin up its own cluster recursively when sourcing it.
 
 # Load metadata
 source("metadata/metadata.R")
@@ -39,50 +40,10 @@ source("metadata/metadata.R")
 
 # 2: Extract MHW results functions ----------------------------------------
 
-# Pull out climatologies
-MHW_clim <- function(df){
-  clim <- df |> 
-    unnest(event) |> 
-    filter(row_number() %% 2 == 1) |> 
-    unnest(event)
-}
-
-# Pull out events
-MHW_event <- function(df){
-  event <- df |> 
-    unnest(event) |> 
-    filter(row_number() %% 2 == 0) |> 
-    unnest(event)
-}
-
-# Pull out category climatologies
-MHW_cat_clim <- function(df, long = FALSE){
-  cat_clim <- df |> 
-    unnest(cat) |> 
-    filter(row_number() %% 2 == 1) |> 
-    unnest(cat)
-  if(long){
-    cat_clim_long <- cat_clim |> 
-      group_by(lon, lat) |>
-      nest() |>
-      mutate(long = map(data, pad, interval = "day", 
-                        start_val = as.Date("1982-01-01"))) |> 
-      dplyr::select(-data) |>
-      unnest()
-  } else {
-    return(cat_clim)
-  }
-}
-
-# Pull out event category summaries
-MHW_cat_event <- function(df){
-  suppressWarnings(
-    cat_event <- df |> 
-      unnest(cat) |> 
-      filter(row_number() %% 2 == 0) |> 
-      unnest(cat)
-  )
-}
+# NB: MHW_clim(), MHW_event(), MHW_cat_clim(), and MHW_cat_event() were removed -
+# they had zero callers anywhere in the repo. Their nested list-column unnesting
+# (splitting rows on odd/even row_number()) matched heatwaveR's old output shape,
+# not heatwave3's flat data.frame outputs, so they were pre-migration leftovers.
 
 
 # 3: Update OISST data functions ------------------------------------------
@@ -94,7 +55,7 @@ NOAA_date <- function(date_string, piece){
 }
 
 # Find the URLs for all files that need to be downloaded
-OISST_url_daily <- function(target_month, final_dates){
+OISST_url_daily <- function(target_month){
   OISST_url <- paste0(OISST_url_month, target_month,"/")
   OISST_url_get <- getURL(OISST_url)
   OISST_table <- readHTMLTable(OISST_url_get)[[1]] |> 
@@ -105,7 +66,7 @@ OISST_url_daily <- function(target_month, final_dates){
     filter(grepl("avhrr", files)) |> 
     mutate(t = lubridate::as_date(sapply(strsplit(files, "[.]"), "[[", 2)),
            full_name = paste0(OISST_url, files)) |> 
-    filter(t > max(final_dates))
+    filter(!(files %in% basename(OISST_daily_nc_files)))
   return(OISST_new)
 }
 
@@ -116,7 +77,7 @@ OISST_url_daily_save <- function(target_URL){
   file_year <- substr(sapply(strsplit(target_URL, split = "/"), "[[", 9), 1, 4)
   file_name <- sapply(strsplit(target_URL, split = "/"), "[[", 10)
   file_dest <- paste0("../data/OISST/daily/",file_year,"/",file_name)
-  dir.create(paste0("../data/OISST/daily/",file_year))
+  dir.create(paste0("../data/OISST/daily/",file_year), showWarnings = FALSE)
   
   # Check if file already exists and download if needed
   if(file.exists(file_dest)){
@@ -136,34 +97,58 @@ OISST_url_daily_save <- function(target_URL){
   # rm(target_URL, file_year, file_name, file_dest, file_date, file_folder, dup_file)
 }
 
+# Derives the final/prelim date indexes directly from the local daily
+# archive's file names, replacing the old final_dates.Rdata/prelim_dates.Rdata
+# on-disk indexes. A file tagged "_preliminary" means NOAA has only published
+# the preliminary version of that date so far - anything else is final. Uses
+# the same "prelim" tag match as final_index/prelim_index in MHW_daily.R.
+# NB: defaults to a fresh re-scan of the daily archive folder rather than the
+# OISST_daily_nc_files snapshot from metadata.R, so a call after this run's
+# downloads reflects the files just added - pass OISST_daily_nc_files
+# explicitly when the snapshot from script start is what's wanted instead.
+OISST_dates_index <- function(daily_files = dir("../data/OISST/daily", pattern = "oisst-avhrr",
+                                                full.names = TRUE, recursive = TRUE)){
+  file_stub <- sapply(strsplit(basename(daily_files), "[.]"), "[[", 2)
+  is_prelim <- grepl("prelim", basename(daily_files))
+  file_date <- as.Date(str_remove(file_stub, "_preliminary"), format = "%Y%m%d")
+  list(final_dates = sort(unique(file_date[!is_prelim])),
+       prelim_dates = sort(unique(file_date[is_prelim])))
+}
+
 # Prepares downloaded OISST data for merging with larger files
+# NB: rewritten to use raw ncdf4 instead of tidync - same ~50x per-call
+# overhead win as OISST_lon_filter()/OISST_day_read() (benchmarked ~5.8s vs
+# ~0.09s per file), verified byte-identical output against the tidync version
 OISST_prep <- function(file_name){
-  tidync(file_name) |>  
-    hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |> 
-    dplyr::select(lon, lat, time, sst) |> 
-    dplyr::rename(t = time, temp = sst) |>  
-    mutate(t = as.Date(t, origin = "1978-01-01"),
-           lon = as.numeric(lon),
-           lat = as.numeric(lat))
+  nc <- nc_open(file_name)
+  sst <- ncvar_get(nc, "sst", start = c(1,1,1,1), count = c(-1,-1,1,1))  # [lon, lat] matrix
+  lon_vals <- as.numeric(nc$dim$lon$vals)
+  lat_vals <- as.numeric(nc$dim$lat$vals)
+  time_val <- as.numeric(ncvar_get(nc, "time"))
+  nc_close(nc)
+  data.frame(lon = rep(lon_vals, times = length(lat_vals)),
+            lat = rep(lat_vals, each = length(lon_vals)),
+            t = as.Date(time_val, origin = "1978-01-01"),
+            temp = as.vector(sst))
 }
 
 # Function for creating arrays from data.frames
 # df <- filter(OISST_step, t == 18413)
 # df <- filter(df_dl, t == "2021-03-23")
 OISST_acast <- function(df){
-  
+
   # Ensure correct grid size
-  lon_lat_OISST_sub <- lon_lat_OISST |> 
+  lon_lat_OISST_sub <- lon_lat_OISST |>
     filter(lon == df$lon[1])
-  
+
   # Round data for massive file size reduction
   df$temp <- round(df$temp, 2)
-  
+
   # Force grid
   res <- df |>
-    right_join(lon_lat_OISST_sub, by = c("lon", "lat")) |> 
+    right_join(lon_lat_OISST_sub, by = c("lon", "lat")) |>
     arrange(lon, lat)
-  
+
   # Create array
   res_array <- base::array(res$temp, dim = c(720,1,1))
   dimnames(res_array) <- list(lat = lon_lat_OISST_sub$lat,
@@ -175,21 +160,21 @@ OISST_acast <- function(df){
 # Wrapper function for last step before data are entered into NetCDF files
 # df <- OISST_final_sub
 OISST_temp <- function(df){
-  
+
   # Filter NA and convert dates to integer
-  OISST_step <- df |> 
+  OISST_step <- df |>
     mutate(temp = ifelse(is.na(temp), NA, temp),
-           t = as.integer(t))# |> 
+           t = as.integer(t))# |>
     # na.omit() # Breaks data with missing days
-  
+
   # Acast
-  dfa <- OISST_step |> 
-    mutate(t2 = t) |> 
-    group_by(t2) |> 
-    nest() |> 
-    mutate(data2 = purrr::map(data, OISST_acast)) |> 
+  dfa <- OISST_step |>
+    mutate(t2 = t) |>
+    group_by(t2) |>
+    nest() |>
+    mutate(data2 = purrr::map(data, OISST_acast)) |>
     dplyr::select(-data)
-  
+
   # Final form
   dfa_temp <- abind(dfa$data2, along = 3, hier.names = T)
   # dimnames(dfa_temp)
@@ -197,118 +182,312 @@ OISST_temp <- function(df){
 }
 
 # Wrapper to help rectangle data from wide to long in `OISST_lon_NetCDF()`
+# NB: rewritten to use raw ncdf4 indexed reads instead of tidync's
+# hyper_filter()/hyper_tibble() - benchmarked at ~0.02s vs ~1.2s per file for
+# pulling one longitude out of a daily file, i.e. tidync's per-call overhead
+# (not file I/O) was the dominant cost of the old per-longitude build.
 OISST_lon_filter <- function(file_name, lon_slice){
-  tidync(file_name) |>  
-    hyper_filter(lon = lon == lon_slice) |> 
-    hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |> 
-    dplyr::select(lon, lat, time, sst) |> 
-    dplyr::rename(t = time, temp = sst) |>  
-    mutate(t = as.Date(t, origin = "1978-01-01"),
-           lon = as.numeric(lon),
-           lat = as.numeric(lat))
+  nc <- nc_open(file_name)
+  lon_idx <- which(nc$dim$lon$vals == lon_slice)
+  lat_vals <- nc$dim$lat$vals
+  time_val <- as.numeric(ncvar_get(nc, "time"))
+  sst_vals <- as.numeric(ncvar_get(nc, "sst", start = c(lon_idx, 1, 1, 1), count = c(1, -1, 1, 1)))
+  nc_close(nc)
+  data.frame(lon = lon_slice, lat = lat_vals,
+             t = as.Date(time_val, origin = "1978-01-01"), temp = sst_vals)
+}
+
+# Reads one daily file's full global SST grid in a single call. Used by
+# OISST_database_build() so each file is only opened/decompressed once for the
+# whole 1440-longitude build, instead of once per longitude (1440x redundant
+# reads) - benchmarked at ~0.04s per file, barely more than reading just one
+# longitude, since the file's [lon,lat] grid is stored as a single HDF5 chunk.
+OISST_day_read <- function(file_name){
+  nc <- nc_open(file_name)
+  sst <- round(ncvar_get(nc, "sst", start = c(1,1,1,1), count = c(-1,-1,1,1)), 2)
+  date_val <- as.Date(as.numeric(ncvar_get(nc, "time")), origin = "1978-01-01")
+  nc_close(nc)
+  list(t = date_val, sst = sst)
 }
 
 # Create new OISST lon slice NetCDF
+# NB: reads every file in OISST_daily_nc_files (metadata.R), so it must already
+# be populated with the full daily archive before this is called
 OISST_lon_NetCDF <- function(lon_row, date_max){
-  
+
   # Determine lon slice
   lon_val <- lon_OISST[lon_row]; lon_val_360 <- lon_val
   if(lon_val_360 < 0) lon_val_360 <- lon_val_360 + 360
   lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
-  
+
   # Set file name
   ncdf_file_name <- paste0("../data/OISST/oisst-avhrr-v02r01.ts.",lon_row_pad,".nc")
-  
-  
+
+
   # Compile data ------------------------------------------------------------
 
   # List of all downloaded daily files
   # OISST_nc_files <- dir("../data/OISST/daily", pattern = "v02r01", recursive = TRUE, full.names = TRUE)
-  
+
   # Takes a few minutes for ~40 years of data
+  # NB: parallelized via furrr/multisession (separate worker processes),
+  # never fork-based (doParallel/mclapply) - forking while HDF5 has any state
+  # loaded is not safe (a child can inherit an already broken/locked copy of
+  # HDF5's internal state, hanging forever on its first netCDF call).
   print(paste0("Began compiling data from 1982-01-01 to ",date_max," at ", Sys.time()," for lon ",lon_val))
-  # doParallel::registerDoParallel(cores = 50)
-  # system.time(
-  df_dl <- plyr::ldply(OISST_daily_nc_files, OISST_lon_filter, .parallel = TRUE, lon_slice = lon_val_360)
-  # ) # ~4 minutes for ~40 years of data
-  
-  
+  df_dl <- furrr::future_map_dfr(OISST_daily_nc_files, OISST_lon_filter, lon_slice = lon_val_360)
+
+
   # Define dimensions -------------------------------------------------------
-  
+
   # Set the dataframe in question
-  dat_base <- df_dl |> 
+  dat_base <- df_dl |>
     mutate(t = as.integer(t),
            lon = ifelse(lon > 180, lon-360, lon))
-  
+
   # lon
   xvals <- unique(dat_base$lon)
   if(length(xvals) > 1) stop("Too many lon values. Should only be one.")
   # xvals_df <- data.frame(lon = lon_lat_OISST$lon)
   nx <- length(xvals)
   lon_def <- ncdim_def("lon", "degrees_east", xvals)
-  
+
   # lat
   yvals <- unique(lon_lat_OISST$lat)
   # yvals_df <- data.frame(lat = lon_lat_OISST$lat)
   ny <- length(yvals)
   lat_def <- ncdim_def("lat", "degrees_north", yvals)
-  
+
   # time
   tunits <- "days since 1970-01-01 00:00:00"
   tvals <- seq(min(dat_base$t), max(dat_base$t))
   nt <- length(tvals)
   time_def <- ncdim_def("time", tunits, tvals, unlim = TRUE)
-  
-  
+
+
   # Create data arrays ------------------------------------------------------
-  
+
   print(paste0("Began creating arrays at ", Sys.time()))
   # system.time(
   dfa_temp <- OISST_temp(dat_base)
   # ) # ~4.5 minutes for ~ 40 years of data
-  
-  
+
+
   # Define variables --------------------------------------------------------
-  
+
   temp_def <- ncvar_def(name = "sst", units = "deg_C",
-                        dim = list(lat_def, lon_def, time_def), 
+                        dim = list(lat_def, lon_def, time_def),
                         longname = "Sea Surface Temperature",
                         missval = -999, prec = "float")
-  
-  
+
+
   # Create NetCDF files -----------------------------------------------------
-  
+
   # Check if file exists and delete beforehand
   if(file.exists(ncdf_file_name)) file.remove(ncdf_file_name)
-  
+
   # Create the new file
   ncout <- nc_create(filename = ncdf_file_name, vars = list(temp_def), force_v4 = T)
-  
-  
+
+
   # Put variables -----------------------------------------------------------
-  
+
   ncvar_put(nc = ncout, varid = temp_def, vals = dfa_temp)
-  
-  
+
+
   # Additional attributes ---------------------------------------------------
-  
+
   ncatt_put(ncout,"lon","axis","X") #,verbose=FALSE) #,definemode=FALSE)
   ncatt_put(ncout,"lat","axis","Y")
   ncatt_put(ncout,"time","axis","T")
-  
-  
-  # Global attributes -------------------------------------------------------
-  
-  # ncatt_put(ncout,0,"title",title$value)
-  # ncatt_put(ncout,0,"institution",institution$value)
-  # ncatt_put(ncout,0,"source",datasource$value)
-  # ncatt_put(ncout,0,"references",references$value)
-  # history <- paste("P.J. Bartlein", date(), sep=", ")
-  # ncatt_put(ncout,0,"history",history)
-  # ncatt_put(ncout,0,"Conventions",Conventions$value)
-  
+
+
   # close the file, writing data to disk
   nc_close(ncout)
+}
+
+# Creates or appends to one longitude's NetCDF file with a batch of
+# already-read daily grids (see OISST_database_build()). Array index i in
+# 1:1440 maps directly to lon_OISST[i] - verified against the daily files'
+# native lon dimension, which runs 0.125 to 359.875 ascending, i.e. the same
+# sequence as lon_OISST just with the back half relabelled negative - so no
+# lon-value lookup/conversion is needed here, unlike the old per-longitude
+# approach which filtered files by value.
+# NB: takes lon_slice pre-extracted from the full batch_array by the caller,
+# rather than the whole array - with furrr/multisession workers (separate
+# processes, no shared memory), passing the full multi-GB batch_array to all
+# 1440 tasks would mean re-serializing it repeatedly over sockets; each
+# worker only ever needs its own ~KB-MB slice.
+# NB: on append, only dates that are both (a) not already present and (b)
+# strictly after the file's current last date get written - this makes
+# re-running OISST_database_build() over already-completed years a safe
+# no-op instead of duplicating data. A file with a gap *before* its current
+# end (e.g. a stalled worker left an early year out - see OISST_database_verify())
+# can't be fixed by appending, since NetCDF's unlimited time dimension can
+# only grow at the end without rewriting the whole file - those cases are
+# left alone here and repaired by OISST_database_verify() instead.
+OISST_lon_write_batch <- function(lon_row, lon_slice, batch_dates){
+  lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
+  ncdf_file_name <- paste0("../data/OISST/oisst-avhrr-v02r01.ts.",lon_row_pad,".nc")
+
+  if(!file.exists(ncdf_file_name)){
+    tvals <- as.integer(batch_dates)
+    lon_def <- ncdim_def("lon", "degrees_east", lon_OISST[lon_row])
+    lat_def <- ncdim_def("lat", "degrees_north", lat_OISST)
+    time_def <- ncdim_def("time", "days since 1970-01-01 00:00:00", tvals, unlim = TRUE)
+    temp_def <- ncvar_def(name = "sst", units = "deg_C",
+                          dim = list(lat_def, lon_def, time_def),
+                          longname = "Sea Surface Temperature",
+                          missval = -999, prec = "float")
+    ncout <- nc_create(filename = ncdf_file_name, vars = list(temp_def), force_v4 = TRUE)
+    ncvar_put(nc = ncout, varid = temp_def, vals = lon_slice)
+    ncatt_put(ncout, "lon", "axis", "X")
+    ncatt_put(ncout, "lat", "axis", "Y")
+    ncatt_put(ncout, "time", "axis", "T")
+    nc_close(ncout)
+  } else {
+    nc <- nc_open(ncdf_file_name, write = TRUE)
+    existing_dates <- as.Date(nc$dim$time$vals, origin = "1970-01-01")
+    new_dates <- batch_dates[!(batch_dates %in% existing_dates) & batch_dates > max(existing_dates)]
+    if(length(new_dates) > 0){
+      new_idx <- match(new_dates, batch_dates)
+      tvals <- as.integer(new_dates)
+      existing_n <- length(existing_dates)
+      ncvar_put(nc = nc, varid = "time", vals = tvals,
+                start = existing_n + 1, count = length(tvals))
+      ncvar_put(nc = nc, varid = "sst", vals = lon_slice[, new_idx, drop = FALSE],
+                start = c(1, 1, existing_n + 1), count = c(720, 1, length(tvals)))
+    }
+    nc_close(nc)
+  }
+}
+
+# Checks one longitude's file against the full expected date range and, if
+# any dates are missing (whether the file is entirely absent, or short by a
+# gap anywhere in its record), deletes and fully rebuilds it from scratch via
+# OISST_lon_NetCDF() - simpler and more robust than trying to patch a gap in
+# place, since NetCDF's unlimited time dimension can't have dates inserted
+# before its current end without rewriting the file anyway.
+# lon_row <- 1425; expected_dates <- ...; date_max <- max(final_dates)
+OISST_lon_verify <- function(lon_row, expected_dates, date_max){
+  lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
+  ncdf_file_name <- paste0("../data/OISST/oisst-avhrr-v02r01.ts.",lon_row_pad,".nc")
+
+  complete <- FALSE
+  if(file.exists(ncdf_file_name)){
+    nc <- nc_open(ncdf_file_name)
+    existing_dates <- as.Date(nc$dim$time$vals, origin = "1970-01-01")
+    nc_close(nc)
+    complete <- all(expected_dates %in% existing_dates)
+  }
+
+  if(!complete){
+    if(file.exists(ncdf_file_name)) file.remove(ncdf_file_name)
+    OISST_lon_NetCDF(lon_row, date_max)
+  }
+  return(!complete)
+}
+
+# Checks all 1440 OISST lon-slice files against the full daily archive and
+# rebuilds (from scratch) any that are missing dates. Makes it safe to just
+# re-run OISST_database_build() any time - this is called automatically at
+# the end of that function, but can also be run on its own.
+# NB: deliberately sequential, not parallel (plain purrr, not furrr). The
+# check itself (just opening each file and reading its time dimension) is
+# cheap enough not to need it (~1440 quick opens), and any repairs run
+# through OISST_lon_NetCDF(), which already parallelizes internally across
+# the daily archive for a single longitude - there's no need to also
+# parallelize this outer loop on top of that, since breakages are expected to
+# be rare and few.
+# date_max <- max(final_dates)
+OISST_database_verify <- function(date_max){
+  file_dates <- as.Date(str_remove(sapply(strsplit(basename(OISST_daily_nc_files), "[.]"), "[[", 2),
+                                   "_preliminary"), format = "%Y%m%d")
+  expected_dates <- sort(unique(file_dates[file_dates <= as.Date(date_max)]))
+
+  print(paste0("Checking all 1440 files for missing dates at ", Sys.time()))
+  needs_rebuild <- purrr::map_lgl(1:1440, OISST_lon_verify,
+                                  expected_dates = expected_dates, date_max = date_max)
+
+  bad_lons <- which(needs_rebuild)
+  if(length(bad_lons) == 0){
+    print("All 1440 files are complete - nothing to repair.")
+  } else {
+    print(paste0(length(bad_lons)," of 1440 files were incomplete and have been rebuilt: ",
+                paste(bad_lons, collapse = ", ")))
+  }
+  return(invisible(bad_lons))
+}
+
+# Builds the entire 1440-file OISST database from scratch in ONE pass over the
+# daily archive, instead of the old approach of looping over each of the 1440
+# longitudes and re-reading (and re-decompressing) the whole archive each time
+# - that redundancy, not lack of parallelism, was what made the first attempt
+# at this look like it would take weeks. Each daily file is now read exactly
+# once (via OISST_day_read()) and scattered out to all 1440 per-longitude
+# files (via OISST_lon_write_batch()) in yearly batches, so at most 1440 file
+# handles are ever open at a time (and only briefly, once per batch) rather
+# than reopening every file 1440 times or holding 1440 handles open at once.
+# NB: safe to re-run any time. Batch years already fully present (checked
+# cheaply against a single representative file, lon_row 1) are skipped
+# instead of being re-read and re-written, and OISST_database_verify() runs
+# at the end to catch and rebuild any individual longitude left short by a
+# stalled/crashed worker in an earlier run (see the fork/HDF5-hang note on
+# OISST_lon_write_batch()) - a representative-file check only catches gaps
+# shared by (almost) every longitude, not a lone straggler.
+# date_max <- max(final_dates); batch_years <- 1
+OISST_database_build <- function(date_max, batch_years = 1){
+
+  file_dates <- as.Date(str_remove(sapply(strsplit(basename(OISST_daily_nc_files), "[.]"), "[[", 2),
+                                   "_preliminary"), format = "%Y%m%d")
+  yr_end <- lubridate::year(as.Date(date_max))
+
+  for(yr in seq(1982, yr_end, by = batch_years)){
+    yr_range <- yr:min(yr + batch_years - 1, yr_end)
+    yr_dates <- file_dates[lubridate::year(file_dates) %in% yr_range]
+    batch_files <- OISST_daily_nc_files[lubridate::year(file_dates) %in% yr_range]
+    if(length(batch_files) == 0) next
+
+    # Skip this batch entirely if a representative file already has every
+    # date it would contribute - avoids re-reading/re-writing years that are
+    # already done on a re-run
+    rep_file <- "../data/OISST/oisst-avhrr-v02r01.ts.0001.nc"
+    if(file.exists(rep_file)){
+      rep_nc <- nc_open(rep_file)
+      rep_dates <- as.Date(rep_nc$dim$time$vals, origin = "1970-01-01")
+      nc_close(rep_nc)
+      if(all(sort(unique(yr_dates)) %in% rep_dates)){
+        print(paste0("Batch ",min(yr_range),"-",max(yr_range)," already complete - skipping"))
+        next
+      }
+    }
+
+    batch_order <- order(yr_dates)
+    batch_files <- batch_files[batch_order]
+
+    print(paste0("Reading batch ",min(yr_range),"-",max(yr_range),
+                " (",length(batch_files)," files) at ", Sys.time()))
+    # NB: parallelized via furrr/multisession - each file is independent, no
+    # shared state, so this is a clean parallelization win
+    batch_data <- furrr::future_map(batch_files, OISST_day_read)
+
+    batch_array <- array(NA_real_, dim = c(1440, 720, length(batch_data)))
+    for(i in seq_along(batch_data)) batch_array[,,i] <- batch_data[[i]]$sst
+    batch_dates <- do.call(c, lapply(batch_data, `[[`, "t"))
+    rm(batch_data); gc()
+
+    print(paste0("Writing batch ",min(yr_range),"-",max(yr_range)," at ", Sys.time()))
+    # NB: pre-slice batch_array into one small piece per longitude before
+    # dispatching, rather than handing the whole (multi-GB) array to every
+    # task - see OISST_lon_write_batch() for why
+    lon_slices <- purrr::map(1:1440, ~ batch_array[.x,,])
+    furrr::future_walk2(1:1440, lon_slices, OISST_lon_write_batch,
+                        batch_dates = batch_dates)
+    rm(batch_array, lon_slices); gc()
+    print(paste0("Finished batch ",min(yr_range),"-",max(yr_range)," at ", Sys.time()))
+  }
+
+  OISST_database_verify(date_max)
 }
 
 # Function for merging OISST data into existing NetCDF files
@@ -317,29 +496,27 @@ OISST_lon_NetCDF <- function(lon_row, date_max){
 # lon_step <- -60.875
 # df <- OISST_dat
 OISST_merge <- function(lon_step, df){
-  
+
   ### Determine the correct lon slice/file
   # Determine lon slice
   lon_row <- which(lon_OISST == lon_step)
   lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
   # Determine file name
   ncdf_file_name <- paste0("../data/OISST/oisst-avhrr-v02r01.ts.",lon_row_pad,".nc")
-  # tester...
-  # ncdf_file_name <- paste0("../data/test/oisst-avhrr-v02r01.ts.",lon_row_pad,".nc")
-  
+
   ### Open NetCDF and determine dates present
   nc <- nc_open(ncdf_file_name, write = T)
   time_vals <- as.Date(nc$dim$time$vals, origin = "1970-01-01")
   # tail(time_vals)
-  
+
   ### Grab the lon slice intended for the chosen NetCDF file
-  OISST_prelim_sub <- df |> 
+  OISST_prelim_sub <- df |>
     filter(lon  == lon_step,
            t > max(time_vals))
-  OISST_final_sub <- df |> 
+  OISST_final_sub <- df |>
     filter(lon  == lon_step,
            t <= max(time_vals))
-  
+
   ### Check again for errors in the data
   if(nrow(OISST_final_sub) > 1){
     if(max(OISST_final_sub$temp, na.rm = T) > 100){
@@ -351,12 +528,12 @@ OISST_merge <- function(lon_step, df){
       stop(paste0("There are errors in the prelim OISST data for ",ncdf_file_name))
     }
   }
-  
+
   ### Create data arrays and insert into NetCDF file
   if(nrow(OISST_prelim_sub) > 0){
-    
+
     prelim_temp <- OISST_temp(OISST_prelim_sub)
-    
+
     for(i in 1:length(prelim_temp[1,1,])){
       ncvar_put(nc = nc, varid = "sst", vals = prelim_temp[,,i], verbose = FALSE,
                 start = c(1,1,(length(nc$dim$time$vals)+i)), count = c(720,1,1))
@@ -365,11 +542,11 @@ OISST_merge <- function(lon_step, df){
       nc_sync(nc)
     }
   }
-  
+
   if(nrow(OISST_final_sub) > 0){
-    
+
     final_temp <- OISST_temp(OISST_final_sub)
-    
+
     for(i in 1:length(final_temp[1,1,])){
       date_put <- which(nc$dim$time$vals == as.integer(dimnames(final_temp)[[3]])[i])
       ncvar_put(nc = nc, varid = "sst", vals = final_temp[,,i], verbose = FALSE,
@@ -379,7 +556,7 @@ OISST_merge <- function(lon_step, df){
   }
   # sst <- ncvar_get(nc, "sst")
   # tail(as.Date(nc$dim$time$vals, origin = "1970-01-01"))
-  
+
   ### Close file and exit
   nc_close(nc)
 }
@@ -394,69 +571,36 @@ create_thresh <- function(lon_row, base_years){
   # Set baseline and pad lon_row for file name
   base_line <- c(paste0(base_years[1],"-01-01"), paste0(base_years[2],"-12-31"))
   lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
-  
+
   # File names
   file_name_MHW <- paste0("../data/thresh/MHW_",lon_row_pad,"_",base_years[1],"-",base_years[2])
   file_name_MCS <- paste0("../data/thresh/MCS/MCS_",lon_row_pad,"_",base_years[1],"-",base_years[2])
-  
+
   # Calculate MHW clims
-  heatwave3::ts2clm3(
-    file_in = OISST_files[lon_row],
-    name = file_name_MHW,
-    climatologyPeriod = base_line,
-    n_threads = 1, 
-    quiet = TRUE
-  ) # ~2 seconds
-  
+  if(!file.exists(paste0(file_name_MHW, "_clim.nc"))){
+    heatwave3::ts2clm3(
+      file_in = OISST_files[lon_row],
+      name = file_name_MHW,
+      climatologyPeriod = base_line,
+      n_threads = 1,
+      quiet = TRUE
+    ) # ~2 seconds
+  }
+
   # Calculate MCS clims
-  heatwave3::ts2clm3(
-    file_in = OISST_files[lon_row],
-    name = file_name_MCS,
-    climatologyPeriod = base_line,
-    n_threads = 1, 
-    pctile = 10, 
-    quiet = TRUE
-  ) # ~2 seconds
-  
-  # Test
-  # test_MHW <- tidync(file_seas_MHW) |>
-  #   hyper_tibble(drop = FALSE) |>
-  #   mutate(lon = as.numeric(lon),
-  #          lat = as.numeric(lat),
-  #          doy = as.integer(doy))
-  #   # summarise(seas = mean(seas),
-  #   #           thresh = mean(thresh), .by = "doy")
-  # test_MCS <- tidync(file_seas_MCS) |>
-  #   hyper_tibble(drop = FALSE) |>
-  #   mutate(lon = as.numeric(lon),
-  #          lat = as.numeric(lat),
-  #          doy = as.integer(doy))
-  #   # summarise(seas = mean(seas),
-  #   #           thresh = mean(thresh), .by = "doy")
-  # ggplot(test_MHW, aes(x = as.numeric(doy), y = seas)) +
-  #   geom_line() +
-  #   geom_line(aes(y = thresh), colour = "red") +
-  #   # geom_line(data = test_MCS, aes(y = seas), colour = "purple") +
-  #   geom_line(data = test_MCS, aes(y = thresh), colour = "blue")
-  # event_line3(OISST_files[lon_row], file_seas_MHW, lon = 25.0, lat = -34.0,
-  #             start_date = "2018-01-01", end_date = "2019-12-31")
-  
-  # Compare to old files
-  # old_MHW <- readRDS(paste0("../data/thresh/MHW.seas.thresh.",lon_row_pad,"_",base_years[1],"-",base_years[2],".Rds"))
-  # old_MCS <- readRDS(paste0("../data/thresh/MCS/MCS.seas.thresh.",lon_row_pad,"_",base_years[1],"-",base_years[2],".Rds"))
-  # test_old_MHW <- left_join(test_MHW, old_MHW, by = join_by(lon, lat, doy)) |> 
-  #   mutate(seas_diff = seas.x - seas.y,
-  #          thresh_diff = thresh.x - thresh.y) |> 
-  #   summarise(seas_diff = mean(seas_diff),
-  #             thresh_diff = mean(thresh_diff), .by = c("lon", "lat"))
-  # test_old_MCS <- left_join(test_MCS, old_MCS, by = join_by(lon, lat, doy)) |> 
-  #   mutate(seas_diff = seas.x - seas.y,
-  #          thresh_diff = thresh.x - thresh.y) |> 
-  #   summarise(seas_diff = mean(seas_diff),
-  #             thresh_diff = mean(thresh_diff), .by = c("lon", "lat"))
-  
+  if(!file.exists(paste0(file_name_MCS, "_clim.nc"))){
+    heatwave3::ts2clm3(
+      file_in = OISST_files[lon_row],
+      name = file_name_MCS,
+      climatologyPeriod = base_line,
+      n_threads = 1,
+      pctile = 10,
+      quiet = TRUE
+    ) # ~2 seconds
+  }
+
   return()
-}
+  }
 
 # Function that loads and merges sst/seas/thresh for a given lon_step
 # lon_step <- lon_OISST[2]
@@ -536,40 +680,32 @@ sst_seas_thresh_merge <- function(lon_step, date_range,  base_years = c(1982, 20
 
 # A single function to run the daily calculations. Much less complicated.
 event_cat_calc <- function(lon_row, base_years = c(1982, 2011)){
-  
+
   # Set baseline and pad lon_row for file name
   base_line <- c(paste0(base_years[1],"-01-01"), paste0(base_years[2],"-12-31"))
   lon_row_pad <- str_pad(lon_row, width = 4, pad = "0", side = "left")
-  
+
   # Clim file names
-  # file_seas_MHW <- paste0("../data/thresh/MHW.seas.thresh.",lon_row_pad,"_",base_years[1],"-",base_years[2],".nc")
-  # file_seas_MCS <- paste0("../data/thresh/MCS/MCS.seas.thresh.",lon_row_pad,"_",base_years[1],"-",base_years[2],".nc")
   file_clim_MHW <- paste0("../data/thresh/MHW_",lon_row_pad,"_",base_years[1],"-",base_years[2],"_clim.nc")
   file_clim_MCS <- paste0("../data/thresh/MCS/MCS_",lon_row_pad,"_",base_years[1],"-",base_years[2],"_clim.nc")
-  
+
   # Event file names
   # NB: When moving from heatwaveR to heatwave3
   # All event and categories are calculated into the same .nc files
   # So there is no longer a "../data/cat_lon/" output
-  # file_cat_MHW <- paste0("../data/event/MHW.cat.",lon_row_pad,".",base_years[1],"-",base_years[2],".nc")
-  # file_cat_MCS <- paste0("../data/event/MCS/MCS.cat.",lon_row_pad,".",base_years[1],"-",base_years[2],".nc")
   file_event_MHW <- paste0("../data/event/MHW_",lon_row_pad,"_",base_years[1],"-",base_years[2])
   file_event_MCS <- paste0("../data/event/MCS/MCS_",lon_row_pad,"_",base_years[1],"-",base_years[2])
-  
+
   # Calculate MHW events + cats
-  # system.time(
   heatwave3::detect_event3(
     file_in = OISST_files[lon_row],
     name = file_event_MHW,
     clim_file = file_clim_MHW,
-    category = TRUE, 
-    # daily = "also", 
-    # roundRes = 2,
+    category = TRUE,
     n_threads = 1,
     quiet = TRUE
   ) # ~1 seconds
-  # )
-  
+
   # Calculate MCS clims
   heatwave3::detect_event3(
     file_in = OISST_files[lon_row],
@@ -580,24 +716,7 @@ event_cat_calc <- function(lon_row, base_years = c(1982, 2011)){
     n_threads = 1,
     quiet = TRUE
   )
-  
-  # Test
-  # test_MHW <- tidync(paste0("../data/event/MHW_",lon_row_pad,"_",base_years[1],"-",base_years[2],"_events.nc")) |>
-  #   hyper_tibble()
-  # test_MCS <- tidync(file_cat_MCS) |>
-  #   hyper_tibble()
-  # ggplot(test_MHW, aes(x = as.numeric(doy), y = seas)) +
-  #   geom_line() +
-  #   geom_line(aes(y = thresh), colour = "red") +
-  #   # geom_line(data = test_MCS, aes(y = seas), colour = "purple") +
-  #   geom_line(data = test_MCS, aes(y = thresh), colour = "blue")
-  # event_line3(OISST_files[lon_row], file_seas_MHW, lon = 25.0, lat = -34.0,
-  #             start_date = "2018-01-01", end_date = "2019-12-31")
-  
-  # Daily values
-  # test_MHW_daily <- tidync(paste0("../data/event/MHW_0001_1982-2011_events_daily.nc")) |>
-  #   hyper_tibble(drop = FALSE)
-  
+
   return()
 }
 
@@ -610,25 +729,16 @@ event_cat_calc <- function(lon_row, base_years = c(1982, 2011)){
 # date_range <- c(as.Date("2026-05-15"), as.Date("2026-05-31"))
 # base_years <- c(1982, 2011); MHW = TRUE
 load_sub_cat_clim <- function(lon_step, date_range, base_years, MHW = TRUE){
-  
-  ## Legacy code - kept for comparison once heatwave3 is able to create cat_clim outputs
-  # cat_clim_old <- readRDS("../data/cat_lon/MHW.cat.0100.1982-2011.Rda")
-  # cat_clim_old_sub <- cat_clim_old |>
-  #   filter(t >= date_range[1], t <= date_range[2])
-  # rm(cat_clim_old)
-  # return(cat_clim_sub)
-  
-  ## heatwave3 code
-  
+
   # Create text label
   base_years_text <- paste0(base_years[1],"-", base_years[2])
-  
+
   # Get correct baseline files
   MHW_seas_thresh_files_base <- str_subset(MHW_seas_thresh_files, base_years_text)
   MCS_seas_thresh_files_base <- str_subset(MCS_seas_thresh_files, base_years_text)
   MHW_event_files_base <- str_subset(MHW_event_files, base_years_text)
   MCS_event_files_base <- str_subset(MCS_event_files, base_years_text)
-  
+
   # Calculate daily values
   if(MHW){
     cat_daily <- category_daily3(
@@ -693,29 +803,32 @@ save_sub_cat_clim <- function(date_choice, df, event_type, base_years){
 # Function for loading, prepping, and saving the daily global category slices
 # date_range <- c(as.Date("2026-05-20"), as.Date("2026-05-26")); base_years = c(1982, 2011)
 cat_clim_global_daily <- function(date_range, base_years = c(1982, 2011)){
-  
+
   # Extract data
   # system.time(
-  MHW_cat_clim_daily <- plyr::ldply(1:1440, load_sub_cat_clim, .parallel = TRUE, 
-                                    date_range = date_range, base_years = base_years, MHW = TRUE) |> 
+  MHW_cat_clim_daily <- furrr::future_map_dfr(1:1440, load_sub_cat_clim,
+                                              date_range = date_range, base_years = base_years, MHW = TRUE,
+                                              .options = furrr::furrr_options(seed = TRUE)) |>
     mutate(category = factor(category, levels = 1:4,
                              labels = c("I Moderate", "II Strong", "III Severe", "IV Extreme")))
   # ) # 1 second per cycle. ~7 seconds for all.
-  MCS_cat_clim_daily <- plyr::ldply(1:1440, load_sub_cat_clim, .parallel = TRUE, 
-                                    date_range = date_range, base_years = base_years, MHW = FALSE) |> 
+  MCS_cat_clim_daily <- furrr::future_map_dfr(1:1440, load_sub_cat_clim,
+                                              date_range = date_range, base_years = base_years, MHW = FALSE,
+                                              .options = furrr::furrr_options(seed = TRUE)) |>
     mutate(category = factor(category, levels = 1:5,
                              labels = c("I Moderate", "II Strong", "III Severe", "IV Extreme", "V Ice")))
-  
+
   # Save data as .Rda and as rasters projected to the shiny EPSG:3857
   # NB: Running this on too many cores may cause RAM issues
-  # doParallel::registerDoParallel(cores = 20)
-  plyr::l_ply(seq(min(MHW_cat_clim_daily$t), max(MHW_cat_clim_daily$t), by = "day"),
-              save_sub_cat_clim, .parallel = TRUE, df = MHW_cat_clim_daily, 
-              event_type = "MHW", base_years = base_years)
+  furrr::future_walk(seq(min(MHW_cat_clim_daily$t), max(MHW_cat_clim_daily$t), by = "day"),
+                     save_sub_cat_clim, df = MHW_cat_clim_daily,
+                     event_type = "MHW", base_years = base_years,
+                     .options = furrr::furrr_options(seed = TRUE))
   rm(MHW_cat_clim_daily); gc()
-  plyr::l_ply(seq(min(MCS_cat_clim_daily$t), max(MCS_cat_clim_daily$t), by = "day"), 
-              save_sub_cat_clim, .parallel = TRUE, df = MCS_cat_clim_daily, 
-              event_type = "MCS", base_years = base_years)
+  furrr::future_walk(seq(min(MCS_cat_clim_daily$t), max(MCS_cat_clim_daily$t), by = "day"),
+                     save_sub_cat_clim, df = MCS_cat_clim_daily,
+                     event_type = "MCS", base_years = base_years,
+                     .options = furrr::furrr_options(seed = TRUE))
   rm(MCS_cat_clim_daily); gc()
   return()
 }

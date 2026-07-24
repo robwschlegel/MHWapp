@@ -14,8 +14,10 @@
 # source("MHW_daily_functions.R")
 library(dtplyr)
 
-# Set number of cores
-registerDoParallel(cores = 50)
+# NB: no parallel plan is set up here - this script is only ever run via
+# source("MHW_annual_summary.R") from within MHW_daily.R (Section 5), in the
+# same R session, so the furrr/multisession plan set up at the top of
+# MHW_daily.R is already active by the time this file runs.
 
 # Animation libraries
 ## Only needed when running animations at bottom of script
@@ -23,6 +25,11 @@ registerDoParallel(cores = 50)
 
 
 # 2: Functions ------------------------------------------------------------
+
+# Rounds to the nearest multiple of `accuracy` - replaces plyr::round_any()
+round_any <- function(x, accuracy){
+  round(x / accuracy) * accuracy
+}
 
 # Function that loads a MHW cat file but includes the date from the file name
 readRDS_date <- function(file_name){
@@ -82,7 +89,7 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = TRUE, fo
   ## Load data
   if(force_calc){
     # system.time(
-    event_cat <- map_df(event_cat_files, readRDS) #|> 
+    event_cat <- furrr::future_map_dfr(event_cat_files, readRDS) #|>
     # NB: Filter out ice if desired
     # right_join(OISST_no_ice_coords, by = c("lon", "lat")) |>  
     # na.omit()
@@ -258,14 +265,14 @@ event_total_state <- function(product, chosen_clim, MHW = TRUE){
   cat_daily_files <- dir("data/annual_summary", full.names = T,
                          pattern = paste0(product,event_file,"_cat_daily_",chosen_clim))
   cat_daily_files <- cat_daily_files[!grepl("total", cat_daily_files)]
-  cat_daily_mean <- map_dfr(cat_daily_files, readRDS) |>
+  cat_daily_mean <- furrr::future_map_dfr(cat_daily_files, readRDS) |>
     mutate(t = lubridate::year(t)) |>
-    group_by(t, category) |> 
-    summarise(cat_area_prop_mean = mean(cat_area_prop, na.rm = T), .groups = "drop") |> 
+    group_by(t, category) |>
+    summarise(cat_area_prop_mean = mean(cat_area_prop, na.rm = T), .groups = "drop") |>
     filter(t < lubridate::year(Sys.Date())) # Use this to not include the current partial year
-  
+
   # Extract only values from December 31st
-  cat_daily <- map_dfr(cat_daily_files, readRDS) |>
+  cat_daily <- furrr::future_map_dfr(cat_daily_files, readRDS) |>
     filter(lubridate::month(t) == 12, lubridate::day(t) == 31) |>
     mutate(t = lubridate::year(t)) |> #,
     # first_n_cum_prop = round(first_n_cum/nrow(OISST_ocean_coords), 4)) |> 
@@ -318,7 +325,7 @@ MHW_annual_count <- function(chosen_year, hemisphere){
   }
   
   ## Load data
-  MHW_cat <- plyr::ldply(MHW_cat_files, readRDS, .parallel = T) 
+  MHW_cat <- furrr::future_map_dfr(MHW_cat_files, readRDS)
   
   ## Summarise
   # system.time(
@@ -342,8 +349,10 @@ MHW_annual_count <- function(chosen_year, hemisphere){
 
 # Run them all
 # NB: Needs up to June 30th of the year for the Southern Hemisphere
-# plyr::l_ply(1982:2022, MHW_annual_count, .parallel = F, hemisphere = "S")
-# plyr::l_ply(1982:2023, MHW_annual_count, .parallel = F, hemisphere = "N")
+# furrr::future_walk(1982:2022, MHW_annual_count,
+#             hemisphere = "S")
+# furrr::future_walk(1982:2023, MHW_annual_count,
+#             hemisphere = "N")
 
 # test visuals
 # MHW_cat_count <- readRDS("data/annual_summary/MHW_cat_count_S_2014.Rds")
@@ -529,16 +538,16 @@ if(lubridate::yday(Sys.Date()) < 14){
 
 # Run ALL years
 ## MHW
-# plyr::l_ply(1982:2023, event_annual_state_fig, .parallel = T,
+# furrr::future_walk(1982:2023, event_annual_state_fig)
 #             product = "OISST", chosen_clim = "1991-2020")
-# plyr::l_ply(1982:2023, event_annual_state_fig, .parallel = T,
+# furrr::future_walk(1982:2023, event_annual_state_fig)
 #             product = "OISST", chosen_clim = "1982-2011")
-# plyr::l_ply(1982:2019, event_annual_state_fig, .parallel = T,
+# furrr::future_walk(1982:2019, event_annual_state_fig)
 #             product = "OISST", chosen_clim = "1992-2018")
 ## MCS
-# plyr::l_ply(1982:2023, event_annual_state_fig, .parallel = T,
+# furrr::future_walk(1982:2023, event_annual_state_fig)
 #             product = "OISST", chosen_clim = "1991-2020", MHW = F)
-# plyr::l_ply(1982:2023, event_annual_state_fig, .parallel = T,
+# furrr::future_walk(1982:2023, event_annual_state_fig)
 #             product = "OISST", chosen_clim = "1982-2011", MHW = F)
 
 # Figures of total time series by year
@@ -546,8 +555,8 @@ event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1991-202
   
   # Get the range needed for the y-axis
   df_sum <- df |> summarise(y_height = sum(cat_area_cum_prop), .by = "t")
-  df_y_height <- plyr::round_any(df_sum$y_height[df_sum$y_height == max(df_sum$y_height)], 5)
-  df_y_height_365 <- plyr::round_any(round(df_y_height/365, 2), 0.02)
+  df_y_height <- round_any(df_sum$y_height[df_sum$y_height == max(df_sum$y_height)], 5)
+  df_y_height_365 <- round_any(round(df_y_height/365, 2), 0.02)
   
   if(MHW){
     event_type <- "MHW"
@@ -555,7 +564,7 @@ event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1991-202
     event_colours <- MHW_colours
     event_limits <- c(0, round(df_y_height+1, -1))
     event_breaks <- seq(10, event_limits[2]-10, by = 10)
-    second_breaks <- seq(0.04, plyr::round_any(event_limits[2]/365, 0.02), 0.04)*365
+    second_breaks <- seq(0.04, round_any(event_limits[2]/365, 0.02), 0.04)*365
     second_break_labels <- paste0(seq(from = 4, by = 4, length.out = length(second_breaks)), "%")
   } else {
     event_type <- "MCS"
@@ -563,7 +572,7 @@ event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1991-202
     event_colours <- MCS_colours
     event_limits <- c(0, round(df_y_height+1, -1))
     event_breaks <- seq(5, event_limits[2]-5, by = 5)
-    second_breaks <- seq(0.02, plyr::round_any(event_limits[2]/365, 0.02), 0.02)*365
+    second_breaks <- seq(0.02, round_any(event_limits[2]/365, 0.02), 0.02)*365
     second_break_labels <- paste0(seq(from = 2, by = 2, length.out = length(second_breaks)), "%")
   }
   
@@ -650,25 +659,25 @@ BAMS_fig <- function(){
   # Get the range needed for the y-axis
   ## MHW
   df_MHW_sum <- df_MHW |> summarise(y_height = sum(cat_area_cum_prop), .by = "t")
-  df_MHW_y_height <- plyr::round_any(df_MHW_sum$y_height[df_MHW_sum$y_height == max(df_MHW_sum$y_height)], 5)
+  df_MHW_y_height <- round_any(df_MHW_sum$y_height[df_MHW_sum$y_height == max(df_MHW_sum$y_height)], 5)
   if(df_MHW_y_height < max(df_MHW_sum$y_height)) df_MHW_y_height <- df_MHW_y_height + 5
-  df_MHW_y_height_365 <- plyr::round_any(round(df_MHW_y_height/365, 2), 0.02)
+  df_MHW_y_height_365 <- round_any(round(df_MHW_y_height/365, 2), 0.02)
   ## MCS
   df_MCS_sum <- df_MCS |> summarise(y_height = sum(cat_area_cum_prop), .by = "t")
-  df_MCS_y_height <- plyr::round_any(df_MCS_sum$y_height[df_MCS_sum$y_height == max(df_MCS_sum$y_height)], 5)
+  df_MCS_y_height <- round_any(df_MCS_sum$y_height[df_MCS_sum$y_height == max(df_MCS_sum$y_height)], 5)
   if(df_MCS_y_height < max(df_MCS_sum$y_height)) df_MCS_y_height <- df_MCS_y_height + 5
-  df_MCS_y_height_365 <- plyr::round_any(round(df_MCS_y_height/365, 2), 0.02)
+  df_MCS_y_height_365 <- round_any(round(df_MCS_y_height/365, 2), 0.02)
   
   # Set plotting parameters
   ## MHW
   event_limits_MHW <- c(0, round(df_MHW_y_height+1, -1))
   event_breaks_MHW <- seq(20, event_limits_MHW[2]-10, by = 20)
-  second_breaks_MHW <- seq(0.04, plyr::round_any(event_limits_MHW[2]/365, 0.02), 0.04)*365
+  second_breaks_MHW <- seq(0.04, round_any(event_limits_MHW[2]/365, 0.02), 0.04)*365
   second_break_labels_MHW <- paste0(seq(from = 4, by = 4, length.out = length(second_breaks_MHW)), "%")
   ## MCS
   event_limits_MCS <- c(0, round(df_MCS_y_height+1, -1))
   event_breaks_MCS <- seq(10, event_limits_MCS[2]-5, by = 10)
-  second_breaks_MCS <- seq(0.02, plyr::round_any(event_limits_MCS[2]/365, 0.02), 0.02)*365
+  second_breaks_MCS <- seq(0.02, round_any(event_limits_MCS[2]/365, 0.02), 0.02)*365
   second_break_labels_MCS <- paste0(seq(from = 2, by = 2, length.out = length(second_breaks_MCS)), "%")
   
   # Set same x-axis breaks for all panels

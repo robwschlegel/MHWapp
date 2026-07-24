@@ -25,9 +25,6 @@ ui <- page_fluid(
   # TODO: Make sidebar tab button larger
   # TODO: Get annual summaries back in
   # TODO: Allow downloading annual summary PDF figures with a text caption explaining the panels
-  # TODO: Could show MCS and MHW at the same time
-    # This could get tricky.. I suppose that is what the anomaly layer is for
-    # Or rather just have MHW stats etc. dominate when both layers are shown.
   card(fill = FALSE, 
        full_screen = TRUE,
        min_height = "600px",

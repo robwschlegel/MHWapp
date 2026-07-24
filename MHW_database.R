@@ -1,4 +1,7 @@
 # MHW_database.R
+
+# NB: This is deprecated code that has been kept in the project for legacy purposes
+
 # This script houses the code used to establish the database used in the MHW Tracker
 # Note that the code in this script is only meant to be run once
 # For best results uncomment the desired lines and run this script via source()
