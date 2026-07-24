@@ -187,13 +187,13 @@ if(ncdf_date > event_date){
   print(paste0("Began 1982-2011 baseline calcs at ", Sys.time()))
   # system.time(
   furrr::future_walk(1:1440, event_cat_calc, 
-                     .options = furrr::furrr_options(seed = TRUE, conditions = character())); gc()
+                     .options = furrr::furrr_options(seed = TRUE)); gc()
   # ) # ~2 seconds per cycle
 
   # 1991-2020 calcs
   print(paste0("Began 1991-2020 baseline calcs at ", Sys.time()))
   furrr::future_walk(1:1440, event_cat_calc, base_years = c(1991, 2020),
-                     .options = furrr::furrr_options(seed = TRUE, conditions = character())); gc()
+                     .options = furrr::furrr_options(seed = TRUE)); gc()
 
   print(paste0("Finished MHW/MCS lon files at ", Sys.time()))
 }

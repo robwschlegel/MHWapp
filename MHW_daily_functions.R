@@ -808,13 +808,13 @@ cat_clim_global_daily <- function(date_range, base_years = c(1982, 2011)){
   # system.time(
   MHW_cat_clim_daily <- furrr::future_map_dfr(1:1440, load_sub_cat_clim,
                                               date_range = date_range, base_years = base_years, MHW = TRUE,
-                                              .options = furrr::furrr_options(seed = TRUE, conditions = character())) |>
+                                              .options = furrr::furrr_options(seed = TRUE)) |>
     mutate(category = factor(category, levels = 1:4,
                              labels = c("I Moderate", "II Strong", "III Severe", "IV Extreme")))
   # ) # 1 second per cycle. ~7 seconds for all.
   MCS_cat_clim_daily <- furrr::future_map_dfr(1:1440, load_sub_cat_clim,
                                               date_range = date_range, base_years = base_years, MHW = FALSE,
-                                              .options = furrr::furrr_options(seed = TRUE, conditions = character())) |>
+                                              .options = furrr::furrr_options(seed = TRUE)) |>
     mutate(category = factor(category, levels = 1:5,
                              labels = c("I Moderate", "II Strong", "III Severe", "IV Extreme", "V Ice")))
 
@@ -823,12 +823,12 @@ cat_clim_global_daily <- function(date_range, base_years = c(1982, 2011)){
   furrr::future_walk(seq(min(MHW_cat_clim_daily$t), max(MHW_cat_clim_daily$t), by = "day"),
                      save_sub_cat_clim, df = MHW_cat_clim_daily,
                      event_type = "MHW", base_years = base_years,
-                     .options = furrr::furrr_options(seed = TRUE, conditions = character()))
+                     .options = furrr::furrr_options(seed = TRUE))
   rm(MHW_cat_clim_daily); gc()
   furrr::future_walk(seq(min(MCS_cat_clim_daily$t), max(MCS_cat_clim_daily$t), by = "day"),
                      save_sub_cat_clim, df = MCS_cat_clim_daily,
                      event_type = "MCS", base_years = base_years,
-                     .options = furrr::furrr_options(seed = TRUE, conditions = character()))
+                     .options = furrr::furrr_options(seed = TRUE))
   rm(MCS_cat_clim_daily); gc()
   return()
 }
