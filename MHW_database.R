@@ -1,431 +1,115 @@
 # MHW_database.R
+# This script builds the full OISST backend from scratch on a machine that has
+# none of it yet, so the project can be stood up on a fresh clone rather than
+# relying on data that only ever existed on the original server.
+# It is a one-time/deliberate-rerun script (not part of the daily cron job) and
+# reuses the functions already defined in "MHW_daily_functions.R" rather than
+# redefining them here.
+# NB: run via source("MHW_database.R") in a terminal R session, never RStudio
+# Server - same NetCDF write-privilege issue documented at the top of MHW_daily.R
+# It performs the following tasks:
+## 1: Sets up the environment
+## 2: Downloads the full NOAA OISST daily archive (1982-01 onward)
+## 3: Builds the 1440 per-longitude OISST NetCDF files
+## 4: Builds the per-longitude climatology (thresh) files for both baselines
 
-# NB: This is deprecated code that has been kept in the project for legacy purposes
 
-# This script houses the code used to establish the database used in the MHW Tracker
-# Note that the code in this script is only meant to be run once
-# For best results uncomment the desired lines and run this script via source()
-# 1: Setup the environment
-# 2: OISST database
-# 3: CCI database
-# 4: CMC database
-# 5: Test visuals
+# 1: Setup ------------------------------------------------------------------
+
+source("MHW_daily_functions.R")
+
+# Directories a fresh machine won't have yet. Some of the functions below
+# (OISST_url_daily_save() for the year sub-folders, create_thresh() for the
+# MHW/MCS thresh outputs) assume these already exist rather than creating them
+dir.create("../data/OISST/daily", recursive = TRUE, showWarnings = FALSE)
+dir.create("../data/thresh/MCS", recursive = TRUE, showWarnings = FALSE)
+
+# Parallel worker plan - separate processes (multisession), never fork-based,
+# same rationale as MHW_daily.R (see the fork/HDF5-hang notes in
+# MHW_daily_functions.R). Workers independently source MHW_daily_functions.R
+# at startup so they end up with identical state to the main session.
+n_workers <- 25
+oisst_cwd <- getwd()
+oisst_cl <- parallelly::makeClusterPSOCK(
+  n_workers, rscript_libs = .libPaths(),
+  rscript_startup = bquote({setwd(.(oisst_cwd)); source("MHW_daily_functions.R")})
+)
+future::plan(future::cluster, workers = oisst_cl)
 
 
-# 1: Setup ----------------------------------------------------------------
+# 2: Download the full OISST daily archive -----------------------------------
 
-# Libraries
-.libPaths(c("~/R-packages", .libPaths()))
-library(tidyverse)
-library(tidync)
-library(doParallel)
-library(heatwaveR)
-print(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))
+# Get the source index of monthly file folders, from 1982-01 onward (matches
+# the climatology baseline start date used throughout the rest of the
+# pipeline - the archive technically goes back to 1981-09, but nothing here
+# needs those extra four months)
+print(paste0("Fetching OISST folder names at ",Sys.time()))
+OISST_url_month <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/"
+OISST_url_month_get <- getURL(OISST_url_month)
+OISST_table <- readHTMLTable(OISST_url_month_get, as.data.frame = TRUE)[[1]] |>
+  rename(months = V1) |> drop_na()
+OISST_months <- slice(OISST_table, which(OISST_table$months == "198201/"):nrow(OISST_table)) |>
+  mutate(months = lubridate::as_date(str_replace(as.character(months), "/", "01"))) |>
+  mutate(months = gsub("-", "", substr(months, 1, 7)))
 
-# Set cores
-registerDoParallel(cores = 25)
+# Find and download every daily file for those months
+# NB: on a fresh machine this is the entire archive - tens of thousands of
+# files - so this step dominates the runtime of this script
+print(paste0("Fetching OISST file names at ",Sys.time()))
+OISST_filenames <- furrr::future_map_dfr(OISST_months$months, OISST_url_daily) |>
+  dplyr::select(files, t, full_name)
 
-# Metadata
-source("metadata/metadata.R")
-
-# The product vs. OISST grids
-CCI_OISST_coords <- readRDS("metadata/CCI_OISST_coords.Rds")
-CMC0.2_OISST_coords <- readRDS("metadata/CMC0.2_OISST_coords.Rds")
-CMC0.1_OISST_coords <- readRDS("metadata/CMC0.1_OISST_coords.Rds")
-
-# Function for loading a single OISST file
-load_OISST <- function(file_name){
-  tidync_OISST <- tidync(file_name) %>% 
-    hyper_tibble() %>% 
-    mutate(time = as.Date(time, origin = "1970-01-01")) %>% 
-    dplyr::rename(t = time, temp = sst) %>%
-    dplyr::select(lon, lat, t, temp)
-}
-
-# Function to create wider OISST slices to match the rest of the project
-widen_OISST <- function(lon_int){
-
-  # Set the range of lon values
-  print(paste0("Began run on OISST wide ",lon_int," at ",Sys.time()))
-  lon_int_1 <- (lon_int*100)-99
-  lon_int_2 <- (lon_int*100)
-  if(lon_int_2 > 1440) lon_int_2 <- 1440
-  
-  # Load multiple thin OISST slices
-  # system.time(
-  wide_OISST <- plyr::ldply(OISST_files[lon_int_1:lon_int_2], load_OISST, 
-                            .parallel = T, .paropts = c(.inorder = FALSE))
-  # ) # 85 seconds on 25 cores
-  
-  # Save and clean up
-  lon_int_pad <- str_pad(lon_int, width = 2, pad = "0", side = "left")
-  saveRDS(wide_OISST, paste0("../data/OISST_lon/OISST_SST_",lon_int_pad,".Rds"))
-  rm(wide_OISST); gc()
-}
-
-# Function for loading a day of pixels in a chosen lon slice
-load_lon_day <- function(day_int, lon_int, product){
-  
-  # Set product related info
-  if(product == "CMC"){
-    file_date <- as.Date(substr(CMC_files[day_int], start = 13, stop = 21), format = "%Y%m%d")
-    if(file_date <= as.Date("2016-12-31")){
-      grid_coords <- CMC0.2_OISST_coords
-    } else {
-      grid_coords <- CMC0.1_OISST_coords
-    }
-    file_name <- CMC_files[day_int]
-  } else if(product == "CCI"){
-    grid_coords <- CCI_OISST_coords
-    file_name <- CCI_files[day_int]
-  } else {
-    stop("Product name is incorrect")
-  }
-
-  # Set the range of lon values
-  lon_int_1 <- (lon_int*100)-99
-  lon_int_2 <- (lon_int*100)
-  if(lon_int_2 > 1440) lon_int_2 <- 1440
-  lon_steps <- lon_OISST[seq(lon_int_1, lon_int_2)]
-  
-  # Find the pixels nearest to the chosen OISST lon slice
-  lon_pixels <- filter(grid_coords, lon_OI %in% lon_steps)
-
-  print(paste0("Began run on ",file_name," at ",Sys.time()))
-  
-  # Extracts and processes a lon slice
-  # system.time(
-  lon_day <- tidync(file_name) %>%
-    hyper_filter(lon = dplyr::between(lon, min(lon_pixels$lon), max(lon_pixels$lon))) %>%
-    hyper_tibble() %>%
-    left_join(lon_pixels, by = c("lon", "lat")) %>%
-    na.omit() %>%
-    # right_join(lon_pixels, by = c("lon", "lat")) %>%
-    dplyr::select(lon_OI, lat_OI, time, analysed_sst) %>% 
-    dplyr::rename(t = time, temp = analysed_sst, 
-                  lon = lon_OI, lat = lat_OI) %>% 
-    group_by(lon, lat, t) %>% 
-    summarise(temp = mean(temp, na.rm = T)) %>% 
-    ungroup() %>% 
-    mutate(t = as.Date(as.POSIXct(t, origin = '1981-01-01', tz = "GMT")),
-           temp = round(temp-273.15, 2))
-  # ) # 21 seconds, 65,525 rows
-  return(lon_day)
-}
-
-# Function for loading all data within a lon slice
-load_lon_full <- function(lon_int, product, date_start, date_end){
-  
-  # Prep info
-  print(paste0("Began run on ",product," ",lon_int," at ",Sys.time()))
-  date_int_range <- 1:length(seq(date_start, date_end, by = "day"))
-  
-  # Load all days for chosen slice
-  lon_full <- plyr::ldply(date_int_range, load_lon_day, .parallel = T, 
-                          lon_int = lon_int, product = product, 
-                          .paropts = c(.inorder = FALSE))
-  
-  # Save and clean up
-  lon_int_pad <- str_pad(lon_int, width = 2, pad = "0", side = "left")
-  saveRDS(lon_full, paste0("../data/",product,"_lon/",product,"_SST_",lon_int_pad,".Rds"))
-  rm(lon_full); gc()
-}
-
-# Function for calculating MHWs for a lon slice with a chosen clim period
-# lon_int <- 1
-# chosen_clim <- c("1982-01-01", "2011-12-31")
-# product <- "OISST"
-detect_MHW_lon <- function(lon_int, product, chosen_clim){
-  
-  # Prep the needed metadata
-  print(paste0("Began run on ",product," ",lon_int," at ",Sys.time()))
-  lon_int_pad <- str_pad(lon_int, width = 2, pad = "0", side = "left")
-  lon_full <- readRDS(paste0("../data/",product,"_lon/",product,"_SST_",lon_int_pad,".Rds")) %>% 
-    filter(t >= as.Date("1982-01-01"), t <= as.Date("2019-12-31"))
-  min_year <- lubridate::year(min(as.Date(chosen_clim)))
-  max_year <- lubridate::year(max(as.Date(chosen_clim)))
-
-  # The full MHW results
-  # system.time(
-  lon_res <- plyr::dlply(lon_full, c("lon", "lat"), clim_event_cat, .parallel = T,
-                         chosen_clim = chosen_clim, .paropts = c(.inorder = FALSE))
-  # ) # 20 seconds for 1 OISST slice
-  
-  # Save the results
-  saveRDS(lon_res, paste0("../data/",product,"_lon/",product,"_MHW_",
-                          min_year,"-",max_year,"_",lon_int_pad,".Rds"))
-  rm(lon_res); gc()
-}
-
-# Function for calculating and returning parred down MHW results
-clim_event_cat <- function(df, chosen_clim){
-  
-  # Climatology
-  clim_base <- ts2clm(df, climatologyPeriod = chosen_clim)
-  
-  # Clean climatology
-  clim_clean <- dplyr::select(clim_base, doy, seas, thresh) %>% 
-    unique() %>% arrange(doy)
-  
-  # Base MHW detectiom
-  event_base <- detect_event(clim_base)
-  
-  # Clean it up
-  event_clean <- event_base$event %>% 
-    dplyr::select(event_no, duration:intensity_max, intensity_cumulative) %>%
-    mutate_all(round, 3)
-  
-  # Cleaned up event categories
-  cat_clean <- category(event_base, climatology = T)$climatology %>% 
-    select(t, event_no, intensity, category)
-  
-  # Exit
-  res <- list(clim = clim_clean,
-              event = event_clean,
-              cat = cat_clean)
-  return(res)
-}
-
-# Function for extracting chosen parts of the MHW results
-extract_MHW <- function(list_df, list_sub){
-  list_df_sub <- lapply(list_df, `[`, c(list_sub)) %>% 
-    plyr::ldply(., data.frame) %>% 
-    separate(.id, into = c("lon_1", "lon_2", "lat_1", "lat_2"), sep = "[.]") %>% 
-    unite(lon_1, lon_2, col = "lon", sep = ".") %>% 
-    unite(lat_1, lat_2, col = "lat", sep = ".") %>% 
-    rename_at(.vars = vars(starts_with(paste0(list_sub,"."))),
-              .funs = funs(sub(paste0(list_sub,"."), "", .))) %>% 
-    mutate(lon = as.numeric(lon),
-           lat = as.numeric(lat))
-}
-
-# Function for loading, prepping, and saving the daily global category slices
-# tester...
-# date_range <- c(as.Date("1982-01-01"), as.Date("1990-01-31"))
-# clim_period <- "1982-2011"
-# product <- "CCI"
-proc_cat <- function(date_range, product, clim_period){
-  
-  # Fetch file names
-  lon_files <- dir(paste0("../data/",product,"_lon"), 
-                   pattern = clim_period, full.names = T)
-  if(length(lon_files) < 15) stop("Lon files not fetched correctly")
-  
-  # Load the files
-  # NB: Can't run all 15 slices at once
-  registerDoParallel(cores = 8)
-  print(paste0("Began loading ",product,": ",clim_period, " for ",
-               date_range[1]," to ",date_range[2]," at ",Sys.time()))
-  cat_sub <- plyr::ldply(lon_files, load_cat, .parallel = T, 
-                         date_range = date_range, .paropts = c(.inorder = FALSE)) %>% 
-    mutate(category = factor(category, levels = c("I Moderate", "II Strong",
-                                                  "III Severe", "IV Extreme"))) %>% 
-    na.omit()
-  
-  # NB: Running this on too many cores may cause RAM issues
-  registerDoParallel(cores = 10)
-  print(paste0("Began saving ",product,": ",clim_period, " for ",
-               date_range[1]," to ",date_range[2]," at ",Sys.time()))
-  plyr::l_ply(seq(min(cat_sub$t), max(cat_sub$t), by = "day"), 
-              save_cat, .parallel = T, df = cat_sub,
-              product = product, clim_period = clim_period)
-  rm(cat_sub); gc()
-}
-
-# Function for loading a cat_lon slice and extracting a single day of values
-load_cat <- function(cat_lon_file, date_range){
-  # system.time(
-  cat_clim <- readRDS(cat_lon_file) %>% 
-    extract_MHW(., "cat")
-  # ) # 172 seconds
-  cat_clim_sub <- cat_clim %>%
-    filter(t >= date_range[1], t <= date_range[2])
-  rm(cat_clim); gc()
-  return(cat_clim_sub)
-}
-
-# Function for saving daily global cat files
-save_cat <- function(date_choice, df, product, clim_period){
-  
-  # Establish flie name and save location
-  cat_year <- lubridate::year(date_choice)
-  cat_dir <- paste0("../data/",product,"_cat/",cat_year)
-  dir.create(as.character(cat_dir), showWarnings = F)
-  cat_name <- paste0(product,"_cat_",clim_period,"_",date_choice,".Rds")
-  
-  # Extract data and save
-  df_sub <- df %>% 
-    filter(t == date_choice) %>% 
-    mutate(intensity = round(intensity, 2))
-  saveRDS(df_sub, file = paste0(cat_dir,"/",cat_name))
-  rm(df); gc()
+if(length(OISST_filenames$files) > 0){
+  cat(paste0("Saving ",nrow(OISST_filenames)," files locally at ", Sys.time()), "\n")
+  furrr::future_walk(OISST_filenames$full_name, OISST_url_daily_save)
 }
 
 
-# 2: OISST database -------------------------------------------------------
+# 3: Build the 1440 per-longitude OISST NetCDF files -------------------------
 
-# The NOAA OISST database for the MHW Tracker was created while the foundational
-# code base was still being developed. For this reason one will not find the code
-# here that downloads and establishes the file structure used in the Tracker. I
-# do intend to write this process out at some point in the future.
+# Refresh the daily-file index in the main session - the copy metadata.R
+# created in Section 1 (via MHW_daily_functions.R) predates the downloads above
+OISST_daily_nc_files <- dir("../data/OISST/daily", pattern = "oisst-avhrr", full.names = TRUE, recursive = TRUE)
+oisst_dates <- OISST_dates_index(OISST_daily_nc_files)
+date_max <- max(oisst_dates$final_dates)
 
-# The code needed to download and prep the NOAA OISST data for MHW calculations 
-# may be found here: https://theoceancode.netlify.app/post/dl_env_data_r/
-
-
-## Create wider lon slices to match the rest of the project
-# plyr::l_ply(1:15, widen_OISST, .parallel = F)
-
-
-## Detect MHWs for a given clim period
-# 1982 - 2011
-registerDoParallel(cores = 40)
-plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "OISST",
-            chosen_clim = c(as.Date("1982-01-01"), as.Date("2011-12-31")))
-Sys.sleep(10); gc()
-
-# 1992 - 2018
-# registerDoParallel(cores = 40)
-# plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "OISST",
-#             chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
-# Sys.sleep(10); gc()
+# Builds all 1440 files in one pass over the daily archive. Safe to re-run if
+# interrupted - already-complete years are skipped and OISST_database_verify()
+# runs at the end to repair any longitude left short by a stalled worker
+print(paste0("Began building 1440 OISST lon files at ", Sys.time()))
+OISST_database_build(date_max = date_max)
+print(paste0("Finished building 1440 OISST lon files at ", Sys.time()))
 
 
-## Create daily category slices
-# NB: This sets it's own core usage internally
-# Clim period 1982-2011
-proc_cat(date_range = c(as.Date("1982-01-01"), as.Date("1990-12-31")),
-         product = "OISST", clim_period = "1982-2011")
-Sys.sleep(10); gc()
-proc_cat(date_range = c(as.Date("1991-01-01"), as.Date("2000-12-31")),
-         product = "OISST", clim_period = "1982-2011")
-Sys.sleep(10); gc()
-proc_cat(date_range = c(as.Date("2001-01-01"), as.Date("2010-12-31")),
-         product = "OISST", clim_period = "1982-2011")
-Sys.sleep(10); gc()
-proc_cat(date_range = c(as.Date("2011-01-01"), as.Date("2019-12-31")),
-         product = "OISST", clim_period = "1982-2011")
-Sys.sleep(10); gc()
+# 4: Build climatology (thresh) files for both baselines ---------------------
 
-# Clim period 1992-2018
-  # ~ xx minutes for one decade
-proc_cat(date_range = c(as.Date("1982-01-01"), as.Date("1990-12-31")),
-         product = "OISST", clim_period = "1992-2018")
-Sys.sleep(10); gc()
-proc_cat(date_range = c(as.Date("1991-01-01"), as.Date("2000-12-31")), 
-         product = "OISST", clim_period = "1992-2018")
-Sys.sleep(10); gc()
-proc_cat(date_range = c(as.Date("2001-01-01"), as.Date("2010-12-31")),  
-         product = "OISST", clim_period = "1992-2018")
-Sys.sleep(10); gc()
-proc_cat(date_range = c(as.Date("2011-01-01"), as.Date("2019-12-31")), 
-         product = "OISST", clim_period = "1992-2018")
-Sys.sleep(10); gc()
+# create_thresh() reads OISST_files[lon_row]. OISST_files was set once in
+# Section 1 (via metadata.R, before Section 3 wrote the 1440 ts files) and is
+# now stale/empty in the main session. Restarting the worker cluster does NOT
+# fix this on its own: future/furrr auto-export any global a dispatched
+# function references using the *calling* (main) session's current value,
+# which silently overrides whatever a freshly-started worker's own
+# rscript_startup sourcing computed - confirmed by testing, not something
+# visible from reading the function definitions alone. So the fix is to
+# refresh OISST_files here, in the main session, before dispatching -
+# whatever the workers' own state is doesn't matter once this is correct.
+OISST_files <- dir("../data/OISST", pattern = "oisst-avhrr", full.names = TRUE)
+
+print(paste0("Began 1982-2011 baseline thresh calcs at ", Sys.time()))
+furrr::future_walk(1:1440, create_thresh, base_years = c(1982, 2011),
+                   .options = furrr::furrr_options(seed = TRUE))
+
+print(paste0("Began 1991-2020 baseline thresh calcs at ", Sys.time()))
+furrr::future_walk(1:1440, create_thresh, base_years = c(1991, 2020),
+                   .options = furrr::furrr_options(seed = TRUE))
+
+print(paste0("Finished thresh files at ", Sys.time()))
+
+# Shut down the parallel worker pool
+future::plan(future::sequential)
+parallel::stopCluster(oisst_cl)
 
 
-# 3: CCI database ---------------------------------------------------------
-
-# The code used to download the CCI data may also be found in the same post:
-# https://theoceancode.netlify.app/post/dl_env_data_r/
-
-# Another blog post is used for the calculation of MHWs in gridded data:
-# https://robwschlegel.github.io/heatwaveR/articles/gridded_event_detection.html
-
-# NCDUMP
-# ncdump::NetCDF(CCI_files[1])$variable[1:5]
-
-
-## Only run this to fully rectangle ALL of the CCI data
-# This takes roughly 15 hours on 25 cores
-# registerDoParallel(cores = 20)
-# plyr::l_ply(1:15, load_lon_full, .parallel = F, product = "CCI",
-            # date_start = as.Date("1981-09-01"), date_end = as.Date("2018-12-31"))
-
-
-## Calculate CCI MHWs
-# Clim period 1982 - 2011
-# registerDoParallel(cores = 40)
-  # 818 seconds on 50 cores for one slice
-# plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CCI",
-#             chosen_clim = c(as.Date("1982-01-01"), as.Date("2011-12-31")))
-# Sys.sleep(10); gc()
-
-# Clim period 1992 - 2018
-# plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CCI",
-#             chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
-# Sys.sleep(10); gc()
-
-
-## Create daily CCI MHW daily clim slice results
-# Clim period 1982-2011
-proc_cat(date_range = c(as.Date("1982-01-01"), as.Date("1990-12-31")),
-         product = "CCI", clim_period = "1982-2011")
-Sys.sleep(10); gc()
-proc_cat(date_range = c(as.Date("1991-01-01"), as.Date("2000-12-31")), 
-         product = "CCI", clim_period = "1982-2011")
-Sys.sleep(10); gc()
-proc_cat(date_range = c(as.Date("2001-01-01"), as.Date("2010-12-31")),  
-         product = "CCI", clim_period = "1982-2011")
-Sys.sleep(10); gc()
-proc_cat(date_range = c(as.Date("2011-01-01"), as.Date("2019-12-31")), 
-         product = "CCI", clim_period = "1982-2011")
-Sys.sleep(10); gc()
-
-# Clim period 1992-2018
-proc_cat(date_range = c(as.Date("1982-01-01"), as.Date("1990-12-31")),
-         product = "CCI", clim_period = "1992-2018")
-Sys.sleep(10); gc()
-proc_cat(date_range = c(as.Date("1991-01-01"), as.Date("2000-12-31")), 
-         product = "CCI", clim_period = "1992-2018")
-Sys.sleep(10); gc()
-proc_cat(date_range = c(as.Date("2001-01-01"), as.Date("2010-12-31")),  
-         product = "CCI", clim_period = "1992-2018")
-Sys.sleep(10); gc()
-proc_cat(date_range = c(as.Date("2011-01-01"), as.Date("2019-12-31")), 
-         product = "CCI", clim_period = "1992-2018")
-Sys.sleep(10); gc()
-
-
-# 4: CMC database ---------------------------------------------------------
-
-# The code used to download these data may be found at: "../tikoraluk/CMC_download.R"
-
-## Rectangle all of the CMC data
-# NB: This takes roughly 4 hours on 25 cores
-# registerDoParallel(cores = 50)
-# plyr::l_ply(1:15, load_lon_full, .parallel = F, product = "CMC",
-#             date_start = as.Date("1991-09-01"), date_end = as.Date("2019-12-31"))
-
-
-## Calculate CMC MHWs
-# clim period: 1992 - 2018
-# registerDoParallel(cores = 50)
-# plyr::l_ply(1:15, detect_MHW_lon, .parallel = F, product = "CMC",
-#             chosen_clim = c(as.Date("1992-01-01"), as.Date("2018-12-31")))
-# Sys.sleep(10); gc()
-
-
-## Create daily CMC MHW clim slice results
-# Clim period 1992-2018
-proc_cat(date_range = c(as.Date("1992-01-01"), as.Date("2000-12-31")), 
-         product = "CMC", clim_period = "1992-2018")
-Sys.sleep(10); gc()
-proc_cat(date_range = c(as.Date("2001-01-01"), as.Date("2010-12-31")),  
-         product = "CMC", clim_period = "1992-2018")
-Sys.sleep(10); gc()
-proc_cat(date_range = c(as.Date("2011-01-01"), as.Date("2019-12-31")), 
-         product = "CMC", clim_period = "1992-2018")
-Sys.sleep(10); gc()
-
-
-# 5: Test visuals ---------------------------------------------------------
-
-# CCI_test <- readRDS("../data/CCI_cat/1990/CCI_cat_1982-2011_1990-01-01.Rds")
-# OISST_test1 <- readRDS("../data/cat_clim/1990/cat.clim.1990-01-01.Rda")
-# OISST_test2 <- readRDS("../data/OISST_cat/1990/OISST_cat_1992-2018_1990-01-01.Rds")
-# 
-# ggplot(data = OISST_test2, aes(x = lon, y = lat)) +
-#   borders() +
-#   geom_tile(aes(fill = category)) +
-#   scale_fill_manual(values = MHW_colours)
-
+# From here, event/category files (which also need this same 1440-longitude
+# structure) are created by MHW_daily.R's own "2: Update MHW event and
+# category data" section, not by this script - see the comments there.

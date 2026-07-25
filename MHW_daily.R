@@ -4,16 +4,31 @@
 # This script is designed to be run autonomously once per day via a cron job
 # NB: Better to run this script via source("MHW_daily.R") in an R terminal
 # It performs the following tasks:
-## 1: Downloads the most recent final and prelim NOAA OISST
+## 1: Sets up the environment
+## 2: Downloads the most recent final and prelim NOAA OISST
 ##    data available and updates the local NetCDF files
-## 2: Updates MHW event and category data
-## 3: Creates daily global MHW category file(s)
-## 4: Check the `current_dates` index to make sure no days are missing
-## 5: Run the annual summary update
-## 6: Push to GitHub
-## 7: Maintenance
+## 3: Updates MHW event and category data
+## 4: Creates daily global MHW category file(s)
+## 5: Check the `current_dates` index to make sure no days are missing
+## 6: Run the annual summary update
+## 7: Push to GitHub
+## 8: Maintenance
+
+
+# 1: Setup ----------------------------------------------------------------
 
 source("MHW_daily_functions.R")
+
+# If setting up this pipeline for the first time on a machine with none of the
+# OISST archive yet, use source("MHW_database.R") instead - it downloads the
+# full daily archive and builds all 1440 per-longitude files (and the thresh
+# climatology files) from scratch.
+# To rebuild the whole per-longitude archive from an *already-downloaded*
+# daily archive instead, call directly:
+# OISST_database_build(date_max = max(final_dates))
+# NB: It should take ~30 seconds per year of data when building for first time
+# NB: If anything goes wrong while running this, re-run it and it can self heal,
+# though it may be faster to delete everything and start fresh
 
 # Parallel worker plan - separate processes (multisession), never fork-based
 # (multicore/doParallel) - forking around ncdf4/HDF5 hangs unpredictably (see
@@ -39,14 +54,7 @@ if(length(final_dates) == 0) stop("Final date indexing has broken.")
 if(length(prelim_dates) == 0) stop("Prelim date indexing has broken.")
 
 
-# 1: Update OISST data ----------------------------------------------------
-
-# If setting up this pipeline for the first time (or rebuilding the whole
-# archive), build all 1440 per-longitude files from the local daily archive:
-# OISST_database_build(date_max = max(final_dates))
-# NB: It should take ~30 seconds per year of data when building for first time
-# NB: If anything goes wrong while running this, re-run it and it can self heal,
-# though it may be faster to delete everything and start fresh
+# 2: Update OISST data ----------------------------------------------------
 
 # Get the source index monthly file folders with new data
 print(paste0("Fetching OISST folder names at ",Sys.time()))
@@ -155,9 +163,11 @@ if(nrow(OISST_dat) > 2){
 # re-run the OISST daily file downloading so that all files have the exact same date range
 
 
-# 2: Update MHW event and category data -----------------------------------
+# 3: Update MHW event and category data -----------------------------------
 
 # Create baseline seas+thresh files per longitude step
+# NB: On a machine with none of these yet, source("MHW_database.R") instead -
+# it builds these for both baselines as part of its from-scratch OISST setup.
 ## ~2 seconds per cycle
 # furrr::future_walk(1:1440, create_thresh, base_years = c(1982, 2011),
 #                    .options = furrr::furrr_options(seed = TRUE))
@@ -171,13 +181,9 @@ ncdf_1440 <- nc_open("../data/OISST/oisst-avhrr-v02r01.ts.1440.nc")
 ncdf_date <- max(as.Date(ncdf_1440$dim$time$vals, origin = "1970-01-01"))
 nc_close(ncdf_1440)
 event_file_check <- "../data/event/MHW_1440_1991-2020_events.nc"
-if(file.exists(event_file_check)){
-  ncdf_event_check <- nc_open(event_file_check)
-  event_date <- as.Date(max(ncvar_get(ncdf_event_check, "date_end")), origin = "1982-01-01")
-  nc_close(ncdf_event_check)
-} else {
-  event_date <- as.Date("1980-01-01")
-}
+ncdf_event_check <- nc_open(event_file_check)
+event_date <- as.Date(max(ncvar_get(ncdf_event_check, "date_end")), origin = "1982-01-01")
+nc_close(ncdf_event_check)
 
 # This takes roughly 14 minutes
 if(ncdf_date > event_date){
@@ -187,13 +193,13 @@ if(ncdf_date > event_date){
   print(paste0("Began 1982-2011 baseline calcs at ", Sys.time()))
   # system.time(
   furrr::future_walk(1:1440, event_cat_calc, 
-                     .options = furrr::furrr_options(seed = TRUE)); gc()
+                     .options = furrr::furrr_options(seed = TRUE))
   # ) # ~2 seconds per cycle
 
   # 1991-2020 calcs
   print(paste0("Began 1991-2020 baseline calcs at ", Sys.time()))
   furrr::future_walk(1:1440, event_cat_calc, base_years = c(1991, 2020),
-                     .options = furrr::furrr_options(seed = TRUE)); gc()
+                     .options = furrr::furrr_options(seed = TRUE))
 
   print(paste0("Finished MHW/MCS lon files at ", Sys.time()))
 }
@@ -223,7 +229,7 @@ if(ncdf_date > event_date){
 # furrr::future_walk(file_dates$file_num, event_cat_calc)
 
 
-# 3: Create daily global files --------------------------------------------
+# 4: Create daily global files --------------------------------------------
 
 # Get most current processed OISST dates
 ncdf_1440 <- nc_open("../data/OISST/oisst-avhrr-v02r01.ts.1440.nc")
@@ -243,7 +249,7 @@ if(length(update_dates) > 0) {
   cat_clim_global_daily(date_range = c(min(update_dates), max(update_dates)))
   
   # Quick break
-  gc(); Sys.sleep(10)
+  Sys.sleep(10)
   
   # 1991-2020 calcs
   print(paste0("Began 1991-2020 baseline calcs at ", Sys.time()))
@@ -272,7 +278,7 @@ if(length(update_dates) > 0) {
 # }
 
 
-# 4: Check current dates --------------------------------------------------
+# 5: Check current dates --------------------------------------------------
 
 # Indexes all files throughout the OISST/daily sub-folders to create the current_dates index
 current_dates <- as.Date(sapply(stringr::str_split(list.files("../data/OISST/daily/", 
@@ -287,7 +293,7 @@ if(length(possible_dates) > length(current_dates)){
 }
 
 
-# 5: Run annual summary ---------------------------------------------------
+# 6: Run annual summary ---------------------------------------------------
 
 # NB: Need a week of data into the new year before processing stats
 if(lubridate::yday(Sys.Date()) > 6) source("MHW_annual_summary.R")
@@ -299,14 +305,14 @@ future::plan(future::sequential)
 parallel::stopCluster(oisst_cl)
 
 
-# 6: Push to GitHub -------------------------------------------------------
+# 7: Push to GitHub -------------------------------------------------------
 
 system("git commit -a -m 'Daily run'")
 system("git pull")
 system("git push")
 
 
-# 7: Maintenance ----------------------------------------------------------
+# 8: Maintenance ----------------------------------------------------------
 
 # Active folders
 ## Daily/lon files

@@ -43,7 +43,7 @@ MHWapp/
 ├── MHW_daily_functions.R       # 🧰 All functions used by MHW_daily.R
 ├── MHW_daily_test.R            # 🧪 Ad hoc/manual scratch code for poking at the daily pipeline
 ├── MHW_annual_summary.R        # 📊 Builds per-year summary figures/data
-├── MHW_database.R              # 🗄️ Deprecated one-time database build/backfill script
+├── MHW_database.R              # 🗄️ One-time, from-scratch OISST backend bootstrap script
 ├── CITATION                    # 📝 How to cite the Tracker
 ├── LICENSE.md                  # ⚖️ MIT License, applies to this whole repo
 ├── README.md                   # 👋 That's this file
