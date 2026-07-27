@@ -19,10 +19,6 @@ library(dtplyr)
 # same R session, so the furrr/multisession plan set up at the top of
 # MHW_daily.R is already active by the time this file runs.
 
-# Animation libraries
-## Only needed when running animations at bottom of script
-# library(gganimate)
-
 
 # 2: Functions ------------------------------------------------------------
 
@@ -864,20 +860,20 @@ event_annual_historic_anim <- function(product = "OISST", chosen_clim = "1982-20
     scale_fill_manual("Category", values = event_colours) +
     coord_cartesian(expand = F, ylim = c(min(OISST_ocean_coords$lat), max(OISST_ocean_coords$lat))) +
     theme_void() +
-    transition_manual(frames = year, cumulative = FALSE)
+    gganimate::transition_manual(frames = year, cumulative = FALSE)
 
   # Create video
   gganimate::animate(anim_map, width = 25, height = 14, unit = "in",
                      # res = 100, fps = 1, duration = 10, # For testing
                      res = 300, fps = 1, duration = (nrow(event_cat_label)*2)+2, # For full data
                      end_pause = 1,
-                     renderer = av_renderer(paste0("animations/",product,event_file,"_",chosen_clim,"_annual.mp4")))
+                     renderer = gganimate::av_renderer(paste0("animations/",product,event_file,"_",chosen_clim,"_annual.mp4")))
   # Create GIF
-  # gganimate::animate(anim_map, width = 25, height = 14, unit = "in", 
+  # gganimate::animate(anim_map, width = 25, height = 14, unit = "in",
   #                    # res = 100, fps = 1, duration = 10, # For manual testing
   #                    res = 300,fps = 1, duration = (nrow(event_cat_label)*2)+2, # For full data
   #                    end_pause = 2,
-  #                    renderer = gifski_renderer(paste0("figures/",product,event_file,"_",chosen_clim,"_annual.gif")))
+  #                    renderer = gganimate::gifski_renderer(paste0("figures/",product,event_file,"_",chosen_clim,"_annual.gif")))
 }
 
 # Render the annual animations
@@ -934,10 +930,10 @@ event_annual_daily_anim <- function(anim_month, anim_year = lubridate::year(Sys.
     labs(title = paste0("Daily ",event_type," records for ", anim_year,"-",anim_month_pad,"; NOAA OISST; Climatology Period: ",chosen_clim,"; Date: {frame_time}"), 
          x = NULL, y = NULL) +
     theme_void() +
-    transition_time(t)
-  
+    gganimate::transition_time(t)
+
   # Save
-  anim_save(paste0("animations/",event_type,"_",chosen_clim,"_",anim_year,"_",anim_month_pad,".gif"), anim_daily_map, 
+  gganimate::anim_save(paste0("animations/",event_type,"_",chosen_clim,"_",anim_year,"_",anim_month_pad,".gif"), anim_daily_map,
             nframes = frame_steps, fps = 2, width = 9, height = 5, units = "in", res = 300)
   rm(event_cat_daily_pixel, anim_daily_map); gc()
 }

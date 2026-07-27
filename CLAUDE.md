@@ -25,7 +25,9 @@ the repo root (except `shiny/*.R`, which run with working directory `shiny/`).
 - `MHW_daily_functions.R` — all functions used by `MHW_daily.R`; sourced by it, not run
   directly.
 - `MHW_daily_test.R` — ad hoc/manual exploration snippets for poking at the daily
-  pipeline and functions; not an automated test suite.
+  pipeline and functions; not an automated test suite. Follows the same conventions as
+  the rest of the pipeline (own `future`/`furrr` worker-pool setup and teardown, raw
+  `ncdf4` reads rather than `tidync`) rather than being a stale scratchpad.
 - `MHW_annual_summary.R` — builds per-year summary figures/data from the daily category
   files; invoked automatically by `MHW_daily.R` once there's a week of data into the new
   year, or can be sourced standalone to rebuild/backfill annual summaries.
@@ -35,7 +37,13 @@ the repo root (except `shiny/*.R`, which run with working directory `shiny/`).
   climatology (thresh) files for both baselines. Reuses functions from
   `MHW_daily_functions.R` rather than redefining them. Does not create event/category
   files (that stays `MHW_daily.R`'s job), `cat_clim` daily files, annual summaries, or
-  handle CCI/CMC. Not part of the daily run; only re-run deliberately.
+  handle CCI/CMC. Not part of the daily run; only re-run deliberately. Its last step
+  symlinks `shiny/OISST`, `shiny/event`, `shiny/thresh`, and `shiny/cat_clim` to the
+  `../data/*` folders it (and later `MHW_daily.R`) populate, using absolute symlink
+  targets — `shiny/` sits one directory deeper than `../data` is from the repo root, so a
+  literal `../data/*` target would resolve relative to the symlink's own location and miss
+  the real data. The `event`/`cat_clim` symlinks won't resolve to a real directory until
+  `MHW_daily.R` has been run at least once, since this script doesn't create those itself.
 - `data/extract_spatial.R` — ad hoc script for pulling bespoke time/place extracts and
   converting to spatial (raster/sf) formats on request.
 - `data/published/published.R` — one-off processing of results from published papers
@@ -45,14 +53,16 @@ the repo root (except `shiny/*.R`, which run with working directory `shiny/`).
   matching). Sourced by the pipeline scripts.
 - Shiny app: `cd shiny && R -e "shiny::runApp()"` (or open in RStudio and click Run App).
   `global.R` runs once per app start; it hard-fails via `stop()` if the `OISST`, `event`,
-  `thresh`, or `cat_clim` data folders aren't present alongside the app — these are
-  populated by rsync from the pipeline output, not by the scripts in this repo, and are
-  gitignored (see `shiny/.gitignore`).
+  `thresh`, or `cat_clim` data folders aren't present alongside the app. On a production
+  deployment synced from elsewhere these are populated by rsync; on a single machine
+  bootstrapped from scratch via `MHW_database.R` they're symlinks that script creates
+  pointing at `../data/*` instead. Either way they're gitignored (see `shiny/.gitignore`).
 
 Because most data directories (`data/OISST`, `shiny/OISST`, `shiny/event`, `shiny/thresh`,
-`shiny/cat_clim`, etc.) are gitignored and populated by the daily pipeline / rsync, a
-fresh checkout of this repo cannot run the daily pipeline or the Shiny app end-to-end
-without that data already present on the host.
+`shiny/cat_clim`, etc.) are gitignored and populated by the daily pipeline / rsync (or, on
+a fresh bootstrap, by `MHW_database.R`'s symlink step), a fresh checkout of this repo
+cannot run the daily pipeline or the Shiny app end-to-end without that data already
+present on the host.
 
 ## Architecture
 
@@ -169,3 +179,13 @@ from-scratch bootstrap script and no longer touches CCI/CMC at all.)
   production call they vary (see the bottom of `MHW_daily.R` and `MHW_daily_test.R`).
   Follow this pattern for new one-off maintenance snippets rather than deleting them
   after use.
+- Each script that loads packages via `suppressPackageStartupMessages({ library(...) })`
+  (`MHW_daily_functions.R`, `shiny/global.R`) follows it with a commented
+  `# Dependencies that are called explicitly` list of every package only ever reached via
+  `pkg::fn()` rather than attached with `library()`. Keep this list in sync when adding or
+  removing an explicit `::` call, so the script's full dependency set stays visible in one
+  place rather than scattered across whichever function happens to use it.
+- Parallel worker counts are auto-detected, not hardcoded — `n_workers <- max(1,
+  floor(parallel::detectCores()/2))` — across `MHW_daily.R`, `MHW_database.R`, and
+  `MHW_daily_test.R`. Match this pattern in any new cluster-setup code rather than
+  hardcoding a core count.

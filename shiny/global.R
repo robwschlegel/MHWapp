@@ -29,13 +29,10 @@ library(waiter)
 # library(shiny)
 # library(shinycssloaders)
 # library(cicerone)
-# library(maps)
 # library(readr)
-# library(tidyr)
 # library(stringr)
 # library(lubridate)
 # library(raster)
-# library(tidync)
 # library(purrr)
 # library(daterangepicker)
 # library(heatwaveR)
@@ -54,16 +51,16 @@ source("functions.R", local = TRUE)
 # NB: These are the folders that are connected to the host server via rsync
 # NB: These folders are all symlink copies from the same folders on tikoraluk at ../data/*
 if(!dir.exists("OISST")) stop("The 'OISST' folder is missing.")
-if(!dir.exists("event")) stop("The 'event' folder is missing.")
 if(!dir.exists("thresh")) stop("The 'thresh' folder is missing.")
+if(!dir.exists("event")) stop("The 'event' folder is missing.")
 if(!dir.exists("cat_clim")) stop("The 'cat_clim' folder is missing.")
 
 ### The file locations
 OISST_files <- dir("OISST", pattern = "oisst-avhrr", full.names = T)
-MHW_event_files <- dir("event", pattern = "MHW_", full.names = T)
-MCS_event_files <- dir("event/MCS", pattern = "MCS_", full.names = T)
 MHW_seas_thresh_files <- dir("thresh", pattern = "MHW_", full.names = T)
 MCS_seas_thresh_files <- dir("thresh/MCS", pattern = "MCS_", full.names = T)
+MHW_event_files <- dir("event", pattern = "MHW_", full.names = T)
+MCS_event_files <- dir("event/MCS", pattern = "MCS_", full.names = T)
 # These files are rather accessed directly within server.R
 # cat_clim_files <- as.character(dir(path = "cat_clim", pattern = "cat.clim",
 #                                    full.names = TRUE, recursive = TRUE))

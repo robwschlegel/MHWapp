@@ -20,9 +20,10 @@
 source("MHW_daily_functions.R")
 
 # If setting up this pipeline for the first time on a machine with none of the
-# OISST archive yet, use source("MHW_database.R") instead - it downloads the
-# full daily archive and builds all 1440 per-longitude files (and the thresh
-# climatology files) from scratch.
+# OISST archive yet, use:
+# source("MHW_database.R")
+# it downloads the full daily archive and builds all 1440 per-longitude OISST
+# files and the thresh climatology files from scratch.
 # To rebuild the whole per-longitude archive from an *already-downloaded*
 # daily archive instead, call directly:
 # OISST_database_build(date_max = max(final_dates))
@@ -30,14 +31,14 @@ source("MHW_daily_functions.R")
 # NB: If anything goes wrong while running this, re-run it and it can self heal,
 # though it may be faster to delete everything and start fresh
 
-# Parallel worker plan - separate processes (multisession), never fork-based
-# (multicore/doParallel) - forking around ncdf4/HDF5 hangs unpredictably (see
+# Parallel worker plan: separate processes (multisession), never fork-based
+# (multicore/doParallel). Forking around ncdf4/HDF5 hangs unpredictably (see
 # the fork/HDF5-hang notes in MHW_daily_functions.R). Workers independently
 # source this same functions file at startup so they end up with identical
-# state to the main session (all libraries, metadata, custom functions) -
-# this avoids relying on future's automatic global/package detection, which
-# is easy to get subtly wrong for code that isn't a package.
-n_workers <- 25
+# state to the main session (all libraries, metadata, custom functions)
+# to avoid relying on future's automatic global/package detection, which
+# is easy to get subtly wrong for code that isn't packaged (i.e. loose scripts).
+n_workers <- max(1, floor(parallel::detectCores()/2))
 oisst_cwd <- getwd()
 oisst_cl <- parallelly::makeClusterPSOCK(
   n_workers, rscript_libs = .libPaths(),

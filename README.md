@@ -43,7 +43,7 @@ MHWapp/
 ├── MHW_daily_functions.R       # 🧰 All functions used by MHW_daily.R
 ├── MHW_daily_test.R            # 🧪 Ad hoc/manual scratch code for poking at the daily pipeline
 ├── MHW_annual_summary.R        # 📊 Builds per-year summary figures/data
-├── MHW_database.R              # 🗄️ One-time, from-scratch OISST backend bootstrap script
+├── MHW_database.R              # 🗄️ One-time, from-scratch OISST bootstrap + shiny/ symlinks
 ├── CITATION                    # 📝 How to cite the Tracker
 ├── LICENSE.md                  # ⚖️ MIT License, applies to this whole repo
 ├── README.md                   # 👋 That's this file
@@ -90,6 +90,9 @@ MHWapp/
   what's excluded where.
 - Every script starts with a header comment naming numbered sections — check there first
   for a script-specific breakdown.
+- `MHW_database.R`'s last step symlinks `shiny/OISST`, `shiny/event`, `shiny/thresh`, and
+  `shiny/cat_clim` to their `../data/*` equivalents, so a machine bootstrapped from scratch
+  doesn't need a separate rsync step just to make the data visible to the Shiny app.
 
 ---
 
@@ -110,6 +113,23 @@ See the [`CITATION`](CITATION) file, or cite via Zenodo DOI
 > File/variable naming under `event`/`thresh` reflects the new package; `cat_lon`-based
 > files are deprecated in favour of it. Expect commented-out legacy code with
 > explanatory notes scattered through the codebase until this settles.
+
+* **July 27th, 2026**
+  * Parallel worker counts across `MHW_daily.R`, `MHW_database.R`, and `MHW_daily_test.R`
+    now auto-detect available cores (half of `parallel::detectCores()`) instead of a
+    hardcoded worker count
+  * Audited every package dependency across the analysis and Shiny code, adding a
+    commented "Dependencies that are called explicitly" list to each script wherever
+    packages are only ever reached via `pkg::fn()` rather than `library()`
+  * Removed the `tidync` dependency entirely from the analysis side, replacing all reads
+    with raw `ncdf4` calls; deleted the dead `sst_seas_thresh_merge()` function
+  * `MHW_annual_summary.R`'s animation functions now call `gganimate::` explicitly rather
+    than relying on `library(gganimate)`
+  * Overhauled `MHW_daily_test.R` to match current pipeline conventions — proper
+    `future`/`furrr` worker-pool setup and teardown in place of `plyr`/`doParallel`, and
+    raw `ncdf4` reads in place of `tidync`
+  * `MHW_database.R` now symlinks the Shiny app's data folders (`OISST`, `event`,
+    `thresh`, `cat_clim`) into place as its last step
 
 * **July 24th, 2026**
   * Refactored the multicore/parallel structure of the daily pipeline (with Claude's

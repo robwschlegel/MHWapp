@@ -16,7 +16,6 @@ suppressPackageStartupMessages({
 library(tidyverse)
 library(raster)
 library(ncdf4)
-library(tidync)
 library(abind)
 library(RCurl)
 library(XML)
@@ -24,6 +23,14 @@ library(heatwave3)
 library(future)
 library(furrr)
 })
+
+# Dependencies that are called explicitly
+# library(parallel)
+# library(parallelly)
+# library(maps)
+# library(ggpubr)
+# library(grid)
+# library(gganimate)
 
 print(paste0("heatwave3 version = ",packageDescription("heatwave3")$Version))
 
@@ -599,82 +606,6 @@ create_thresh <- function(lon_row, base_years){
 
   return()
   }
-
-# Function that loads and merges sst/seas/thresh for a given lon_step
-# lon_step <- lon_OISST[2]
-# lat_range <- c(82.125, 82.875)
-# date_range <- as.Date("2020-01-01")
-# date_range <- as.Date("1982-01-01")
-# date_range <- c(as.Date("2016-02-01"), as.Date("2017-04-01"))
-sst_seas_thresh_merge <- function(lon_step, date_range,  base_years = c(1982, 2011), lat_range = NULL){
-  
-  # NB: If this needs to be faster, it could be replaced with category_daily3()
-  
-  # Establish lon row number
-  lon_row <- which(lon_OISST == lon_step)
-  
-  # Establish date range
-  if(length(date_range) == 1) date_range <- c(date_range, Sys.Date())
-  
-  # OISST data
-  ## Base
-  if(is.null(lat_range[1])){
-    tidync_OISST_base <- tidync(OISST_files[lon_row]) |> 
-      hyper_filter(time = between(time, as.integer(date_range[1]), as.integer(date_range[2]))) |> 
-      hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |> 
-      mutate(lon = as.numeric(lon),
-             lat = as.numeric(lat)) 
-  } else if(length(lat_range) == 2){
-    lat_row_1 <- which(lat_OISST == lat_range[1])
-    lat_row_2 <- which(lat_OISST == lat_range[2])
-    tidync_OISST_base <- tidync(OISST_files[lon_row]) |>  
-      hyper_filter(time = between(time, as.integer(date_range[1]), as.integer(date_range[2])),
-                   # lat = between(lat, as.integer(lat_row_1), as.integer(lat_row_2))) |> 
-                   lat = between(lat, lat_range[1], lat_range[2])) |> 
-      hyper_tibble(na.rm = FALSE, force = TRUE, drop = FALSE) |> 
-      mutate(lon = as.numeric(lon),
-             lat = as.numeric(lat)) 
-  } else {
-    stop()
-  }
-  
-  ## Process
-  tidync_OISST <- tidync_OISST_base |> 
-    mutate(time = as.Date(time),
-           year = year(time)) |> 
-    dplyr::rename(t = time, temp = sst) |>
-    mutate(doy = yday(t)) |> 
-    group_by(year) |> 
-    mutate(doy = ifelse(!leap_year(year),
-                        ifelse(doy > 59, doy+1, doy), doy)) |> 
-    ungroup() |>
-    dplyr::select(lon, lat, t, doy, temp)
-  
-  # Load MHW and MCS
-  base_years_text <- paste0(base_years[1],"-", base_years[2])
-  MHW_seas_thresh_files_base <- str_subset(MHW_seas_thresh_files, base_years_text)
-  MCS_seas_thresh_files_base <- str_subset(MCS_seas_thresh_files, base_years_text)  
-  seas_base_MHW <- tidync(MHW_seas_thresh_files_base[lon_row]) |> 
-    hyper_tibble(drop = FALSE) |> 
-    mutate(doy = as.numeric(doy),
-           lon = as.numeric(lon),
-           lat = as.numeric(lat)) 
-  seas_base_MCS <- tidync(MCS_seas_thresh_files_base[lon_row]) |> 
-    hyper_tibble(drop = FALSE) |> 
-    mutate(doy = as.numeric(doy),
-           lon = as.numeric(lon),
-           lat = as.numeric(lat)) 
-  
-  # Merge to seas/thresh and exit
-  sst_seas_thresh <- tidync_OISST |>
-    left_join(seas_base_MHW, by = c("lon", "lat", "doy")) |>
-    left_join(seas_base_MCS, by = c("lon", "lat", "doy")) |>
-    dplyr::select(-seas.y) |> 
-    dplyr::rename(seas = seas.x, thresh_MHW = thresh.x, thresh_MCS = thresh.y) |> 
-    mutate(anom = round(temp - seas, 2))
-  rm(tidync_OISST_base, tidync_OISST); gc()
-  return(sst_seas_thresh)
-}
 
 # A single function to run the daily calculations. Much less complicated.
 event_cat_calc <- function(lon_row, base_years = c(1982, 2011)){

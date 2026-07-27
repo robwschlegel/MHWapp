@@ -32,9 +32,6 @@ MHW_event_files <- dir("../data/event", pattern = "MHW_", full.names = T)
 MCS_event_files <- dir("../data/event/MCS", pattern = "MCS_", full.names = T)
 MHW_seas_thresh_files <- dir("../data/thresh", pattern = "MHW_", full.names = T)
 MCS_seas_thresh_files <- dir("../data/thresh/MCS", pattern = "MCS_", full.names = T)
-# heatwave3 - These were combined with the event files
-# MHW_cat_lon_files <- dir("../data/cat_lon", full.names = T) |> str_subset("MCS", negate = T) |> str_subset("[.]nc$")
-# MCS_cat_lon_files <- dir("../data/cat_lon/MCS", full.names = T) |> str_subset("[.]nc$")
 MHW_cat_clim_files <- as.character(dir(path = "../data/cat_clim", pattern = "cat.clim", 
                                    full.names = TRUE, recursive = TRUE)) |> str_subset("MCS", negate = T)
 MCS_cat_clim_files <- as.character(dir(path = "../data/cat_clim/MCS", pattern = "cat.clim", 

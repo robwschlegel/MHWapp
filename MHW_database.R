@@ -5,13 +5,15 @@
 # It is a one-time/deliberate-rerun script (not part of the daily cron job) and
 # reuses the functions already defined in "MHW_daily_functions.R" rather than
 # redefining them here.
-# NB: run via source("MHW_database.R") in a terminal R session, never RStudio
-# Server - same NetCDF write-privilege issue documented at the top of MHW_daily.R
+# NB: run via :
+# source("MHW_database.R") 
+# in a terminal R session, not an IDE (e.g. RStudio Server).
 # It performs the following tasks:
 ## 1: Sets up the environment
 ## 2: Downloads the full NOAA OISST daily archive (1982-01 onward)
 ## 3: Builds the 1440 per-longitude OISST NetCDF files
 ## 4: Builds the per-longitude climatology (thresh) files for both baselines
+## 5: Symlinks the data folders into shiny/ for the Shiny app
 
 
 # 1: Setup ------------------------------------------------------------------
@@ -24,11 +26,11 @@ source("MHW_daily_functions.R")
 dir.create("../data/OISST/daily", recursive = TRUE, showWarnings = FALSE)
 dir.create("../data/thresh/MCS", recursive = TRUE, showWarnings = FALSE)
 
-# Parallel worker plan - separate processes (multisession), never fork-based,
+# Parallel worker plan: separate processes (multisession), never fork-based,
 # same rationale as MHW_daily.R (see the fork/HDF5-hang notes in
 # MHW_daily_functions.R). Workers independently source MHW_daily_functions.R
 # at startup so they end up with identical state to the main session.
-n_workers <- 25
+n_workers <- max(1, floor(parallel::detectCores()/2))
 oisst_cwd <- getwd()
 oisst_cl <- parallelly::makeClusterPSOCK(
   n_workers, rscript_libs = .libPaths(),
@@ -41,8 +43,9 @@ future::plan(future::cluster, workers = oisst_cl)
 
 # Get the source index of monthly file folders, from 1982-01 onward (matches
 # the climatology baseline start date used throughout the rest of the
-# pipeline - the archive technically goes back to 1981-09, but nothing here
-# needs those extra four months)
+# pipeline. The archive technically goes back to 1981-09, but it's cleaner
+# to start at 1982-01 and the first few months of 1981 are not used in any
+# downstream calculations anyway.
 print(paste0("Fetching OISST folder names at ",Sys.time()))
 OISST_url_month <- "https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/"
 OISST_url_month_get <- getURL(OISST_url_month)
@@ -113,3 +116,26 @@ parallel::stopCluster(oisst_cl)
 # From here, event/category files (which also need this same 1440-longitude
 # structure) are created by MHW_daily.R's own "2: Update MHW event and
 # category data" section, not by this script - see the comments there.
+
+
+# 5: Symlink the data folders into shiny/ ------------------------------------
+
+# shiny/global.R expects OISST/event/thresh/cat_clim to exist as symlinks
+# inside shiny/, pointing at the real data this pipeline builds under
+# ../data. NB: using absolute targets here rather than the literal "../data/*"
+# form global.R's own comment describes: shiny/OISST sits one directory
+# deeper than ../data/OISST is from the repo root, so a literal "../data/OISST"
+# target would resolve (relative to the symlink's own location inside shiny/)
+# to shiny/../data/OISST, not the sibling ../data/OISST this pipeline actually
+# populates. Absolute paths sidestep that nesting mismatch entirely.
+data_root <- normalizePath("../data")
+system(paste0("ln -sf ", data_root, "/OISST shiny/OISST"))
+system(paste0("ln -sf ", data_root, "/thresh shiny/thresh"))
+# NB: event/ and cat_clim/ are not created by this script (see header) - those
+# two symlinks won't resolve to a real directory until MHW_daily.R has been
+# run at least once and populated ../data/event and ../data/cat_clim.
+# NB: -f makes this safe to re-run - it replaces a stale/incorrect symlink in
+# place but (per GNU ln) refuses to clobber an existing real directory.
+system(paste0("ln -sf ", data_root, "/event shiny/event"))
+system(paste0("ln -sf ", data_root, "/cat_clim shiny/cat_clim"))
+
