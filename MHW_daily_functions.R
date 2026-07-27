@@ -20,13 +20,11 @@ library(tidync)
 library(abind)
 library(RCurl)
 library(XML)
-# library(heatwaveR)
 library(heatwave3)
 library(future)
 library(furrr)
 })
 
-# print(paste0("heatwaveR version = ",packageDescription("heatwaveR")$Version))
 print(paste0("heatwave3 version = ",packageDescription("heatwave3")$Version))
 
 # NB: no parallel plan is set up here - workers are configured to run this

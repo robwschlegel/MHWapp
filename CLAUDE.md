@@ -29,8 +29,13 @@ the repo root (except `shiny/*.R`, which run with working directory `shiny/`).
 - `MHW_annual_summary.R` — builds per-year summary figures/data from the daily category
   files; invoked automatically by `MHW_daily.R` once there's a week of data into the new
   year, or can be sourced standalone to rebuild/backfill annual summaries.
-- `MHW_database.R` — one-time database/setup script (OISST/CCI/CMC grid alignment,
-  historical backfill). Not part of the daily run; only re-run deliberately.
+- `MHW_database.R` — one-time, from-scratch OISST bootstrap script for a machine that
+  doesn't yet have any of `../data/`: downloads the full daily OISST archive (1982-01
+  onward), builds the 1440 per-longitude OISST NetCDF files, and builds the per-longitude
+  climatology (thresh) files for both baselines. Reuses functions from
+  `MHW_daily_functions.R` rather than redefining them. Does not create event/category
+  files (that stays `MHW_daily.R`'s job), `cat_clim` daily files, annual summaries, or
+  handle CCI/CMC. Not part of the daily run; only re-run deliberately.
 - `data/extract_spatial.R` — ad hoc script for pulling bespoke time/place extracts and
   converting to spatial (raster/sf) formats on request.
 - `data/published/published.R` — one-off processing of results from published papers
@@ -140,10 +145,12 @@ argument threaded through shared functions like `event_annual_state()`). MCS has
   time-series plots (`plotly`). Organised by output/feature area, not by input.
 - `style.css` — app styling.
 
-**Products beyond OISST.** `MHW_database.R` and `data/published/published.R` also handle
-CCI and CMC satellite SST products, cross-matched onto the OISST grid via k-nearest-
-neighbour (`FNN::knnx.index`, see `X_OISST_coords()` in `metadata/metadata.R`) so results
-from different native resolutions can be compared/displayed on the same pixel grid.
+**Products beyond OISST.** `data/published/published.R` also handles CCI and CMC
+satellite SST products, cross-matched onto the OISST grid via k-nearest-neighbour
+(`FNN::knnx.index`) so results from different native resolutions can be compared/
+displayed on the same pixel grid. (`MHW_database.R` used to handle this too, back when
+it was heatwaveR-era CCI/CMC backfill code - it's since been rewritten as an OISST-only
+from-scratch bootstrap script and no longer touches CCI/CMC at all.)
 
 ## Conventions to preserve when editing
 

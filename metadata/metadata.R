@@ -146,8 +146,11 @@ OISST_ocean_coords$index <- seq_len(nrow(OISST_ocean_coords))
 
 # NB: X_OISST_coords() was removed - it had zero callers anywhere in the repo.
 # It matched pixels between OISST and another product's grid via nearest-neighbour
-# (FNN::knnx.index); MHW_database.R now just reads the pre-computed CCI_OISST_coords.Rds
-# / CMC0.x_OISST_coords.Rds files directly instead of calling this to regenerate them.
+# (FNN::knnx.index) to regenerate CCI_OISST_coords.Rds / CMC0.x_OISST_coords.Rds.
+# Nothing in the live pipeline regenerates those files anymore (the CCI/CMC backfill
+# code that used to read them was removed from MHW_database.R, which is now an
+# OISST-only from-scratch bootstrap script) - they're just read as pre-computed
+# inputs by data/published/published.R.
 
 # Get coords between EPSG:4326 (OISST) and EPSG:leaflet
 # lon_lat_OISST_XY <- mutate(lon_lat_OISST) |> dplyr::rename(X = lon, Y = lat)
