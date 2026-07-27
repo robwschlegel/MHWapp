@@ -10,6 +10,11 @@ ui <- page_fluid(
   theme = bs_theme(version = 5, bootswatch = "yeti"),
   fillable = FALSE, 
   # header = list(cicerone::use_cicerone()), # Start guided tour
+
+
+  # Spacing for marineheatwaves.org website banner --------------------------
+
+  tags$div(style = "height: 60px;"),
   
 
   # Summary boxes -----------------------------------------------------------
