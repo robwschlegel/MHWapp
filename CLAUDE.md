@@ -80,8 +80,9 @@ schema.
    final data.
 2. Compute/update MHW and MCS events and daily categories per longitude slice, against
    both climatology baselines, using the `heatwave3` package (migrated from `heatwaveR`;
-   see "Updates" in README.md — this migration is still in progress, and `cat_lon`-based
-   files are marked deprecated in favour of files under `event`/`thresh`).
+   see "Updates" in README.md — this migration is still in progress). `heatwave3`
+   computes events and daily categories together into the `event/*.nc` files directly;
+   the old per-slice `cat_lon` output directory it replaced no longer exists.
 3. Roll per-longitude results into global daily category files (`cat_clim_global_daily`)
    under `../data/cat_clim/<year>/`. The per-day `.Rda`/`.Rds` files here (read by
    `shiny/server.R`'s `downloadMapData()` for the map-data download feature) are only
@@ -116,9 +117,9 @@ set at creation time, not a script parameter.
 720 latitude steps, see `lon_OISST`/`lat_OISST` in `metadata/metadata.R` and
 `shiny/global.R`). Nearly all heavy computation is parallelised (`doParallel`,
 `plyr::l_ply`/`ldply` with `.parallel = TRUE`) across the 1440 longitude slices, each
-slice living in its own file (`../data/thresh`, `../data/event`, `../data/cat_lon`).
-When editing pipeline functions, preserve this per-slice file layout — downstream code
-assumes one file per longitude index.
+slice living in its own file (`../data/thresh`, `../data/event`). When editing pipeline
+functions, preserve this per-slice file layout — downstream code assumes one file per
+longitude index.
 
 **Dual climatology baselines.** Every MHW/MCS computation is run twice, once against
 1982-2011 and once against 1991-2020 (`base_years` parameter threaded through most
@@ -160,7 +161,10 @@ satellite SST products, cross-matched onto the OISST grid via k-nearest-neighbou
 (`FNN::knnx.index`) so results from different native resolutions can be compared/
 displayed on the same pixel grid. (`MHW_database.R` used to handle this too, back when
 it was heatwaveR-era CCI/CMC backfill code - it's since been rewritten as an OISST-only
-from-scratch bootstrap script and no longer touches CCI/CMC at all.)
+from-scratch bootstrap script and no longer touches CCI/CMC at all.) `MHW_annual_summary.R`'s
+`event_annual_state()` has likewise dropped the `database` argument that used to read
+CCI/CMC results from a separate `../data/<product>_cat/` backfill layout — it now always
+reads from `../data/cat_clim/`, so annual summaries are OISST-only in practice.
 
 ## Conventions to preserve when editing
 
