@@ -99,9 +99,9 @@ server <- function(input, output, session){
   mapCover <- reactive({
     req(input$date, input$layer)
     if(input$layer == "MCS Category"){
-      event_type <- "MCS"
+      event_type <- "OISST_MCS"
     } else {
-      event_type <- "MHW"
+      event_type <- "OISST"
     }
     # if( != yearReact$year)
     mapCoverAll <- readRDS(paste0("OISST/annual_summary/",event_type,"_cat_daily_",

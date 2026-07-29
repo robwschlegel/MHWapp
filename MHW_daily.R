@@ -322,8 +322,8 @@ system("git push")
 
 
 # Find and remove redundant files from deprecated workflows
-# files_to_delete <- dir("data/annual_summary", full.names = TRUE, pattern = "MHW_cat_count")
-# files_to_delete <- files_to_delete[!grepl("OISST", files_to_delete)]
+# files_to_delete <- dir("../data/OISST/annual_summary", full.names = TRUE, pattern = "MHW_cat_count")
+# files_to_delete <- files_to_delete[!grepl("OISST_", files_to_delete)]
 # head(files_to_delete); tail(files_to_delete)
 # fs::file_delete(files_to_delete)
 
