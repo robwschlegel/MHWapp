@@ -174,27 +174,3 @@ readRDS_date <- function(file_name){
     dplyr::select(t, lon, lat, everything())
 }
 
-# Annual files
-readRDS_year <- function(file_name){
-  file_segments <- length(strsplit(file_name, "/")[[1]])
-  file_only <- sapply(strsplit(file_name, "/"), "[[", file_segments)
-  file_only <- stringr::str_remove_all(file_only, "[.Rds]")
-  file_only_segments <- length(strsplit(file_only, "_")[[1]])
-  file_year <- as.integer(sapply(strsplit(file_only, "_"), "[[", file_only_segments))
-  res <- readRDS(file_name) |>
-    mutate(t = file_year) |>
-    dplyr::select(t, lon, lat, everything())
-}
-
-
-# Join ts and event -------------------------------------------------------
-
-# Convenience wrapper to add daily event info
-ts_event_join <- function(event_df, ts_df){
-  ts_res <- ts_df |> 
-    filter(t >= event_df$date_start[1], t <= event_df$date_end[1]) |> 
-    mutate(event_no = event_df$event_no[1],
-           category = event_df$category[1])
-  return(ts_res)
-}
-

@@ -12,17 +12,17 @@
 # 1: Setup ----------------------------------------------------------------
 
 # source("MHW_daily_functions.R")
-library(dtplyr)
+# library(dtplyr)
 
 # NB: no parallel plan is set up here - this script is only ever run via
-# source("MHW_annual_summary.R") from within MHW_daily.R (Section 5), in the
+# source("MHW_annual_summary.R") from within "MHW_daily.R" (Section 5), in the
 # same R session, so the furrr/multisession plan set up at the top of
-# MHW_daily.R is already active by the time this file runs.
+# "MHW_daily.R" is already active by the time this file runs.
 
 
 # 2: Functions ------------------------------------------------------------
 
-# Rounds to the nearest multiple of `accuracy` - replaces plyr::round_any()
+# Rounds to the nearest multiple of `accuracy`
 round_any <- function(x, accuracy){
   round(x / accuracy) * accuracy
 }
@@ -54,7 +54,7 @@ max_event_date <- function(df){
 # chosen_clim <- "1991-2020"
 # chosen_clim <- "1992-2018"
 # MHW <- TRUE; force_calc <- TRUE; database <- FALSE
-event_annual_state <- function(chosen_year, product, chosen_clim, MHW = TRUE, force_calc = FALSE, database = FALSE){
+event_annual_state <- function(chosen_year, product, chosen_clim, MHW = TRUE, force_calc = FALSE){
   
   if(MHW){
     event_type <- "MHW"
@@ -70,12 +70,8 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = TRUE, fo
                chosen_clim,"): ", chosen_year," at ",Sys.time()))
   
   ## Find file location
-    # NB: The database files are created in 'event_database.R'
   if(!MHW){
     event_cat_files <- dir(paste0("../data/cat_clim/MCS/",chosen_year), pattern = ".Rds", full.names = T)
-  } else if(database){
-    event_cat_files <- dir(paste0("../data/",product,"_cat/", chosen_year), 
-                           full.names = T, pattern = chosen_clim)
   } else {
     event_cat_files <- dir(paste0("../data/cat_clim/",chosen_year), pattern = ".Rda", full.names = T)
   }
@@ -116,12 +112,12 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = TRUE, fo
       distinct() |> 
       left_join(event_intensity, by = c("lon", "lat"))
     # ) # 29 seconds
-    saveRDS(event_cat_pixel, file = paste0("data/annual_summary/",product,event_file,"_cat_pixel_",
-                                           chosen_clim,"_",chosen_year,".Rds"))
-    if(product == "OISST" ){
-      saveRDS(event_cat_pixel, file = paste0("data/annual_summary/",event_type,"_cat_pixel_",chosen_clim,"_",chosen_year,".Rds"))
-      saveRDS(event_cat_pixel, file = paste0("../data/OISST/annual_summary/",event_type,"_cat_pixel_",chosen_clim,"_",chosen_year,".Rds"))
-    }
+    saveRDS(event_cat_pixel, 
+            file = paste0("data/annual_summary/",product,event_file,"_cat_pixel_", chosen_clim,"_",chosen_year,".Rds"))
+    # if(product == "OISST" ){
+    #   saveRDS(event_cat_pixel, file = paste0("data/annual_summary/",event_type,"_cat_pixel_",chosen_clim,"_",chosen_year,".Rds"))
+    #   saveRDS(event_cat_pixel, file = paste0("../data/OISST/annual_summary/",event_type,"_cat_pixel_",chosen_clim,"_",chosen_year,".Rds"))
+    # }
   }
   
   # Daily count and cumulative count per pixel
@@ -186,12 +182,12 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = TRUE, fo
       ungroup() |> 
       right_join(event_cat_first, by = c("t", "category"))
     # ) # 7 second
-    saveRDS(event_cat_daily, file = paste0("data/annual_summary/",product,event_file,"_cat_daily_",
-                                           chosen_clim,"_",chosen_year,".Rds"))
-    if(product == "OISST"){
-      saveRDS(event_cat_daily, file = paste0("data/annual_summary/",event_type,"_cat_daily_",chosen_clim,"_",chosen_year,".Rds"))
-      saveRDS(event_cat_daily, file = paste0("../data/OISST/annual_summary/",event_type,"_cat_daily_",chosen_clim,"_",chosen_year,".Rds"))
-    }
+    saveRDS(event_cat_daily, 
+            file = paste0("data/annual_summary/",product,event_file,"_cat_daily_", chosen_clim,"_",chosen_year,".Rds"))
+    # if(product == "OISST"){
+    #   saveRDS(event_cat_daily, file = paste0("data/annual_summary/",event_type,"_cat_daily_",chosen_clim,"_",chosen_year,".Rds"))
+    #   saveRDS(event_cat_daily, file = paste0("../data/OISST/annual_summary/",event_type,"_cat_daily_",chosen_clim,"_",chosen_year,".Rds"))
+    # }
   }
 }
 
@@ -221,20 +217,22 @@ if(lubridate::yday(Sys.Date()) < 14){
 } 
 
 # Run ALL years
+## Taks ~90 seconds for one year
 ## NB: Do not run on more than 25 cores
-# registerDoParallel(cores = 25)
 ## MHW
-# plyr::l_ply(1982:2023, event_annual_state, force_calc = TRUE, .parallel = TRUE,
-#             product = "OISST", chosen_clim = "1991-2020") # ~90 seconds for one
-# plyr::l_ply(1982:2023, event_annual_state, force_calc = TRUE, .parallel = TRUE,
-#             product = "OISST", chosen_clim = "1982-2011") # ~90 seconds for one
-# plyr::l_ply(1982:2019, event_annual_state, force_calc = TRUE, database = TRUE, .parallel = TRUE,
-#             product = "OISST", chosen_clim = "1992-2018")
+# furrr::future_walk(1982:2025, event_annual_state, force_calc = TRUE,
+#                    product = "OISST", chosen_clim = "1982-2011",
+#                    .options = furrr::furrr_options(seed = TRUE))
+# furrr::future_walk(1982:2025, event_annual_state, force_calc = TRUE,
+#                    product = "OISST", chosen_clim = "1991-2020",
+#                    .options = furrr::furrr_options(seed = TRUE))
 ## MCS
-# plyr::l_ply(1982:2023, event_annual_state, MHW = FALSE, force_calc = TRUE, .parallel = TRUE,
-#             product = "OISST", chosen_clim = "1991-2020") # ~90 seconds for one
-# plyr::l_ply(1982:2023, event_annual_state, MHW = FALSE, force_calc = TRUE, .parallel = TRUE,
-#             product = "OISST", chosen_clim = "1982-2011")
+# furrr::future_walk(1982:2025, event_annual_state, MHW = FALSE, force_calc = TRUE,
+#                    product = "OISST", chosen_clim = "1982-2011",
+#                    .options = furrr::furrr_options(seed = TRUE))
+# furrr::future_walk(1982:2025, event_annual_state, MHW = FALSE, force_calc = TRUE,
+#                    product = "OISST", chosen_clim = "1991-2020",
+#                    .options = furrr::furrr_options(seed = TRUE))
 
 
 # 4: Total summary of all years -------------------------------------------
@@ -280,10 +278,8 @@ event_total_state <- function(product, chosen_clim, MHW = TRUE){
     dplyr::select(t, category, cat_n_cum:cat_area_cum_prop, first_n_cum:first_area_cum_prop)
   
   # Save and exit
-  saveRDS(cat_daily, paste0("data/annual_summary/",product,event_file,
-                            "_cat_daily_",chosen_clim,"_total.Rds"))
-  write_csv(cat_daily_slim, paste0("data/annual_summary/",product,event_file,
-                                   "_cat_daily_",chosen_clim,"_total.csv"))
+  saveRDS(cat_daily, paste0("data/annual_summary/",product,event_file,"_cat_daily_",chosen_clim,"_total.Rds"))
+  write_csv(cat_daily_slim, paste0("data/annual_summary/",product,event_file,"_cat_daily_",chosen_clim,"_total.csv"))
 }
 
 ## Run them all
@@ -345,10 +341,8 @@ MHW_annual_count <- function(chosen_year, hemisphere){
 
 # Run them all
 # NB: Needs up to June 30th of the year for the Southern Hemisphere
-# furrr::future_walk(1982:2022, MHW_annual_count,
-#             hemisphere = "S")
-# furrr::future_walk(1982:2023, MHW_annual_count,
-#             hemisphere = "N")
+# furrr::future_walk(1982:2022, MHW_annual_count, hemisphere = "S")
+# furrr::future_walk(1982:2023, MHW_annual_count, hemisphere = "N")
 
 # test visuals
 # MHW_cat_count <- readRDS("data/annual_summary/MHW_cat_count_S_2014.Rds")
@@ -391,12 +385,9 @@ event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
                       "\n",product_name,"; Climatology period: ",chosen_clim)
   
   # Load data
-  event_cat_pixel <- readRDS(paste0("data/annual_summary/",product,event_file,"_cat_pixel_",
-                                    chosen_clim,"_",chosen_year,".Rds"))
-  event_cat_daily <- readRDS(paste0("data/annual_summary/",product,event_file,
-                                    "_cat_daily_",chosen_clim,"_",chosen_year,".Rds"))
-  event_total <- readRDS(paste0("data/annual_summary/",product,event_file,
-                                "_cat_daily_",chosen_clim,"_total.Rds"))
+  event_cat_pixel <- readRDS(paste0("data/annual_summary/",product,event_file,"_cat_pixel_",chosen_clim,"_",chosen_year,".Rds"))
+  event_cat_daily <- readRDS(paste0("data/annual_summary/",product,event_file,"_cat_daily_",chosen_clim,"_",chosen_year,".Rds"))
+  event_total <- readRDS(paste0("data/annual_summary/",product,event_file,"_cat_daily_",chosen_clim,"_total.Rds"))
   
   # Get highest category per pixel
   event_cat_pixel_max <- event_cat_pixel |> ungroup() |> 
@@ -534,17 +525,11 @@ if(lubridate::yday(Sys.Date()) < 14){
 
 # Run ALL years
 ## MHW
-# furrr::future_walk(1982:2023, event_annual_state_fig)
-#             product = "OISST", chosen_clim = "1991-2020")
-# furrr::future_walk(1982:2023, event_annual_state_fig)
-#             product = "OISST", chosen_clim = "1982-2011")
-# furrr::future_walk(1982:2019, event_annual_state_fig)
-#             product = "OISST", chosen_clim = "1992-2018")
+# furrr::future_walk(1982:2025, event_annual_state_fig, product = "OISST", chosen_clim = "1982-2011")
+# furrr::future_walk(1982:2025, event_annual_state_fig, product = "OISST", chosen_clim = "1991-2020")
 ## MCS
-# furrr::future_walk(1982:2023, event_annual_state_fig)
-#             product = "OISST", chosen_clim = "1991-2020", MHW = F)
-# furrr::future_walk(1982:2023, event_annual_state_fig)
-#             product = "OISST", chosen_clim = "1982-2011", MHW = F)
+# furrr::future_walk(1982:2025, event_annual_state_fig, product = "OISST", chosen_clim = "1982-2011", MHW = F)
+# furrr::future_walk(1982:2025, event_annual_state_fig, product = "OISST", chosen_clim = "1991-2020", MHW = F)
 
 # Figures of total time series by year
 event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1991-2020", MHW = T){

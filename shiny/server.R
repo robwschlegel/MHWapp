@@ -280,10 +280,6 @@ server <- function(input, output, session){
     event_MCS_data_sub <- event_MCS_data |>
       dplyr::filter(date_peak >= input$from_to[1], date_peak <= input$from_to[2])
     
-    # Get days during MHW/MCS
-    # ts_data_MHW <- plyr::ddply(event_data_sub, c("event_no"), ts_event_join, ts_data_sub, .parallel = F)
-    # ts_data_MCS <- plyr::ddply(event_MCS_data_sub, c("event_no"), ts_event_join, ts_data_sub, .parallel = F)
-    
     # Get constant y-axis values
     # ts_y_min <- min(ts_data_sub$temp, na.rm = T)
     # ts_y_max <- max(ts_data_sub$temp, na.rm = T)

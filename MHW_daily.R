@@ -7,8 +7,8 @@
 ## 1: Sets up the environment
 ## 2: Downloads the most recent final and prelim NOAA OISST
 ##    data available and updates the local NetCDF files
-## 3: Updates MHW event and category data
-## 4: Creates daily global MHW category file(s)
+## 3: Updates MHW+MCS event and category data
+## 4: Creates daily global MHW+MCS category file(s)
 ## 5: Check the `current_dates` index to make sure no days are missing
 ## 6: Run the annual summary update
 ## 7: Push to GitHub
@@ -31,13 +31,11 @@ source("MHW_daily_functions.R")
 # NB: If anything goes wrong while running this, re-run it and it can self heal,
 # though it may be faster to delete everything and start fresh
 
-# Parallel worker plan: separate processes (multisession), never fork-based
-# (multicore/doParallel). Forking around ncdf4/HDF5 hangs unpredictably (see
-# the fork/HDF5-hang notes in MHW_daily_functions.R). Workers independently
-# source this same functions file at startup so they end up with identical
-# state to the main session (all libraries, metadata, custom functions)
-# to avoid relying on future's automatic global/package detection, which
-# is easy to get subtly wrong for code that isn't packaged (i.e. loose scripts).
+# Parallel worker plan: separate processes (i.e. multisession), never fork-based
+# (multicore/doParallel). Forking around ncdf4/HDF5 hangs unpredictably. 
+# Workers independently source the same functions at startup so they end up with 
+# identical states to the main session (all libraries, metadata, custom functions)
+# to avoid relying on future's automatic global/package detection.
 n_workers <- max(1, floor(parallel::detectCores()/2))
 oisst_cwd <- getwd()
 oisst_cl <- parallelly::makeClusterPSOCK(
@@ -46,16 +44,15 @@ oisst_cl <- parallelly::makeClusterPSOCK(
 )
 future::plan(future::cluster, workers = oisst_cl)
 
+
+# 2: Update OISST data ----------------------------------------------------
+
 # Derive the final/prelim date indexes directly from the local daily archive
-# file names (replaces the old final_dates.Rdata/prelim_dates.Rdata indexes)
 oisst_dates <- OISST_dates_index(OISST_daily_nc_files)
 final_dates <- oisst_dates$final_dates
 prelim_dates <- oisst_dates$prelim_dates
 if(length(final_dates) == 0) stop("Final date indexing has broken.")
 if(length(prelim_dates) == 0) stop("Prelim date indexing has broken.")
-
-
-# 2: Update OISST data ----------------------------------------------------
 
 # Get the source index monthly file folders with new data
 print(paste0("Fetching OISST folder names at ",Sys.time()))
@@ -138,17 +135,15 @@ if(nrow(OISST_dat) > 2){
   furrr::future_walk(lon_OISST, OISST_merge, df = OISST_dat)
   print(paste0("Finished at ", Sys.time()))
 
-  # Refresh the date indexes from the now-updated daily archive (this run's
-  # new downloads aren't reflected in the OISST_daily_nc_files snapshot taken
-  # at script start, so re-scan rather than reuse it)
+  # Refresh the date indexes from the now-updated daily archive
   oisst_dates <- OISST_dates_index()
   final_dates <- oisst_dates$final_dates
   prelim_dates <- oisst_dates$prelim_dates
 }
-# return()
+# return() # Uncomment to force the script to stop running here
+
 
 # Fix files that didn't run correctly:
-# This happens every few months, usually due to a core slipping
 # Move or delete the affected date(s) out of "../data/OISST/daily/<year>/" 
 # so they no longer appear in the archive, which naturally lowers 
 # max(final_dates) (or max(prelim_dates)) and makes the download step 
@@ -166,25 +161,15 @@ if(nrow(OISST_dat) > 2){
 
 # 3: Update MHW event and category data -----------------------------------
 
-# Create baseline seas+thresh files per longitude step
-# NB: On a machine with none of these yet, source("MHW_database.R") instead -
-# it builds these for both baselines as part of its from-scratch OISST setup.
-## ~2 seconds per cycle
-# furrr::future_walk(1:1440, create_thresh, base_years = c(1982, 2011),
-#                    .options = furrr::furrr_options(seed = TRUE))
-# furrr::future_walk(1:1440, create_thresh, base_years = c(1991, 2020),
-#                    .options = furrr::furrr_options(seed = TRUE))
+# NB: The climatology files are created in "MHW_database.R"
 
 # Prep guide info for this section
-# NB: on a brand new setup the event file below won't exist yet - the check just
-# falls back to a very old date in that case, so the first run always proceeds
 ncdf_1440 <- nc_open("../data/OISST/oisst-avhrr-v02r01.ts.1440.nc")
 ncdf_date <- max(as.Date(ncdf_1440$dim$time$vals, origin = "1970-01-01"))
 nc_close(ncdf_1440)
-event_file_check <- "../data/event/MHW_1440_1991-2020_events.nc"
-ncdf_event_check <- nc_open(event_file_check)
-event_date <- as.Date(max(ncvar_get(ncdf_event_check, "date_end")), origin = "1982-01-01")
-nc_close(ncdf_event_check)
+ncdf_event <- nc_open("../data/event/MHW_1440_1991-2020_events.nc")
+event_date <- as.Date(max(ncvar_get(ncdf_event, "date_end")), origin = "1982-01-01")
+nc_close(ncdf_event)
 
 # This takes roughly 14 minutes
 if(ncdf_date > event_date){
@@ -208,16 +193,15 @@ if(ncdf_date > event_date){
 
 # Occasionally the event files don't come right
 # One can usually tell if the size is under 400 kb
-# This function can fix a specific file
 
-# Run one
+# Fix one
 # event_cat_calc(994)
 
-# Run many
-# furrr::future_walk(1300:1365, event_cat_calc)
+# Fix many
+# furrr::future_walk(1300:1365, event_cat_calc, .options = furrr::furrr_options(seed = TRUE))
 
-# Run ALL
-# furrr::future_walk(1:1440, event_cat_calc) # 10 minutes on 50 cores
+# Fix ALL
+# furrr::future_walk(1:1440, event_cat_calc, .options = furrr::furrr_options(seed = TRUE))
 
 # Find files that haven't been run since a certain date
 # file_dates <- file.info(dir("../data/cat_lon/MCS", full.names = T)) |>
@@ -227,10 +211,15 @@ if(ncdf_date > event_date){
 #   filter(ctime < Sys.Date()-1)
 # filter(ctime < Sys.time()-72000)
 # filter(size < 600000)
-# furrr::future_walk(file_dates$file_num, event_cat_calc)
+# furrr::future_walk(file_dates$file_num, event_cat_calc, .options = furrr::furrr_options(seed = TRUE))
 
 
 # 4: Create daily global files --------------------------------------------
+
+# Re-check final and prelim dates as they may have changed from Section 2 above
+oisst_dates <- OISST_dates_index(OISST_daily_nc_files)
+final_dates <- oisst_dates$final_dates
+prelim_dates <- oisst_dates$prelim_dates
 
 # Get most current processed OISST dates
 ncdf_1440 <- nc_open("../data/OISST/oisst-avhrr-v02r01.ts.1440.nc")
@@ -319,10 +308,9 @@ system("git push")
 ## Daily/lon files
 ### "../data/thresh" # The seas+clim static threshold files per lon slice - medium .nc files
 ### "../data/event" # The lon slice files containing the MHW/MCS event results - large .nc files
-### "../data/cat_lon # The lon slice files containing the daily MHW/MCS category results - DEPRECATED after heatwave3
 ### "../data/cat_clim # Global daily files containing MHW/MCS spatial categories - small-medium, .Rda and .tif files
 ## Annual summaries
-### "data/annual_summary" # Contains pixel and day based annual summaries for OISST, CCI, and CMC datasets
+### "data/annual_summary" # Contains pixel and day based annual summaries for OISST
 
 
 # Find and remove old files from before the second baseline was introduced
@@ -333,6 +321,13 @@ system("git push")
 # file.remove(file_dates_cat_clim$file_name)
 
 
+# Find and remove redundant files from deprecated workflows
+# files_to_delete <- dir("data/annual_summary", full.names = TRUE, pattern = "MHW_cat_count")
+# files_to_delete <- files_to_delete[!grepl("OISST", files_to_delete)]
+# head(files_to_delete); tail(files_to_delete)
+# fs::file_delete(files_to_delete)
+
+
 # Move files as necessary during heatwave3 integration process
 # files_to_move <- fs::dir_ls("../data/cat_lon/MCS", glob = glue::glue("*.nc$"))
 # tail(files_to_move)
@@ -340,8 +335,9 @@ system("git push")
 # tail(fs::dir_ls(dest_dir))
 # fs::file_move(files_to_move, dest_dir)
 
+
 # Delete files as necessary during heatwave3 integration process
-# files_to_delete <- fs::dir_ls("../data/OISST/daily", recurse = TRUE, glob = "*.Rda$") #|> stringr::str_subset("MHW.cat")
+# files_to_delete <- fs::dir_ls("../data/OISST/annual_summary/", recurse = TRUE, glob = "*.Rda$") #|> stringr::str_subset("MHW.cat")
 # head(files_to_delete); tail(files_to_delete)
 # fs::file_delete(files_to_delete)
 

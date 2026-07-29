@@ -147,15 +147,5 @@ rm(MHW_colours_double, MCS_colours_double)
 ### The shiny server instance being run
 server_instance <- Sys.getenv("R_SHNYSRVINST")
 
-### Regional website URLs
-# regional_NOAA <- "https://www.integratedecosystemassessment.noaa.gov/regions/california-current/cc-projects-blobtracker"
-# regional_TMEDNET <- "http://t-mednet.org/t-resources/marine-heatwaves"
-# regional_European_Northwest_Shelf <- "https://fishforecasts.dtu.dk/heatwaves/nw_shelf"
-
-### Placeholders when invalid dates are typed into date selectors
-# empty_date_map <- readRDS("cat_clim/1982/cat.clim.1982-01-01.Rda") |> slice(1) |> mutate(category = NA)
-# empty_summary_map <- readRDS("../data/annual_summary/MHW_cat_pixel_1982.Rds") |> slice(1) |> mutate(category = NA)
-# empty_summary_ts <- readRDS("../data/annual_summary/MHW_cat_daily_1982.Rds") |> slice(1) |> mutate(category = NA)
-
 # cat("\nglobal.R finished")
 
