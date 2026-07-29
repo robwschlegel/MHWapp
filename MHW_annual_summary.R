@@ -48,13 +48,12 @@ max_event_date <- function(df){
 # 3: Full analysis --------------------------------------------------------
 
 # testers...
-# product <- "OISST"
 # chosen_year <- 2023
 # chosen_clim <- "1982-2011"
 # chosen_clim <- "1991-2020"
 # chosen_clim <- "1992-2018"
 # MHW <- TRUE; force_calc <- TRUE; database <- FALSE
-event_annual_state <- function(chosen_year, product, chosen_clim, MHW = TRUE, force_calc = FALSE){
+event_annual_state <- function(chosen_year, chosen_clim, product = "OISST", MHW = TRUE, force_calc = FALSE){
   
   if(MHW){
     event_type <- "MHW"
@@ -184,54 +183,48 @@ event_annual_state <- function(chosen_year, product, chosen_clim, MHW = TRUE, fo
     # ) # 7 second
     saveRDS(event_cat_daily, 
             file = paste0("data/annual_summary/",product,event_file,"_cat_daily_", chosen_clim,"_",chosen_year,".Rds"))
-    # if(product == "OISST"){
-    #   saveRDS(event_cat_daily, file = paste0("data/annual_summary/",event_type,"_cat_daily_",chosen_clim,"_",chosen_year,".Rds"))
-    #   saveRDS(event_cat_daily, file = paste0("../data/OISST/annual_summary/",event_type,"_cat_daily_",chosen_clim,"_",chosen_year,".Rds"))
-    # }
+    saveRDS(event_cat_daily, 
+            file = paste0("../data/OISST/annual_summary/",product,event_file,"_cat_daily_", chosen_clim,"_",chosen_year,".Rds"))
   }
 }
 
 # Run the current year
 ## MHW
 event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())),
-                   product = "OISST", chosen_clim = "1982-2011", force_calc = T) # ~30 seconds
+                   chosen_clim = "1982-2011", force_calc = TRUE) # ~30 seconds
 event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())),
-                   product = "OISST", chosen_clim = "1991-2020", force_calc = T) # ~30 seconds
+                   chosen_clim = "1991-2020", force_calc = TRUE) # ~30 seconds
 # Keep running the previous year until all final data have been processed; takes NOAA roughly 2 weeks
 if(lubridate::yday(Sys.Date()) < 14){
   event_annual_state(as.numeric(lubridate::year(Sys.Date()))-1, 
-                     product = "OISST", chosen_clim = "1982-2011", force_calc = T)
+                     chosen_clim = "1982-2011", force_calc = TRUE)
   event_annual_state(as.numeric(lubridate::year(Sys.Date()))-1, 
-                     product = "OISST", chosen_clim = "1991-2020", force_calc = T)
+                     chosen_clim = "1991-2020", force_calc = TRUE)
 } 
 ## MCS
-event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
-                   product = "OISST", chosen_clim = "1982-2011", force_calc = T) # ~30 seconds
-event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
-                   product = "OISST", chosen_clim = "1991-2020", force_calc = T) # ~30 seconds
+event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = FALSE,
+                   chosen_clim = "1982-2011", force_calc = TRUE) # ~30 seconds
+event_annual_state(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = FALSE,
+                   chosen_clim = "1991-2020", force_calc = TRUE) # ~30 seconds
 if(lubridate::yday(Sys.Date()) < 14){
-  event_annual_state(as.numeric(lubridate::year(Sys.Date()))-1, MHW = F,
-                     product = "OISST", chosen_clim = "1982-2011", force_calc = T)
-  event_annual_state(as.numeric(lubridate::year(Sys.Date()))-1, MHW = F,
-                     product = "OISST", chosen_clim = "1991-2020", force_calc = T)
+  event_annual_state(as.numeric(lubridate::year(Sys.Date()))-1, MHW = FALSE,
+                     chosen_clim = "1982-2011", force_calc = TRUE)
+  event_annual_state(as.numeric(lubridate::year(Sys.Date()))-1, MHW = FALSE,
+                     chosen_clim = "1991-2020", force_calc = TRUE)
 } 
 
 # Run ALL years
 ## Taks ~90 seconds for one year
 ## NB: Do not run on more than 25 cores
 ## MHW
-# furrr::future_walk(1982:2025, event_annual_state, force_calc = TRUE,
-#                    product = "OISST", chosen_clim = "1982-2011",
+# furrr::future_walk(1982:2025, event_annual_state, chosen_clim = "1982-2011", force_calc = TRUE,
 #                    .options = furrr::furrr_options(seed = TRUE))
-# furrr::future_walk(1982:2025, event_annual_state, force_calc = TRUE,
-#                    product = "OISST", chosen_clim = "1991-2020",
+# furrr::future_walk(1982:2025, event_annual_state, chosen_clim = "1991-2020",force_calc = TRUE,
 #                    .options = furrr::furrr_options(seed = TRUE))
 ## MCS
-# furrr::future_walk(1982:2025, event_annual_state, MHW = FALSE, force_calc = TRUE,
-#                    product = "OISST", chosen_clim = "1982-2011",
+# furrr::future_walk(1982:2025, event_annual_state, MHW = FALSE, force_calc = TRUE, chosen_clim = "1982-2011",
 #                    .options = furrr::furrr_options(seed = TRUE))
-# furrr::future_walk(1982:2025, event_annual_state, MHW = FALSE, force_calc = TRUE,
-#                    product = "OISST", chosen_clim = "1991-2020",
+# furrr::future_walk(1982:2025, event_annual_state, MHW = FALSE, force_calc = TRUE, chosen_clim = "1991-2020",
 #                    .options = furrr::furrr_options(seed = TRUE))
 
 
@@ -243,7 +236,7 @@ if(lubridate::yday(Sys.Date()) < 14){
 # chosen_clim <- "1992-2018"
 # chosen_clim <- "1991-2020"
 # MHW <- FALSE
-event_total_state <- function(product, chosen_clim, MHW = TRUE){
+event_total_state <- function(chosen_clim, product = "OISST", MHW = TRUE){
   
   if(MHW){
     event_type <- "MHW"
@@ -284,10 +277,10 @@ event_total_state <- function(product, chosen_clim, MHW = TRUE){
 
 ## Run them all
 # OISST
-event_total_state("OISST", "1982-2011")
-event_total_state("OISST", "1991-2020")
-event_total_state("OISST", "1982-2011", MHW = F)
-event_total_state("OISST", "1991-2020", MHW = F)
+event_total_state("1982-2011")
+event_total_state("1991-2020")
+event_total_state("1982-2011", MHW = F)
+event_total_state("1991-2020", MHW = F)
 
 # Look at a total sum
 # OISST_1991_2020_sum <- OISST_1991_2020 |>
@@ -353,7 +346,7 @@ MHW_annual_count <- function(chosen_year, hemisphere){
 # 6: Summary figures ------------------------------------------------------
 
 # Figures per year
-event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
+event_annual_state_fig <- function(chosen_year, chosen_clim, product = "OISST", MHW = TRUE){
   
   # Set metadata
   if(MHW){
@@ -368,9 +361,9 @@ event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
   
   ## Get daily file count for title
   if(!MHW){
-    event_cat_files <- dir(paste0("../data/cat_clim/MCS/",chosen_year), pattern = ".Rds", full.names = T)
+    event_cat_files <- dir(paste0("../data/cat_clim/MCS/",chosen_year), pattern = ".Rds", full.names = TRUE)
   } else {
-    event_cat_files <- dir(paste0("../data/cat_clim/",chosen_year), pattern = ".Rda", full.names = T)
+    event_cat_files <- dir(paste0("../data/cat_clim/",chosen_year), pattern = ".Rda", full.names = TRUE)
   }
   
   ## Create figure title
@@ -500,39 +493,35 @@ event_annual_state_fig <- function(chosen_year, product, chosen_clim, MHW = T){
 
 # Run the current year
 ## MHW
-event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())),
-                       product = "OISST", chosen_clim = "1982-2011") # 5 seconds
-event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())),
-                       product = "OISST", chosen_clim = "1991-2020") # 5 seconds
+event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())), chosen_clim = "1982-2011") # 5 seconds
+event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())), chosen_clim = "1991-2020") # 5 seconds
 # Keep running the previous year until all final data have been processed; takes NOAA roughly 2 weeks
 if(lubridate::yday(Sys.Date()) < 14){
-  event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date()))-1,
-                         product = "OISST", chosen_clim = "1982-2011") # 5 seconds
-  event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date()))-1,
-                         product = "OISST", chosen_clim = "1991-2020") # 5 seconds
+  event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date()))-1, chosen_clim = "1982-2011") # 5 seconds
+  event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date()))-1, chosen_clim = "1991-2020") # 5 seconds
 }
 ## MCS
-event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
-                       product = "OISST", chosen_clim = "1982-2011") # 5 seconds
-event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())), MHW = F,
-                       product = "OISST", chosen_clim = "1991-2020") # 5 seconds
+event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())), 
+                       MHW = FALSE, chosen_clim = "1982-2011") # 5 seconds
+event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date())), 
+                       MHW = FALSE, chosen_clim = "1991-2020") # 5 seconds
 if(lubridate::yday(Sys.Date()) < 14){
-  event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date()))-1, MHW = F,
-                         product = "OISST", chosen_clim = "1982-2011") # 5 seconds
-  event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date()))-1, MHW = F,
-                         product = "OISST", chosen_clim = "1991-2020") # 5 seconds
+  event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date()))-1, 
+                         MHW = FALSE, chosen_clim = "1982-2011") # 5 seconds
+  event_annual_state_fig(chosen_year = as.numeric(lubridate::year(Sys.Date()))-1, 
+                         MHW = FALSE, chosen_clim = "1991-2020") # 5 seconds
 }
 
 # Run ALL years
 ## MHW
-# furrr::future_walk(1982:2025, event_annual_state_fig, product = "OISST", chosen_clim = "1982-2011")
-# furrr::future_walk(1982:2025, event_annual_state_fig, product = "OISST", chosen_clim = "1991-2020")
+# furrr::future_walk(1982:2025, event_annual_state_fig, chosen_clim = "1982-2011")
+# furrr::future_walk(1982:2025, event_annual_state_fig, chosen_clim = "1991-2020")
 ## MCS
-# furrr::future_walk(1982:2025, event_annual_state_fig, product = "OISST", chosen_clim = "1982-2011", MHW = F)
-# furrr::future_walk(1982:2025, event_annual_state_fig, product = "OISST", chosen_clim = "1991-2020", MHW = F)
+# furrr::future_walk(1982:2025, event_annual_state_fig, chosen_clim = "1982-2011", MHW = F)
+# furrr::future_walk(1982:2025, event_annual_state_fig, chosen_clim = "1991-2020", MHW = F)
 
 # Figures of total time series by year
-event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1991-2020", MHW = T){
+event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1991-2020", MHW = TRUE){
   
   # Get the range needed for the y-axis
   df_sum <- df |> summarise(y_height = sum(cat_area_cum_prop), .by = "t")
@@ -559,7 +548,7 @@ event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1991-202
   
   # Stacked barplot of global daily count of events by category
   fig_count_historic <- ggplot(df, aes(x = t, y = cat_area_cum_prop)) +
-    geom_bar(aes(fill = category), stat = "identity", show.legend = T,
+    geom_bar(aes(fill = category), stat = "identity", show.legend = TRUE,
              position = position_stack(reverse = TRUE), width = 1) +
     # If the ice category is added
     # geom_bar_pattern(data = MCS_total_ice, stat = "identity", show.legend = F,
@@ -588,7 +577,7 @@ event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1991-202
   
   # Stacked barplot of cumulative percent of ocean affected by events
   fig_cum_historic <- ggplot(df, aes(x = t, y = first_area_cum_prop)) +
-    geom_bar(aes(fill = category), stat = "identity", show.legend = T,
+    geom_bar(aes(fill = category), stat = "identity", show.legend = TRUE,
              position = position_stack(reverse = TRUE), width = 1) +
     scale_fill_manual("Category", values = event_colours) +
     scale_y_continuous(limits = c(0, 1),
@@ -621,14 +610,14 @@ event_total_state_fig <- function(df, product = "OISST", chosen_clim = "1991-202
     ggpubr::bgcolor("white") + ggpubr::border("white")
   ggsave(fig_ALL_full, filename = paste0("figures/",product,event_file,"_cat_historic_",chosen_clim,".png"), height = 4.25, width = 8)
   ggsave(fig_ALL_full, filename = paste0("figures/",product,event_file,"_cat_historic_",chosen_clim,".eps"), height = 4.25, width = 8)
-  # require(svglite); ggsave(fig_ALL_full, filename = paste0("figures/",product,event_file,"_cat_historic_",chosen_clim,".svg"), height = 4.25, width = 8)
+  # ggsave(fig_ALL_full, filename = paste0("figures/",product,event_file,"_cat_historic_",chosen_clim,".svg"), height = 4.25, width = 8)
 }
 
 ## Run them all
 event_total_state_fig(readRDS("data/annual_summary/OISST_cat_daily_1991-2020_total.Rds"))
 event_total_state_fig(readRDS("data/annual_summary/OISST_cat_daily_1982-2011_total.Rds"), chosen_clim = "1982-2011")
-event_total_state_fig(readRDS("data/annual_summary/OISST_MCS_cat_daily_1991-2020_total.Rds"), MHW = F)
-event_total_state_fig(readRDS("data/annual_summary/OISST_MCS_cat_daily_1982-2011_total.Rds"), MHW = F, chosen_clim = "1982-2011")
+event_total_state_fig(readRDS("data/annual_summary/OISST_MCS_cat_daily_1991-2020_total.Rds"), MHW = FALSE)
+event_total_state_fig(readRDS("data/annual_summary/OISST_MCS_cat_daily_1982-2011_total.Rds"), MHW = FALSE, chosen_clim = "1982-2011")
 
 # Figures of total time series by year a la format for the annual BAMS report
 BAMS_fig <- function(){
@@ -666,7 +655,7 @@ BAMS_fig <- function(){
   
   # Stacked barplot of global daily count of MHW by category
   fig_count_historic_MHW <- ggplot(df_MHW, aes(x = t, y = cat_area_cum_prop)) +
-    geom_bar(aes(fill = category), stat = "identity", show.legend = T,
+    geom_bar(aes(fill = category), stat = "identity", show.legend = TRUE,
              position = position_stack(reverse = TRUE), width = 1) +
     scale_fill_manual("Category", values = MHW_colours) +
     scale_y_continuous(limits = event_limits_MHW, breaks = event_breaks_MHW,
@@ -688,7 +677,7 @@ BAMS_fig <- function(){
   
   # Stacked barplot of global daily count of MCS by category
   fig_count_historic_MCS <- ggplot(df_MCS, aes(x = t, y = cat_area_cum_prop)) +
-    geom_bar(aes(fill = category), stat = "identity", show.legend = T,
+    geom_bar(aes(fill = category), stat = "identity", show.legend = TRUE,
              position = position_stack(reverse = TRUE), width = 1) +
     scale_fill_manual("Category", values = MCS_colours) +
     scale_y_continuous(limits = event_limits_MCS, breaks = event_breaks_MCS,
@@ -752,12 +741,12 @@ BAMS_fig <- function(){
   # Stick them together and save
   ## MHW
   fig_historic_MHW <- ggpubr::ggarrange(fig_count_historic_MHW, fig_cum_historic_MHW, ncol = 2, align = "hv", labels = c("(a)", "(b)"),
-                                        font.label = list(size = 14), common.legend = T, legend = "bottom")
+                                        font.label = list(size = 14), common.legend = TRUE, legend = "bottom")
   fig_cap_MHW <- grid::textGrob(fig_title_MHW, x = 0.01, just = "left", gp = grid::gpar(fontsize = 16))
   fig_full_MHW <- ggpubr::ggarrange(fig_cap_MHW, fig_historic_MHW, heights = c(0.1, 1), nrow = 2) #+ ggpubr::bgcolor("white")
   ## MCS
   fig_historic_MCS <- ggpubr::ggarrange(fig_count_historic_MCS, fig_cum_historic_MCS, ncol = 2, align = "hv", labels = c("(c)", "(d)"),
-                                        font.label = list(size = 14), common.legend = T, legend = "bottom")
+                                        font.label = list(size = 14), common.legend = TRUE, legend = "bottom")
   fig_cap_MCS <- grid::textGrob(fig_title_MCS, x = 0.01, just = "left", gp = grid::gpar(fontsize = 16))
   fig_full_MCS <- ggpubr::ggarrange(fig_cap_MCS, fig_historic_MCS, heights = c(0.1, 1), nrow = 2) #+ ggpubr::bgcolor("white")
   ## Final
@@ -911,8 +900,9 @@ event_annual_daily_anim <- function(anim_month, anim_year = lubridate::year(Sys.
     geom_tile(aes(fill = category), show.legend = FALSE) +
     geom_polygon(data = map_base, aes(x = lon, y = lat, group = group), fill = "grey60") +
     scale_fill_manual("Category", values = event_colours) +
-    coord_cartesian(expand = F, ylim = c(min(OISST_ocean_coords$lat), max(OISST_ocean_coords$lat))) +
-    labs(title = paste0("Daily ",event_type," records for ", anim_year,"-",anim_month_pad,"; NOAA OISST; Climatology Period: ",chosen_clim,"; Date: {frame_time}"), 
+    coord_cartesian(expand = FALSE, ylim = c(min(OISST_ocean_coords$lat), max(OISST_ocean_coords$lat))) +
+    labs(title = paste0("Daily ",event_type," records for ", anim_year,"-",anim_month_pad,
+                        "; NOAA OISST; Climatology Period: ",chosen_clim,"; Date: {frame_time}"), 
          x = NULL, y = NULL) +
     theme_void() +
     gganimate::transition_time(t)
