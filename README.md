@@ -88,7 +88,7 @@ MHWapp/
 - Each data-bearing folder (`data/`, `metadata/`, `shiny/`) has its **own** `.gitignore`
   rather than one top-level file. Tthis is deliberate for more flexible control over
   what's excluded where.
-- Every script starts with a header comment naming numbered sections — check there first
+- Every script starts with a header comment naming numbered sections. Check there first
   for a script-specific breakdown.
 - `MHW_database.R`'s last step symlinks `shiny/OISST`, `shiny/event`, `shiny/thresh`, and
   `shiny/cat_clim` to their `../data/*` equivalents, so a machine bootstrapped from scratch
