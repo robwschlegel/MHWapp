@@ -728,3 +728,200 @@ global_MHW_summary_plot <- ggpubr::ggarrange(panel_A, panel_B, panel_C, panel_D,
   ggpubr::bgcolor("white") + ggpubr::border("white")
 ggsave("figures/global_MHW_summary_plot.png", global_MHW_summary_plot, width = 12, height = 8)
 
+
+# WMO bulletin 2026 -------------------------------------------------------
+
+# Adapting some of the code above to run on the new heatwave3 pipeline
+# Need to extract the trend in the count of MHW days per year per pixel
+# The highest category in the first and last ten years of the time series
+
+# Set them for panels
+theme_panel <- function(){
+  theme(legend.position = "bottom",
+        legend.key.width = unit(1.2, "cm"),
+        legend.text = element_text(size = 8),
+        legend.title = element_text(size = 10, hjust = 1),
+        panel.border = element_rect(fill = NA, colour = "black"),
+        panel.background = element_rect(fill = "grey10"))
+}
+
+# To be used below
+MHW_annual_summary_1982_1991 <- readRDS("data/annual_summary/OISST_cat_daily_1982-2011_total.Rds")
+
+# Get just MHW event files for the 1982-2011 baseline
+MHW_event_files_1982_2011 <- MHW_event_files[grepl("1982", MHW_event_files)]
+
+# Function for loading and processing data
+# Calculate annual sum of MHW days per pixel
+event_annual_sum_dur_nc <- function(file_name){
+  file_filter <- heatwave3::hw3_export(file_name) |> 
+    mutate(year = year(date_peak)) |> 
+    summarise(annual_sum_duration = sum(duration, na.rm = TRUE), .by = c(lon, lat, year)) |> 
+    tidyr::complete(lon, lat, year, fill = list(annual_sum_duration = 0))
+  return(file_filter)
+}
+
+# Load all data
+# Run it
+global_annual_sum_dur_nc <- plyr::ldply(MHW_event_files_1982_2011, event_annual_sum_dur_nc, .parallel = TRUE) |> 
+  right_join(OISST_ocean_coords, by = c("lon", "lat"))
+# Save as .csv
+write_csv(dplyr::select(global_annual_sum_dur_nc, -index), "data/global_annual_sum_dur_nc.csv")
+
+## Annual trend for sum of MHW days 
+# Calculate linear trends
+lm_annual_sum_dur <- function(df){
+  # Decadal trend
+  if(length(unique(df$annual_sum_duration)) > 3){
+    dec_trend <- broom::tidy(lm(annual_sum_duration ~ year, df)) |>  
+      slice(2) |> 
+      mutate(trend = round(estimate, 3),
+             p.value = round(p.value, 4)) |> 
+      dplyr::select(trend, p.value)
+  }
+}
+# Run it
+# NB: This takes a few minutes
+global_annual_sum_dur_nc_trend <- plyr::ddply(global_annual_sum_dur_nc, c("lon", "lat"), lm_annual_sum_dur, .parallel = TRUE)
+# Save as .csv
+write_csv(global_annual_sum_dur_nc_trend, "data/global_annual_sum_dur_nc_trend.csv")
+
+# Filter for stipple plotting
+global_annual_sum_dur_nc_stipple <- filter(global_annual_sum_dur_nc_trend, p.value <= 0.05) |> 
+  mutate(lon = plyr::round_any(lon, 2.5), lat = plyr::round_any(lat, 2.5)) |> dplyr::select(lon, lat) |> distinct()
+
+# The highest categories in first and last ten years
+event_cat_decade_nc <- function(file_name){
+  file_filter <- heatwave3::hw3_export(file_name) |> 
+    mutate(year = year(date_peak)) |>
+    filter(year < 2026, year <= 1991 | year >= 2016) |> 
+    mutate(year_group = case_when(year <= 1986 ~ "1982-1991", 
+                                  year >= 2021 ~ "2016-2025")) |> 
+    summarise(max_cat = max(category, na.rm = TRUE), .by = c(lon, lat, year_group))
+  return(file_filter)
+}
+# Run it
+global_cat_nc <- plyr::ldply(MHW_event_files_1982_2011, event_cat_decade_nc, .parallel = TRUE)
+# Save as .csv
+write_csv(global_annual_sum_dur_nc_trend, "data/global_annual_sum_dur_nc_trend.csv")
+
+# Average annual sum for first and last decades
+global_annual_sum_dur_deacdes_nc <- global_annual_sum_dur_nc |> 
+  filter(year < 2026, year <= 1991 | year >= 2016) |> 
+  mutate(year_group = case_when(year <= 1991 ~ "1982-1991", 
+                                year >= 2016 ~ "2016-2025")) |> 
+  summarise(mean_sum = mean(annual_sum_duration, na.rm = TRUE), .by = c(lon, lat, year_group)) |> 
+  mutate(mean_sum = case_when(mean_sum > 365 ~ 365, TRUE ~ mean_sum))
+# Save as .csv
+write_csv(global_annual_sum_dur_deacdes_nc, "data/global_annual_sum_dur_deacdes_nc.csv")
+
+# Plot it
+## A) The highest category in the first decade
+panel_A <- global_annual_sum_dur_deacdes_nc |> 
+  filter(year_group == "1982-1991") |> 
+  ggplot(aes(x = lon, y = lat)) +
+  geom_raster(aes(fill = mean_sum), show.legend = TRUE) +
+  geom_polygon(data = map_base, aes(x = lon, y = lat, group = group), 
+               fill = "grey70", colour = "black") +
+  scale_fill_viridis_c(limits = c(0, 365),
+                       breaks = c(30, 90, 150, 210, 270, 330)) +
+  # scale_fill_manual("Category", values = MHW_colours) +
+  scale_x_continuous(breaks = c(-100, 0, 100),
+                     labels = c("100°W", "0", "100°E")) +
+  scale_y_continuous(breaks = c(-45, 0, 45),
+                     labels = c("45°S", "0", "45°N")) +
+  coord_cartesian(expand = FALSE,
+                  ylim = c(min(OISST_ocean_coords$lat), max(OISST_ocean_coords$lat))) +
+  labs(x = NULL, y = NULL, fill = "MHW\ndays",
+       title = "Mean annual sum of MHW days from 1982 - 1991") +
+  theme_panel()
+# panel_A
+
+## B) The highest category in the last decade
+panel_B <- global_annual_sum_dur_deacdes_nc |> 
+  filter(year_group == "2016-2025") |> 
+  ggplot(aes(x = lon, y = lat)) +
+  geom_raster(aes(fill = mean_sum), show.legend = TRUE) +
+  geom_polygon(data = map_base, aes(x = lon, y = lat, group = group), 
+               fill = "grey70", colour = "black") +
+  scale_fill_viridis_c(limits = c(0, 365),
+                       breaks = c(30, 90, 150, 210, 270, 330)) +
+  # scale_fill_manual("Category", values = MHW_colours) +
+  scale_x_continuous(breaks = c(-100, 0, 100),
+                     labels = c("100°W", "0", "100°E")) +
+  scale_y_continuous(breaks = c(-45, 0, 45),
+                     labels = c("45°S", "0", "45°N")) +
+  coord_cartesian(expand = FALSE,
+                  ylim = c(min(OISST_ocean_coords$lat), max(OISST_ocean_coords$lat))) +
+  labs(x = NULL, y = NULL, fill = "MHW\ndays",
+       title = "Mean annual sum of MHW days from 2016 - 2025") +
+  theme_panel()
+# panel_B
+
+
+## C) Annual trend for sum of MHW days 
+# Plot it
+panel_C <- global_annual_sum_dur_nc_trend |> 
+  mutate(trend = case_when(trend > 8 ~ 8, trend < -8 ~ -8, TRUE ~ trend)) |> 
+  ggplot(aes(x = lon, y = lat)) +
+  geom_raster(aes(fill = trend), show.legend = TRUE) +
+  geom_point(data = global_annual_sum_dur_nc_stipple,
+             colour = "black", size = 0.1, alpha = 0.1, show.legend = FALSE) +
+  geom_polygon(data = map_base, aes(x = lon, y = lat, group = group), 
+               fill = "grey70", colour = "black") +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
+  scale_x_continuous(breaks = c(-100, 0, 100),
+                     labels = c("100°W", "0", "100°E")) +
+  scale_y_continuous(breaks = c(-45, 0, 45),
+                     labels = c("45°S", "0", "45°N")) +
+  coord_cartesian(expand = FALSE,
+                  ylim = c(min(OISST_ocean_coords$lat), max(OISST_ocean_coords$lat))) +
+  # theme_void() +
+  labs(x = NULL, y = NULL, fill = "MHW\ndays/year",
+       title = "Trend for annual sum of MHW days") +
+  theme_panel()
+# panel_C
+
+# Stacked barplot of global daily count of events by category
+panel_D <- ggplot(MHW_annual_summary_1982_1991, aes(x = t, y = cat_area_cum_prop)) +
+  geom_bar(aes(fill = category), stat = "identity", show.legend = TRUE,
+           position = position_stack(reverse = TRUE), width = 1) +
+  scale_fill_manual("Category", values = MHW_colours) +
+  # scale_y_continuous(limits = event_limits,
+  #                    breaks = event_breaks,
+  #                    sec.axis = sec_axis(name = paste0("Average daily ",event_type," coverage"), 
+  #                                        transform = ~ . + 0,
+  #                                        breaks = second_breaks,
+  #                                        labels = second_break_labels)) +
+  scale_x_continuous(breaks = seq(1984, 2019, 7)) +
+  guides(fill = guide_legend(nrow = 1, byrow = TRUE)) +
+  labs(y = NULL, x = NULL, title = "Global average MHW days per category") +
+  coord_cartesian(expand = F) +
+  theme(panel.border = element_rect(colour = "black", fill = NA),
+        axis.title = element_text(size = 12),
+        axis.text = element_text(size = 10),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 10),
+        legend.position = "bottom")
+# panel_D
+
+# Stitch it together
+## Top two panels
+global_WMO_MHW_summary_plot_top <- ggpubr::ggarrange(panel_A, panel_B, nrow = 1, ncol = 2, 
+                                                     common.legend = TRUE, legend = "bottom",
+                                                     labels = c("A)", "B)")) + 
+  ggpubr::bgcolor("white") + ggpubr::border("white")
+# global_WMO_MHW_summary_plot_top
+# Bottom two panels
+global_WMO_MHW_summary_plot_bottom <- ggpubr::ggarrange(panel_C, panel_D,
+                                                        align = "hv", nrow = 1, ncol = 2, 
+                                                        labels = c("C)", "D)")) + 
+  ggpubr::bgcolor("white") + ggpubr::border("white")
+# global_WMO_MHW_summary_plot_bottom
+# Final product
+global_WMO_MHW_summary_plot <- ggpubr::ggarrange(global_WMO_MHW_summary_plot_top,
+                                                 global_WMO_MHW_summary_plot_bottom, nrow = 2, ncol = 1) + 
+  ggpubr::bgcolor("white") + ggpubr::border("white")
+# global_WMO_MHW_summary_plot
+ggsave("figures/global_WMO_MHW_summary_plot.png", global_WMO_MHW_summary_plot, width = 12, height = 8)
+
