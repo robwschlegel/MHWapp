@@ -745,11 +745,44 @@ theme_panel <- function(){
         panel.background = element_rect(fill = "grey10"))
 }
 
+# SST data for panel C below
+SST_CMA <- read_csv("data/sst_CMA_SST.csv", skip = 27, col_names = TRUE) |> 
+  filter(!is.na(year)) |> dplyr::select(-time)
+SST_CMEMS <- read_csv("data/sst_CMEMS_SST.csv", skip = 28, col_names = TRUE) |> filter(!is.na(year))
+SST_DCENT <- read_csv("data/sst_DCENT_SST_I.csv", skip = 30, col_names = TRUE) |> filter(!is.na(year))
+SST_ERSST <- read_csv("data/sst_ERSST_v6.csv", skip = 27, col_names = TRUE) |> filter(!is.na(year))
+SST_HadSST4 <- read_csv("data/sst_HadSST4.csv", skip = 29, col_names = TRUE) |> filter(!is.na(year))
+SST_summary <- read_csv("data/sst_summary.csv", skip = 60, col_names = TRUE) |> filter(!is.na(year))
+
+# Pivot longer for plotting
+SST_summary_long <- pivot_longer(SST_summary, cols = CMA_SST:HadSST4)
+
+# Colour palette and labels
+pal_SST <- c(
+  "CMA_SST" = "#1f3d99",
+  "CMEMS_SST"   = "#e69138",
+  "DCENT_SST_I" = "#5fa84a",
+  "ERSST_v6"   = "#4aa8c9",
+  "HadSST4" = "#1a8a8a"
+)
+label_SST <- SST_summary_long |> 
+  group_by(name) |> 
+  filter(year == min(year))  |> 
+  ungroup() |> 
+  mutate(name_pretty  = case_when(name == "CMA_SST" ~ "CMA-SST (1850-2025)",
+                                  name == "CMEMS_SST" ~ "CMEMS (1982-2024)",
+                                  name == "DCENT_SST_I" ~ "DCENT-I (1850-2025)",
+                                  name == "ERSST_v6" ~ "ERSST (1850-2025)",
+                                  name == "HadSST4" ~ "HadSST4 (1850-2025)"),
+         value = c(0.5, 0.4, 0.3, 0.2, 0.1))
+
 # To be used below
-MHW_annual_summary_1982_1991 <- readRDS("data/annual_summary/OISST_cat_daily_1982-2011_total.Rds")
+MHW_annual_summary_1982_2011 <- readRDS("data/annual_summary/OISST_cat_daily_1982-2011_total.Rds")
+MHW_annual_summary_1991_2020 <- readRDS("data/annual_summary/OISST_cat_daily_1991-2020_total.Rds")
 
 # Get just MHW event files for the 1982-2011 baseline
 MHW_event_files_1982_2011 <- MHW_event_files[grepl("1982", MHW_event_files)]
+MHW_event_files_1991_2020 <- MHW_event_files[grepl("1991", MHW_event_files)]
 
 # Function for loading and processing data
 # Calculate annual sum of MHW days per pixel
@@ -763,7 +796,7 @@ event_annual_sum_dur_nc <- function(file_name){
 
 # Load all data
 # Run it
-global_annual_sum_dur_nc <- plyr::ldply(MHW_event_files_1982_2011, event_annual_sum_dur_nc, .parallel = TRUE) |> 
+global_annual_sum_dur_nc <- plyr::ldply(MHW_event_files_1991_2020, event_annual_sum_dur_nc, .parallel = TRUE) |> 
   right_join(OISST_ocean_coords, by = c("lon", "lat"))
 # Save as .csv
 write_csv(dplyr::select(global_annual_sum_dur_nc, -index), "data/global_annual_sum_dur_nc.csv")
@@ -781,14 +814,14 @@ lm_annual_sum_dur <- function(df){
   }
 }
 # Run it
-# NB: This takes a few minutes
-global_annual_sum_dur_nc_trend <- plyr::ddply(global_annual_sum_dur_nc, c("lon", "lat"), lm_annual_sum_dur, .parallel = TRUE)
+# NB: This takes a few minutes - Not used
+# global_annual_sum_dur_nc_trend <- plyr::ddply(global_annual_sum_dur_nc, c("lon", "lat"), lm_annual_sum_dur, .parallel = TRUE)
 # Save as .csv
-write_csv(global_annual_sum_dur_nc_trend, "data/global_annual_sum_dur_nc_trend.csv")
+# write_csv(global_annual_sum_dur_nc_trend, "data/global_annual_sum_dur_nc_trend.csv")
 
 # Filter for stipple plotting
-global_annual_sum_dur_nc_stipple <- filter(global_annual_sum_dur_nc_trend, p.value <= 0.05) |> 
-  mutate(lon = plyr::round_any(lon, 2.5), lat = plyr::round_any(lat, 2.5)) |> dplyr::select(lon, lat) |> distinct()
+# global_annual_sum_dur_nc_stipple <- filter(global_annual_sum_dur_nc_trend, p.value <= 0.05) |> 
+#   mutate(lon = plyr::round_any(lon, 2.5), lat = plyr::round_any(lat, 2.5)) |> dplyr::select(lon, lat) |> distinct()
 
 # The highest categories in first and last ten years
 event_cat_decade_nc <- function(file_name){
@@ -801,9 +834,9 @@ event_cat_decade_nc <- function(file_name){
   return(file_filter)
 }
 # Run it
-global_cat_nc <- plyr::ldply(MHW_event_files_1982_2011, event_cat_decade_nc, .parallel = TRUE)
+global_cat_nc <- plyr::ldply(MHW_event_files_1991_2020, event_cat_decade_nc, .parallel = TRUE)
 # Save as .csv
-write_csv(global_annual_sum_dur_nc_trend, "data/global_annual_sum_dur_nc_trend.csv")
+write_csv(global_cat_nc, "data/global_cat_nc.csv")
 
 # Average annual sum for first and last decades
 global_annual_sum_dur_deacdes_nc <- global_annual_sum_dur_nc |> 
@@ -819,13 +852,16 @@ write_csv(global_annual_sum_dur_deacdes_nc, "data/global_annual_sum_dur_deacdes_
 ## A) The highest category in the first decade
 panel_A <- global_annual_sum_dur_deacdes_nc |> 
   filter(year_group == "1982-1991") |> 
+  mutate(mean_sum = case_when(mean_sum > 180 ~ 180, TRUE ~ mean_sum)) |> 
   ggplot(aes(x = lon, y = lat)) +
   geom_raster(aes(fill = mean_sum), show.legend = TRUE) +
   geom_polygon(data = map_base, aes(x = lon, y = lat, group = group), 
-               fill = "grey70", colour = "black") +
-  scale_fill_viridis_c(limits = c(0, 365),
-                       breaks = c(30, 90, 150, 210, 270, 330)) +
+               fill = "grey70", colour = "black", linewidth = 0.1) +
+  # scale_fill_viridis_c(limits = c(0, 300),
+  #                      breaks = c(30, 90, 150, 210, 270)) +
   # scale_fill_manual("Category", values = MHW_colours) +
+  scale_fill_gradientn(colours = c("#FFFFFF", "#FFFF00", "#FF0000", "#000000"),
+                       limits = c(0, 180), breaks = c(30, 90, 150)) +
   scale_x_continuous(breaks = c(-100, 0, 100),
                      labels = c("100°W", "0", "100°E")) +
   scale_y_continuous(breaks = c(-45, 0, 45),
@@ -840,13 +876,16 @@ panel_A <- global_annual_sum_dur_deacdes_nc |>
 ## B) The highest category in the last decade
 panel_B <- global_annual_sum_dur_deacdes_nc |> 
   filter(year_group == "2016-2025") |> 
+  mutate(mean_sum = case_when(mean_sum > 180 ~ 180, TRUE ~ mean_sum)) |> 
   ggplot(aes(x = lon, y = lat)) +
   geom_raster(aes(fill = mean_sum), show.legend = TRUE) +
   geom_polygon(data = map_base, aes(x = lon, y = lat, group = group), 
-               fill = "grey70", colour = "black") +
-  scale_fill_viridis_c(limits = c(0, 365),
-                       breaks = c(30, 90, 150, 210, 270, 330)) +
+               fill = "grey70", colour = "black", linewidth = 0.1) +
+  # scale_fill_viridis_c(limits = c(0, 300),
+  #                      breaks = c(30, 90, 150, 210, 270)) +
   # scale_fill_manual("Category", values = MHW_colours) +
+  scale_fill_gradientn(colours = c("#FFFFFF", "#FFFF00", "#FF0000", "#000000"),
+                       limits = c(0, 180), breaks = c(30, 90, 150)) +
   scale_x_continuous(breaks = c(-100, 0, 100),
                      labels = c("100°W", "0", "100°E")) +
   scale_y_continuous(breaks = c(-45, 0, 45),
@@ -858,34 +897,59 @@ panel_B <- global_annual_sum_dur_deacdes_nc |>
   theme_panel()
 # panel_B
 
-
-## C) Annual trend for sum of MHW days 
+## C) Long-term annual SST values for several datasets
 # Plot it
-panel_C <- global_annual_sum_dur_nc_trend |> 
-  mutate(trend = case_when(trend > 8 ~ 8, trend < -8 ~ -8, TRUE ~ trend)) |> 
-  ggplot(aes(x = lon, y = lat)) +
-  geom_raster(aes(fill = trend), show.legend = TRUE) +
-  geom_point(data = global_annual_sum_dur_nc_stipple,
-             colour = "black", size = 0.1, alpha = 0.1, show.legend = FALSE) +
-  geom_polygon(data = map_base, aes(x = lon, y = lat, group = group), 
-               fill = "grey70", colour = "black") +
-  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
-  scale_x_continuous(breaks = c(-100, 0, 100),
-                     labels = c("100°W", "0", "100°E")) +
-  scale_y_continuous(breaks = c(-45, 0, 45),
-                     labels = c("45°S", "0", "45°N")) +
-  coord_cartesian(expand = FALSE,
-                  ylim = c(min(OISST_ocean_coords$lat), max(OISST_ocean_coords$lat))) +
-  # theme_void() +
-  labs(x = NULL, y = NULL, fill = "MHW\ndays/year",
-       title = "Trend for annual sum of MHW days") +
-  theme_panel()
+# panel_C <- global_annual_sum_dur_nc_trend |> 
+#   mutate(trend = case_when(trend > 8 ~ 8, trend < -8 ~ -8, TRUE ~ trend)) |> 
+#   ggplot(aes(x = lon, y = lat)) +
+#   geom_raster(aes(fill = trend), show.legend = TRUE) +
+#   geom_point(data = global_annual_sum_dur_nc_stipple,
+#              colour = "black", size = 0.1, alpha = 0.1, show.legend = FALSE) +
+#   geom_polygon(data = map_base, aes(x = lon, y = lat, group = group), 
+#                fill = "grey70", colour = "black") +
+#   scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
+#   scale_x_continuous(breaks = c(-100, 0, 100),
+#                      labels = c("100°W", "0", "100°E")) +
+#   scale_y_continuous(breaks = c(-45, 0, 45),
+#                      labels = c("45°S", "0", "45°N")) +
+#   coord_cartesian(expand = FALSE,
+#                   ylim = c(min(OISST_ocean_coords$lat), max(OISST_ocean_coords$lat))) +
+#   labs(x = NULL, y = NULL, fill = "MHW\ndays/year",
+#        title = "Trend for annual sum of MHW days") +
+#   theme_panel()
+panel_C <- ggplot(SST_summary_long, aes(x = year, y = value, color = name)) +
+  geom_line(linewidth = 0.6) +
+  geom_vline(xintercept = c(1982, 1991), linetype = "dashed") +
+  geom_vline(xintercept = c(2016, 2025), linetype = "dotted") +
+  annotate("text", x = 1986.5, y = -1, label = "A") +
+  annotate("text", x = 2020.5, y = -1, label = "B") +
+  ggrepel::geom_text_repel(data = label_SST, aes(label = name_pretty, color = name),
+                           fontface = "bold", size = 4, direction = "y",
+                           hjust = 0, nudge_x = 8, segment.color = NA) +
+  scale_color_manual(values = pal_SST, guide = "none") +   # no legend at all 
+  scale_x_continuous(expand = c(0, 0), breaks = seq(1860, 2020, 20)) +
+  labs(title = "Global sea-surface temperature 1850-2025",
+       # subtitle = "Difference from 1991-2020 average", 
+       x = "Year", y = "°C (anomaly)") +
+  # theme_minimal(base_size = 12) +
+  # theme(plot.title = element_text(face = "bold"),
+        # panel.grid.minor = element_blank())
+  theme(panel.border = element_rect(colour = "black", fill = NA),
+        axis.title = element_text(size = 12),
+        axis.text = element_text(size = 10),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 10),
+        legend.position = "bottom")
 # panel_C
 
 # Stacked barplot of global daily count of events by category
-panel_D <- ggplot(MHW_annual_summary_1982_1991, aes(x = t, y = cat_area_cum_prop)) +
+panel_D <- ggplot(MHW_annual_summary_1991_2020, aes(x = t, y = cat_area_cum_prop)) +
   geom_bar(aes(fill = category), stat = "identity", show.legend = TRUE,
            position = position_stack(reverse = TRUE), width = 1) +
+  geom_vline(xintercept = c(1991.5), linetype = "dashed") +
+  geom_vline(xintercept = c(2015.5), linetype = "dotted") +
+  annotate("text", x = 1986.5, y = 90, label = "A") +
+  annotate("text", x = 2020.5, y = 90, label = "B") +
   scale_fill_manual("Category", values = MHW_colours) +
   # scale_y_continuous(limits = event_limits,
   #                    breaks = event_breaks,
@@ -894,7 +958,7 @@ panel_D <- ggplot(MHW_annual_summary_1982_1991, aes(x = t, y = cat_area_cum_prop
   #                                        breaks = second_breaks,
   #                                        labels = second_break_labels)) +
   scale_x_continuous(breaks = seq(1984, 2019, 7)) +
-  guides(fill = guide_legend(nrow = 1, byrow = TRUE)) +
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
   labs(y = NULL, x = NULL, title = "Global average MHW days per category") +
   coord_cartesian(expand = F) +
   theme(panel.border = element_rect(colour = "black", fill = NA),
@@ -902,7 +966,8 @@ panel_D <- ggplot(MHW_annual_summary_1982_1991, aes(x = t, y = cat_area_cum_prop
         axis.text = element_text(size = 10),
         legend.title = element_text(size = 12),
         legend.text = element_text(size = 10),
-        legend.position = "bottom")
+        legend.position = "inside",
+        legend.position.inside = c(0.5, 0.7))
 # panel_D
 
 # Stitch it together
@@ -920,7 +985,8 @@ global_WMO_MHW_summary_plot_bottom <- ggpubr::ggarrange(panel_C, panel_D,
 # global_WMO_MHW_summary_plot_bottom
 # Final product
 global_WMO_MHW_summary_plot <- ggpubr::ggarrange(global_WMO_MHW_summary_plot_top,
-                                                 global_WMO_MHW_summary_plot_bottom, nrow = 2, ncol = 1) + 
+                                                 global_WMO_MHW_summary_plot_bottom, 
+                                                 nrow = 2, ncol = 1, heights = c(1, 0.9)) + 
   ggpubr::bgcolor("white") + ggpubr::border("white")
 # global_WMO_MHW_summary_plot
 ggsave("figures/global_WMO_MHW_summary_plot.png", global_WMO_MHW_summary_plot, width = 12, height = 8)
