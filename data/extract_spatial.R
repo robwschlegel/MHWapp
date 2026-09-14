@@ -739,6 +739,7 @@ ggsave("figures/global_MHW_summary_plot.png", global_MHW_summary_plot, width = 1
 theme_panel <- function(){
   theme(legend.position = "bottom",
         legend.key.width = unit(1.2, "cm"),
+        legend.key.spacing.x = unit(0, "pt"),
         legend.text = element_text(size = 8),
         legend.title = element_text(size = 10, hjust = 1),
         panel.border = element_rect(fill = NA, colour = "black"),
@@ -746,12 +747,12 @@ theme_panel <- function(){
 }
 
 # SST data for panel C below
-SST_CMA <- read_csv("data/sst_CMA_SST.csv", skip = 27, col_names = TRUE) |> 
-  filter(!is.na(year)) |> dplyr::select(-time)
-SST_CMEMS <- read_csv("data/sst_CMEMS_SST.csv", skip = 28, col_names = TRUE) |> filter(!is.na(year))
-SST_DCENT <- read_csv("data/sst_DCENT_SST_I.csv", skip = 30, col_names = TRUE) |> filter(!is.na(year))
-SST_ERSST <- read_csv("data/sst_ERSST_v6.csv", skip = 27, col_names = TRUE) |> filter(!is.na(year))
-SST_HadSST4 <- read_csv("data/sst_HadSST4.csv", skip = 29, col_names = TRUE) |> filter(!is.na(year))
+# SST_CMA <- read_csv("data/sst_CMA_SST.csv", skip = 27, col_names = TRUE) |> 
+#   filter(!is.na(year)) |> dplyr::select(-time)
+# SST_CMEMS <- read_csv("data/sst_CMEMS_SST.csv", skip = 28, col_names = TRUE) |> filter(!is.na(year))
+# SST_DCENT <- read_csv("data/sst_DCENT_SST_I.csv", skip = 30, col_names = TRUE) |> filter(!is.na(year))
+# SST_ERSST <- read_csv("data/sst_ERSST_v6.csv", skip = 27, col_names = TRUE) |> filter(!is.na(year))
+# SST_HadSST4 <- read_csv("data/sst_HadSST4.csv", skip = 29, col_names = TRUE) |> filter(!is.na(year))
 SST_summary <- read_csv("data/sst_summary.csv", skip = 60, col_names = TRUE) |> filter(!is.na(year))
 
 # Pivot longer for plotting
@@ -844,7 +845,8 @@ global_annual_sum_dur_deacdes_nc <- global_annual_sum_dur_nc |>
   mutate(year_group = case_when(year <= 1991 ~ "1982-1991", 
                                 year >= 2016 ~ "2016-2025")) |> 
   summarise(mean_sum = mean(annual_sum_duration, na.rm = TRUE), .by = c(lon, lat, year_group)) |> 
-  mutate(mean_sum = case_when(mean_sum > 365 ~ 365, TRUE ~ mean_sum))
+  mutate(mean_sum = case_when(mean_sum > 365 ~ 365, TRUE ~ mean_sum),
+         mean_sum = plyr::round_any(mean_sum, 20))
 # Save as .csv
 write_csv(global_annual_sum_dur_deacdes_nc, "data/global_annual_sum_dur_deacdes_nc.csv")
 
@@ -856,16 +858,23 @@ panel_A <- global_annual_sum_dur_deacdes_nc |>
   ggplot(aes(x = lon, y = lat)) +
   geom_raster(aes(fill = mean_sum), show.legend = TRUE) +
   geom_polygon(data = map_base, aes(x = lon, y = lat, group = group), 
-               fill = "grey70", colour = "black", linewidth = 0.1) +
+               fill = "#696864", colour = "black", linewidth = 0.1) +
   # scale_fill_viridis_c(limits = c(0, 300),
   #                      breaks = c(30, 90, 150, 210, 270)) +
   # scale_fill_manual("Category", values = MHW_colours) +
-  scale_fill_gradientn(colours = c("#FFFFFF", "#FFFF00", "#FF0000", "#000000"),
-                       limits = c(0, 180), breaks = c(30, 90, 150)) +
+  # scale_fill_gradientn(colours = c("#FFFFFF", "#FFFF00", "#FF0000", "#000000"),
+  scale_fill_gradientn(colours = RColorBrewer::brewer.pal(9, "YlOrRd"),
+                       limits = c(0, 180), breaks = c(0, 20, 40, 60, 80, 100, 120, 140, 160, 180), 
+                       guide = "legend") +
   scale_x_continuous(breaks = c(-100, 0, 100),
                      labels = c("100°W", "0", "100°E")) +
   scale_y_continuous(breaks = c(-45, 0, 45),
                      labels = c("45°S", "0", "45°N")) +
+  guides(fill = guide_legend(title.position = "left",
+                             label.position = "bottom",
+                             nrow = 1,
+                             keywidth = unit(1.2, "cm"),
+                             keyheight = unit(0.6, "cm"))) +
   coord_cartesian(expand = FALSE,
                   ylim = c(min(OISST_ocean_coords$lat), max(OISST_ocean_coords$lat))) +
   labs(x = NULL, y = NULL, fill = "MHW\ndays",
@@ -880,16 +889,23 @@ panel_B <- global_annual_sum_dur_deacdes_nc |>
   ggplot(aes(x = lon, y = lat)) +
   geom_raster(aes(fill = mean_sum), show.legend = TRUE) +
   geom_polygon(data = map_base, aes(x = lon, y = lat, group = group), 
-               fill = "grey70", colour = "black", linewidth = 0.1) +
+               fill = "#696864", colour = "black", linewidth = 0.1) +
   # scale_fill_viridis_c(limits = c(0, 300),
   #                      breaks = c(30, 90, 150, 210, 270)) +
   # scale_fill_manual("Category", values = MHW_colours) +
-  scale_fill_gradientn(colours = c("#FFFFFF", "#FFFF00", "#FF0000", "#000000"),
-                       limits = c(0, 180), breaks = c(30, 90, 150)) +
+  # scale_fill_gradientn(colours = c("#FFFFFF", "#FFFF00", "#FF0000", "#000000"),
+  scale_fill_gradientn(colours = RColorBrewer::brewer.pal(9, "YlOrRd"),
+                       limits = c(0, 180), breaks = c(0, 20, 40, 60, 80, 100, 120, 140, 160, 180), 
+                       guide = "legend") +
   scale_x_continuous(breaks = c(-100, 0, 100),
                      labels = c("100°W", "0", "100°E")) +
   scale_y_continuous(breaks = c(-45, 0, 45),
                      labels = c("45°S", "0", "45°N")) +
+  guides(fill = guide_legend(title.position = "left",
+                             label.position = "bottom",
+                             nrow = 1,
+                             keywidth = unit(1.2, "cm"),
+                             keyheight = unit(0.6, "cm"))) +
   coord_cartesian(expand = FALSE,
                   ylim = c(min(OISST_ocean_coords$lat), max(OISST_ocean_coords$lat))) +
   labs(x = NULL, y = NULL, fill = "MHW\ndays",
@@ -974,20 +990,20 @@ panel_D <- ggplot(MHW_annual_summary_1991_2020, aes(x = t, y = cat_area_cum_prop
 ## Top two panels
 global_WMO_MHW_summary_plot_top <- ggpubr::ggarrange(panel_A, panel_B, nrow = 1, ncol = 2, 
                                                      common.legend = TRUE, legend = "bottom",
-                                                     labels = c("A)", "B)")) + 
+                                                     labels = c("(a)", "(b)")) + 
   ggpubr::bgcolor("white") + ggpubr::border("white")
 # global_WMO_MHW_summary_plot_top
 # Bottom two panels
-global_WMO_MHW_summary_plot_bottom <- ggpubr::ggarrange(panel_C, panel_D,
-                                                        align = "hv", nrow = 1, ncol = 2, 
-                                                        labels = c("C)", "D)")) + 
-  ggpubr::bgcolor("white") + ggpubr::border("white")
+# global_WMO_MHW_summary_plot_bottom <- ggpubr::ggarrange(panel_C, panel_D,
+#                                                         align = "hv", nrow = 1, ncol = 2, 
+#                                                         labels = c("C)", "D)")) + 
+#   ggpubr::bgcolor("white") + ggpubr::border("white")
 # global_WMO_MHW_summary_plot_bottom
 # Final product
-global_WMO_MHW_summary_plot <- ggpubr::ggarrange(global_WMO_MHW_summary_plot_top,
-                                                 global_WMO_MHW_summary_plot_bottom, 
-                                                 nrow = 2, ncol = 1, heights = c(1, 0.9)) + 
-  ggpubr::bgcolor("white") + ggpubr::border("white")
+# global_WMO_MHW_summary_plot <- ggpubr::ggarrange(global_WMO_MHW_summary_plot_top,
+#                                                  global_WMO_MHW_summary_plot_bottom, 
+#                                                  nrow = 2, ncol = 1, heights = c(1, 0.9)) + 
+#   ggpubr::bgcolor("white") + ggpubr::border("white")
 # global_WMO_MHW_summary_plot
-ggsave("figures/global_WMO_MHW_summary_plot.png", global_WMO_MHW_summary_plot, width = 12, height = 8)
+ggsave("figures/global_WMO_MHW_summary_plot.png", global_WMO_MHW_summary_plot_top, width = 10, height = 4, dpi = 300)
 
