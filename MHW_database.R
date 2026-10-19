@@ -4,6 +4,8 @@
 # relying on data that only ever existed on the original server.
 # It is a one-time/deliberate-rerun script (not part of the daily cron job) and
 # uses the functions already defined in "MHW_daily_functions.R".
+
+# Run:
 # source("MHW_database.R") 
 # in a terminal R session, not an IDE (e.g. RStudio Server).
 # It performs the following tasks:

@@ -12,6 +12,7 @@
 
 .libPaths(c("~/R-packages", .libPaths()))
 # remotes::install_github("robwschlegel/heatwave3@dev", force = TRUE)
+# remotes::install_github("robwschlegel/heatwave3", force = TRUE)
 suppressPackageStartupMessages({
 library(tidyverse)
 library(raster)
