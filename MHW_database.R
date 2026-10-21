@@ -29,6 +29,11 @@ dir.create("../data/thresh/MCS", recursive = TRUE, showWarnings = FALSE)
 # Parallel worker plan: separate processes (i.e. multisession), never fork-based.
 # Workers independently source "MHW_daily_functions.R"
 # at startup so they end up with identical state to the main session.
+# NB: if an earlier source() of this script in the same R session stopped
+# partway (error, Ctrl+C), its worker pool is still alive and still holding
+# whatever RAM it had - shut it down first rather than stacking a second full
+# set of n_workers processes on top of it
+if(exists("oisst_cl")) try(parallel::stopCluster(oisst_cl), silent = TRUE)
 n_workers <- max(1, floor(parallel::detectCores()/2))
 oisst_cwd <- getwd()
 oisst_cl <- parallelly::makeClusterPSOCK(
@@ -76,7 +81,7 @@ oisst_dates <- OISST_dates_index(OISST_daily_nc_files)
 date_max <- max(oisst_dates$final_dates)
 
 # Builds all 1440 files in one pass over the daily archive. Safe to re-run if
-# interrupted - already-complete years are skipped and OISST_database_verify()
+# interrupted - already-complete months are skipped and OISST_database_verify()
 # runs at the end to repair any longitude left short by a stalled worker
 print(paste0("Began building 1440 OISST lon files at ", Sys.time()))
 OISST_database_build(date_max = date_max)
