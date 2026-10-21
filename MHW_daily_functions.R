@@ -425,37 +425,57 @@ OISST_database_verify <- function(date_max){
   return(invisible(bad_lons))
 }
 
+# RAM the kernel says can still be allocated without swapping, in GB (the
+# MemAvailable line of /proc/meminfo). Returns NA where that file doesn't exist
+# (i.e. not Linux), which switches off the RAM guard in OISST_database_build().
+mem_available_gb <- function(){
+  if(!file.exists("/proc/meminfo")) return(NA_real_)
+  mem_line <- grep("^MemAvailable", readLines("/proc/meminfo"), value = TRUE)
+  as.numeric(gsub("\\D", "", mem_line))/1024^2
+}
+
 # Builds the entire 1440-file OISST database from scratch in ONE pass over the
 # daily archive, instead of the old approach of looping over each of the 1440
 # longitudes and re-reading (and re-decompressing) the whole archive each time
 # - that redundancy, not lack of parallelism, was what made the first attempt
 # at this look like it would take weeks. Each daily file is now read exactly
 # once (via OISST_day_read()) and scattered out to all 1440 per-longitude
-# files (via OISST_lon_write_batch()) in yearly batches, so at most 1440 file
+# files (via OISST_lon_write_batch()) in monthly batches, so at most 1440 file
 # handles are ever open at a time (and only briefly, once per batch) rather
 # than reopening every file 1440 times or holding 1440 handles open at once.
-# NB: safe to re-run any time. Batch years already fully present (checked
+# NB: batches are months, not years, to cap RAM. One daily grid is 1440*720
+# doubles (~8.3 MB) and is held ~4 times over at peak (batch_data + batch_array,
+# then batch_array + lon_slices, in this session, plus ~1.7x across the workers
+# while their results are serialised back), so a year batch peaks at ~12 GB
+# and a month at ~1 GB. Each extra batch only costs one more append per lon
+# file. Before each batch the expected peak is checked against free RAM and
+# the build stops (rather than pushing the server into swap/OOM) if it would
+# take more than half of it.
+# NB: safe to re-run any time. Batches already fully present (checked
 # cheaply against a single representative file, lon_row 1) are skipped
 # instead of being re-read and re-written, and OISST_database_verify() runs
 # at the end to catch and rebuild any individual longitude left short by a
 # stalled/crashed worker in an earlier run (see the fork/HDF5-hang note on
 # OISST_lon_write_batch()) - a representative-file check only catches gaps
 # shared by (almost) every longitude, not a lone straggler.
-# date_max <- max(final_dates); batch_years <- 1
-OISST_database_build <- function(date_max, batch_years = 1){
+# date_max <- max(final_dates); batch_months <- 1
+OISST_database_build <- function(date_max, batch_months = 1){
 
   file_dates <- as.Date(str_remove(sapply(strsplit(basename(OISST_daily_nc_files), "[.]"), "[[", 2),
                                    "_preliminary"), format = "%Y%m%d")
-  yr_end <- lubridate::year(as.Date(date_max))
+  batch_starts <- seq(as.Date("1982-01-01"), as.Date(date_max), by = paste(batch_months, "months"))
+  # NB: files after the last batch start (e.g. prelim days past date_max) fall
+  # into the last batch; files before 1982 get index 0 and are never used
+  batch_idx <- findInterval(file_dates, batch_starts)
 
-  for(yr in seq(1982, yr_end, by = batch_years)){
-    yr_range <- yr:min(yr + batch_years - 1, yr_end)
-    yr_dates <- file_dates[lubridate::year(file_dates) %in% yr_range]
-    batch_files <- OISST_daily_nc_files[lubridate::year(file_dates) %in% yr_range]
+  for(b in seq_along(batch_starts)){
+    batch_label <- format(batch_starts[b], "%Y-%m")
+    yr_dates <- file_dates[batch_idx == b]
+    batch_files <- OISST_daily_nc_files[batch_idx == b]
     if(length(batch_files) == 0) next
 
     # Skip this batch entirely if a representative file already has every
-    # date it would contribute - avoids re-reading/re-writing years that are
+    # date it would contribute - avoids re-reading/re-writing batches that are
     # already done on a re-run
     rep_file <- "../data/OISST/oisst-avhrr-v02r01.ts.0001.nc"
     if(file.exists(rep_file)){
@@ -463,16 +483,26 @@ OISST_database_build <- function(date_max, batch_years = 1){
       rep_dates <- as.Date(rep_nc$dim$time$vals, origin = "1970-01-01")
       nc_close(rep_nc)
       if(all(sort(unique(yr_dates)) %in% rep_dates)){
-        print(paste0("Batch ",min(yr_range),"-",max(yr_range)," already complete - skipping"))
+        print(paste0("Batch ",batch_label," already complete - skipping"))
         next
       }
+    }
+
+    # RAM guard - see the note above for where the 4x comes from
+    batch_gb <- length(batch_files) * 1440 * 720 * 8 * 4 / 1e9
+    free_gb <- mem_available_gb()
+    if(!is.na(free_gb) && batch_gb > 0.5 * free_gb){
+      stop(paste0("Batch ",batch_label," needs ~",round(batch_gb, 1)," GB but only ",
+                  round(free_gb, 1)," GB of RAM is available. Check for leftover R ",
+                  "worker processes (e.g. `ps -u $USER -o pid,rss,cmd | grep R`) or ",
+                  "lower batch_months."))
     }
 
     batch_order <- order(yr_dates)
     batch_files <- batch_files[batch_order]
 
-    print(paste0("Reading batch ",min(yr_range),"-",max(yr_range),
-                " (",length(batch_files)," files) at ", Sys.time()))
+    print(paste0("Reading batch ",batch_label," (",length(batch_files)," files, ~",
+                round(batch_gb, 1)," GB of ",round(free_gb, 1)," GB free RAM) at ", Sys.time()))
     # NB: parallelized via furrr/multisession - each file is independent, no
     # shared state, so this is a clean parallelization win
     batch_data <- furrr::future_map(batch_files, OISST_day_read)
@@ -482,15 +512,18 @@ OISST_database_build <- function(date_max, batch_years = 1){
     batch_dates <- do.call(c, lapply(batch_data, `[[`, "t"))
     rm(batch_data); gc()
 
-    print(paste0("Writing batch ",min(yr_range),"-",max(yr_range)," at ", Sys.time()))
+    print(paste0("Writing batch ",batch_label," at ", Sys.time()))
     # NB: pre-slice batch_array into one small piece per longitude before
     # dispatching, rather than handing the whole (multi-GB) array to every
     # task - see OISST_lon_write_batch() for why
-    lon_slices <- purrr::map(1:1440, ~ batch_array[.x,,])
+    # NB: matrix() keeps each slice [lat, t] even for a one-day batch (e.g. the
+    # first day of a new month), where batch_array[.x,,] would drop to a vector
+    lon_slices <- purrr::map(1:1440, ~ matrix(batch_array[.x,,], nrow = 720))
+    rm(batch_array); gc()
     furrr::future_walk2(1:1440, lon_slices, OISST_lon_write_batch,
                         batch_dates = batch_dates)
-    rm(batch_array, lon_slices); gc()
-    print(paste0("Finished batch ",min(yr_range),"-",max(yr_range)," at ", Sys.time()))
+    rm(lon_slices); gc()
+    print(paste0("Finished batch ",batch_label," at ", Sys.time()))
   }
 
   OISST_database_verify(date_max)
