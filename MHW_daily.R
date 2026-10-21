@@ -14,6 +14,9 @@
 ## 7: Push to GitHub
 ## 8: Maintenance
 
+# Prevent the cron job from running until the new databse has been rebuilt
+stop("Database is still rebuilding")
+
 
 # 1: Setup ----------------------------------------------------------------
 
