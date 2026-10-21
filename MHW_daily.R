@@ -229,7 +229,7 @@ nc_close(ncdf_1440)
 # Get the range of dates that need to be run
 update_dates <- time_index[which(time_index >= max(prelim_dates)-14)] # ~4 minutes
 # Or manually control dates as desired
-# update_dates <- seq(as.Date("2026-05-10"), as.Date("2026-05-20"), by = "day")
+# update_dates <- seq(as.Date("2026-10-17"), as.Date("2026-10-19"), by = "day")
 # update_dates <- time_index[which(time_index >= max(final_dates)-7)]
 if(length(update_dates) > 0) {
   print(paste0("Updating global daily MHW/MCS cat files from ",min(update_dates)," to ",max(update_dates)))

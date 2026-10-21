@@ -29,7 +29,8 @@ dir.create("../data/thresh/MCS", recursive = TRUE, showWarnings = FALSE)
 # Parallel worker plan: separate processes (i.e. multisession), never fork-based.
 # Workers independently source "MHW_daily_functions.R"
 # at startup so they end up with identical state to the main session.
-n_workers <- max(1, floor(parallel::detectCores()/2))
+# n_workers <- max(1, floor(parallel::detectCores()/2))
+n_workers <- 14 # The creation of the SST lon files is RAM heavy
 oisst_cwd <- getwd()
 oisst_cl <- parallelly::makeClusterPSOCK(
   n_workers, rscript_libs = .libPaths(),
