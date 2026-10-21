@@ -440,17 +440,21 @@ mem_available_gb <- function(){
 # - that redundancy, not lack of parallelism, was what made the first attempt
 # at this look like it would take weeks. Each daily file is now read exactly
 # once (via OISST_day_read()) and scattered out to all 1440 per-longitude
-# files (via OISST_lon_write_batch()) in monthly batches, so at most 1440 file
+# files (via OISST_lon_write_batch()) in yearly batches, so at most 1440 file
 # handles are ever open at a time (and only briefly, once per batch) rather
 # than reopening every file 1440 times or holding 1440 handles open at once.
-# NB: batches are months, not years, to cap RAM. One daily grid is 1440*720
-# doubles (~8.3 MB) and is held ~4 times over at peak (batch_data + batch_array,
-# then batch_array + lon_slices, in this session, plus ~1.7x across the workers
-# while their results are serialised back), so a year batch peaks at ~12 GB
-# and a month at ~1 GB. Each extra batch only costs one more append per lon
-# file. Before each batch the expected peak is checked against free RAM and
-# the build stops (rather than pushing the server into swap/OOM) if it would
-# take more than half of it.
+# NB: RAM per batch: one daily grid is 1440*720 doubles (~8.3 MB) and is held
+# ~4 times over at peak (batch_data + batch_array, then batch_array +
+# lon_slices, in this session, plus ~1.7x across the workers while their
+# results are serialised back), so a year batch adds ~12 GB and a month ~1 GB.
+# That sits on top of the worker pool itself, which on the production server
+# (28 workers) holds ~1.7 GB per worker, i.e. ~46 GB, whatever the batch size.
+# Monthly batches (batch_months = 1) were tried and ran ~6x slower (~4 minutes
+# per month) for no real RAM saving, since every batch pays the fixed cost of
+# opening and appending to all 1440 lon files - so batches default to a year.
+# Before each batch the expected peak is checked against free RAM and the
+# build stops (rather than pushing the server into swap/OOM) if it would take
+# more than half of it.
 # NB: safe to re-run any time. Batches already fully present (checked
 # cheaply against a single representative file, lon_row 1) are skipped
 # instead of being re-read and re-written, and OISST_database_verify() runs
@@ -458,8 +462,8 @@ mem_available_gb <- function(){
 # stalled/crashed worker in an earlier run (see the fork/HDF5-hang note on
 # OISST_lon_write_batch()) - a representative-file check only catches gaps
 # shared by (almost) every longitude, not a lone straggler.
-# date_max <- max(final_dates); batch_months <- 1
-OISST_database_build <- function(date_max, batch_months = 1){
+# date_max <- max(final_dates); batch_months <- 12
+OISST_database_build <- function(date_max, batch_months = 12){
 
   file_dates <- as.Date(str_remove(sapply(strsplit(basename(OISST_daily_nc_files), "[.]"), "[[", 2),
                                    "_preliminary"), format = "%Y%m%d")
@@ -527,6 +531,116 @@ OISST_database_build <- function(date_max, batch_months = 1){
   }
 
   OISST_database_verify(date_max)
+}
+
+# Builds every per-longitude file in one block of contiguous lon_rows in a
+# single pass: reads just that block's longitudes out of every daily file,
+# then writes each lon file exactly once with its full time series. This is
+# the worker for OISST_database_build_blocks().
+# NB: SST is held as integer hundredths of a degree (4 bytes per value rather
+# than 8). OISST_day_read() rounds to 2 dp anyway, so nothing is lost and RAM
+# per block is halved - ~2.5 GB for 52 lons x ~16,400 days.
+# NB: each file is written under a ".tmp" name and only renamed into place once
+# it has been closed and re-opened with the full time dimension, so a crash or
+# Ctrl+C mid-write can never leave a short file that looks complete. Lons that
+# already have a complete file are skipped, so a re-run picks up where it
+# stopped; the block is only read at all if at least one of its lons is missing.
+# lon_rows <- 1:52; daily_files <- ...; file_dates <- ...; out_dir <- "../data/OISST"
+OISST_lon_block_build <- function(lon_rows, daily_files, file_dates, out_dir){
+
+  ncdf_file_names <- file.path(out_dir, paste0("oisst-avhrr-v02r01.ts.",
+                                               str_pad(lon_rows, width = 4, pad = "0", side = "left"),".nc"))
+  is_done <- function(f){
+    if(!file.exists(f)) return(FALSE)
+    nc <- nc_open(f); nt <- length(nc$dim$time$vals); nc_close(nc)
+    nt == length(file_dates)
+  }
+  todo <- !vapply(ncdf_file_names, is_done, logical(1))
+  if(!any(todo)) return(invisible(lon_rows[0]))
+
+  # Read this block's longitudes from every daily file
+  # NB: lon_rows must be contiguous - the daily files' lon dimension runs in the
+  # same order as lon_OISST (see OISST_lon_write_batch()), so lon_row is the index
+  sst <- array(NA_integer_, dim = c(length(lon_rows), 720, length(daily_files)))
+  for(i in seq_along(daily_files)){
+    nc <- nc_open(daily_files[i])
+    sst[,,i] <- as.integer(round(ncvar_get(nc, "sst", start = c(min(lon_rows), 1, 1, 1),
+                                           count = c(length(lon_rows), -1, 1, 1)) * 100))
+    nc_close(nc)
+  }
+
+  # Write each missing lon file once
+  tvals <- as.integer(file_dates)
+  for(j in which(todo)){
+    lon_def <- ncdim_def("lon", "degrees_east", lon_OISST[lon_rows[j]])
+    lat_def <- ncdim_def("lat", "degrees_north", lat_OISST)
+    time_def <- ncdim_def("time", "days since 1970-01-01 00:00:00", tvals, unlim = TRUE)
+    temp_def <- ncvar_def(name = "sst", units = "deg_C",
+                          dim = list(lat_def, lon_def, time_def),
+                          longname = "Sea Surface Temperature",
+                          missval = -999, prec = "float")
+    tmp_name <- paste0(ncdf_file_names[j], ".tmp")
+    if(file.exists(tmp_name)) file.remove(tmp_name)
+    ncout <- nc_create(filename = tmp_name, vars = list(temp_def), force_v4 = TRUE)
+    ncvar_put(nc = ncout, varid = temp_def, vals = sst[j,,]/100)
+    ncatt_put(ncout, "lon", "axis", "X")
+    ncatt_put(ncout, "lat", "axis", "Y")
+    ncatt_put(ncout, "time", "axis", "T")
+    nc_close(ncout)
+    if(!is_done(tmp_name)) stop(paste0("Lon row ",lon_rows[j]," was written short - left as ",tmp_name))
+    file.rename(tmp_name, ncdf_file_names[j])
+  }
+  return(invisible(lon_rows[todo]))
+}
+
+# Builds all 1440 per-longitude OISST files from the local daily archive by
+# giving each worker one contiguous block of longitudes (see
+# OISST_lon_block_build()). Each worker reads every daily file once for its own
+# block and writes each of its lon files exactly once, so nothing is appended
+# and nothing large passes between this session and the workers.
+# NB: lons_per_task defaults to one block per worker, i.e. a single pass. RAM
+# is checked before anything starts: each running block holds
+# lons_per_task * 720 * n_days * 4 bytes, plus a double copy of one lon while
+# it is written, and the build stops if all running blocks together would take
+# more than half of free RAM - raise lons_per_task's divisor (more, smaller
+# blocks, run in several waves) if so.
+# NB: safe to re-run - completed lon files are skipped (see OISST_lon_block_build())
+# out_dir <- "../data/OISST"; lons_per_task <- NULL
+OISST_database_build_blocks <- function(out_dir = "../data/OISST", lons_per_task = NULL){
+
+  file_dates <- as.Date(str_remove(sapply(strsplit(basename(OISST_daily_nc_files), "[.]"), "[[", 2),
+                                   "_preliminary"), format = "%Y%m%d")
+  keep <- !is.na(file_dates) & file_dates >= as.Date("1982-01-01")
+  daily_files <- OISST_daily_nc_files[keep][order(file_dates[keep])]
+  file_dates <- sort(file_dates[keep])
+  if(any(duplicated(file_dates))){
+    stop(paste0("More than one daily file for: ",
+                paste(unique(file_dates[duplicated(file_dates)]), collapse = ", ")))
+  }
+
+  n_workers <- future::nbrOfWorkers()
+  if(is.null(lons_per_task)) lons_per_task <- ceiling(1440/n_workers)
+  lon_blocks <- split(1:1440, ceiling(seq_len(1440)/lons_per_task))
+
+  # RAM guard - see the note above
+  block_gb <- (lons_per_task * 720 * length(file_dates) * 4 + 720 * length(file_dates) * 8 * 2)/1e9
+  run_gb <- block_gb * min(n_workers, length(lon_blocks))
+  free_gb <- mem_available_gb()
+  if(!is.na(free_gb) && run_gb > 0.5 * free_gb){
+    stop(paste0(length(lon_blocks)," blocks of ",lons_per_task," lons would need ~",round(run_gb, 1),
+                " GB at once but only ",round(free_gb, 1)," GB of RAM is available - lower lons_per_task."))
+  }
+
+  dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+  print(paste0("Building 1440 lon files from ",length(daily_files)," daily files (",
+              min(file_dates)," to ",max(file_dates),") in ",length(lon_blocks)," blocks of ",
+              lons_per_task," lons, ~",round(run_gb, 1)," GB of ",round(free_gb, 1)," GB free RAM, at ",Sys.time()))
+  built <- furrr::future_map(lon_blocks, OISST_lon_block_build, daily_files = daily_files,
+                             file_dates = file_dates, out_dir = out_dir)
+  print(paste0("Finished at ",Sys.time()," - built ",length(unlist(built)),
+              " lon files, ",1440-length(unlist(built))," were already complete"))
+  if(length(dir(out_dir, pattern = "[.]tmp$")) > 0) warning("Leftover .tmp files in ",out_dir)
+  return(invisible(unlist(built)))
 }
 
 # Function for merging OISST data into existing NetCDF files

@@ -80,12 +80,14 @@ OISST_daily_nc_files <- dir("../data/OISST/daily", pattern = "oisst-avhrr", full
 oisst_dates <- OISST_dates_index(OISST_daily_nc_files)
 date_max <- max(oisst_dates$final_dates)
 
-# Builds all 1440 files in one pass over the daily archive. Safe to re-run if
-# interrupted - already-complete months are skipped and OISST_database_verify()
-# runs at the end to repair any longitude left short by a stalled worker
+# Builds all 1440 files with one block of longitudes per worker, each file
+# written once with its full time series. Safe to re-run if interrupted -
+# completed lon files are skipped and half-written ones never take the final name
 print(paste0("Began building 1440 OISST lon files at ", Sys.time()))
-OISST_database_build(date_max = date_max)
+OISST_database_build_blocks(out_dir = "../data/OISST")
 print(paste0("Finished building 1440 OISST lon files at ", Sys.time()))
+# Or the batch-append build (all lons per batch of daily files, much slower):
+# OISST_database_build(date_max = date_max)
 
 
 # 4: Build climatology (thresh) files for both baselines ---------------------
