@@ -32,10 +32,10 @@ MHW_event_files <- dir("../data/event", pattern = "MHW_", full.names = T)
 MCS_event_files <- dir("../data/event/MCS", pattern = "MCS_", full.names = T)
 MHW_seas_thresh_files <- dir("../data/thresh", pattern = "MHW_", full.names = T)
 MCS_seas_thresh_files <- dir("../data/thresh/MCS", pattern = "MCS_", full.names = T)
-MHW_cat_clim_files <- as.character(dir(path = "../data/cat_clim", pattern = "cat.clim", 
-                                   full.names = TRUE, recursive = TRUE)) |> str_subset("MCS", negate = T)
-MCS_cat_clim_files <- as.character(dir(path = "../data/cat_clim/MCS", pattern = "cat.clim", 
-                                   full.names = TRUE, recursive = TRUE))
+MHW_cat_clim_files <- dir(path = "../data/cat_clim", pattern = "cat.clim", 
+                                   full.names = TRUE, recursive = TRUE) |> str_subset("MCS", negate = T)
+MCS_cat_clim_files <- dir(path = "../data/cat_clim/MCS", pattern = "cat.clim", 
+                                   full.names = TRUE, recursive = TRUE)
 
 # The current date
 # NB: This script is running from a server in Atlantic Canada (UTC-3)

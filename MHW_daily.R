@@ -14,9 +14,6 @@
 ## 7: Push to GitHub
 ## 8: Maintenance
 
-# Prevent the cron job from running until the new databse has been rebuilt
-stop("Database is still rebuilding")
-
 
 # 1: Setup ----------------------------------------------------------------
 
@@ -39,6 +36,7 @@ source("MHW_daily_functions.R")
 # Workers independently source the same functions at startup so they end up with 
 # identical states to the main session (all libraries, metadata, custom functions)
 # to avoid relying on future's automatic global/package detection.
+if(exists("oisst_cl")) try(parallel::stopCluster(oisst_cl), silent = TRUE)
 n_workers <- max(1, floor(parallel::detectCores()/2))
 oisst_cwd <- getwd()
 oisst_cl <- parallelly::makeClusterPSOCK(
@@ -232,7 +230,7 @@ nc_close(ncdf_1440)
 # Get the range of dates that need to be run
 update_dates <- time_index[which(time_index >= max(prelim_dates)-14)] # ~4 minutes
 # Or manually control dates as desired
-# update_dates <- seq(as.Date("2026-10-17"), as.Date("2026-10-19"), by = "day")
+# update_dates <- seq(as.Date("2026-10-17"), as.Date("2026-10-20"), by = "day")
 # update_dates <- time_index[which(time_index >= max(final_dates)-7)]
 if(length(update_dates) > 0) {
   print(paste0("Updating global daily MHW/MCS cat files from ",min(update_dates)," to ",max(update_dates)))
